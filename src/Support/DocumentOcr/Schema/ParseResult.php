@@ -7,7 +7,7 @@ namespace Swoolefy\Support\DocumentOcr\Schema;
 /**
  * 统一解析输出。
  *
- * 上层只依赖 markdown + metadata，不绑定具体 Driver。
+ * 上层只依赖 markdown + assets + metadata，不绑定具体 Driver。
  * Factory::parseFile() 会在返回前统一走 MarkdownNormalizer。
  */
 final class ParseResult
@@ -18,7 +18,8 @@ final class ParseResult
      * @param string               $selectionReason  选择原因，便于日志调试
      * @param int                  $durationMs       解析耗时（毫秒）
      * @param string|null          $sourceHash       源文件内容 hash（sha256），便于后续缓存
-     * @param array<string, mixed> $metadata         扩展元数据
+     * @param array<string, mixed> $metadata         扩展元数据（含固定字段 parser/mime/extension 等）
+     * @param list<string>         $assets           解析产生的附属资源路径（如图片），可为空
      */
     public function __construct(
         public readonly string $markdown,
@@ -27,6 +28,7 @@ final class ParseResult
         public readonly int $durationMs = 0,
         public readonly ?string $sourceHash = null,
         public readonly array $metadata = [],
+        public readonly array $assets = [],
     ) {
     }
 
@@ -44,6 +46,7 @@ final class ParseResult
             durationMs: array_key_exists('durationMs', $overrides) ? (int) $overrides['durationMs'] : $this->durationMs,
             sourceHash: array_key_exists('sourceHash', $overrides) ? ($overrides['sourceHash'] !== null ? (string) $overrides['sourceHash'] : null) : $this->sourceHash,
             metadata: array_key_exists('metadata', $overrides) && is_array($overrides['metadata']) ? $overrides['metadata'] : $this->metadata,
+            assets: array_key_exists('assets', $overrides) && is_array($overrides['assets']) ? array_values($overrides['assets']) : $this->assets,
         );
     }
 }

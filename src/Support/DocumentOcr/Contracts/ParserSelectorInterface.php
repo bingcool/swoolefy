@@ -15,7 +15,7 @@ interface ParserSelectorInterface
     /**
      * @return array{0: DocumentParserInterface, 1: string} [parser, selectionReason]
      *
-     * @throws \Swoolefy\Support\DocumentOcr\Exceptions\UnsupportedDocumentTypeException
+     * @throws \Swoolefy\Support\DocumentOcr\Exceptions\UnsupportedDocumentException
      */
     public function select(DocumentSource $source, ?ParseOptions $options = null): array;
 }

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Swoolefy\Support\DocumentOcr\Loaders;
 
 use Swoolefy\Support\DocumentOcr\Contracts\DocumentLoaderInterface;
-use Swoolefy\Support\DocumentOcr\Exceptions\DocumentParseException;
+use Swoolefy\Support\DocumentOcr\Exceptions\DocumentException;
 use Swoolefy\Support\DocumentOcr\Schema\DocumentSource;
 
 /**
@@ -18,18 +18,18 @@ final class LocalFileLoader implements DocumentLoaderInterface
     /**
      * {@inheritdoc}
      *
-     * @throws DocumentParseException 文件不存在或不可读
+     * @throws DocumentException 文件不存在或不可读
      */
     public function load(string $path, array $metadata = []): DocumentSource
     {
         $path = trim($path);
         if ($path === '') {
-            throw new DocumentParseException('Document path must not be empty');
+            throw new DocumentException('Document path must not be empty');
         }
 
         $real = realpath($path);
         if ($real === false || !is_file($real) || !is_readable($real)) {
-            throw new DocumentParseException('Document file not found or not readable: ' . $path);
+            throw new DocumentException('Document file not found or not readable: ' . $path);
         }
 
         $extension = strtolower(pathinfo($real, PATHINFO_EXTENSION));

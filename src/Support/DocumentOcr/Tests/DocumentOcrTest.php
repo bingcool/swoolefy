@@ -5,8 +5,8 @@ declare(strict_types=1);
 /**
  * DocumentOcr 模块回归测试。
  *
- * 覆盖：AutoParser 选择、PDF 拒绝、Pandoc mock、DeepSeek OCR mock、
- * MarkdownNormalizer、ChunkingAdapter、超大图片、无效 JSON。
+ * 覆盖：AutoParser 选择（含 PDF）、Pandoc/OCR mock、超时校验、
+ * metadata 固定字段、异常体系、Chunking、边界。
  *
  * 运行：php src/Support/DocumentOcr/Tests/DocumentOcrTest.php
  * 或：composer test:document-ocr
@@ -14,8 +14,9 @@ declare(strict_types=1);
 
 use Swoolefy\Support\DocumentOcr\Chunking\ChunkingAdapter;
 use Swoolefy\Support\DocumentOcr\DocumentOcrFactory;
-use Swoolefy\Support\DocumentOcr\Exceptions\DocumentParseException;
-use Swoolefy\Support\DocumentOcr\Exceptions\UnsupportedDocumentTypeException;
+use Swoolefy\Support\DocumentOcr\Exceptions\DocumentException;
+use Swoolefy\Support\DocumentOcr\Exceptions\ParserException;
+use Swoolefy\Support\DocumentOcr\Exceptions\UnsupportedDocumentException;
 use Swoolefy\Support\DocumentOcr\Loaders\LocalFileLoader;
 use Swoolefy\Support\DocumentOcr\Markdown\MarkdownNormalizer;
 use Swoolefy\Support\DocumentOcr\Parsers\AutoParser;
@@ -67,19 +68,16 @@ function testAutoParserSelectsOcrForPng(): void
     assertTrue($reason === 'image_extension:png', 'png selection reason');
 }
 
-function testAutoParserRejectsPdf(): void
+function testAutoParserSelectsOcrForPdf(): void
 {
     $auto = new AutoParser([
         new PandocDriver(commandExecutor: static fn () => [0, '']),
         new DeepSeekOcrDriver(httpClient: static fn () => ['markdown' => 'x']),
     ]);
 
-    try {
-        $auto->select(new DocumentSource('/tmp/a.pdf', 'pdf'));
-        throw new RuntimeException('pdf should throw');
-    } catch (UnsupportedDocumentTypeException $e) {
-        assertTrue(str_contains($e->getMessage(), 'PDF'), 'pdf message');
-    }
+    [$parser, $reason] = $auto->select(new DocumentSource('/tmp/a.pdf', 'pdf'));
+    assertTrue($parser->name() === DeepSeekOcrDriver::NAME, 'pdf → deepseek_ocr');
+    assertTrue($reason === 'pdf_direct_deepseek_ocr', 'pdf selection reason');
 }
 
 function testForcedParser(): void
@@ -95,6 +93,23 @@ function testForcedParser(): void
     );
     assertTrue($parser->name() === 'pandoc', 'forced pandoc');
     assertTrue($reason === 'forced_parser:pandoc', 'forced reason');
+}
+
+function testUnsupportedExtensionThrows(): void
+{
+    $auto = new AutoParser([
+        new PandocDriver(commandExecutor: static fn () => [0, '']),
+        new DeepSeekOcrDriver(httpClient: static fn () => ['markdown' => 'x']),
+    ]);
+
+    try {
+        $auto->select(new DocumentSource('/tmp/a.xlsx', 'xlsx'));
+        throw new RuntimeException('xlsx should throw');
+    } catch (UnsupportedDocumentException $e) {
+        assertTrue(str_contains($e->getMessage(), 'xlsx'), 'unsupported message');
+        assertTrue($e instanceof ParserException, 'is ParserException');
+        assertTrue($e instanceof DocumentException, 'is DocumentException');
+    }
 }
 
 function testPandocDriverWithMockExecutor(): void
@@ -115,6 +130,9 @@ function testPandocDriverWithMockExecutor(): void
     $result = $driver->parse((new LocalFileLoader())->load($input));
     assertTrue($result->parserName === 'pandoc', 'parser name');
     assertTrue(str_contains($result->markdown, 'Hello'), 'markdown content');
+    assertTrue(($result->metadata['parser'] ?? '') === 'pandoc', 'metadata.parser');
+    assertTrue(($result->metadata['extension'] ?? '') === 'html', 'metadata.extension');
+    assertTrue(isset($result->metadata['sourcePath']), 'metadata.sourcePath');
     assertTrue($result->sourceHash !== null, 'source hash set');
 
     @unlink($input);
@@ -133,7 +151,7 @@ function testPandocDriverFailure(): void
     try {
         $driver->parse((new LocalFileLoader())->load($input));
         throw new RuntimeException('should fail');
-    } catch (DocumentParseException $e) {
+    } catch (ParserException $e) {
         assertTrue(str_contains($e->getMessage(), 'exit code 1'), 'exit code in message');
     }
 
@@ -146,9 +164,10 @@ function testDeepSeekOcrDriverMock(): void
     $driver = new DeepSeekOcrDriver(
         httpClient: static function (string $uri, array $multipart): array {
             assertTrue(str_contains($uri, '/api/ocr'), 'ocr endpoint');
+            assertTrue(!str_contains($uri, '/api/ocr/pdf'), 'not pdf endpoint');
             assertTrue(count($multipart) >= 1, 'multipart has file');
 
-            return ['markdown' => '# OCR Result\n\n识别文字'];
+            return ['markdown' => "# OCR Result\n\n识别文字"];
         },
     );
 
@@ -156,6 +175,28 @@ function testDeepSeekOcrDriverMock(): void
     assertTrue($result->parserName === 'deepseek_ocr', 'ocr parser');
     assertTrue(str_contains($result->markdown, '识别文字'), 'ocr markdown');
     assertTrue($result->selectionReason === 'image_extension:png', 'ocr reason');
+    assertTrue(($result->metadata['parser'] ?? '') === 'deepseek_ocr', 'metadata.parser');
+    assertTrue(isset($result->metadata['endpoint']), 'metadata.endpoint');
+
+    @unlink($input);
+}
+
+function testDeepSeekOcrPdfUsesPdfEndpoint(): void
+{
+    $input = tempFile('.pdf', '%PDF-1.4 fake');
+    $seenUri = '';
+    $driver = new DeepSeekOcrDriver(
+        httpClient: static function (string $uri, array $multipart) use (&$seenUri): array {
+            $seenUri = $uri;
+
+            return ['text' => 'PDF page text'];
+        },
+    );
+
+    $result = $driver->parse((new LocalFileLoader())->load($input));
+    assertTrue(str_contains($seenUri, '/api/ocr/pdf'), 'pdf endpoint used');
+    assertTrue($result->selectionReason === 'pdf_direct_deepseek_ocr', 'pdf reason');
+    assertTrue($result->markdown === 'PDF page text', 'pdf text field');
 
     @unlink($input);
 }
@@ -164,14 +205,14 @@ function testDeepSeekOcrInvalidJsonFields(): void
 {
     $input = tempFile('.jpg', 'bytes');
     $driver = new DeepSeekOcrDriver(
-        retryTimes: 0,
+        maxRetryNum: 0,
         httpClient: static fn (): array => ['status' => 'ok'],
     );
 
     try {
         $driver->parse((new LocalFileLoader())->load($input));
         throw new RuntimeException('should fail on missing markdown');
-    } catch (DocumentParseException $e) {
+    } catch (ParserException $e) {
         assertTrue(str_contains($e->getMessage(), 'markdown'), 'missing markdown');
     }
 
@@ -189,11 +230,21 @@ function testDeepSeekOcrMaxFileSize(): void
     try {
         $driver->parse((new LocalFileLoader())->load($input));
         throw new RuntimeException('should reject oversized file');
-    } catch (DocumentParseException $e) {
+    } catch (ParserException $e) {
         assertTrue(str_contains($e->getMessage(), 'max file size'), 'size message');
     }
 
     @unlink($input);
+}
+
+function testDeepSeekOcrTimeoutValidation(): void
+{
+    try {
+        new DeepSeekOcrDriver(timeout: 2, connectTimeout: 3);
+        throw new RuntimeException('should reject invalid timeout');
+    } catch (ParserException $e) {
+        assertTrue(str_contains($e->getMessage(), 'time_out'), 'timeout message');
+    }
 }
 
 function testDeepSeekOcrDataMarkdownField(): void
@@ -207,6 +258,13 @@ function testDeepSeekOcrDataMarkdownField(): void
     assertTrue($result->markdown === 'from data.markdown', 'data.markdown field');
 
     @unlink($input);
+}
+
+function testDeepSeekEndpointFor(): void
+{
+    $driver = new DeepSeekOcrDriver(httpClient: static fn (): array => ['markdown' => 'x']);
+    assertTrue($driver->endpointFor('png') === '/api/ocr', 'image endpoint');
+    assertTrue($driver->endpointFor('pdf') === '/api/ocr/pdf', 'pdf endpoint');
 }
 
 function testMarkdownNormalizer(): void
@@ -259,12 +317,30 @@ function testFactoryParseFileNormalizes(): void
     @unlink($input);
 }
 
+function testFactoryFromConfigPdfEnabled(): void
+{
+    $factory = DocumentOcrFactory::fromConfig([
+        'pandoc' => ['enabled' => false],
+        'deepseek_ocr' => [
+            'enabled' => true,
+            'allowed_extensions' => ['png', 'jpg', 'jpeg', 'pdf'],
+            'pdf_endpoint' => '/api/ocr/pdf',
+        ],
+    ]);
+
+    $auto = $factory->parser();
+    assertTrue($auto instanceof AutoParser, 'auto parser');
+    [$parser, $reason] = $auto->select(new DocumentSource('/tmp/x.pdf', 'pdf'));
+    assertTrue($parser->name() === 'deepseek_ocr', 'pdf driver from config');
+    assertTrue($reason === 'pdf_direct_deepseek_ocr', 'pdf reason from config');
+}
+
 function testLocalFileLoaderMissingFile(): void
 {
     try {
         (new LocalFileLoader())->load('/tmp/not-exists-' . uniqid('', true) . '.docx');
         throw new RuntimeException('should fail');
-    } catch (DocumentParseException $e) {
+    } catch (DocumentException $e) {
         assertTrue(str_contains($e->getMessage(), 'not found'), 'missing file');
     }
 }
@@ -276,7 +352,6 @@ function testWorkDirectoryPathSafety(): void
     $job = $work->createJobDir('t');
     assertTrue(is_dir($job), 'job dir created');
 
-    // 不允许删除 work_dir 外路径（应静默跳过）
     $outside = sys_get_temp_dir() . '/swoolefy_ocr_outside_' . bin2hex(random_bytes(3));
     mkdir($outside);
     file_put_contents($outside . '/x.txt', 'keep');
@@ -292,17 +367,22 @@ function testWorkDirectoryPathSafety(): void
 $tests = [
     'auto selects pandoc for docx' => 'testAutoParserSelectsPandocForDocx',
     'auto selects ocr for png' => 'testAutoParserSelectsOcrForPng',
-    'auto rejects pdf' => 'testAutoParserRejectsPdf',
+    'auto selects ocr for pdf' => 'testAutoParserSelectsOcrForPdf',
     'forced parser' => 'testForcedParser',
+    'unsupported extension throws' => 'testUnsupportedExtensionThrows',
     'pandoc mock executor' => 'testPandocDriverWithMockExecutor',
     'pandoc failure' => 'testPandocDriverFailure',
     'deepseek ocr mock' => 'testDeepSeekOcrDriverMock',
+    'deepseek pdf endpoint' => 'testDeepSeekOcrPdfUsesPdfEndpoint',
     'deepseek invalid json' => 'testDeepSeekOcrInvalidJsonFields',
     'deepseek max file size' => 'testDeepSeekOcrMaxFileSize',
+    'deepseek timeout validation' => 'testDeepSeekOcrTimeoutValidation',
     'deepseek data.markdown' => 'testDeepSeekOcrDataMarkdownField',
+    'deepseek endpointFor' => 'testDeepSeekEndpointFor',
     'markdown normalizer' => 'testMarkdownNormalizer',
     'chunking adapter' => 'testChunkingAdapter',
     'factory parseFile normalize' => 'testFactoryParseFileNormalizes',
+    'factory fromConfig pdf' => 'testFactoryFromConfigPdfEnabled',
     'loader missing file' => 'testLocalFileLoaderMissingFile',
     'work dir path safety' => 'testWorkDirectoryPathSafety',
 ];

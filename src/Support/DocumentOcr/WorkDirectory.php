@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\DocumentOcr;
 
-use Swoolefy\Support\DocumentOcr\Exceptions\DocumentParseException;
+use Swoolefy\Support\DocumentOcr\Exceptions\DocumentException;
 
 /**
  * 解析临时工作目录助手。
@@ -26,11 +26,11 @@ final class WorkDirectory
     {
         $base = rtrim($this->baseDir, DIRECTORY_SEPARATOR);
         if ($base === '') {
-            throw new DocumentParseException('DocumentOcr work_dir must not be empty');
+            throw new DocumentException('DocumentOcr work_dir must not be empty');
         }
 
         if (!is_dir($base) && !@mkdir($base, 0775, true) && !is_dir($base)) {
-            throw new DocumentParseException('Failed to create DocumentOcr work_dir: ' . $base);
+            throw new DocumentException('Failed to create DocumentOcr work_dir: ' . $base);
         }
 
         return $base;
@@ -46,7 +46,7 @@ final class WorkDirectory
         $dir = $base . DIRECTORY_SEPARATOR . $name;
 
         if (!@mkdir($dir, 0775, true) && !is_dir($dir)) {
-            throw new DocumentParseException('Failed to create DocumentOcr job dir: ' . $dir);
+            throw new DocumentException('Failed to create DocumentOcr job dir: ' . $dir);
         }
 
         return $dir;

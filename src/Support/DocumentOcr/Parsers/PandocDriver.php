@@ -6,7 +6,8 @@ namespace Swoolefy\Support\DocumentOcr\Parsers;
 
 use Swoolefy\Core\CommandRunner;
 use Swoolefy\Support\DocumentOcr\Contracts\DocumentParserInterface;
-use Swoolefy\Support\DocumentOcr\Exceptions\DocumentParseException;
+use Swoolefy\Support\DocumentOcr\Exceptions\ParserException;
+use Swoolefy\Support\DocumentOcr\Exceptions\UnsupportedDocumentException;
 use Swoolefy\Support\DocumentOcr\Schema\DocumentSource;
 use Swoolefy\Support\DocumentOcr\Schema\ParseOptions;
 use Swoolefy\Support\DocumentOcr\Schema\ParseResult;
@@ -56,7 +57,7 @@ final class PandocDriver implements DocumentParserInterface
     public function parse(DocumentSource $source, ?ParseOptions $options = null): ParseResult
     {
         if (!$this->supports($source)) {
-            throw new DocumentParseException(
+            throw new UnsupportedDocumentException(
                 'PandocDriver does not support extension: ' . $source->extension,
             );
         }
@@ -78,32 +79,40 @@ final class PandocDriver implements DocumentParserInterface
 
             [$exitCode, $message] = $this->runPandoc($rawArgs, $outputFile);
             if ($exitCode !== 0) {
-                throw new DocumentParseException(
+                throw new ParserException(
                     'pandoc failed with exit code ' . $exitCode . ($message !== '' ? ': ' . $message : ''),
                 );
             }
 
             if (!is_file($outputFile)) {
-                throw new DocumentParseException('pandoc did not produce output file: ' . $outputFile);
+                throw new ParserException('pandoc did not produce output file: ' . $outputFile);
             }
 
             $markdown = (string) file_get_contents($outputFile);
+            $durationMs = (int) ((microtime(true) - $startedAt) * 1000);
+            $sourceHash = hash_file('sha256', $source->path) ?: null;
 
             return new ParseResult(
                 markdown: $markdown,
                 parserName: self::NAME,
                 selectionReason: 'structured_format:' . $source->extension,
-                durationMs: (int) ((microtime(true) - $startedAt) * 1000),
-                sourceHash: hash_file('sha256', $source->path) ?: null,
-                metadata: [
+                durationMs: $durationMs,
+                sourceHash: $sourceHash,
+                metadata: array_merge($source->metadata, [
+                    'parser' => self::NAME,
+                    'mime' => $source->mimeType,
                     'extension' => $source->extension,
+                    'durationMs' => $durationMs,
+                    'sourcePath' => $source->path,
+                    'sourceHash' => $sourceHash,
+                    'workDir' => $jobDir,
                     'outputFormat' => $this->outputFormat,
-                ],
+                ]),
             );
-        } catch (DocumentParseException $e) {
+        } catch (UnsupportedDocumentException|ParserException $e) {
             throw $e;
         } catch (Throwable $e) {
-            throw new DocumentParseException('pandoc parse failed: ' . $e->getMessage(), 0, $e);
+            throw new ParserException('pandoc parse failed: ' . $e->getMessage(), 0, $e);
         } finally {
             $this->workDirectory->removeDir($jobDir);
         }
@@ -119,7 +128,7 @@ final class PandocDriver implements DocumentParserInterface
         if ($this->commandExecutor !== null) {
             $result = ($this->commandExecutor)($this->bin, $rawArgs, $outputFile);
             if (!is_array($result) || !isset($result[0])) {
-                throw new DocumentParseException('Invalid pandoc commandExecutor return value');
+                throw new ParserException('Invalid pandoc commandExecutor return value');
             }
 
             return [(int) $result[0], (string) ($result[1] ?? '')];
@@ -128,7 +137,7 @@ final class PandocDriver implements DocumentParserInterface
         $runner = CommandRunner::getInstance($this->runnerName, max(1, $this->concurrent));
         // 文档要求：exec 前必须 isNextHandle
         if (!$runner->isNextHandle(true, 120)) {
-            throw new DocumentParseException('pandoc runner concurrent limit reached, try again later');
+            throw new ParserException('pandoc runner concurrent limit reached, try again later');
         }
 
         // CommandRunner 数值键参数原样拼接，路径必须自行 escapeshellarg

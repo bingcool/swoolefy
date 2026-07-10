@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\DocumentOcr;
 
+use GuzzleHttp\Client;
 use Swoolefy\Support\DocumentOcr\Chunking\ChunkingAdapter;
 use Swoolefy\Support\DocumentOcr\Contracts\DocumentLoaderInterface;
 use Swoolefy\Support\DocumentOcr\Contracts\DocumentParserInterface;
@@ -36,9 +37,10 @@ final class DocumentOcrFactory
     /**
      * 从配置数组装配工厂。
      *
-     * @param array<string, mixed> $config document_ocr.php 返回值
+     * @param array<string, mixed> $config         document_ocr.php 返回值
+     * @param Client|null          $deepSeekClient 可选外部 Guzzle Client；注入后优先于默认 Client
      */
-    public static function fromConfig(array $config): self
+    public static function fromConfig(array $config, ?Client $deepSeekClient = null): self
     {
         $parsers = [];
 
@@ -56,16 +58,27 @@ final class DocumentOcrFactory
 
         $ocr = is_array($config['deepseek_ocr'] ?? null) ? $config['deepseek_ocr'] : [];
         if (self::isEnabled($ocr['enabled'] ?? true)) {
+            // 兼容旧键 timeout / retry.times
+            $timeout = (float) ($ocr['time_out'] ?? $ocr['timeout'] ?? 120);
+            $connectTimeout = (float) ($ocr['connect_timeout'] ?? 3);
+            $maxRetryNum = (int) ($ocr['max_retry_num'] ?? $ocr['retry']['times'] ?? $ocr['retry_times'] ?? 1);
+            $retrySleepMs = (int) ($ocr['retry_sleep_ms'] ?? 1000);
+
             $parsers[] = new DeepSeekOcrDriver(
                 baseUri: (string) ($ocr['base_uri'] ?? 'http://127.0.0.1:7860'),
                 endpoint: (string) ($ocr['endpoint'] ?? '/api/ocr'),
-                timeout: (float) ($ocr['timeout'] ?? 120),
+                pdfEndpoint: (string) ($ocr['pdf_endpoint'] ?? '/api/ocr/pdf'),
+                timeout: $timeout,
+                connectTimeout: $connectTimeout,
                 cleanTemp: (bool) ($ocr['clean_temp'] ?? true),
                 outputMmd: (bool) ($ocr['output_mmd'] ?? true),
-                allowedExtensions: self::stringList($ocr['allowed_extensions'] ?? ['png', 'jpg', 'jpeg']),
-                maxFileSize: max(1, (int) ($ocr['max_file_size'] ?? 10_485_760)),
-                retryTimes: max(0, (int) ($ocr['retry']['times'] ?? $ocr['retry_times'] ?? 1)),
+                allowedExtensions: self::stringList($ocr['allowed_extensions'] ?? ['png', 'jpg', 'jpeg', 'pdf']),
+                maxFileSize: max(1, (int) ($ocr['max_file_size'] ?? 20_971_520)),
+                pdfMaxFileSize: max(1, (int) ($ocr['pdf_max_file_size'] ?? 104_857_600)),
+                maxRetryNum: max(0, $maxRetryNum),
+                retrySleepMs: max(0, $retrySleepMs),
                 workDirectory: new WorkDirectory((string) ($ocr['work_dir'] ?? '/tmp/swoolefy_document_ocr/deepseek')),
+                httpClient: $deepSeekClient,
             );
         }
 

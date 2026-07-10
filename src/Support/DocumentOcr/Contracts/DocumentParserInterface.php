@@ -22,8 +22,10 @@ interface DocumentParserInterface
     /**
      * 将文档解析为 Markdown。
      *
-     * @throws \Swoolefy\Support\DocumentOcr\Exceptions\DocumentParseException
-     * @throws \Swoolefy\Support\DocumentOcr\Exceptions\UnsupportedDocumentTypeException
+     * 不支持时抛 UnsupportedDocumentException；执行失败抛 ParserException。
+     *
+     * @throws \Swoolefy\Support\DocumentOcr\Exceptions\ParserException
+     * @throws \Swoolefy\Support\DocumentOcr\Exceptions\UnsupportedDocumentException
      */
     public function parse(DocumentSource $source, ?ParseOptions $options = null): ParseResult;
 }
