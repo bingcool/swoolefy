@@ -39,7 +39,7 @@ return [
                 // 对应 Config/component/cache.php 组件别名
                 'component' => env('WORKFLOW_REDIS_COMPONENT', 'redis'),
                 'prefix' => env('WORKFLOW_REDIS_PREFIX', 'workflow:run:'),
-                // 0 表示不过期；生产 HITL 任务可能跨天/跨周审批，避免默认 TTL 导致 Run 丢失
+                // 非 WAITING 过期秒数（0=不过期）；WAITING（HITL）写入时强制不设 TTL
                 'ttl' => (int) env('WORKFLOW_REDIS_TTL', 0),
             ],
 

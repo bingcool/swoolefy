@@ -28,6 +28,10 @@ use Throwable;
  *
  * 存储格式：JSON（{@see WorkflowRunSnapshot}），key = {prefix}{runId}
  *
+ * TTL：
+ *   - 非 WAITING：使用构造参数 ttlSeconds（SETEX）；0 表示永不过期
+ *   - WAITING：强制不设过期（SET），避免 HITL 长暂停期间 key 过期导致 resume 失败
+ *
  * CAS：{@see saveIfStatus()} 通过 Lua 脚本在 Redis 服务端原子比对 status 后写入。
  */
 final class RedisRunStore implements RunStoreInterface, PauseTaskQueryableInterface
@@ -36,7 +40,7 @@ final class RedisRunStore implements RunStoreInterface, PauseTaskQueryableInterf
      * KEYS[1] = run key
      * ARGV[1] = expected status
      * ARGV[2] = new JSON payload
-     * ARGV[3] = ttl seconds（0 表示 SET 不带过期）
+     * ARGV[3] = ttl seconds（0 表示 SET 不带过期，并清除旧 TTL）
      *
      * @return int 1 = CAS 成功，0 = key 不存在或 status 不匹配
      */
@@ -71,9 +75,11 @@ LUA;
     {
         $key = $this->key($run->runId);
         $json = json_encode(WorkflowRunSnapshot::fromRun($run)->toArray(), JSON_THROW_ON_ERROR);
-        if ($this->ttlSeconds > 0) {
-            $this->redis->setex($key, $this->ttlSeconds, $json);
+        $ttl = $this->ttlFor($run);
+        if ($ttl > 0) {
+            $this->redis->setex($key, $ttl, $json);
         } else {
+            // WAITING 或 ttl=0：无过期写入；SET 会清除先前 SETEX 留下的 TTL
             $this->redis->set($key, $json);
         }
     }
@@ -94,7 +100,7 @@ LUA;
         try {
             $result = $this->evalScript(
                 self::CAS_LUA,
-                [$key, $expectedStatus->value, $json, (string) $this->ttlSeconds],
+                [$key, $expectedStatus->value, $json, (string) $this->ttlFor($run)],
                 1,
             );
         } catch (Throwable $e) {
@@ -106,6 +112,18 @@ LUA;
         }
 
         return (int) $result === 1;
+    }
+
+    /**
+     * WAITING（HITL）永不因业务 TTL 过期；其余状态沿用 ttlSeconds。
+     */
+    private function ttlFor(WorkflowRun $run): int
+    {
+        if ($run->status === RunStatus::WAITING) {
+            return 0;
+        }
+
+        return $this->ttlSeconds > 0 ? $this->ttlSeconds : 0;
     }
 
     /** {@inheritdoc} */

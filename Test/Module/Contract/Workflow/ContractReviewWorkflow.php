@@ -63,7 +63,7 @@ final class ContractReviewWorkflow
             ->addConditionalEdges('legal_review', [
                 'publish' => EdgeCondition::when("data['feedback']['approved'] == true"),
                 'revise_contract' => EdgeCondition::when("data['feedback']['approved'] == false"),
-            ])
+            ], default: 'revise_contract')
             ->addEdge('revise_contract', 'legal_review');
     }
 }

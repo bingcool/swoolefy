@@ -40,8 +40,9 @@ use Swoolefy\Support\Workflow\Node\PauseNode;
  *   2. 边上引用的 from / to 必须已注册
  *   3. 同一源节点不能同时有「固定边」与「条件边组」
  *   4. 同一源节点最多一条固定出边（ALWAYS）
- *   5. 图中存在环，且环上 **没有** PauseNode（无限循环风险）
- *   6. 必须存在入口节点（入度为 0）
+ *   5. 条件边组必须声明 default（避免运行时无匹配才失败）
+ *   6. 图中存在环，且环上 **没有** PauseNode（无限循环风险）
+ *   7. 必须恰好一个入口节点（入度为 0）；多入口与 Engine 单入口执行模型冲突
  *
  * ---------------------------------------------------------------------------
  * 编译期 warning（写入 CompiledWorkflow::warnings()，不阻断）
@@ -79,13 +80,13 @@ final class WorkflowCompiler
      * 编译工作流定义 → 只读 CompiledWorkflow。
      *
      * 步骤概览：
-     *   1. 校验节点非空
-     *   2. 扫描固定边：节点存在性、与条件边互斥、单出边
-     *   3. 扫描条件边组：目标存在性、重叠 warning
-     *   4. 建邻接表 → 环检测（PauseNode 例外）
-     *   5. 计入度 → 找入口 → 可达性 warning
-     *   6. 组装 CompiledWorkflow（拷贝 schemas / plugins / metadata）
-     *
+ *   1. 校验节点非空
+ *   2. 扫描固定边：节点存在性、与条件边互斥、单出边
+ *   3. 扫描条件边组：目标存在性、强制 default、重叠 warning
+ *   4. 建邻接表 → 环检测（PauseNode 例外）
+ *   5. 计入度 → 恰好一个入口 → 可达性 warning
+ *   6. 组装 CompiledWorkflow（拷贝 schemas / plugins / metadata）
+ *
      * @throws WorkflowCompileException 任一硬约束失败
      */
     public function compile(WorkflowDefinition $definition): CompiledWorkflow
@@ -139,9 +140,13 @@ final class WorkflowCompiler
                 $this->assertNodeExists($target, $nodeIds, 'conditional branch target');
             }
 
-            if ($group->default !== null) {
-                $this->assertNodeExists($group->default, $nodeIds, 'conditional default target');
+            // 强制 default：无匹配时若仅运行时报错，生产易 late failure。
+            if ($group->default === null) {
+                throw new WorkflowCompileException(
+                    "Conditional edges from {$from} must declare a default target"
+                );
             }
+            $this->assertNodeExists($group->default, $nodeIds, 'conditional default target');
 
             // 多分支时提示「可能重叠」：编译期不求值表达式，只提醒运行时 first-match-wins。
             $warnings = [...$warnings, ...$this->detectOverlappingConditions($group)];
@@ -162,7 +167,7 @@ final class WorkflowCompiler
 
         // --- 5) 入度与入口节点 ---
         // 入度统计：谁被固定边 / 条件分支 / default 指向。
-        // 入度 = 0 的节点视为入口（通常只有一个；允许多入口，Engine 从 entryNodes 启动）。
+        // 入度 = 0 的节点视为入口；Engine 仅从唯一入口启动，多入口其余成死代码。
         $incoming = array_fill_keys($nodeIds, 0);
         foreach ($fixedEdges as $to) {
             // 入度只统计被指向的目标节点。
@@ -172,6 +177,7 @@ final class WorkflowCompiler
             foreach (array_keys($group->branches) as $target) {
                 $incoming[$target]++;
             }
+            // default 已在上方强制非 null；保留判断供静态分析
             if ($group->default !== null) {
                 $incoming[$group->default]++;
             }
@@ -188,6 +194,11 @@ final class WorkflowCompiler
         // 若因 Pause 放过环但仍无入口，这里再拦一道。
         if ($entryNodes === []) {
             throw new WorkflowCompileException('Workflow has no entry node');
+        }
+        if (count($entryNodes) > 1) {
+            throw new WorkflowCompileException(
+                'Workflow must have exactly one entry node, found: ' . implode(', ', $entryNodes)
+            );
         }
 
         // --- 6) 可达性（warning）---

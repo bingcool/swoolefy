@@ -68,6 +68,42 @@ function testCompilerDetectsCycle(): void
     }
 }
 
+/** 测试：条件边缺少 default 应在编译期失败。 */
+function testCompilerRequiresConditionalDefault(): void
+{
+    $definition = \Swoolefy\Support\Workflow\Definition\WorkflowDefinition::create('no_default')
+        ->addNode('a', new \Swoolefy\Support\Workflow\Node\ClosureNode('a', fn () => \Swoolefy\Support\Workflow\Engine\NodeExecutionResult::success()))
+        ->addNode('b', new \Swoolefy\Support\Workflow\Node\ClosureNode('b', fn () => \Swoolefy\Support\Workflow\Engine\NodeExecutionResult::success()))
+        ->addConditionalEdges('a', [
+            'b' => EdgeCondition::when('true'),
+        ]);
+
+    try {
+        (new WorkflowCompiler())->compile($definition);
+        throw new RuntimeException('Expected missing default to fail at compile time');
+    } catch (\Swoolefy\Support\Workflow\Exception\WorkflowCompileException $e) {
+        assertTrue(str_contains($e->getMessage(), 'default'), 'message mentions default');
+    }
+}
+
+/** 测试：多入口图应在编译期失败（Engine 只执行第一个入口）。 */
+function testCompilerRejectsMultipleEntryNodes(): void
+{
+    $definition = \Swoolefy\Support\Workflow\Definition\WorkflowDefinition::create('multi_entry')
+        ->addNode('entry_a', new \Swoolefy\Support\Workflow\Node\ClosureNode('entry_a', fn () => \Swoolefy\Support\Workflow\Engine\NodeExecutionResult::success()))
+        ->addNode('entry_b', new \Swoolefy\Support\Workflow\Node\ClosureNode('entry_b', fn () => \Swoolefy\Support\Workflow\Engine\NodeExecutionResult::success()))
+        ->addNode('join', new \Swoolefy\Support\Workflow\Node\ClosureNode('join', fn () => \Swoolefy\Support\Workflow\Engine\NodeExecutionResult::success()))
+        ->addEdge('entry_a', 'join')
+        ->addEdge('entry_b', 'join');
+
+    try {
+        (new WorkflowCompiler())->compile($definition);
+        throw new RuntimeException('Expected multiple entry nodes to fail at compile time');
+    } catch (\Swoolefy\Support\Workflow\Exception\WorkflowCompileException $e) {
+        assertTrue(str_contains($e->getMessage(), 'exactly one entry'), 'message mentions single entry');
+    }
+}
+
 /** 测试：高置信度批准应直连 payment，跳过 manual_review。 */
 function testConditionalRoutingHighConfidence(): void
 {
@@ -194,6 +230,8 @@ function testExpressionEvaluator(): void
 
 $tests = [
     'compiler cycle detection' => 'testCompilerDetectsCycle',
+    'compiler requires conditional default' => 'testCompilerRequiresConditionalDefault',
+    'compiler rejects multiple entry nodes' => 'testCompilerRejectsMultipleEntryNodes',
     'expression evaluator' => 'testExpressionEvaluator',
     'chat history factory in-memory' => 'testChatHistoryFactoryInMemory',
     'route high confidence' => 'testConditionalRoutingHighConfidence',

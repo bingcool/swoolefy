@@ -56,7 +56,10 @@ final class DagScheduler
         return $compiled->fixedEdge($fromNode);
     }
 
-    /** 按分支顺序求值条件边组，无匹配时使用 default。 */
+    /**
+     * 按分支顺序求值条件边组，无匹配时使用 default。
+     * Compiler 已强制 default 非 null；此处保留防御性检查。
+     */
     private function resolveConditionalGroup(
         ConditionalEdgeGroup $group,
         WorkflowState $state,

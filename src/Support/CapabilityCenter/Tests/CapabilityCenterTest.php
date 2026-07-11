@@ -292,6 +292,83 @@ function testCapabilityCenterMaterializesOnlyResolvedTools(): void
 }
 
 /**
+ * maxSchemaTools 截断时优先保留 pinned，不被 matched 挤掉。
+ *
+ * 场景：maxSchemaTools=2，2 个 pinned + 多个 matched → 结果仅为 2 个 pinned。
+ */
+function testMaxSchemaToolsPrefersPinned(): void
+{
+    $registry = new InMemoryCapabilityRegistry();
+    $registry->registerBatch([
+        makeCapabilityDescriptor('native:pin_a', ['audit'], ['description' => 'Pinned A']),
+        makeCapabilityDescriptor('native:pin_b', ['audit'], ['description' => 'Pinned B']),
+        makeCapabilityDescriptor('native:weather', ['weather'], ['description' => 'Get weather forecast']),
+        makeCapabilityDescriptor('native:date', ['date'], ['description' => 'Get current date']),
+    ]);
+
+    $center = new CapabilityCenter(
+        resolver: new CompositeToolResolver($registry),
+        materializer: new LazyToolMaterializer(nativeFactories: [
+            'native:pin_a' => static fn () => Tool::make('pin_a', 'Pinned A'),
+            'native:pin_b' => static fn () => Tool::make('pin_b', 'Pinned B'),
+            'native:weather' => static fn () => Tool::make('get_weather', 'Get weather'),
+            'native:date' => static fn () => Tool::make('get_date', 'Get date'),
+        ]),
+        maxSchemaTools: 2,
+    );
+
+    $tools = $center->resolveTools(new ToolResolveContext(
+        query: 'weather date',
+        agentId: 'test',
+        tenantId: null,
+        userId: null,
+        pinnedToolIds: ['native:pin_a', 'native:pin_b'],
+        topK: 2,
+    ));
+
+    $names = array_map(static fn (ToolInterface $t) => $t->getName(), $tools);
+    assertTrue(count($tools) === 2, 'respects maxSchemaTools');
+    assertTrue($names === ['pin_a', 'pin_b'], 'both pinned kept; matched truncated');
+}
+
+/**
+ * pinned 未占满预算时，剩余名额给 matched。
+ */
+function testMaxSchemaToolsKeepsPinnedThenMatched(): void
+{
+    $registry = new InMemoryCapabilityRegistry();
+    $registry->registerBatch([
+        makeCapabilityDescriptor('native:pin_a', ['audit'], ['description' => 'Pinned A']),
+        makeCapabilityDescriptor('native:weather', ['weather'], ['description' => 'Get weather forecast']),
+        makeCapabilityDescriptor('native:date', ['date'], ['description' => 'Get current date']),
+    ]);
+
+    $center = new CapabilityCenter(
+        resolver: new CompositeToolResolver($registry),
+        materializer: new LazyToolMaterializer(nativeFactories: [
+            'native:pin_a' => static fn () => Tool::make('pin_a', 'Pinned A'),
+            'native:weather' => static fn () => Tool::make('get_weather', 'Get weather'),
+            'native:date' => static fn () => Tool::make('get_date', 'Get date'),
+        ]),
+        maxSchemaTools: 2,
+    );
+
+    $tools = $center->resolveTools(new ToolResolveContext(
+        query: 'weather date',
+        agentId: 'test',
+        tenantId: null,
+        userId: null,
+        pinnedToolIds: ['native:pin_a'],
+        topK: 2,
+    ));
+
+    $names = array_map(static fn (ToolInterface $t) => $t->getName(), $tools);
+    assertTrue(count($tools) === 2, 'fills remaining slot');
+    assertTrue($names[0] === 'pin_a', 'pinned first');
+    assertTrue(in_array($names[1], ['get_weather', 'get_date'], true), 'one matched fills budget');
+}
+
+/**
  * 验证 NeuronAiConfig capability 段读取与 CapabilityComponentFactory 配置注册 Native descriptor。
  */
 function testCapabilityConfigAndFactoryNativeDescriptors(): void
@@ -447,6 +524,8 @@ $tests = [
     'empty mcpServers filters MCP' => 'testEmptyMcpServersFiltersAllMcpTools',
     'registry tenant isolation' => 'testRegistryTenantIsolation',
     'materialize selected only' => 'testCapabilityCenterMaterializesOnlyResolvedTools',
+    'max schema prefers pinned' => 'testMaxSchemaToolsPrefersPinned',
+    'max schema pinned then matched' => 'testMaxSchemaToolsKeepsPinnedThenMatched',
     'config and factory native descriptors' => 'testCapabilityConfigAndFactoryNativeDescriptors',
     'registry unregister by source' => 'testRegistryUnregisterBySource',
     'mcp sync removes deleted tools' => 'testMcpCapabilitySyncRemovesDeletedTools',

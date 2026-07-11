@@ -197,7 +197,7 @@ final class WorkflowDefinition
      * 同源多分支条件边（AI 决策 / HITL 路由推荐用法）。
      *
      * @param array<string, EdgeCondition|callable> $branches 目标节点 id => 条件
-     * @param string|null                           $default  无匹配时的兜底目标，避免运行失败
+     * @param string|null                           $default  无匹配时的兜底目标（编译期强制非 null）
      */
     public function addConditionalEdges(string $from, array $branches, ?string $default = null): self
     {

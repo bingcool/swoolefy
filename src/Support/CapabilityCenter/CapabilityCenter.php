@@ -45,7 +45,8 @@ final class CapabilityCenter
     /**
      * 解析并 materialize 工具，返回可注入 Agent 的 ToolInterface 列表。
      *
-     * 流程：resolve → 逐个 materialize → maxSchemaTools 截断。
+     * 流程：resolve → 逐个 materialize → maxSchemaTools 截断（仅截断非 pinned）。
+     * pinned 优先保留：不因 matched 占满预算而被丢弃；仅当 pinned 自身超过上限时截断 pinned。
      * 单个 Tool materialize 失败时 Materializer 返回 null 并记 warning，不中断整体。
      *
      * @return list<ToolInterface>
@@ -56,19 +57,38 @@ final class CapabilityCenter
 
         // 第一阶段：Resolver 输出带分数的候选列表（含 pinned）
         $resolved = $this->resolver->resolve($context);
-        $tools = [];
+        /** @var list<ToolInterface> $pinnedTools */
+        $pinnedTools = [];
+        /** @var list<ToolInterface> $matchedTools */
+        $matchedTools = [];
 
         foreach ($resolved as $item) {
             // 第二阶段：按 descriptor 懒加载真实 Tool；pinned 失败时日志更明显
             $tool = $this->materializer->materialize($item->descriptor, $item->stage === 'pinned');
-            if ($tool instanceof ToolInterface) {
-                $tools[] = $tool;
+            if (!$tool instanceof ToolInterface) {
+                continue;
             }
 
-            // 兜底截断：即使 Resolver 选出更多，也不超过 maxSchemaTools
-            if (count($tools) >= $this->maxSchemaTools) {
-                break;
+            if ($item->stage === 'pinned') {
+                $pinnedTools[] = $tool;
+            } else {
+                $matchedTools[] = $tool;
             }
+        }
+
+        // pinned 优先占满预算，剩余名额再给 matched（与 Resolver「pinned 不占 topK」语义对齐）
+        $max = max(0, $this->maxSchemaTools);
+        $pinnedKept = array_slice($pinnedTools, 0, $max);
+        $remaining = max(0, $max - count($pinnedKept));
+        $tools = [...$pinnedKept, ...array_slice($matchedTools, 0, $remaining)];
+
+        if (count($pinnedTools) > $max) {
+            SupportLog::warning('capability', 'capability.pinned_truncated', [
+                'agentId' => $context->agentId,
+                'pinned' => count($pinnedTools),
+                'maxSchemaTools' => $max,
+                'kept' => count($pinnedKept),
+            ]);
         }
 
         // 调试模式：记录解析与 materialize 汇总信息
@@ -76,6 +96,8 @@ final class CapabilityCenter
             SupportLog::info('capability', 'capability.resolve', [
                 'agentId' => $context->agentId,
                 'selected' => count($tools),
+                'pinned' => count($pinnedKept),
+                'matched' => count($tools) - count($pinnedKept),
                 'resolved' => count($resolved),
                 'topK' => $context->topK,
                 'profile' => $context->capabilityProfile,

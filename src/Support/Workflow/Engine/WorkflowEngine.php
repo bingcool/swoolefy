@@ -97,7 +97,7 @@ final class WorkflowEngine
             $this->runStore->save($run);
 
             try {
-                // Phase 1 约定单入口：编译器保证 entryNodes 至少有一个
+                // 单入口：Compiler 保证 entryNodes 恰好一个
                 $entry = $compiled->entryNodes()[0];
                 $this->executeFromNode($run, $entry);
             } catch (Throwable $e) {
@@ -175,11 +175,20 @@ final class WorkflowEngine
 
         $this->plugins->fireResume($run, $feedback);
 
-        // 调用 PauseNode 的 resume 钩子，允许节点根据 feedback 修改 state
+        // 调用 PauseNode / SubWorkflowNode 的 resume 钩子，允许节点根据 feedback 修改 state
         $pauseNode = $run->compiled->node($pauseNodeId);
-        if ($pauseNode instanceof AbstractNode) {
-            $ctx = new RunContext($run->runId, $run->compiled);
-            $pauseNode->resume($ctx, $run->state, $feedback);
+        try {
+            if ($pauseNode instanceof AbstractNode) {
+                $ctx = new RunContext($run->runId, $run->compiled);
+                $pauseNode->resume($ctx, $run->state, $feedback);
+            }
+        } catch (Throwable $e) {
+            // 子流程仍 WAITING 等：回滚为 WAITING，避免父 Run 卡在 RUNNING 且 pauseNodeId 已清空
+            $run->status = RunStatus::WAITING;
+            $run->pauseNodeId = $pauseNodeId;
+            $run->updatedAt = WorkflowRunTime::now();
+            $this->runStore->save($run);
+            throw $e;
         }
 
         // 基于更新后的 state 重新求值暂停节点的出边（条件边 / 默认边）

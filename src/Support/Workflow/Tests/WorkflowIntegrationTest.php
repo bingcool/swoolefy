@@ -78,8 +78,7 @@ function testJsonLogicRouting(): void
                     80,
                 ],
             ]),
-            'low' => EdgeCondition::always(),
-        ]);
+        ], default: 'low');
 
     $compiler = new WorkflowCompiler(new \Swoolefy\Support\Workflow\Condition\CompositeConditionEvaluator());
     $compiled = $compiler->compile($definition);
@@ -132,6 +131,82 @@ function testSubWorkflowNode(): void
     $output = $run->state->get('subWorkflowOutput');
     assertTrue(is_array($output) && ($output['doubled'] ?? null) === 42, 'Child should double value');
     pass('sub workflow node');
+}
+
+/** 子流程 HITL WAITING 时父 Run 必须同步 WAITING，不得继续 SUCCESS。 */
+function testSubWorkflowWaitingPropagatesToParent(): void
+{
+    $registry = new WorkflowRegistry();
+    $registry->register('child_hitl', static fn () => WorkflowDefinition::create('child_hitl')
+        ->addNode('pause', new \Swoolefy\Support\Workflow\Node\PauseNode('pause', [
+            'assignee' => 'reviewer',
+            'title' => 'Approve child',
+        ]))
+        ->addNode('done', new ClosureNode('done', static function ($ctx, WorkflowState $state) {
+            $state->set('childDone', true);
+
+            return NodeExecutionResult::success(['childDone' => true]);
+        }))
+        ->addEdge('pause', 'done'));
+
+    $engine = WorkflowComponentFactory::engine($registry);
+    $runner = WorkflowComponentFactory::subWorkflowRunner($registry);
+    $compiler = WorkflowComponentFactory::compiler();
+
+    $parent = WorkflowDefinition::create('parent_hitl')
+        ->addNode('run_child', new SubWorkflowNode('run_child', [
+            'workflowId' => 'child_hitl',
+        ], $runner, $registry))
+        ->addNode('after', new ClosureNode('after', static function ($ctx, WorkflowState $state) {
+            $state->set('parentContinued', true);
+
+            return NodeExecutionResult::success(['parentContinued' => true]);
+        }))
+        ->addEdge('run_child', 'after');
+
+    $runId = $engine->start($compiler->compile($parent), []);
+    $run = $engine->getRun($runId);
+
+    assertTrue($run->status === RunStatus::WAITING, 'parent must wait while child HITL');
+    assertTrue($run->pauseNodeId === 'run_child', 'pause on sub-workflow node');
+    assertTrue($run->state->get('parentContinued') !== true, 'parent must not continue past sub-workflow');
+
+    // 只 resume 父 Run：SubWorkflowNode::onResume 会级联 resume 仍 WAITING 的子 Run
+    $engine->resume($runId, ['approved' => true]);
+
+    $run = $engine->getRun($runId);
+    assertTrue($run->status === RunStatus::COMPLETED, 'parent completes after nested HITL resume');
+    assertTrue($run->state->get('parentContinued') === true, 'parent continues after resume');
+
+    pass('sub workflow waiting propagates');
+}
+
+/** 子流程 FAILED 时父节点失败。 */
+function testSubWorkflowFailedPropagatesToParent(): void
+{
+    $registry = new WorkflowRegistry();
+    $registry->register('child_fail', static fn () => WorkflowDefinition::create('child_fail')
+        ->addNode('boom', new ClosureNode('boom', static function () {
+            return NodeExecutionResult::failed(new RuntimeException('child boom'));
+        })));
+
+    $engine = WorkflowComponentFactory::engine($registry);
+    $runner = WorkflowComponentFactory::subWorkflowRunner($registry);
+    $compiler = WorkflowComponentFactory::compiler();
+
+    $parent = WorkflowDefinition::create('parent_fail')
+        ->addNode('run_child', new SubWorkflowNode('run_child', [
+            'workflowId' => 'child_fail',
+        ], $runner, $registry));
+
+    try {
+        $engine->start($compiler->compile($parent), []);
+        assertTrue(false, 'parent start should throw on child failure');
+    } catch (Throwable $e) {
+        assertTrue(str_contains($e->getMessage(), 'child') || str_contains($e->getMessage(), 'boom') || str_contains($e->getMessage(), 'failed'), 'failure message');
+    }
+
+    pass('sub workflow failed propagates');
 }
 
 /** RoundRobinRouter 轮询。 */
@@ -299,6 +374,8 @@ function testNeuronProviderFactory(): void
 $tests = [
     'jsonlogic routing' => 'testJsonLogicRouting',
     'sub workflow node' => 'testSubWorkflowNode',
+    'sub workflow waiting propagates' => 'testSubWorkflowWaitingPropagatesToParent',
+    'sub workflow failed propagates' => 'testSubWorkflowFailedPropagatesToParent',
     'round robin router' => 'testRoundRobinRouter',
     'workflow component factory' => 'testWorkflowComponentFactory',
     'db run store persistence' => 'testDbRunStorePersistence',

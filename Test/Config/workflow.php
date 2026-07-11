@@ -36,6 +36,7 @@ return [
                 // 对应 Config/component/cache.php 组件别名
                 'component' => env('WORKFLOW_REDIS_COMPONENT', 'redis'),
                 'prefix' => env('WORKFLOW_REDIS_PREFIX', 'workflow:run:'),
+                // 非 WAITING 的过期秒数；WAITING（HITL）写入时不设 TTL，避免长暂停丢任务
                 'ttl' => (int) env('WORKFLOW_REDIS_TTL', 86400),
             ],
 

@@ -21,7 +21,7 @@ final class ConditionalEdgeGroup
 {
     /**
      * @param array<string, EdgeCondition> $branches 目标节点 id => 条件
-     * @param string|null                  $default  无匹配时的兜底目标
+     * @param string|null                  $default  无匹配时的兜底目标（{@see WorkflowCompiler} 强制非 null）
      */
     public function __construct(
         public readonly string $from,

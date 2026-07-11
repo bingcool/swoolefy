@@ -175,11 +175,51 @@ function testRedisCasSecondClaimFails(): void
     pass('redis cas second claim fails');
 }
 
+/** WAITING Run 即使配置了 ttl 也不应带过期；离开 WAITING 后恢复 TTL。 */
+function testRedisWaitingRunHasNoTtl(): void
+{
+    $setup = makeRedisRunStore();
+    if ($setup === null) {
+        echo "[SKIP] redis waiting ttl (no redis)\n";
+
+        return;
+    }
+
+    [$store, $registry] = $setup;
+    $run = makeWaitingRun($registry, 'run_waiting_ttl');
+    $store->save($run);
+
+    $ref = new ReflectionClass($store);
+    $prefixProp = $ref->getProperty('prefix');
+    $prefixProp->setAccessible(true);
+    $prefix = $prefixProp->getValue($store);
+    $redisProp = $ref->getProperty('redis');
+    $redisProp->setAccessible(true);
+    /** @var Redis $redis */
+    $redis = $redisProp->getValue($store);
+
+    $key = $prefix . 'run_waiting_ttl';
+    $ttl = (int) $redis->ttl($key);
+    assertTrue($ttl < 0, 'WAITING key must not expire (ttl=-1 permanent or -2 missing)');
+    assertTrue($store->find('run_waiting_ttl') !== null, 'WAITING run still readable');
+
+    $run->status = RunStatus::COMPLETED;
+    $run->pauseNodeId = null;
+    $run->updatedAt = WorkflowRunTime::now();
+    $store->save($run);
+
+    $ttlAfter = (int) $redis->ttl($key);
+    assertTrue($ttlAfter > 0, 'non-WAITING run applies configured TTL');
+
+    pass('redis waiting run has no ttl');
+}
+
 $tests = [
     'redis cas succeeds when status matches' => 'testRedisCasSucceedsWhenStatusMatches',
     'redis cas fails when status mismatch' => 'testRedisCasFailsWhenStatusMismatch',
     'redis cas fails when key missing' => 'testRedisCasFailsWhenKeyMissing',
     'redis cas second claim fails' => 'testRedisCasSecondClaimFails',
+    'redis waiting run has no ttl' => 'testRedisWaitingRunHasNoTtl',
 ];
 
 $passed = 0;
