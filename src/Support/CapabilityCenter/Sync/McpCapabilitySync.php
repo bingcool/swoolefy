@@ -55,7 +55,6 @@ final class McpCapabilitySync
      */
     public function syncServer(string $serverName, ?string $tenantId = null): int
     {
-        $startedAt = microtime(true);
         try {
             $descriptors = [];
 
@@ -75,16 +74,8 @@ final class McpCapabilitySync
             }
 
             // 成功拿到列表后再替换：先清该 server+tenant 旧条目，再写入（含空列表 = 全删）
-            $removed = $this->registry->unregisterBySource(CapabilitySource::Mcp, $serverName, $tenantId);
+            $this->registry->unregisterBySource(CapabilitySource::Mcp, $serverName, $tenantId);
             $this->registry->registerBatch($descriptors);
-            SupportLog::info('capability', 'capability.registry.sync', [
-                'source' => CapabilitySource::Mcp->value,
-                'serverName' => $serverName,
-                'count' => count($descriptors),
-                'removed' => $removed,
-                'tenantId' => $tenantId,
-                'latencyMs' => (int) ((microtime(true) - $startedAt) * 1000),
-            ]);
 
             return count($descriptors);
         } catch (Throwable $e) {
@@ -93,7 +84,6 @@ final class McpCapabilitySync
                 'serverName' => $serverName,
                 'tenantId' => $tenantId,
                 'error' => $e->getMessage(),
-                'exception' => $e::class,
             ]);
 
             return 0;

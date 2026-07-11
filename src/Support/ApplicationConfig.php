@@ -89,7 +89,7 @@ final class ApplicationConfig
             SupportLog::error('config', 'Failed to load PHP config file', [
                 'file' => $configFile,
                 'error' => $e->getMessage(),
-                'exception' => $e::class,
+                'trace' => $e->getTraceAsString(),
             ]);
 
             if (\Swoolefy\Core\SystemEnv::isPrdEnv()) {

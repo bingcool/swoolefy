@@ -48,7 +48,6 @@ final class LazyToolMaterializer
      */
     public function materialize(CapabilityDescriptor $descriptor, bool $pinned = false): ?ToolInterface
     {
-        $startedAt = microtime(true);
         try {
             // 按来源类型分发到不同 materialize 策略
             $tool = match ($descriptor->source) {
@@ -57,35 +56,23 @@ final class LazyToolMaterializer
                 default => null, // Api / Db / Workflow 等 Phase 5 来源暂未实现
             };
 
-            $latencyMs = (int) ((microtime(true) - $startedAt) * 1000);
-            if ($tool instanceof ToolInterface) {
-                // 成功路径用 debug，避免高 QPS Agent 调用刷 info 日志
-                SupportLog::debug('capability', 'capability.materialize', [
-                    'capabilityId' => $descriptor->id,
-                    'source' => $descriptor->source->value,
-                    'success' => true,
-                    'pinned' => $pinned,
-                    'latencyMs' => $latencyMs,
-                ]);
-            } else {
+            if (!$tool instanceof ToolInterface) {
                 SupportLog::warning('capability', 'capability.materialize returned null', [
                     'capabilityId' => $descriptor->id,
                     'source' => $descriptor->source->value,
                     'pinned' => $pinned,
-                    'latencyMs' => $latencyMs,
                 ]);
             }
 
             return $tool;
         } catch (Throwable $e) {
             // 单个失败不抛异常，保证其它候选 Tool 仍可注入
-            SupportLog::warning('capability', 'Failed to materialize capability tool', [
+            SupportLog::error('capability', 'Failed to materialize capability tool', [
                 'capabilityId' => $descriptor->id,
                 'source' => $descriptor->source->value,
                 'pinned' => $pinned,
                 'error' => $e->getMessage(),
-                'exception' => $e::class,
-                'latencyMs' => (int) ((microtime(true) - $startedAt) * 1000),
+                'trace' => $e->getTraceAsString()
             ]);
 
             return null;

@@ -36,12 +36,9 @@ final class ConfigWatcher
     public function run(): void
     {
         $this->logger->info(sprintf(
-            'watcher started, pid=%d, dataId=%s, group=%s, env=%s, yaml=%s',
-            getmypid(),
+            'nacos watcher started: dataId=%s group=%s',
             $this->config->serviceConfig->dataId,
             $this->config->serviceConfig->group,
-            $this->config->envFile,
-            $this->config->nacosConfig->nacosFilePath,
         ));
 
         $client = ConfigChangeHandler::createClient($this->config->nacosConfig);

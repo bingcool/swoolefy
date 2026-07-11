@@ -154,7 +154,7 @@ final class ServiceRegister
         $this->consecutiveHeartbeatFailures = 0;
 
         $this->logger->info(sprintf(
-            'nacos instance registered: %s:%d -> %s',
+            'nacos registered: %s:%d -> %s',
             $ip,
             $port,
             $serviceName,
@@ -190,13 +190,6 @@ final class ServiceRegister
         $this->heartbeatTimer = \Swoole\Timer::tick($intervalMs, function () {
             $this->sendHeartbeat();
         });
-
-        $this->logger->info(sprintf(
-            'nacos heartbeat timer started, interval=%dms, lightBeat=%s, service=%s',
-            $intervalMs,
-            $this->lightBeatEnabled ? 'true' : 'false',
-            $this->registeredServiceName,
-        ));
     }
 
     public function stopHeartbeat(): void
@@ -209,7 +202,6 @@ final class ServiceRegister
             \Swoole\Timer::clear($this->heartbeatTimer);
         }
         $this->heartbeatTimer = null;
-        $this->logger->info('nacos heartbeat timer stopped');
     }
 
     public function deregister(): void
@@ -240,7 +232,7 @@ final class ServiceRegister
             if ($ok) {
                 fmtPrintNote('Server Stop!!!, Nacos service deregistered');
                 $this->logger->info(sprintf(
-                    'nacos instance deregistered: %s:%d -> %s',
+                    'nacos deregistered: %s:%d -> %s',
                     $this->registeredIp,
                     $this->registeredPort,
                     $this->registeredServiceName,
@@ -430,7 +422,7 @@ final class ServiceRegister
             $this->consecutiveHeartbeatFailures = 0;
 
             $this->logger->info(sprintf(
-                'nacos heartbeat re-register succeeded: %s:%d -> %s',
+                'nacos re-registered after heartbeat loss: %s:%d -> %s',
                 $this->registeredIp,
                 $this->registeredPort,
                 $this->registeredServiceName,
@@ -478,11 +470,6 @@ final class ServiceRegister
         if ($response->getLightBeatEnabled()) {
             if (!$this->lightBeatEnabled) {
                 $this->lightBeatEnabled = true;
-                $this->logger->info(sprintf(
-                    'nacos light beat enabled, service=%s, interval=%dms',
-                    $this->registeredServiceName,
-                    $this->clientBeatIntervalMs,
-                ));
             }
         }
     }
@@ -498,12 +485,6 @@ final class ServiceRegister
         $this->heartbeatTimer = \Swoole\Timer::tick($this->clientBeatIntervalMs, function () {
             $this->sendHeartbeat();
         });
-
-        $this->logger->info(sprintf(
-            'nacos heartbeat interval updated to %dms, service=%s',
-            $this->clientBeatIntervalMs,
-            $this->registeredServiceName,
-        ));
     }
 
     /** 优先采用服务端 clientBeatInterval，其次回退到配置值 */

@@ -39,7 +39,7 @@ final class ConfigChangeHandler
         ?ConfigFetcher $configFetcher = null,
     ) {
         $this->logger = NacosLogger::get();
-        $this->configFileWriter = $configFileWriter ?? new ConfigFileWriter($this->logger);
+        $this->configFileWriter = $configFileWriter ?? new ConfigFileWriter();
         $this->restarter = $restarter ?? new ServiceRestarter($this->logger);
         $this->configFetcher = $configFetcher ?? new ConfigFetcher($config->nacosConfig, $config->serviceConfig);
     }
@@ -53,18 +53,12 @@ final class ConfigChangeHandler
         }
 
         if (!flock($lockFp, LOCK_EX | LOCK_NB)) {
-            $this->logger->info('restart already in progress, skip');
+            // 并发变更：跳过即可，无需刷 info
             fclose($lockFp);
             return;
         }
 
         try {
-            $this->logger->info(sprintf(
-                'config changed, dataId=%s, group=%s',
-                $this->config->serviceConfig->dataId,
-                $this->config->serviceConfig->group,
-            ));
-
             $content = $this->configFetcher->get();
 
             // 与 NacosFactory::fetchConfigToEnv 对齐：非法 .env 拒绝写入，避免 restart 后启动失败
@@ -76,7 +70,11 @@ final class ConfigChangeHandler
 
             $this->restarter->restart();
 
-            $this->logger->info('config change handled: env updated and restart triggered');
+            $this->logger->info(sprintf(
+                'nacos config applied: dataId=%s group=%s, restart triggered',
+                $this->config->serviceConfig->dataId,
+                $this->config->serviceConfig->group,
+            ));
         } catch (\Throwable $e) {
             $this->logger->error('handle config change failed: ' . $e->getMessage());
             throw $e;

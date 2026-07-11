@@ -36,8 +36,8 @@ class NacosRegisterServiceProcess extends AbstractProcess
         $logger = NacosLogger::get();
         $servicRegistereConfig = NacosServiceRegisterConfig::load();
 
-        $ip = $this->resolveRegisterIp($servicRegistereConfig, $logger);
-        $port = $this->resolveRegisterPort($servicRegistereConfig, $logger);
+        $ip = $this->resolveRegisterIp($servicRegistereConfig);
+        $port = $this->resolveRegisterPort($servicRegistereConfig);
 
         if ($port <= 0) {
             throw NacosMonitorException::throw(
@@ -56,15 +56,7 @@ class NacosRegisterServiceProcess extends AbstractProcess
             groupName: $servicRegistereConfig->groupName,
             heartbeatInterval: $servicRegistereConfig->heartbeatInterval,
         );
-
-        $logger->info(sprintf(
-            'nacos service register process running, %s:%d, serviceName=%s,groupName=%s, heartbeat=%ds',
-            $ip,
-            $port,
-            $servicRegistereConfig->serviceName,
-            $servicRegistereConfig->groupName,
-            $servicRegistereConfig->heartbeatInterval,
-        ));
+        // register() 已打关键 info；此处不再重复刷进程 running 日志
     }
 
     public function onReceive($msg, ...$args): void
@@ -77,43 +69,28 @@ class NacosRegisterServiceProcess extends AbstractProcess
             return;
         }
 
-        $logger = NacosLogger::get();
-        $masterPid = Swfy::getMasterPid();
-        $masterAlive = $masterPid > 0 && \Swoole\Process::kill($masterPid, 0);
-
         // reload 时 Master 仍存活，但旧注册进程即将退出；必须主动注销旧实例，
         // 避免 Nacos 等待心跳超时期间仍把已停止实例分发给其他服务。
-        $logger->info(sprintf(
-            'nacos register process shutdown, masterAlive=%s, masterPid=%d, deregistering from nacos',
-            $masterAlive ? 'true' : 'false',
-            $masterPid,
-        ));
+        // deregister() 成功时会打关键 info
         $this->registrar->deregister();
     }
 
-    private function resolveRegisterIp(NacosServiceRegisterConfig $serviceConfig, Log $logger): string
+    private function resolveRegisterIp(NacosServiceRegisterConfig $serviceConfig): string
     {
         $envIp = getenv(NacosConst::ENV_SERVICE_REGISTER_HOST);
 
         if (false !== $envIp && '' !== $envIp) {
-            $logger->info(sprintf('%s is set, value=%s', NacosConst::ENV_SERVICE_REGISTER_HOST, $envIp));
             return (string) $envIp;
         }
-
-        $logger->info(sprintf('%s is not set， now discovery k8s|ACK POD IP', NacosConst::ENV_SERVICE_REGISTER_HOST));
 
         // K8s/ACK 部署时建议通过 Downward API 注入 POD_IP，作为服务注册 IP。
         // 优先级低于 NACOS_SERVICE_REGISTER_HOST，避免覆盖本地开发显式指定的 127.0.0.1。
         $podIp = getenv(NacosConst::ENV_POD_IP);
         if (false !== $podIp && '' !== $podIp) {
             if (filter_var($podIp, FILTER_VALIDATE_IP)) {
-                $logger->info(sprintf('%s is set, value=%s', NacosConst::ENV_POD_IP, $podIp));
                 return (string) $podIp;
             }
-
-            $logger->info(sprintf('%s is set but invalid, value=%s', NacosConst::ENV_POD_IP, $podIp));
-        } else {
-            $logger->info(sprintf('%s is not set', NacosConst::ENV_POD_IP));
+            NacosLogger::get()->warning(sprintf('%s is invalid: %s', NacosConst::ENV_POD_IP, $podIp));
         }
 
         if ('' !== $serviceConfig->ip) {
@@ -123,7 +100,7 @@ class NacosRegisterServiceProcess extends AbstractProcess
         return $this->resolveLocalIp();
     }
 
-    private function resolveRegisterPort(NacosServiceRegisterConfig $serviceConfig, Log $logger): int
+    private function resolveRegisterPort(NacosServiceRegisterConfig $serviceConfig): int
     {
         if (defined('WORKER_PORT')) {
             return (int) WORKER_PORT;
@@ -131,14 +108,11 @@ class NacosRegisterServiceProcess extends AbstractProcess
 
         $envPort = getenv(NacosConst::ENV_SERVICE_REGISTER_PORT);
         if (false !== $envPort && is_numeric($envPort)) {
-            $logger->info(sprintf('%s is set, value=%s', NacosConst::ENV_SERVICE_REGISTER_PORT, $envPort));
             return (int) $envPort;
         }
 
         if (false !== $envPort && '' !== $envPort) {
-            $logger->info(sprintf('%s is set but invalid, value=%s', NacosConst::ENV_SERVICE_REGISTER_PORT, $envPort));
-        } else {
-            $logger->info(sprintf('%s is not set', NacosConst::ENV_SERVICE_REGISTER_PORT));
+            NacosLogger::get()->warning(sprintf('%s is invalid: %s', NacosConst::ENV_SERVICE_REGISTER_PORT, $envPort));
         }
 
         if ($serviceConfig->port > 0) {
@@ -164,17 +138,10 @@ class NacosRegisterServiceProcess extends AbstractProcess
         $maxWaitSeconds = self::DEFAULT_WAIT_SECONDS;
         $deadline = microtime(true) + $maxWaitSeconds;
         $probeHost = $this->resolveServerProbeHost();
-        $logger->info(sprintf(
-            'nacos register: waiting for swoole server ready on %s:%d, timeout=%ds',
-            $probeHost,
-            $port,
-            $maxWaitSeconds,
-        ));
 
         while (microtime(true) < $deadline) {
             // Master 存活 + TCP 端口可连接，才认为实例可对外提供服务。
             if ($this->isSwooleServerFullyStarted() && $this->isPortListening($probeHost, $port)) {
-                $logger->info(sprintf('swoole server is ready on %s:%d', $probeHost, $port));
                 return;
             }
             $this->sleepForNextProbe();
@@ -182,7 +149,7 @@ class NacosRegisterServiceProcess extends AbstractProcess
 
         // 探测只做启动前的保护，不能因为探测异常永久阻塞服务注册进程。
         $logger->warning(sprintf(
-            'nacos register: swoole server not confirmed ready on %s:%d within %ds, continue register to avoid startup blocking',
+            'nacos register: swoole server not confirmed ready on %s:%d within %ds, continue register',
             $probeHost,
             $port,
             $maxWaitSeconds,

@@ -53,8 +53,6 @@ final class CapabilityCenter
      */
     public function resolveTools(ToolResolveContext $context): array
     {
-        $startedAt = microtime(true);
-
         // 第一阶段：Resolver 输出带分数的候选列表（含 pinned）
         $resolved = $this->resolver->resolve($context);
         /** @var list<ToolInterface> $pinnedTools */
@@ -93,16 +91,11 @@ final class CapabilityCenter
 
         // 调试模式：记录解析与 materialize 汇总信息
         if ($this->debug) {
-            SupportLog::info('capability', 'capability.resolve', [
+            SupportLog::debug('capability', 'capability.resolve', [
                 'agentId' => $context->agentId,
                 'selected' => count($tools),
                 'pinned' => count($pinnedKept),
-                'matched' => count($tools) - count($pinnedKept),
-                'resolved' => count($resolved),
                 'topK' => $context->topK,
-                'profile' => $context->capabilityProfile,
-                'tenantId' => $context->tenantId,
-                'latencyMs' => (int) ((microtime(true) - $startedAt) * 1000),
             ]);
         }
 

@@ -146,11 +146,9 @@ final class McpFactory
                 }
                 $tools = [...$tools, ...$connector->tools()];
             } catch (\Throwable $e) {
-                SupportLog::warning('mcp', 'Failed to load MCP tools', [
+                SupportLog::error('mcp', 'Failed to load MCP tools', [
                     'server' => $name,
-                    'tenantId' => $tenantId,
                     'error' => $e->getMessage(),
-                    'exception' => $e::class,
                 ]);
             } finally {
                 if ($isLocal && $runner !== null) {

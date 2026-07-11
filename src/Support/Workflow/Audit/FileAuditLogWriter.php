@@ -17,16 +17,14 @@ use Swoolefy\Support\SupportLog;
 
 /**
  * 工作流审计日志写入器（基于框架日志组件）。
+ *
+ * 仅记录事件名与精简上下文，避免把完整 input / feedback 打进 info。
  */
 final class FileAuditLogWriter implements AuditLogWriterInterface
 {
     /** {@inheritdoc} */
     public function write(string $event, array $context): void
     {
-        SupportLog::info('workflow_audit', $event, [
-            'event' => $event,
-            'context' => $context,
-            'at' => date('c'),
-        ]);
+        SupportLog::info('workflow_audit', $event, $context);
     }
 }

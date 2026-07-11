@@ -20,6 +20,11 @@ use Swoolefy\Core\Log\LogManager;
  *
  * 默认通过框架日志组件 support_log 输出；在无法获取 logger 时回退 error_log。
  *
+ * 级别约定（尽量少打 info）：
+ *   - error / warning — 失败、降级、需人工关注
+ *   - info — 仅生命周期关键点（Run 起止、HITL、注册/注销、配置变更触发重启等），上下文只留关键字段
+ *   - debug — 成功路径细节、高 QPS 路径（materialize / sync / resolve）
+ *
  * 单测可通过 setTestHandler() 捕获日志断言。
  */
 final class SupportLog
@@ -30,11 +35,11 @@ final class SupportLog
     private static $testHandler = null;
 
     /**
-     * 记录 info 级别日志。
+     * 记录 info 级别日志（仅关键生命周期事件；日常成功路径请用 debug）。
      *
      * @param string               $channel 模块标识，如 mcp、workflow_audit
      * @param string               $message 人类可读描述
-     * @param array<string, mixed> $context 结构化上下文
+     * @param array<string, mixed> $context 结构化上下文（尽量精简）
      */
     public static function info(string $channel, string $message, array $context = []): void
     {
