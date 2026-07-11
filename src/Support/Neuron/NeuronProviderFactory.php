@@ -210,9 +210,12 @@ final class NeuronProviderFactory
      * 调用方 `provider` / `provider_name` 是显式选择，优先级高于默认 Provider 与 fallback：
      * - 传入 provider 时，只创建该别名对应的 Provider；
      * - 不自动套 RouterProvider，避免业务明确指定的模型被隐藏改写；
-     * - `provider_params` 可覆盖构造参数；未设置时会从 agentOptions 中提取非框架保留键作为覆盖参数。
+     * - `provider_params` 可覆盖构造参数；未设置时会从 agentOptions 中提取非框架保留键作为覆盖参数；
+     * - 显式指定别名但缺凭证时 **fail-fast**（抛 WorkflowException），禁止静默降级到 default_provider。
      *
      * @param array<string, mixed> $agentOptions
+     *
+     * @throws WorkflowException 别名未知、类无效，或显式别名缺少 key/model 等必要凭证
      */
     public function createFromAgentOptions(array $agentOptions): ?AIProviderInterface
     {
@@ -225,7 +228,16 @@ final class NeuronProviderFactory
             ? $agentOptions['provider_params']
             : $this->extractParamOverrides($agentOptions);
 
-        return $this->createFromAlias($alias, $overrides);
+        $provider = $this->createFromAlias($alias, $overrides);
+        if ($provider === null) {
+            throw new WorkflowException(
+                "Provider [{$alias}] is missing required credentials (API key and/or model). "
+                . "Configure ai_model_providers.{$alias} in neuron_ai.php / env, "
+                . 'or omit "provider" to use neuron.default_provider.',
+            );
+        }
+
+        return $provider;
     }
 
     /**

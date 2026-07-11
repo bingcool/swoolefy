@@ -19,12 +19,13 @@ use Swoolefy\Support\DocumentOcr\DocumentOcrFactory;
  * @see docs/DocumentOcr.md
  * @see Config/document_ocr.php
  */
+$configFile = APP_PATH . '/Config/document_ocr.php';
+$config = is_file($configFile) ? include $configFile : [];
+$config = is_array($config) ? $config : [];
+
 return [
     // DI 名：document_ocr → DocumentOcrFactory
-    'document_ocr' => static function (): DocumentOcrFactory {
-        $configFile = APP_PATH . '/Config/document_ocr.php';
-        $config = is_file($configFile) ? include $configFile : [];
-
-        return DocumentOcrFactory::fromConfig(is_array($config) ? $config : []);
+    'document_ocr' => static function () use ($config): DocumentOcrFactory {
+        return DocumentOcrFactory::fromConfig($config);
     },
 ];

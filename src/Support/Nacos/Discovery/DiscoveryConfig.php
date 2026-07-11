@@ -65,7 +65,14 @@ final class DiscoveryConfig
             healthyOnly: ApplicationConfig::pickBool($discovery, 'healthy_only', NacosConst::ENV_DISCOVERY_HEALTHY_ONLY, true),
             clusters: ApplicationConfig::pickString($discovery, 'clusters', NacosConst::ENV_DISCOVERY_CLUSTERS, ''),
             groupName: $groupName,
-            namespaceId: $namespaceId,
+            // 与 ServiceRegister 对齐：Open API 中 public 命名空间须传空字符串
+            namespaceId: self::normalizeNamespaceId($namespaceId),
         );
+    }
+
+    /** Nacos Open API 中 public 命名空间应传空字符串。 */
+    public static function normalizeNamespaceId(string $namespaceId): string
+    {
+        return 'public' === strtolower(trim($namespaceId)) ? '' : $namespaceId;
     }
 }

@@ -249,7 +249,8 @@ final class VectorStoreFactory
             'password' => $this->config->milvusPassword($alias),
             'token' => $this->config->milvusToken($alias),
             'db_name' => $this->config->milvusDbName($alias),
-            'collection_name' => $index,
+            // TenantScope 可能保留 `-`；Milvus 仅允许 [a-zA-Z0-9_]
+            'collection_name' => MilvusVectorStore::sanitizeCollectionName($index),
             'dimension' => $this->config->milvusDimension($alias),
             'top_k' => $topK,
         ]);

@@ -32,6 +32,8 @@ use Swoolefy\Support\CapabilityCenter\LazyToolMaterializer;
 use Swoolefy\Support\CapabilityCenter\Resolver\CompositeToolResolver;
 use Swoolefy\Support\CapabilityCenter\Resolver\PolicyToolFilter;
 use Swoolefy\Support\CapabilityCenter\Resolver\ToolResolveContext;
+use Swoolefy\Support\CapabilityCenter\Sync\McpCapabilitySync;
+use Swoolefy\Support\Mcp\McpFactory;
 use Swoolefy\Support\Neuron\NeuronAiConfig;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
@@ -330,6 +332,114 @@ function testCapabilityConfigAndFactoryNativeDescriptors(): void
     assertTrue($tools[0]->getName() === 'get_weather', 'factory materialized native tool');
 }
 
+/**
+ * 验证 unregister / unregisterBySource：按 tenant + mcpServer 精确清理，不误删其它条目。
+ */
+function testRegistryUnregisterBySource(): void
+{
+    $registry = new InMemoryCapabilityRegistry();
+    $registry->registerBatch([
+        makeCapabilityDescriptor('mcp:docs:old', ['docs'], [
+            'source' => CapabilitySource::Mcp,
+            'mcpServer' => 'docs',
+            'tenantId' => null,
+        ]),
+        makeCapabilityDescriptor('mcp:docs:keep_other_tenant', ['docs'], [
+            'source' => CapabilitySource::Mcp,
+            'mcpServer' => 'docs',
+            'tenantId' => 't1',
+        ]),
+        makeCapabilityDescriptor('mcp:github:search', ['github'], [
+            'source' => CapabilitySource::Mcp,
+            'mcpServer' => 'github',
+            'tenantId' => null,
+        ]),
+        makeCapabilityDescriptor('native:weather', ['weather']),
+    ]);
+
+    assertTrue($registry->unregister('mcp:docs:old', null) === true, 'unregister existing');
+    assertTrue($registry->get('mcp:docs:old') === null, 'global docs old removed');
+    assertTrue($registry->get('mcp:docs:keep_other_tenant', 't1') !== null, 'other tenant kept after single unregister');
+
+    // 重新放入全局 docs 幽灵，再按 source 清理
+    $registry->register(makeCapabilityDescriptor('mcp:docs:ghost', ['docs'], [
+        'source' => CapabilitySource::Mcp,
+        'mcpServer' => 'docs',
+        'tenantId' => null,
+    ]));
+
+    $removed = $registry->unregisterBySource(CapabilitySource::Mcp, 'docs', null);
+    assertTrue($removed === 1, 'only global docs mcp removed');
+    assertTrue($registry->get('mcp:docs:ghost') === null, 'ghost cleared');
+    assertTrue($registry->get('mcp:docs:keep_other_tenant', 't1') !== null, 'tenant docs kept');
+    assertTrue($registry->get('mcp:github:search') !== null, 'other server kept');
+    assertTrue($registry->get('native:weather') !== null, 'native kept');
+}
+
+/**
+ * 验证 McpCapabilitySync 成功后清理已删除 tool（空列表 = 该 server 全清）。
+ */
+function testMcpCapabilitySyncRemovesDeletedTools(): void
+{
+    $registry = new InMemoryCapabilityRegistry();
+    $registry->registerBatch([
+        makeCapabilityDescriptor('mcp:docs:deleted_tool', ['docs'], [
+            'source' => CapabilitySource::Mcp,
+            'mcpServer' => 'docs',
+            'name' => 'deleted_tool',
+            'tenantId' => null,
+        ]),
+        makeCapabilityDescriptor('mcp:github:search', ['github'], [
+            'source' => CapabilitySource::Mcp,
+            'mcpServer' => 'github',
+            'name' => 'search',
+            'tenantId' => null,
+        ]),
+        makeCapabilityDescriptor('native:weather', ['weather']),
+    ]);
+
+    // 无配置的 server → discoverToolNames 返回空 → sync 成功并清空该 server 旧 descriptor
+    $sync = new McpCapabilitySync(new McpFactory(servers: []), $registry);
+    $count = $sync->syncServer('docs');
+
+    assertTrue($count === 0, 'empty tool list sync returns 0');
+    assertTrue($registry->get('mcp:docs:deleted_tool') === null, 'deleted mcp tool ghost removed');
+    assertTrue($registry->get('mcp:github:search') !== null, 'other mcp server untouched');
+    assertTrue($registry->get('native:weather') !== null, 'native untouched');
+}
+
+/**
+ * 验证 MCP 连接失败时 sync 不清空已有 descriptor（与成功空列表区分）。
+ */
+function testMcpCapabilitySyncKeepsDescriptorsOnDiscoverFailure(): void
+{
+    $registry = new InMemoryCapabilityRegistry();
+    $registry->register(makeCapabilityDescriptor('mcp:docs:existing', ['docs'], [
+        'source' => CapabilitySource::Mcp,
+        'mcpServer' => 'docs',
+        'name' => 'existing',
+        'tenantId' => null,
+    ]));
+
+    // 配置了私网 URL 且守卫拒绝 → discover 在连接前抛错 → sync 保留旧条目
+    $sync = new McpCapabilitySync(new McpFactory(
+        servers: [
+            'docs' => [
+                'url' => 'http://127.0.0.1:9/mcp',
+                'token' => 'x',
+            ],
+        ],
+        urlGuard: new \Swoolefy\Support\Security\OutboundUrlGuard(
+            allowlistHostSuffixes: [],
+            allowPrivateNetworks: false,
+        ),
+    ), $registry);
+
+    $count = $sync->syncServer('docs');
+    assertTrue($count === 0, 'failed discover returns 0');
+    assertTrue($registry->get('mcp:docs:existing') !== null, 'existing descriptor kept on failure');
+}
+
 $tests = [
     'registry and policy filter' => 'testRegistryAndPolicyFilter',
     'resolver topK and pinned' => 'testResolverTopKAndPinned',
@@ -338,6 +448,9 @@ $tests = [
     'registry tenant isolation' => 'testRegistryTenantIsolation',
     'materialize selected only' => 'testCapabilityCenterMaterializesOnlyResolvedTools',
     'config and factory native descriptors' => 'testCapabilityConfigAndFactoryNativeDescriptors',
+    'registry unregister by source' => 'testRegistryUnregisterBySource',
+    'mcp sync removes deleted tools' => 'testMcpCapabilitySyncRemovesDeletedTools',
+    'mcp sync keeps descriptors on failure' => 'testMcpCapabilitySyncKeepsDescriptorsOnDiscoverFailure',
 ];
 
 foreach ($tests as $label => $fn) {

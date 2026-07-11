@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Rag\Node;
 
+use NeuronAI\Chat\Messages\Stream\Chunks\TextChunk;
 use NeuronAI\Chat\Messages\UserMessage;
 use NeuronAI\RAG\RAG;
 use Swoolefy\Support\AI\Stream\StreamBridge;
@@ -75,9 +76,10 @@ final class RAGNode extends AbstractNode
         if (($this->config['stream'] ?? false) === true) {
             $handler = $agent->stream(new UserMessage($prompt));
             $text = '';
+            // 与 AINode 对齐：仅处理 TextChunk，忽略 reasoning / tool_call 等
             foreach ($handler->events() as $event) {
-                if (is_object($event) && property_exists($event, 'content')) {
-                    $chunk = (string) $event->content;
+                if ($event instanceof TextChunk) {
+                    $chunk = $event->content;
                     $text .= $chunk;
                     StreamBridge::emit('token', ['nodeId' => $this->nodeId, 'content' => $chunk]);
                 }

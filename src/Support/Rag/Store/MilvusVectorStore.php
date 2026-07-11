@@ -51,9 +51,12 @@ class MilvusVectorStore implements VectorStoreInterface
     /** 本实例是否已检查（或创建）Collection，避免重复 RPC。 */
     private bool $initialized = false;
 
+    /** Milvus collection 名（已合法化）。 */
+    protected string $collectionName;
+
     /**
      * @param Client $client                Milvus REST 客户端（uri / user / password / token / db）
-     * @param string $collectionName        目标 Collection 名（= sanitize 后的 knowledgeBase）
+     * @param string $collectionName        目标 Collection 名（构造时会 {@see sanitizeCollectionName()}）
      * @param int    $dimension             向量维度，须与 Embedder 输出一致
      * @param int    $topK                  similaritySearch 默认返回条数
      * @param string $metricType            COSINE（默认）| L2 | IP — COSINE 返回类相似度距离
@@ -64,7 +67,7 @@ class MilvusVectorStore implements VectorStoreInterface
      */
     public function __construct(
         protected Client $client,
-        protected string $collectionName,
+        string $collectionName,
         protected int $dimension = 1536,
         protected int $topK = 5,
         protected string $metricType = MetricType::COSINE,
@@ -73,6 +76,29 @@ class MilvusVectorStore implements VectorStoreInterface
         protected int $maxContentLength = 65535,
         protected int $batchSize = 100,
     ) {
+        $this->collectionName = self::sanitizeCollectionName($collectionName);
+    }
+
+    /**
+     * 将知识库名合法化为 Milvus collection 名。
+     *
+     * Milvus 仅允许 `[a-zA-Z0-9_]`，且须以字母或下划线开头。
+     * {@see TenantScope::sanitize()} 会保留连字符 `-`，此处再替换为 `_`。
+     */
+    public static function sanitizeCollectionName(string $name): string
+    {
+        $name = preg_replace('/[^a-zA-Z0-9_]/', '_', $name) ?: 'rag_documents';
+        $name = preg_replace('/_+/', '_', $name) ?: 'rag_documents';
+        $name = trim($name, '_');
+        if ($name === '') {
+            return 'rag_documents';
+        }
+
+        if (!preg_match('/^[a-zA-Z_]/', $name)) {
+            $name = 'c_' . $name;
+        }
+
+        return $name;
     }
 
     /**
@@ -103,7 +129,7 @@ class MilvusVectorStore implements VectorStoreInterface
 
         return new self(
             client: $client,
-            collectionName: $params['collection_name'] ?? 'rag_documents',
+            collectionName: (string) ($params['collection_name'] ?? 'rag_documents'),
             dimension: (int) ($params['dimension'] ?? 1536),
             topK: (int) ($params['top_k'] ?? 5),
             metricType: $params['metric_type'] ?? MetricType::COSINE,

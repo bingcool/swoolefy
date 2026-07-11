@@ -332,6 +332,29 @@ function testMilvusVectorStoreMakeParams(): void
     assertTrue($store->getCollectionName() === 'kb_test', 'collection name');
 }
 
+function testMilvusSanitizeCollectionName(): void
+{
+    assertTrue(
+        MilvusVectorStore::sanitizeCollectionName('tenant-a_product-kb') === 'tenant_a_product_kb',
+        'hyphen replaced with underscore',
+    );
+    assertTrue(
+        MilvusVectorStore::sanitizeCollectionName('123kb') === 'c_123kb',
+        'leading digit gets c_ prefix',
+    );
+    assertTrue(
+        MilvusVectorStore::sanitizeCollectionName('ok_name') === 'ok_name',
+        'valid name unchanged',
+    );
+
+    $store = MilvusVectorStore::make([
+        'uri' => 'http://127.0.0.1:19530',
+        'collection_name' => 'acme-corp/kb-v1',
+        'auto_create_collection' => false,
+    ]);
+    assertTrue($store->getCollectionName() === 'acme_corp_kb_v1', 'make() sanitizes collection name');
+}
+
 function testMilvusFilterExprEscapesQuotes(): void
 {
     $filter = MilvusFilterExpr::deleteBySourceFilter('file', 'readme "draft".md');
@@ -516,6 +539,7 @@ $tests = [
     'rag ingest dispatcher queue mode' => 'testRagIngestDispatcherQueueMode',
     'rag factory retrieval' => 'testRagFactoryRetrievalInterface',
     'milvus make params' => 'testMilvusVectorStoreMakeParams',
+    'milvus sanitize collection name' => 'testMilvusSanitizeCollectionName',
     'milvus filter expr escapes quotes' => 'testMilvusFilterExprEscapesQuotes',
     'pgvector make params' => 'testPgVectorStoreMakeParams',
     'pgvector rejects invalid config' => 'testPgVectorStoreRejectsInvalidConfig',

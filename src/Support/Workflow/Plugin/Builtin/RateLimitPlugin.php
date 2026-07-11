@@ -81,14 +81,16 @@ final class RateLimitPlugin implements WorkflowPluginInterface
         });
 
         $registry->onRunComplete(function (WorkflowRun $run): void {
-            if ($this->activeRuns <= 0) {
+            // 按 runId 幂等释放：cancel(RUNNING) 可能提前 fireRunComplete，节点间隙再 complete 时不双减
+            $key = array_search($run->runId, $this->heldRunIds, true);
+            if ($key === false) {
                 return;
             }
-            $this->activeRuns--;
-            $key = array_search($run->runId, $this->heldRunIds, true);
-            if ($key !== false) {
-                unset($this->heldRunIds[$key]);
-                $this->heldRunIds = array_values($this->heldRunIds);
+
+            unset($this->heldRunIds[$key]);
+            $this->heldRunIds = array_values($this->heldRunIds);
+            if ($this->activeRuns > 0) {
+                $this->activeRuns--;
             }
         });
     }

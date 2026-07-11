@@ -191,12 +191,50 @@ final class McpFactory
         return array_values($byServerId);
     }
 
-    /** @return list<string> tool 名称列表 */
+    /** @return list<string> tool 名称列表（单 server 失败时 fail-soft，返回已收集到的名称） */
     public function listToolNames(string $name): array
     {
         $tools = $this->tools([$name]);
 
         return array_map(static fn (ToolInterface $tool): string => $tool->getName(), $tools);
+    }
+
+    /**
+     * 发现单个 Server 的 tool 名称（供 Capability sync 使用）。
+     *
+     * 与 {@see listToolNames()} / {@see tools()} 的区别：
+     * - transport=disabled 或配置缺失 → 返回空列表（视为「该 server 无工具」）；
+     * - 已配置但连接/列举失败 → **抛出异常**，由调用方决定是否保留旧元数据。
+     *
+     * @return list<string>
+     *
+     * @throws \Throwable
+     */
+    public function discoverToolNames(string $name): array
+    {
+        $config = $this->resolveConfig($name);
+        if ($config === [] || (($config['transport'] ?? '') === 'disabled')) {
+            return [];
+        }
+
+        $this->assertConfigSafe($config, $name);
+
+        $isLocal = McpProcessRunner::isLocalStdioConfig($config);
+        $runner = $this->processRunner;
+
+        try {
+            if ($isLocal && $runner !== null) {
+                $runner->acquire($name);
+            }
+
+            $tools = $this->connector($name)->tools();
+
+            return array_map(static fn (ToolInterface $tool): string => $tool->getName(), $tools);
+        } finally {
+            if ($isLocal && $runner !== null) {
+                $runner->release();
+            }
+        }
     }
 
     /**

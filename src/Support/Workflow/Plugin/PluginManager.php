@@ -44,11 +44,24 @@ final class PluginManager
         }
     }
 
-    /** 注册并激活插件。 */
+    /** 注册并激活插件；同名插件会替换旧实例及其 hooks（禁止 hook 累积双触发）。 */
     public function add(WorkflowPluginInterface $plugin): void
     {
         $this->plugins[$plugin->name()] = $plugin;
-        $plugin->register($this->registry);
+        $this->rebuildRegistry();
+    }
+
+    /**
+     * 按当前 plugins map 重建钩子表。
+     *
+     * 同名 replace 时旧 hooks 随旧 Registry 一并丢弃，避免 RateLimit 等插件双计数。
+     */
+    private function rebuildRegistry(): void
+    {
+        $this->registry = new PluginRegistry();
+        foreach ($this->plugins as $plugin) {
+            $plugin->register($this->registry);
+        }
     }
 
     /** 获取钩子注册表。 */

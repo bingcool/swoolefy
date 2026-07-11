@@ -42,6 +42,18 @@ final class SupportLog
     }
 
     /**
+     * 记录 debug 级别日志（高 QPS 路径用，避免默认 info 刷盘）。
+     *
+     * @param string               $channel 模块标识
+     * @param string               $message 人类可读描述
+     * @param array<string, mixed> $context 结构化上下文
+     */
+    public static function debug(string $channel, string $message, array $context = []): void
+    {
+        self::write('debug', $channel, $message, $context);
+    }
+
+    /**
      * 记录 error 级别日志。
      *
      * @param string               $channel 模块标识，如 mcp、workflow_audit
@@ -65,7 +77,7 @@ final class SupportLog
         self::write('warning', $channel, $message, $context);
     }
 
-    /** @param 'info'|'warning' $level */
+    /** @param 'debug'|'info'|'warning'|'error' $level */
     private static function write(string $level, string $channel, string $message, array $context = []): void
     {
         if (self::$testHandler !== null) {
@@ -75,12 +87,18 @@ final class SupportLog
 
         $logger = LogManager::getInstance()->getLogger(self::CHANNEL);
         if (!empty($logger)) {
+            if ($level === 'debug' && !method_exists($logger, 'debug')) {
+                // 部分 logger 无 debug：降级为 info，仍带 [debug] 前缀便于过滤
+                $logger->info("[debug][{$channel}] {$message}", false, $context);
+
+                return;
+            }
             $logger->{$level}("[{$channel}] {$message}", false, $context);
             return;
         }
 
-        $suffix = $context === [] ? '' : ' ' . json_encode($context, JSON_UNESCAPED_UNICODE);
-        error_log("[" . strtoupper($level) . "][{$channel}] {$message}{$suffix}");
+        $suffix = $context === [] ? '' : ' ' . (json_encode($context, JSON_UNESCAPED_UNICODE) ?: '{"error":"context_not_serializable"}');
+        error_log('[' . strtoupper($level) . "][{$channel}] {$message}{$suffix}");
     }
 
     /** @param callable(string, string, array<string, mixed>): void $handler */

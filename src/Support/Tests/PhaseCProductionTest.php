@@ -40,6 +40,7 @@ use Swoolefy\Support\Workflow\Engine\WorkflowRunTime;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\Node\ClosureNode;
 use Swoolefy\Support\Workflow\Node\PauseNode;
+use Swoolefy\Support\Workflow\Plugin\Builtin\RateLimitPlugin;
 use Swoolefy\Support\Workflow\Plugin\PluginManager;
 use Swoolefy\Support\Workflow\State\WorkflowState;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
@@ -166,8 +167,44 @@ function testCancelRunningSetsCooperativeFlag(): void
     assertTrue($fresh !== null, 'run exists');
     assertTrue($fresh->status === RunStatus::RUNNING, 'still running until cooperative stop');
     assertTrue($fresh->state->get('_cancelRequested', false) === true, 'cancel flag set');
+    assertTrue($fresh->state->get('_runCompleteFired', false) === true, 'run complete fired early for slot release');
 
     pass('cancel running sets cooperative flag');
+}
+
+function testCancelRunningReleasesRateLimitImmediately(): void
+{
+    $store = new InMemoryRunStore();
+    $now = WorkflowRunTime::now();
+    $compiled = (new WorkflowCompiler())->compile(
+        WorkflowDefinition::create('demo', '1.0.0')
+            ->addNode('a', new ClosureNode('a', static fn () => NodeExecutionResult::success())),
+    );
+
+    $rateLimit = RateLimitPlugin::make(1);
+    $plugins = new PluginManager([$rateLimit]);
+    $engine = new WorkflowEngine(
+        $plugins,
+        new DagScheduler(ConditionEvaluatorFactory::create('symfony')),
+        $store,
+    );
+
+    $run = new WorkflowRun(
+        runId: 'run_rl',
+        compiled: $compiled,
+        status: RunStatus::RUNNING,
+        state: WorkflowState::fromInput([], []),
+        createdAt: $now,
+        updatedAt: $now,
+    );
+    $store->save($run);
+    $plugins->fireRunStart($run, []);
+    assertTrue($rateLimit->activeRuns() === 1, 'slot held while running');
+
+    $engine->cancel('run_rl');
+    assertTrue($rateLimit->activeRuns() === 0, 'rate limit released immediately on RUNNING cancel');
+
+    pass('cancel running releases rate limit immediately');
 }
 
 function testAgentParallelNodeFailsOnPartialError(): void
@@ -293,6 +330,7 @@ $tests = [
     'cancel waiting uses cas' => 'testCancelWaitingUsesCas',
     'cancel waiting success' => 'testCancelWaitingSuccess',
     'cancel running sets cooperative flag' => 'testCancelRunningSetsCooperativeFlag',
+    'cancel running releases rate limit' => 'testCancelRunningReleasesRateLimitImmediately',
     'agent parallel node fails on partial error' => 'testAgentParallelNodeFailsOnPartialError',
     'agent parallel fail fast throws' => 'testAgentParallelFailFastThrows',
     'agent parallel fail fast in coroutine' => 'testAgentParallelFailFastInCoroutine',

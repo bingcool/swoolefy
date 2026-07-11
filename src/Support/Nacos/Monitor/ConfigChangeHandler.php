@@ -17,6 +17,7 @@ use Swoolefy\Library\Nacos\Client;
 use Swoolefy\Support\Nacos\ConfigFetcher;
 use Swoolefy\Support\Nacos\ConfigFileWriter;
 use Swoolefy\Support\Nacos\NacosConfig;
+use Swoolefy\Support\Nacos\NacosFactory;
 use Swoolefy\Support\Nacos\NacosLogger;
 use Swoolefy\Util\Log;
 
@@ -65,6 +66,9 @@ final class ConfigChangeHandler
             ));
 
             $content = $this->configFetcher->get();
+
+            // 与 NacosFactory::fetchConfigToEnv 对齐：非法 .env 拒绝写入，避免 restart 后启动失败
+            NacosFactory::assertValidEnvContent($content);
 
             $this->configFileWriter->write($this->config->envFile, $content);
             $delaySeconds = new \Random\Randomizer()->getInt(1, 5);

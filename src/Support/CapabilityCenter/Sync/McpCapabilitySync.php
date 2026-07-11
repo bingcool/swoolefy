@@ -25,8 +25,10 @@ use Throwable;
  *
  * 职责边界：
  * - 只同步轻量 descriptor（name / description / tags），不持有 connector 或真实 Tool；
- * - 通过 McpFactory::listToolNames() 发现 tool 名称；
- * - 单个 server 失败只 warning，不清空 Registry 已有内容。
+ * - 通过 McpFactory::discoverToolNames() 发现 tool 名称（失败抛错，不误清 Registry）；
+ * - 单个 server **成功** sync 后，先按 (mcpServer, tenantId) 清理旧 descriptor，再写入新列表，
+ *   避免 MCP 侧已删除的 tool 残留为幽灵条目；
+ * - 单个 server **失败** 只 warning，不清空 Registry 已有内容。
  */
 final class McpCapabilitySync
 {
@@ -43,6 +45,9 @@ final class McpCapabilitySync
     /**
      * 同步单个 MCP Server 的 tool 元数据到 Registry。
      *
+     * 成功路径：unregisterBySource(Mcp, server, tenant) → registerBatch(新列表)。
+     * 失败路径：不修改 Registry（保留上一份可用元数据）。
+     *
      * @param string      $serverName MCP server 名
      * @param string|null $tenantId   写入 descriptor.tenantId（可选）
      *
@@ -54,8 +59,8 @@ final class McpCapabilitySync
         try {
             $descriptors = [];
 
-            // 通过 McpFactory 获取 tool 名称列表（会走安全链，但不 materialize 全量 Tool）
-            foreach ($this->mcpFactory->listToolNames($serverName) as $toolName) {
+            // 严格发现：连接失败抛错 → 外层 catch 保留旧元数据；disabled/缺失 → 空列表
+            foreach ($this->mcpFactory->discoverToolNames($serverName) as $toolName) {
                 $descriptors[] = new CapabilityDescriptor(
                     id: self::mcpCapabilityId($serverName, $toolName),
                     name: $toolName,
@@ -69,19 +74,21 @@ final class McpCapabilitySync
                 );
             }
 
-            // 批量写入 Registry（同 id 会覆盖，用于 refresh）
+            // 成功拿到列表后再替换：先清该 server+tenant 旧条目，再写入（含空列表 = 全删）
+            $removed = $this->registry->unregisterBySource(CapabilitySource::Mcp, $serverName, $tenantId);
             $this->registry->registerBatch($descriptors);
             SupportLog::info('capability', 'capability.registry.sync', [
                 'source' => CapabilitySource::Mcp->value,
                 'serverName' => $serverName,
                 'count' => count($descriptors),
+                'removed' => $removed,
                 'tenantId' => $tenantId,
                 'latencyMs' => (int) ((microtime(true) - $startedAt) * 1000),
             ]);
 
             return count($descriptors);
         } catch (Throwable $e) {
-            // 单 server 失败不抛异常，保留其它 server 已有 descriptor
+            // 单 server 失败不抛异常，保留其它 server / 本 server 上一份 descriptor
             SupportLog::warning('capability', 'Failed to sync MCP capability metadata', [
                 'serverName' => $serverName,
                 'tenantId' => $tenantId,

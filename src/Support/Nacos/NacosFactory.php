@@ -157,8 +157,12 @@ final class NacosFactory
 
     /**
      * 使用 phpdotenv 解析校验内容是否为合法 .env 格式。
+     *
+     * Monitor 热更新与启动拉取共用，避免坏配置写入后 restart 起不来。
+     *
+     * @throws NacosMonitorException
      */
-    private static function assertValidEnvContent(string $content): void
+    public static function assertValidEnvContent(string $content): void
     {
         try {
             Dotenv::parse($content);

@@ -57,13 +57,24 @@ final class LazyToolMaterializer
                 default => null, // Api / Db / Workflow 等 Phase 5 来源暂未实现
             };
 
-            SupportLog::info('capability', 'capability.materialize', [
-                'capabilityId' => $descriptor->id,
-                'source' => $descriptor->source->value,
-                'success' => $tool instanceof ToolInterface,
-                'pinned' => $pinned,
-                'latencyMs' => (int) ((microtime(true) - $startedAt) * 1000),
-            ]);
+            $latencyMs = (int) ((microtime(true) - $startedAt) * 1000);
+            if ($tool instanceof ToolInterface) {
+                // 成功路径用 debug，避免高 QPS Agent 调用刷 info 日志
+                SupportLog::debug('capability', 'capability.materialize', [
+                    'capabilityId' => $descriptor->id,
+                    'source' => $descriptor->source->value,
+                    'success' => true,
+                    'pinned' => $pinned,
+                    'latencyMs' => $latencyMs,
+                ]);
+            } else {
+                SupportLog::warning('capability', 'capability.materialize returned null', [
+                    'capabilityId' => $descriptor->id,
+                    'source' => $descriptor->source->value,
+                    'pinned' => $pinned,
+                    'latencyMs' => $latencyMs,
+                ]);
+            }
 
             return $tool;
         } catch (Throwable $e) {

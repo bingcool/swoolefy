@@ -220,9 +220,9 @@ final class WorkflowEngine
     /**
      * 取消运行。
      *
-     * WAITING：CAS saveIfStatus(WAITING) → CANCELLED，与 resume 竞态互斥。
-     * RUNNING：协作式取消 —— 写入 _cancelRequested 标志并保持 RUNNING，
-     *          executeFromNode 在节点间隙检测后转为 CANCELLED。
+     * WAITING：CAS saveIfStatus(WAITING) → CANCELLED，与 resume 竞态互斥；立即 fireRunComplete。
+     * RUNNING：协作式取消 —— 写入 _cancelRequested，并立即 fireRunComplete 释放 RateLimit 等槽位；
+     *          executeFromNode 在节点间隙检测后转为 CANCELLED（若已提前 complete 则不再重复触发）。
      *
      * @throws WorkflowException 终态不可取消，或 CAS 失败（并发 resume/cancel）
      */
@@ -261,15 +261,17 @@ final class WorkflowEngine
         }
 
         if ($run->status === RunStatus::RUNNING) {
-            // 正在执行节点：无法立即打断 LLM/MCP 调用，写入协作式取消标志
-            // executeFromNode 在每个节点开始前从 RunStore 重新读取并检测
+            // 无法立即打断当前节点 IO；写入协作式取消标志，并立即释放 RateLimit 槽位
             $run->state->set('_cancelRequested', true);
+            $run->state->set('_runCompleteFired', true);
             // CAS 确保 Run 仍处于 RUNNING，防止与 resume 或其他 cancel 竞态
             if (!$this->runStore->saveIfStatus($run, RunStatus::RUNNING)) {
                 throw new WorkflowException(
                     "Run {$runId} cancel failed (status changed concurrently)",
                 );
             }
+
+            $this->plugins->fireRunComplete($run);
 
             return;
         }
@@ -618,7 +620,10 @@ final class WorkflowEngine
             $run->status = RunStatus::CANCELLED;
             $run->updatedAt = WorkflowRunTime::now();
             $this->runStore->save($run);
-            $this->plugins->fireRunComplete($run);
+            // cancel(RUNNING) 可能已提前 fireRunComplete 释放槽位，避免 Metrics/Tracing 双计
+            if (!$fresh->state->get('_runCompleteFired', false)) {
+                $this->plugins->fireRunComplete($run);
+            }
 
             return true;
         }

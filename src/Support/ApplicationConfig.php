@@ -63,7 +63,12 @@ final class ApplicationConfig
     /**
      * 加载 APP_PATH/config/{filename} 返回的 PHP 配置数组。
      *
+     * 文件不存在返回 []；require / 语法错误时记录日志。
+     * 生产环境（{@see SystemEnv::isPrdEnv()}）重新抛出，避免静默回退到危险默认值。
+     *
      * @return array<string, mixed>
+     *
+     * @throws \Throwable 生产环境下配置加载失败时抛出
      */
     public static function loadPhpConfig(string $filename): array
     {
@@ -71,16 +76,26 @@ final class ApplicationConfig
             return [];
         }
 
-        try {
-            $configFile = self::resolveAppPath() . '/config/' . ltrim($filename, '/');
-            if (!is_file($configFile)) {
-                return [];
-            }
+        $configFile = self::resolveAppPath() . '/config/' . ltrim($filename, '/');
+        if (!is_file($configFile)) {
+            return [];
+        }
 
+        try {
             $loaded = require $configFile;
 
             return is_array($loaded) ? $loaded : [];
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            SupportLog::error('config', 'Failed to load PHP config file', [
+                'file' => $configFile,
+                'error' => $e->getMessage(),
+                'exception' => $e::class,
+            ]);
+
+            if (\Swoolefy\Core\SystemEnv::isPrdEnv()) {
+                throw $e;
+            }
+
             return [];
         }
     }

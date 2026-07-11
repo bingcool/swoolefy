@@ -60,4 +60,25 @@ interface CapabilityRegistryInterface
      * @return list<CapabilityDescriptor>
      */
     public function bySource(CapabilitySource $source, ?string $sourceName = null): array;
+
+    /**
+     * 注销单个 descriptor（按 id + tenantId）。
+     *
+     * @return bool 是否实际删除了条目
+     */
+    public function unregister(string $id, ?string $tenantId = null): bool;
+
+    /**
+     * 按来源（及可选 MCP server / tenant）批量注销。
+     *
+     * 用于 MCP sync 成功后清理已从 server 删除的幽灵 tool。
+     * $tenantId 为 null 时只删全局（tenantId=null）条目，不误删其它租户。
+     *
+     * @return int 删除条数
+     */
+    public function unregisterBySource(
+        CapabilitySource $source,
+        ?string $sourceName = null,
+        ?string $tenantId = null,
+    ): int;
 }

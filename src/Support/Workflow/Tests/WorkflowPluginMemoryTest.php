@@ -28,6 +28,7 @@ use Swoolefy\Support\Workflow\Engine\WorkflowRun;
 use Swoolefy\Support\Workflow\Node\NodeInterface;
 use Swoolefy\Support\Workflow\Plugin\Builtin\MetricsPlugin;
 use Swoolefy\Support\Workflow\Plugin\Builtin\OpenTelemetryPlugin;
+use Swoolefy\Support\Workflow\Plugin\Builtin\RateLimitPlugin;
 use Swoolefy\Support\Workflow\Plugin\Builtin\TracingPlugin;
 use Swoolefy\Support\Workflow\Plugin\PluginManager;
 use Swoolefy\Support\Workflow\State\WorkflowState;
@@ -228,12 +229,32 @@ function testOpenTelemetryRetainWindow(): void
     assertTrue(in_array('o-2', $runIds, true), 'otel kept latest run');
 }
 
+function testPluginManagerReplaceSameNameDoesNotDuplicateHooks(): void
+{
+    $first = RateLimitPlugin::make(maxConcurrent: 10);
+    $second = RateLimitPlugin::make(maxConcurrent: 10);
+    $manager = new PluginManager([$first]);
+    $manager->add($second); // 同名 rate_limit 应替换，而非累积 hooks
+
+    $compiled = makeCompiled();
+    $run = makeRun('rl-dup', $compiled);
+    $manager->fireRunStart($run, []);
+
+    assertTrue($first->activeRuns() === 0, 'replaced plugin instance must not receive hooks');
+    assertTrue($second->activeRuns() === 1, 'only latest plugin instance holds the slot');
+
+    $manager->fireRunComplete($run);
+    assertTrue($second->activeRuns() === 0, 'single complete releases once');
+    assertTrue(count($manager->registry()->hooks('run.start')) === 1, 'exactly one run.start hook');
+}
+
 $tests = [
     'tracing retain recent runs' => 'testTracingRetainsOnlyRecentCompletedRuns',
     'tracing fifo max spans' => 'testTracingFifoMaxSpans',
     'tracing retain zero' => 'testTracingRetainZeroClearsOnComplete',
     'metrics latency retain and cap' => 'testMetricsLatencyRetainAndCap',
     'otel retain window' => 'testOpenTelemetryRetainWindow',
+    'plugin manager replace same name' => 'testPluginManagerReplaceSameNameDoesNotDuplicateHooks',
 ];
 
 foreach ($tests as $label => $fn) {

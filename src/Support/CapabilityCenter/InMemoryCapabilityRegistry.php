@@ -104,6 +104,53 @@ final class InMemoryCapabilityRegistry implements CapabilityRegistryInterface
     }
 
     /**
+     * 注销单个 descriptor（按 id + tenantId）。
+     *
+     * {@inheritdoc}
+     */
+    public function unregister(string $id, ?string $tenantId = null): bool
+    {
+        $key = $this->storageKey($id, $tenantId);
+        if (!isset($this->descriptors[$key])) {
+            return false;
+        }
+
+        unset($this->descriptors[$key]);
+
+        return true;
+    }
+
+    /**
+     * 按来源（及可选 MCP server / tenant）批量注销。
+     *
+     * {@inheritdoc}
+     */
+    public function unregisterBySource(
+        CapabilitySource $source,
+        ?string $sourceName = null,
+        ?string $tenantId = null,
+    ): int {
+        $removed = 0;
+        foreach ($this->descriptors as $key => $descriptor) {
+            if ($descriptor->source !== $source) {
+                continue;
+            }
+            if ($sourceName !== null && $descriptor->mcpServer !== $sourceName) {
+                continue;
+            }
+            // 精确匹配租户：null 只删全局条目，不误伤其它租户
+            if ($descriptor->tenantId !== $tenantId) {
+                continue;
+            }
+
+            unset($this->descriptors[$key]);
+            $removed++;
+        }
+
+        return $removed;
+    }
+
+    /**
      * 生成租户隔离的存储键。
      *
      * 格式：{tenantId}\0{id}；全局（无租户）条目 tenant 段为空串。

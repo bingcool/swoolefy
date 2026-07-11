@@ -207,8 +207,9 @@ final class NeuronFactory
      * 注入 LLM Provider。
      *
      * 解析优先级：
-     * 1. agentOptions['provider'] → NeuronProviderFactory::createFromAgentOptions()；
-     * 2. 若 Agent 未自定义 provider() → createDefault()（含 RouterProvider fallback）；
+     * 1. agentOptions['provider'] → NeuronProviderFactory::createFromAgentOptions()
+     *    （显式别名缺凭证时直接抛错，不降级）；
+     * 2. 若未指定 provider 且 Agent 未自定义 provider() → createDefault()（含 RouterProvider fallback）；
      * 3. 仍无 Provider 且 Agent 未声明自定义 provider → 抛 WorkflowException。
      *
      * Agent 自身实现了 provider() 且无可用配置 Provider 时，保留 Agent 内置逻辑不抛错。

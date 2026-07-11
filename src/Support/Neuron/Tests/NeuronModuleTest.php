@@ -523,6 +523,55 @@ function testNeuronFactoryThrowsWhenNoProviderCredentials(): void
     }
 }
 
+function testExplicitProviderMissingCredentialsFailsFast(): void
+{
+    // default_provider 有完整凭证；显式指定的 openai 缺 key → 必须抛错，禁止静默落到 default
+    $config = NeuronAiConfig::fromArray([
+        'neuron' => [
+            'default_provider' => 'fallback_ok',
+            'ai_model_providers' => [
+                'fallback_ok' => [
+                    'provider' => OpenAI::class,
+                    'key' => 'sk-fallback',
+                    'model' => 'gpt-4o-mini',
+                ],
+                NeuronAiProviderName::OPENAI => [
+                    'provider' => OpenAI::class,
+                    'key' => '',
+                    'model' => 'gpt-4o-mini',
+                ],
+            ],
+        ],
+    ]);
+    $providerFactory = new NeuronProviderFactory($config);
+
+    try {
+        $providerFactory->createFromAgentOptions(['provider' => NeuronAiProviderName::OPENAI]);
+        assertTrue(false, 'explicit provider without credentials should throw');
+    } catch (WorkflowException $e) {
+        assertTrue(str_contains($e->getMessage(), 'missing required credentials'), 'credentials message');
+        assertTrue(str_contains($e->getMessage(), NeuronAiProviderName::OPENAI), 'includes alias');
+    }
+
+    $factory = new NeuronFactory(providerFactory: $providerFactory);
+    $agentClass = new class extends Agent {
+    };
+
+    try {
+        $factory->create($agentClass::class, new WorkflowState(), [
+            'provider' => NeuronAiProviderName::OPENAI,
+        ]);
+        assertTrue(false, 'NeuronFactory must not fall back to default_provider');
+    } catch (WorkflowException $e) {
+        assertTrue(str_contains($e->getMessage(), 'missing required credentials'), 'factory surfaces fail-fast');
+        assertTrue(!str_contains($e->getMessage(), 'No AI provider available'), 'must not use generic default-missing message');
+    }
+
+    // 未显式指定 provider 时，仍可落到有凭证的 default
+    $default = $providerFactory->createDefault();
+    assertTrue($default instanceof OpenAI, 'default provider still works when not explicit');
+}
+
 function testNeuronFactoryAttachesMiddlewareFromAgentOptions(): void
 {
     $recorder = new class implements \NeuronAI\Workflow\Middleware\WorkflowMiddleware {
@@ -738,6 +787,7 @@ $tests = [
     'http factory cli fallback' => 'testNeuronHttpFactoryCliFallback',
     'neuron factory agent hook' => 'testNeuronFactoryUsesAgentFactoryHook',
     'neuron factory no provider' => 'testNeuronFactoryThrowsWhenNoProviderCredentials',
+    'explicit provider missing credentials fail-fast' => 'testExplicitProviderMissingCredentialsFailsFast',
     'neuron factory middleware attach' => 'testNeuronFactoryAttachesMiddlewareFromAgentOptions',
     'neuron factory middleware invalid' => 'testNeuronFactoryRejectsInvalidMiddleware',
     'vector store name constants' => 'testVectorStoreNameConstants',
