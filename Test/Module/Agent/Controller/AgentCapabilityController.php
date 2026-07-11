@@ -40,9 +40,7 @@ final class AgentCapabilityController extends BController
      *
      * POST /api/v1/agent/capability/resolve
      *
-     * curl -X POST "http://localhost:9501/api/v1/agent/capability/resolve" \
-     *   -H "Content-Type: application/json" \
-     *   -d '{"message":"深圳天气怎么样？","topK":1,"pinnedTools":["native:weather:get_date"]}'
+     curl -X POST "http://localhost:9501/api/v1/agent/capability/resolve" -H "Content-Type: application/json" -d '{"message":"深圳天气怎么样？","topK":1,"pinnedTools":["native:weather:get_date"]}'
      */
     public function resolve(RequestInput $requestInput): array
     {
@@ -65,9 +63,7 @@ final class AgentCapabilityController extends BController
      *
      * POST /api/v1/agent/capability/chat
      *
-     * curl -X POST "http://localhost:9501/api/v1/agent/capability/chat" \
-     *   -H "Content-Type: application/json" \
-     *   -d '{"message":"深圳今天天气怎么样？","topK":1,"pinnedTools":["native:weather:get_date"],"provider":"deepseek"}'
+     curl -X POST "http://localhost:9501/api/v1/agent/capability/chat" -H "Content-Type: application/json" -d '{"message":"深圳今天天气怎么样？","topK":1,"pinnedTools":["native:weather:get_date"],"provider":"deepseek"}'
      */
     public function chat(RequestInput $requestInput): array
     {
