@@ -1,6 +1,7 @@
 <?php
 namespace Test\Controller;
 
+use Swoolefy\Annotation\ApiOperation;
 use Swoolefy\Core\CommandRunner;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Http\RequestInput;
@@ -9,6 +10,12 @@ use Test\App;
 
 class UuidController extends BController
 {
+    /**
+     * @Api 测试获取自增 UUID 列表
+     *
+     * curl -X GET 'http://127.0.0.1:9501/api/getUuid'
+     */
+    #[ApiOperation(description: '测试获取自增 UUID 列表')]
     public function getUuid(RequestInput $requestInput): array
     {
         $ids = App::getUUid()->getIncrIds(10);

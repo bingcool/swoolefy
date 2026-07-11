@@ -11,14 +11,9 @@ use Swoolefy\Http\ResponseOutput;
 class ChunkedController extends BController
 {
     /**
-     * NDJSON 分块流示例：每行一个 JSON 对象。
+     * @Api 测试 NDJSON 分块流（每行一个 JSON）
      *
-     * 访问示例：
-     * GET /api/chunked/ndjson
-     * GET /api/chunked/ndjson?count=5&interval=0.5&message=hello
-     *
-     * curl 测试：
-     * curl -N "http://127.0.0.1:9501/api/chunked/ndjson?count=3"
+     * curl -N 'http://127.0.0.1:9501/api/chunked/ndjson?count=3'
      */
     #[ChunkedResponse]
     public function ndjson(RequestInput $requestInput, ResponseOutput $responseOutput): void
@@ -52,10 +47,9 @@ class ChunkedController extends BController
     }
 
     /**
-     * 纯文本分块流示例。
+     * @Api 测试纯文本分块流逐行推送
      *
-     * 访问示例：
-     * GET /api/chunked/text?lines=10
+     * curl -N 'http://127.0.0.1:9501/api/chunked/text?lines=5'
      */
     #[ChunkedResponse]
     public function text(RequestInput $requestInput, ResponseOutput $responseOutput): void

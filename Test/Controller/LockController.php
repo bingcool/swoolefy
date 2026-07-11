@@ -2,11 +2,18 @@
 namespace Test\Controller;
 
 use malkusch\lock\exception\TimeoutException;
+use Swoolefy\Annotation\ApiOperation;
 use Swoolefy\Core\Controller\BController;
 use Test\App;
 
 class LockController extends BController
 {
+    /**
+     * @Api 测试 Redis 分布式锁 synchronized 阻塞获取
+     *
+     * curl -X GET 'http://127.0.0.1:9501/api/lock-test1'
+     */
+    #[ApiOperation(description: '测试 Redis 分布式锁 synchronized 阻塞获取')]
     public function locktest1(): array
     {
 //        $lock = App::getRedisLock();
@@ -33,6 +40,12 @@ class LockController extends BController
         }
     }
 
+    /**
+     * @Api 测试 Redis 分布式锁 acquire/release 非阻塞获取
+     *
+     * curl -X GET 'http://127.0.0.1:9501/api/lock-test2'
+     */
+    #[ApiOperation(description: '测试 Redis 分布式锁 acquire/release 非阻塞获取')]
     public function locktest2(): array
     {
         $lock = App::getRedisLock();

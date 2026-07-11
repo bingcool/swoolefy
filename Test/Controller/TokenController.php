@@ -1,6 +1,7 @@
 <?php
 namespace Test\Controller;
 
+use Swoolefy\Annotation\ApiOperation;
 use Swoolefy\Library\Clock\SystemClock;
 use Swoolefy\Library\Jwt\Encoding\ChainedFormatter;
 use Swoolefy\Library\Jwt\Encoding\JoseEncoder;
@@ -18,6 +19,12 @@ use Swoolefy\Core\Controller\BController;
 
 class TokenController extends BController
 {
+    /**
+     * @Api 测试 JWT 签发与校验
+     *
+     * curl -X GET 'http://127.0.0.1:9501/api/token/jwt'
+     */
+    #[ApiOperation(description: '测试 JWT 签发与校验')]
     public function jwt(): array
     {
         $key = "kkkkkkkkkkkkhyggggggggsddddddddddd";

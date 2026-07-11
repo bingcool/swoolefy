@@ -1,14 +1,17 @@
 <?php
 namespace Test\Controller;
 
+use Swoolefy\Annotation\ApiOperation;
 use Swoolefy\Core\Application;
 
 class WsController extends \Swoolefy\Core\Controller\BController
 {
     /**
-     * @return void
+     * @Api 测试输出 WebSocket 客户端页面
+     *
+     * curl -X GET 'http://127.0.0.1:9501/api/ws'
      */
-
+    #[ApiOperation(description: '测试输出 WebSocket 客户端页面')]
     public function test1(): void
     {
         Application::getApp()->swooleResponse->write('<!DOCTYPE HTML>

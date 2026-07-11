@@ -1,6 +1,7 @@
 <?php
 namespace Test\Controller;
 
+use Swoolefy\Annotation\ApiOperation;
 use Swoolefy\Library\Db\Sql;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
@@ -13,13 +14,12 @@ use Test\Module\Order\OrderFormatter;
 class PgController extends BController
 {
     /**
-     * @Api("保存订单")
-     * @ApiMethod("POST")
-     * @ApiParam(name="userId", type="int", required=true, description="用户ID")
-     * @ApiParam(name="receiver_user_name", type="string", required=true, description="收货人姓名")
-     * @ApiParam(name="receiver_user_phone", type="string", required=true, description="收货人手机号")
-     * @ApiParam(name="order_amount", type="float", required=true, description="订单金额")
+     * @Api("测试 PostgreSQL 插入订单并触发 CurlProxy 请求")
+     *
+     * curl 测试：
+     * curl "http://127.0.0.1:9501/user/user-order/save-pg-order"
      */
+    #[ApiOperation(description: '测试 PostgreSQL 插入订单并触发 CurlProxy 请求')]
     public function savePgOrder(): array
     {
         $userId = 10000;
@@ -67,6 +67,13 @@ class PgController extends BController
 
     }
 
+    /**
+     * @Api("测试 OrderPgEntity 保存 PostgreSQL 订单")
+     *
+     * curl 测试：
+     * curl "http://127.0.0.1:9501/user/user-order/save-pg-order1"
+     */
+    #[ApiOperation(description: '测试 OrderPgEntity 保存 PostgreSQL 订单')]
     public function savePgOrder1(): array
     {
         $userId = 10000;
@@ -106,6 +113,13 @@ class PgController extends BController
 
     }
 
+    /**
+     * @Api("测试按 uid 删除用户（打印入参）")
+     *
+     * curl 测试：
+     * curl -X DELETE "http://127.0.0.1:9501/user/remove-use?uid=1"
+     */
+    #[ApiOperation(description: '测试按 uid 删除用户（打印入参）')]
     public function removeUser(RequestInput $requestInput)
     {
         RunLog::info("removeUser");
@@ -113,12 +127,26 @@ class PgController extends BController
         var_dump($uid);
     }
 
+    /**
+     * @Api("测试长时间 sleep 的 Curl/阻塞场景")
+     *
+     * curl 测试：
+     * curl "http://127.0.0.1:9501/test-curl"
+     */
+    #[ApiOperation(description: '测试长时间 sleep 的 Curl/阻塞场景')]
     public function testCurl(RequestInput $requestInput): bool
     {
         sleep(10);
         return true;
     }
 
+    /**
+     * @Api("测试 PostgreSQL 子查询构建与用户列表 SQL")
+     *
+     * curl 测试：
+     * curl "http://127.0.0.1:9501/user/pg/user-list"
+     */
+    #[ApiOperation(description: '测试 PostgreSQL 子查询构建与用户列表 SQL')]
     public function userList(RequestInput $requestInput)
     {
         $table = Sql::table('tbl_user')->as('user_t1');

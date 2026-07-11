@@ -1,6 +1,7 @@
 <?php
 namespace Test\Controller;
 
+use Swoolefy\Annotation\ApiOperation;
 use Swoolefy\Core\Controller\BController;
 use Test\Model\ClientModel;
 use Test\Module\Order\OrderEntity;
@@ -10,8 +11,13 @@ use Test\Module\Order\OrderList;
 class ObjectController extends BController
 {
     /**
-     * saveOrder
+     * @Api("测试 Entity 保存订单（含 AFTER_INSERT 事件）")
+     *
+     * curl 测试：
+     * curl "http://127.0.0.1:9501/user/user-order/save-order"
+     * curl "http://127.0.0.1:9501/user/order/add"
      */
+    #[ApiOperation(description: '测试 Entity 保存订单（含 AFTER_INSERT 事件）')]
     public function saveOrder(): array
     {
         $userId = 10000;
@@ -51,8 +57,14 @@ class ObjectController extends BController
     }
 
     /**
+     * @Api("测试 Entity 更新订单金额与字段")
+     *
+     * curl 测试：
+     * curl "http://127.0.0.1:9501/user/user-order/update-order"
+     *
      * @throws \Exception
      */
+    #[ApiOperation(description: '测试 Entity 更新订单金额与字段')]
     public function updateOrder(): array
     {
         $userId = 10000;
@@ -79,8 +91,14 @@ class ObjectController extends BController
 
 
     /**
+     * @Api("测试 OrderList 分页查询订单列表")
+     *
+     * curl 测试：
+     * curl "http://127.0.0.1:9501/user/order/list"
+     *
      * @throws \Exception
      */
+    #[ApiOperation(description: '测试 OrderList 分页查询订单列表')]
     public function list(): array
     {
         $list = new OrderList();
@@ -96,6 +114,13 @@ class ObjectController extends BController
         ];
     }
 
+    /**
+     * @Api("测试 ClientModel 写入银行表（含 JSON 字段）")
+     *
+     * curl 测试：
+     * curl "http://127.0.0.1:9501/api/bank/addBank"
+     */
+    #[ApiOperation(description: '测试 ClientModel 写入银行表（含 JSON 字段）')]
     public function addBank(): array
     {
         /**

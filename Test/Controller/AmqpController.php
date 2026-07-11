@@ -1,6 +1,7 @@
 <?php
 namespace Test\Controller;
 
+use Swoolefy\Annotation\ApiOperation;
 use Swoolefy\Library\Amqp\AmqpAbstract;
 use Swoolefy\Library\Amqp\AmqpDelayDirectQueue;
 use Swoolefy\Library\Amqp\AmqpDelayTopicQueue;
@@ -10,6 +11,12 @@ use Swoolefy\Core\Controller\BController;
 
 class AmqpController extends BController
 {
+    /**
+     * @Api 测试 AMQP Direct 队列发布消息
+     *
+     * curl -X GET 'http://127.0.0.1:9501/api/amqp/publish'
+     */
+    #[ApiOperation(description: '测试 AMQP Direct 队列发布消息')]
     public function testPublish(): bool
     {
         /**
@@ -22,6 +29,12 @@ class AmqpController extends BController
         return true;
     }
 
+    /**
+     * @Api 测试 AMQP Delay Topic 队列发布消息
+     *
+     * curl -X GET 'http://127.0.0.1:9501/api/amqp/publish-delay-topic'
+     */
+    #[ApiOperation(description: '测试 AMQP Delay Topic 队列发布消息')]
     public function testPublish1(): bool
     {
         /**
@@ -42,6 +55,12 @@ class AmqpController extends BController
         return true;
     }
 
+    /**
+     * @Api 测试 AMQP Delay Direct 队列发布消息
+     *
+     * curl -X GET 'http://127.0.0.1:9501/api/amqp/publish-delay-direct'
+     */
+    #[ApiOperation(description: '测试 AMQP Delay Direct 队列发布消息')]
     public function testPublish2(): bool
     {
         /**

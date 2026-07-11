@@ -11,15 +11,9 @@ use Swoolefy\Http\ResponseOutput;
 class EventStreamController extends BController
 {
     /**
-     * SSE 基础示例：按固定间隔推送 JSON 消息。
+     * @Api 测试 SSE 按固定间隔推送 JSON 消息
      *
-     * 访问示例：
-     * GET /api/sse/stream
-     * GET /api/sse/stream?count=5&interval=0.5&message=hello
-     *
-     * 前端示例：
-     * const es = new EventSource('/api/sse/stream?count=5');
-     * es.onmessage = (e) => console.log(JSON.parse(e.data));
+     * curl -N 'http://127.0.0.1:9501/api/sse/stream?count=5&interval=0.5'
      */
     #[StreamResponse]
     public function stream(RequestInput $requestInput, ResponseOutput $responseOutput): void
@@ -61,10 +55,9 @@ class EventStreamController extends BController
     }
 
     /**
-     * SSE 心跳示例：持续推送 comment 心跳与 tick 事件，适合测试长连接保活。
+     * @Api 测试 SSE 长连接心跳与 tick 事件保活
      *
-     * 访问示例：
-     * GET /api/sse/tick?seconds=30
+     * curl -N 'http://127.0.0.1:9501/api/sse/tick?seconds=10'
      */
     #[StreamResponse]
     public function tick(RequestInput $requestInput, ResponseOutput $responseOutput): void

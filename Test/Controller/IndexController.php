@@ -5,6 +5,7 @@ use Swoolefy\Library\OpenTelemetry\SDK\Common\Configuration\Parser\BooleanParser
 use GuzzleHttp\Client;
 use http\Header;
 use OpenTelemetry\SDK\Common\Http\Psr\Client\Discovery\Guzzle;
+use Swoolefy\Annotation\ApiOperation;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\Coroutine\Context;
@@ -25,6 +26,14 @@ class IndexController extends BController {
      */
     protected $db;
 
+    /**
+     * @Api("测试首页入口：协程写日志、环境变量与欢迎页")
+     *
+     * curl 测试：
+     * curl "http://127.0.0.1:9501/index/index"
+     * curl "http://127.0.0.1:9501/api/"
+     */
+    #[ApiOperation(description: '测试首页入口：协程写日志、环境变量与欢迎页')]
     public function index(RequestInput $request): string
     {
         // todo something
@@ -161,6 +170,13 @@ class IndexController extends BController {
     }
 
 
+    /**
+     * @Api("测试日志组件写入与 afterRequest 回调注册")
+     *
+     * curl 测试：
+     * curl "http://127.0.0.1:9501/api/index/testLog"
+     */
+    #[ApiOperation(description: '测试日志组件写入与 afterRequest 回调注册')]
     public function testLog(RequestInput $requestInput): array
     {
         /**
@@ -181,11 +197,19 @@ class IndexController extends BController {
             'Action' => $requestInput->getActionId().'-'.rand(1,1000)
         ];
     }
+    /**
+     * @Api("请求结束后回调，供 afterRequest 内部调用")
+     * 无 HTTP 路由（回调/内部用）
+     */
     public function afterSave()
     {
 
     }
 
+    /**
+     * @Api("测试 RunLog 业务日志写入")
+     * 无 HTTP 路由
+     */
     public function testLog1(RequestInput $requestInput): array
     {
         RunLog::info('test11111-log-id='.rand(1,1000));
@@ -196,6 +220,13 @@ class IndexController extends BController {
     }
 
 
+    /**
+     * @Api("测试插入用户表（含协程内再次插入）")
+     *
+     * curl 测试：
+     * curl "http://127.0.0.1:9501/user/testAddUser"
+     */
+    #[ApiOperation(description: '测试插入用户表（含协程内再次插入）')]
     public function testAddUser(): array
     {
         $db = App::getDb();
@@ -231,6 +262,10 @@ class IndexController extends BController {
 
     }
 
+    /**
+     * @Api("测试查询用户列表与总数")
+     * 无 HTTP 路由
+     */
     public function testUserList(): array
     {
         $db = App::getDb();
@@ -245,8 +280,11 @@ class IndexController extends BController {
     }
 
     /**
+     * @Api("按用户分页查询订单列表（内部方法带参数）")
+     * 无 HTTP 路由（内部方法带参数）
+     *
      * @param int $uid
-     * @param int $offset
+     * @param int $page
      * @param int $limit
      */
     public function testOrderList(int $uid, int $page = 1, int $limit = 20): array
@@ -271,6 +309,13 @@ class IndexController extends BController {
         ];
     }
 
+    /**
+     * @Api("测试事务与协程场景下插入订单")
+     *
+     * curl 测试：
+     * curl "http://127.0.0.1:9501/user/testTransactionAddOrder"
+     */
+    #[ApiOperation(description: '测试事务与协程场景下插入订单')]
     public function testTransactionAddOrder(): array
     {
         RunLog::info("Hello");

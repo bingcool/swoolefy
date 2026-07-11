@@ -10,9 +10,12 @@ use Swoolefy\Core\Controller\BController;
 
 class CacheController extends BController
 {
-    #[ApiOperation(
-        "测试缓存"
-    )]
+    /**
+     * @Api 测试 Redis Cache 读写与协程 Context 传递
+     *
+     * curl -X GET 'http://127.0.0.1:9501/api/cache/test'
+     */
+    #[ApiOperation(description: '测试 Redis Cache 读写与协程 Context 传递')]
     public function test(): array
     {
         var_dump("parent cid =".\Swoole\Coroutine::getCid());
@@ -39,6 +42,12 @@ class CacheController extends BController
     }
 
 
+    /**
+     * @Api 测试 Cache setMultiple 批量写入
+     *
+     * curl -X GET 'http://127.0.0.1:9501/api/cache/test1'
+     */
+    #[ApiOperation(description: '测试 Cache setMultiple 批量写入')]
     public function test1(): array
     {
         var_dump("parent cid =".\Swoole\Coroutine::getCid());

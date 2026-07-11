@@ -1,14 +1,18 @@
 {
+  "Common": {
+    "title": "公共/框架演示",
+    "description": "Test\\Controller 对应路由，按控制器拆分在 Router/Common/"
+  },
+  "Module": {
+    "title": "业务模块",
+    "description": "Rag/Agent/Workflow/Order/Research/Outdoor/Mcp 模块路由"
+  },
   "Product": {
     "title": "用户产品中心",
     "description": "用户产品模块"
   },
   "Order": {
     "title": "用户订单中心",
-    "description": "用户订单模块"
-  },
-  "Common": {
-    "title": "公共Api模块",
-    "description": "公共Api模块"
+    "description": "历史兼容：订单相关见 Common/UserOrder、Module/OrderWorkflow"
   }
 }

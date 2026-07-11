@@ -1,11 +1,18 @@
 <?php
 namespace Test\Controller;
 
+use Swoolefy\Annotation\ApiOperation;
 use Swoolefy\Core\Controller\BController;
 use Test\App;
 
 class TransactionController extends BController
 {
+    /**
+     * @Api 测试数据库事务与协程隔离
+     *
+     * curl -X GET 'http://127.0.0.1:9501/api/transaction/test'
+     */
+    #[ApiOperation(description: '测试数据库事务与协程隔离')]
     public function test(): bool
     {
         $db = App::getDb();

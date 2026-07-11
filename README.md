@@ -80,6 +80,14 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
     - **服务注册**: 应用实例注册到 Nacos 注册中心，支持心跳保活（`application.yaml` → `nacos.service_register`）
     - **服务发现**: `DiscoveryClient` 拉取健康实例，内置 `random` / `round_robin` / `weight` 负载均衡
     - **SDK 服务发现**: `gen:sdk` 生成的 API 客户端在未传入 Guzzle Client 时，自动通过 Nacos 解析目标服务 `base_uri`（`serviceName` 在生成时从 `application.yaml` 注入）
+- 🤖 **AI / LLM / RAG / Agent / OCR**:
+    - **LLM（Neuron）**: Provider 工厂、Fallback、Middleware、Embedding、ChatHistory（Redis/SQL）、出站 URL 守卫（`src/Support/Neuron/`）
+    - **AI 节点**: `AINode`、Structured Output、SSE/WebSocket 流式输出、多 Agent 并行节点（`src/Support/AI/`）
+    - **Agent**: Static / Rule / Weighted / CostAware / RoundRobin / LLM 六种路由 + 协程并行调度（`src/Support/Agent/`）
+    - **RAG**: 多向量库入库/检索、租户隔离、sync·queue Dispatcher（`src/Support/Rag/`）
+    - **MCP**: HTTP/SSE Tools、DB 多租户配置、stdio 生产禁用（`src/Support/Mcp/`）
+    - **DocumentOcr**: Pandoc（DOCX/HTML/MD）+ DeepSeek OCR（图片/PDF）→ Markdown → RAG（`src/Support/DocumentOcr/`）
+    - **Workflow**: DAG 工作流引擎，支持 AI 决策分支、多 Agent 并行、RAG/MCP 节点与人机协同 HITL（详见 [二十一](#nav-21-ai-workflow)、[二十二](#nav-22-ai-capabilities)）
 
 
 <a id="nav-arch"></a>

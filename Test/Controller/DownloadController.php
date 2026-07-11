@@ -9,14 +9,9 @@ use Swoolefy\Http\ResponseOutput;
 class DownloadController extends BController
 {
     /**
-     * 文件下载示例：通过 sendfile 发送附件。
+     * @Api 测试 sendfile 附件下载
      *
-     * 访问示例：
-     * GET /api/download/file
-     * GET /api/download/file?file=demo.txt
-     *
-     * curl 测试：
-     * curl -OJ "http://127.0.0.1:9501/api/download/file?file=demo.txt"
+     * curl -OJ 'http://127.0.0.1:9501/api/download/file?file=demo.txt'
      */
     #[DownloadResponse]
     public function file(RequestInput $requestInput, ResponseOutput $responseOutput): void
@@ -28,10 +23,9 @@ class DownloadController extends BController
     }
 
     /**
-     * 浏览器内联预览示例（Content-Disposition: inline）。
+     * @Api 测试浏览器内联预览下载（Content-Disposition: inline）
      *
-     * 访问示例：
-     * GET /api/download/inline?file=demo.txt
+     * curl -OJ 'http://127.0.0.1:9501/api/download/inline?file=demo.txt'
      */
     #[DownloadResponse]
     public function inline(RequestInput $requestInput, ResponseOutput $responseOutput): void
