@@ -67,4 +67,14 @@ Route::group([
         ],
         'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList2'],
     ]);
+
+    // ANY /user/user-order/userList3 — goApp 多层嵌套 Db 查询+插入
+    Route::any('/user-order/userList3', [
+        'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList3'],
+    ])->enableDbDebug();
+
+    // ANY /user/user-order/userList4 — newQuery 复杂 SQL
+    Route::any('/user-order/userList4', [
+        'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList4'],
+    ])->enableDbDebug();
 });
