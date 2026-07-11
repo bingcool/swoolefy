@@ -9,7 +9,7 @@ class WsController extends \Swoolefy\Core\Controller\BController
      * @return void
      */
 
-    public function test1()
+    public function test1(): void
     {
         Application::getApp()->swooleResponse->write('<!DOCTYPE HTML>
 <html>

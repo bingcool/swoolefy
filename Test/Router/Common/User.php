@@ -31,6 +31,15 @@ Route::group([
     ]);
 
 
+    /**
+     * Db 组件综合稳定性测试（全量 cases）
+     *
+     * POST/GET  http://127.0.0.1:9501/user/user-order/userList
+     * Body 示例：{"name":"db-test","order_ids":[1,2,3]}
+     * 返回：{ ok, cases.{name}.pass, errors[] }
+     *
+     * @see \Test\Module\Order\Controller\UserOrderController::userList()
+     */
     Route::any('/user-order/userList', [
         'beforeHandle1' => function(RequestInput $requestInput) {
             $requestInput->input('name');
@@ -42,7 +51,6 @@ Route::group([
             ValidLoginMiddleware::class
         ],
         'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList'],
-        // 后置中间件
         'afterMiddleware' => [
             SendMailMiddleware::class
         ]
@@ -51,8 +59,13 @@ Route::group([
     ->enableCacheRouteMeta()
     ->withRateLimiterMiddleware(RateLimiterMiddleware::class,  60,60,GroupTestMiddleware::class);
 
+    /**
+     * 协程单例 / 嵌套协程 Query 专项
+     *
+     * POST/GET  http://127.0.0.1:9501/user/user-order/userList1
+     * @see \Test\Module\Order\Controller\UserOrderController::userList1()
+     */
     Route::any('/user-order/userList1', [
-        // 针对该接口启动sql-debug
         'beforeHandle' => function(RequestInput $requestInput) {
             Context::set('db_debug', false);
         },
@@ -67,12 +80,17 @@ Route::group([
         ]
     ])->enableDbDebug(false);
 
+    /**
+     * 事务专项：commit / rollback / 嵌套事务
+     *
+     * POST/GET  http://127.0.0.1:9501/user/user-order/userList2
+     * @see \Test\Module\Order\Controller\UserOrderController::userList2()
+     */
     Route::any('/user-order/userList2', [
         'beforeHandle2' => [
             ValidLoginMiddleware::class
         ],
         'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList2'],
-        //GroupTestMiddleware::class => GroupTestMiddleware::class
     ]);
 
     Route::get('/user-order/test-request', [

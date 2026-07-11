@@ -6,7 +6,7 @@ use Test\App;
 
 class TransactionController extends BController
 {
-    public function test(): void
+    public function test(): bool
     {
         $db = App::getDb();
         $db->beginTransaction();
@@ -61,5 +61,6 @@ class TransactionController extends BController
             throw $e;
         }
 
+        return true;
     }
 }

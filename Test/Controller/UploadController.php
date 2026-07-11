@@ -12,7 +12,7 @@ class UploadController extends BController
      * 单文件上传示例。
      *
      * curl 测试：
-     * curl -F "file=@/path/to/demo.jpg" "http://127.0.0.1:9501/api/upload/single"
+       curl -F "file=@/path/to/demo.jpg" "http://127.0.0.1:9501/api/upload/single"
      */
     public function single(RequestInput $requestInput): array
     {
