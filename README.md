@@ -1,4 +1,5 @@
 # swoolefy
+
 ```
   ______                                _           _ _ _ _
  /  ____|                              | |         |  _ _ _|  _   _
@@ -9,14 +10,16 @@
                                                    |_|           | |
                                                               __ / |
                                                              |_ _ /
-```  
+```
 
-[![License](https://img.shields.io/packagist/l/bingcool/swoolefy.svg)](https://packagist.org/packages/bingcool/swoolefy)
-[![Latest Stable Version](https://img.shields.io/packagist/v/bingcool/swoolefy.svg)](https://packagist.org/packages/bingcool/swoolefy)
-[![PHP Version Require](https://img.shields.io/packagist/php-v/bingcool/swoolefy.svg)](https://packagist.org/packages/bingcool/swoolefy)
-[![Total Downloads](https://img.shields.io/packagist/dt/bingcool/swoolefy.svg)](https://packagist.org/packages/bingcool/swoolefy)
+[License](https://packagist.org/packages/bingcool/swoolefy)
+[Latest Stable Version](https://packagist.org/packages/bingcool/swoolefy)
+[PHP Version Require](https://packagist.org/packages/bingcool/swoolefy)
+[Total Downloads](https://packagist.org/packages/bingcool/swoolefy)
 
 ---
+
+
 
 ## 📑 导航
 
@@ -48,16 +51,18 @@
 - [二十二、🧠 AI Agent / RAG / MCP / OCR 大模型能力](#nav-22-ai-capabilities)
 
 ---
-<a id="nav-1-intro"></a>
 
-### 一、📖 简介    
+
+
+### 一、📖 简介
+
 swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协程级应用服务框架，
-高度支持httpApi，websocket，udp服务器，以及基于tcp实现可扩展的rpc服务，worker多进程消费模型  
-同时支持composer包方式安装部署项目。基于实用主义设计出发，swoolefy抽象Event事件处理类，
-实现与底层的回调的解耦，支持协程单例调度，同步|异步调用，全局事件注册，心跳检查，异步任务，多进程(池)，连接池等，
-内置```log、session、mysql、pgsql、redis、mongodb、kafka、amqp、uuid、route midelware、cache、queue、rateLimit、traceId```等常用组件等.    
-
-<a id="nav-core"></a>
+高度支持httpApi，websocket，udp服务器，以及基于tcp实现可扩展的rpc服务，worker多进程消费模型, 支持composer包方式安装部署项目。     
+基于实用主义设计出发，swoolefy抽象Event事件处理类, 实现与底层的回调的解耦，支持协程单例调度，同步|异步调用，全局事件注册，心跳检查，异步任务，多进程(池)，连接池等，
+内置`log、session、mysql、pgsql、redis、mongodb、kafka、amqp、uuid、route midelware、cache、queue、rateLimit、traceId`等常用组件等。  
+在人工智能 AI 时代潮流下，swoolefy 基于 Neuron AI 与协程运行时，内聚 LLM，**Workflow DAG 工作流编排**、**AINode（对话 / Structured Output / SSE·WebSocket 流式）**    
+**六种 Agent 路由与协程并行调度**、**RAG 向量入库/检索（租户隔离）**、**MCP 工具调用**、**DocumentOcr 文档解析（DOCX/图片/PDF → Markdown）** 等一体化大模型能力，    
+支持条件边 AI 决策、人机协同 HITL、节点超时 / Saga / 快照恢复与 Provider Fallback 等生产级特性。
 
 ### 🎯 核心特性
 
@@ -67,34 +72,33 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 - 🎨 **易用性**: Laravel 风格的路由、中间件、ORM
 - 🔄 **热更新**: 文件修改自动重启 Worker，无需停机 (开发环境)
 - 👥 **多进程管理**:
-    - **守护进程 (Daemon)**: 常驻内存，自动拉起多个 Worker 进程，支持进程健康监控和动态扩缩容
-    - **Cron 计划任务**: 类似 Linux crontab，支持 local/fork/url 三种调度模式，定时执行业务逻辑
+  - **守护进程 (Daemon)**: 常驻内存，自动拉起多个 Worker 进程，支持进程健康监控和动态扩缩容
+  - **Cron 计划任务**: 类似 Linux crontab，支持 local/fork/url 三种调度模式，定时执行业务逻辑
 - ⚛️ **协程并发**:
-    - **goApp()**: 一键创建协程单例，自动处理 DB/Redis/Curl 等组件的协程隔离
-    - **Parallel**: 限制最大并发数，防止瞬间创建大量协程拖垮下游服务
-    - **GoWaitGroup**: 类似 Go 语言的 WaitGroup，优雅的协程同步等待机制
+  - **goApp()**: 一键创建协程单例，自动处理 DB/Redis/Curl 等组件的协程隔离
+  - **Parallel**: 限制最大并发数，防止瞬间创建大量协程拖垮下游服务
+  - **GoWaitGroup**: 类似 Go 语言的 WaitGroup，优雅的协程同步等待机制
 - 📦 **组件化**:
-    - **bingcool/library** 大量常用协程组件库 @see https://github.com/bingcool/library
+  - **bingcool/library** 大量常用协程组件库 @see [https://github.com/bingcool/library](https://github.com/bingcool/library)
 - ☁️ **Nacos 微服务集成**:
-    - **配置变更监听**: 长轮询 Nacos 配置，拉取最新内容写入 `APP_PATH/.env`，自动执行 `restart --force` 使 Worker 加载新配置
-    - **服务注册**: 应用实例注册到 Nacos 注册中心，支持心跳保活（`application.yaml` → `nacos.service_register`）
-    - **服务发现**: `DiscoveryClient` 拉取健康实例，内置 `random` / `round_robin` / `weight` 负载均衡
-    - **SDK 服务发现**: `gen:sdk` 生成的 API 客户端在未传入 Guzzle Client 时，自动通过 Nacos 解析目标服务 `base_uri`（`serviceName` 在生成时从 `application.yaml` 注入）
+  - **配置变更监听**: 长轮询 Nacos 配置，拉取最新内容写入 `APP_PATH/.env`，自动执行 `restart --force` 使 Worker 加载新配置
+  - **服务注册**: 应用实例注册到 Nacos 注册中心，支持心跳保活（`application.yaml` → `nacos.service_register`）
+  - **服务发现**: `DiscoveryClient` 拉取健康实例，内置 `random` / `round_robin` / `weight` 负载均衡
+  - **SDK 服务发现**: `gen:sdk` 生成的 API 客户端在未传入 Guzzle Client 时，自动通过 Nacos 解析目标服务 `base_uri`（`serviceName` 在生成时从 `application.yaml` 注入）
 - 🤖 **AI / LLM / RAG / Agent / OCR**:
-    - **LLM（Neuron）**: Provider 工厂、Fallback、Middleware、Embedding、ChatHistory（Redis/SQL）、出站 URL 守卫（`src/Support/Neuron/`）
-    - **AI 节点**: `AINode`、Structured Output、SSE/WebSocket 流式输出、多 Agent 并行节点（`src/Support/AI/`）
-    - **Agent**: Static / Rule / Weighted / CostAware / RoundRobin / LLM 六种路由 + 协程并行调度（`src/Support/Agent/`）
-    - **RAG**: 多向量库入库/检索、租户隔离、sync·queue Dispatcher（`src/Support/Rag/`）
-    - **MCP**: HTTP/SSE Tools、DB 多租户配置、stdio 生产禁用（`src/Support/Mcp/`）
-    - **DocumentOcr**: Pandoc（DOCX/HTML/MD）+ DeepSeek OCR（图片/PDF）→ Markdown → RAG（`src/Support/DocumentOcr/`）
-    - **Workflow**: DAG 工作流引擎，支持 AI 决策分支、多 Agent 并行、RAG/MCP 节点与人机协同 HITL（详见 [二十一](#nav-21-ai-workflow)、[二十二](#nav-22-ai-capabilities)）
+  - **LLM（Neuron）**: Provider 工厂、Fallback、Middleware、Embedding、ChatHistory（Redis/SQL）、出站 URL 守卫（`src/Support/Neuron/`）
+  - **AI 节点**: `AINode`、Structured Output、SSE/WebSocket 流式输出、多 Agent 并行节点（`src/Support/AI/`）
+  - **Agent**: Static / Rule / Weighted / CostAware / RoundRobin / LLM 六种路由 + 协程并行调度（`src/Support/Agent/`）
+  - **RAG**: 多向量库入库/检索、租户隔离、sync·queue Dispatcher（`src/Support/Rag/`）
+  - **MCP**: HTTP/SSE Tools、DB 多租户配置、stdio 生产禁用（`src/Support/Mcp/`）
+  - **DocumentOcr**: Pandoc（DOCX/HTML/MD）+ DeepSeek OCR（图片/PDF）→ Markdown → RAG（`src/Support/DocumentOcr/`）
+  - **Workflow**: DAG 工作流引擎，支持 AI 决策分支、多 Agent 并行、RAG/MCP 节点与人机协同 HITL（详见 [二十一](#nav-21-ai-workflow)、[二十二](#nav-22-ai-capabilities)）
 
 
-<a id="nav-arch"></a>
 
 ### 🏛️ 架构设计
 
-<a id="nav-arch-process"></a>
+
 
 ### 进程模型
 
@@ -158,7 +162,7 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 3. **Worker/Task/User Process**: 第三层级，由 Manager 直接管理
 4. **Cron/Daemon/Script Workers**: 第四层级，由 User Process (MainProcess) 通过 `MainManager::start()` 拉起
 
-<a id="nav-arch-http"></a>
+
 
 ### http请求处理流程
 
@@ -260,33 +264,40 @@ Client Request
 Client Response
 ```
 
-
 ---
 
-<a id="nav-2-version"></a>
+
 
 ### 二、📦 版本选择
+
+
+
 #### 6.x 版本 (推荐 - 最新稳定版)
 
 **最低要求:**
+
 - PHP >= 8.4
 - Swoole >= 6.1 (推荐使用 Swoole 6.x 最新版本)
+
+
 
 #### 4.9 LTS 版本 (长期维护版)
 
 **最低要求:**
+
 - PHP 7.3 ~ 7.4
 - Swoole 4.8.x (推荐 4.8.13+)
 
 **选择哪个版本?**  
-1、如果确定项目是使用php81+的，那么直接选择 ```swoole > 6.1.x，推荐直接使用 swoole-6.2.0+ 以上最新版本更好``` 安装，然后选择 ```bingcool/swoolefy:^6.1``` 作为项目分支安装最新稳定版本   
+1、如果确定项目是使用php81+的，那么直接选择 `swoole > 6.1.x，推荐直接使用 swoole-6.2.0+ 以上最新版本更好` 安装，然后选择 `bingcool/swoolefy:^6.1` 作为项目分支安装最新稳定版本   
 
-2、如果确定项目是使用 ```php7.3 ~ php7.4``` 的，那么选择 swoole-v4.8+ 版本来进行编译安装(不能直接使用 swoole-cli-v4.8+ 了, 因为其内置的是php8.1，与你的项目的php7不符合)
-所有只能通过编译swoole源码的方式来生成swoole扩展，然后选择 ```bingcool/swoolefy:^4.9``` 作为项目分支稳定版本   
+2、如果确定项目是使用 `php7.3 ~ php7.4` 的，那么选择 swoole-v4.8+ 版本来进行编译安装(不能直接使用 swoole-cli-v4.8+ 了, 因为其内置的是php8.1，与你的项目的php7不符合)
+所有只能通过编译swoole源码的方式来生成swoole扩展，然后选择 `bingcool/swoolefy:^4.9` 作为项目分支稳定版本   
 
 3、依赖编译： ./configure --enable-openssl --enable-sockets --enable-swoole-curl --enable-swoole-pgsql --enable-swoole-stdext --enable-iouring     
 
 4、若不希望自己编译构建，也可以直接使用本目录下的Dockerfile来构建镜像:     
+
 ```
 // 构建镜像
 docker build --no-cache -t swoolefy-php84-swoole62:v1 -f ./php84-swoole62-io-uring.Dockerfile .   
@@ -297,11 +308,15 @@ docker build --no-cache -t swoolefy-php84-swoole62:v1 -f ./php84-swoole62-io-uri
 docker run -d -it --security-opt seccomp=unconfined -p 9501:9501 -p 9502:9502 -v /host_mnt/Users/macbook/Documents/wwwphp:/home/wwwroot --name=swoolefy-php84-v62 swoolefy-php84-swoole62:v1
 
 ```
-<a id="nav-3-features"></a>
 
-### 三、⚙️ 实现的功能特性    
+
+
+### 三、⚙️ 实现的功能特性
+
+
 
 #### 基础特性
+
 - [x] 支持架手脚一键创建项目自动生成最小项目骨架         
 - [x] 支持swagger一键生成api文档
 - [x] 支持分组路由, 路由中间件middleware, 前置路由组件, 后置路由组件middleware,多模块应用     
@@ -332,109 +347,84 @@ docker run -d -it --security-opt seccomp=unconfined -p 9501:9501 -p 9502:9502 -v
 - [x] 支持定时的系统信息采集，并以订阅发布，udp等方式收集至存贮端    
 - [x] 支持命令行形式高度封装启动|停止控制的脚本，简单命令即可管理整个框架, 并对外提供控制启动|停止|重启|查看状态的api接口，可开发成可视化控制页面    
 
+
+
 ##### 高级特性
+
 - [x] 支持cron计划任务模式. 类似crontab，支持local|fork|remote url三种方式      
-    
-    | 支持方式  |                          说明                           |
-    |:-----------------------------------------------------:|:---:|
-    | local |                     自定义进程内定时执行代码                      |
-    | fork  | 自定义进程定时拉起一个新的进程，由新的进程去执行任务，可异步，类似laravel的schedule计划任务 |
-    | url   |          自定义进程定时发起远程url请求，可设置callback回调处理结果           |
+
+  | 支持方式  | 说明                                                    |
+  | ----- | ----------------------------------------------------- |
+  | local | 自定义进程内定时执行代码                                          |
+  | fork  | 自定义进程定时拉起一个新的进程，由新的进程去执行任务，可异步，类似laravel的schedule计划任务 |
+  | url   | 自定义进程定时发起远程url请求，可设置callback回调处理结果                    |
+
 
 - [x] 支持daemon模式.worker下后台daemon模式的多进程协程消费模型,包括进程自动拉起，进程数动态调整，进程健康状态监控     
 - [x] 支持console终端脚本模式. 跑完脚本自动退出，可用于修复数据、数据迁移等临时脚本功能      
 - [x] **Nacos 配置中心与服务治理**（`Swoolefy\Support\Nacos`，详见 [src/Support/Nacos/README.md](src/Support/Nacos/README.md)）
-
     创建应用（`php cli.php create App`）时会自动生成 `APP_PATH/application.yaml` 模板；Nacos 连接信息放在 `APP_PATH/nacos.yaml`。
 
-    | 文件 | 说明 |
-    |:---|:---|
-    | `APP_PATH/nacos.yaml` | Nacos **服务器连接**（host、port、username/password 等） |
-    | `APP_PATH/application.yaml` | **应用行为**：`service_config`、`service_register`、`discovery_service_client`、`monitor_config_change` |
+  | 文件                          | 说明                                                                                              |
+  | --------------------------- | ----------------------------------------------------------------------------------------------- |
+  | `APP_PATH/nacos.yaml`       | Nacos **服务器连接**（host、port、username/password 等）                                                  |
+  | `APP_PATH/application.yaml` | **应用行为**：`service_config`、`service_register`、`discovery_service_client`、`monitor_config_change` |
 
-    | 能力 | 说明 | 主要类                                                                                        |
-    |:---|:---|:-------------------------------------------------------------------------------------------|
-    | 配置变更监听 | 长轮询配置 → 写入 `.env` → 后台 `cli.php restart {App} --force=1` | `NacosMonitor`、`ConfigWatcher`（见 [Monitor/README.md](src/Support/Nacos/Monitor/README.md)） |
-    | 服务注册 | 注册实例到 Nacos 并定时心跳 | `ServiceRegister`                                                                          |
-    | 服务发现 | 实例列表缓存 + 负载均衡选节点 | `DiscoveryClient`、`DiscoveryConfig`、`LoadBalancerFactory`                                  |
-    | SDK 服务发现 | `gen:sdk` 生成客户端，未传 Guzzle 时自动 Nacos 发现 `base_uri` | `BaseClientApi`、`SdkNacosServiceDiscovery`（sdk自动生成）|                                        |
+
+  | 能力       | 说明                                                       | 主要类                                                                                        |
+  | -------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+  | 配置变更监听   | 长轮询配置 → 写入 `.env` → 后台 `cli.php restart {App} --force=1` | `NacosMonitor`、`ConfigWatcher`（见 [Monitor/README.md](src/Support/Nacos/Monitor/README.md)） |
+  | 服务注册     | 注册实例到 Nacos 并定时心跳                                        | `ServiceRegister`                                                                          |
+  | 服务发现     | 实例列表缓存 + 负载均衡选节点                                         | `DiscoveryClient`、`DiscoveryConfig`、`LoadBalancerFactory`                                  |
+  | SDK 服务发现 | `gen:sdk` 生成客户端，未传 Guzzle 时自动 Nacos 发现 `base_uri`        | `BaseClientApi`、`SdkNacosServiceDiscovery`（sdk自动生成）                                        |
 
     自定义进程示例（`Event.php` 中注册）：
-
-    ```php
-    // 配置变更监听重启服务
-    ProcessManager::getInstance()->addProcess(
-        'nacos-config-change-reload',
-        \App\Process\NacosProcess\NacosConfigReload::class,
-        true, [], null, true,
-    );
-    // 服务注册 + 心跳
-    ProcessManager::getInstance()->addProcess(
-        'nacos-service-register',
-        \App\Process\NacosProcess\NacosServiceRegister::class,
-        true, [], null, true,
-    );
-    ```
-
     服务发现代码示例：
 
-    ```php
-    use Swoolefy\Support\Nacos\Discovery\DiscoveryClient;
-    use Swoolefy\Support\Nacos\NacosConfig;
-
-    $client = DiscoveryClient::create('my-service');
-    $uri = $client->chooseUri();
-    ```
-
 - [x] **AI Agent / RAG / MCP / OCR / Workflow / LLM 大模型能力**（`Swoolefy\Support`，详见 [二十一](#nav-21-ai-workflow)、[二十二](#nav-22-ai-capabilities)）
-
     基于 [Neuron AI](https://docs.neuron-ai.dev/) + Swoolefy 协程运行时，提供可编排的工作流与可独立使用的大模型原语。
 
-    | 能力 | 说明 | 主要路径 |
-    |:---|:---|:---|
-    | Workflow | DAG 引擎、条件边、HITL、Saga、Plugin、多版本 Registry | `src/Support/Workflow/` |
-    | Neuron / LLM | Provider 工厂、Fallback、Middleware、Embedding、ChatHistory、出站 URL 守卫 | `src/Support/Neuron/` |
-    | AI 节点 | AINode、Structured Output、SSE/WS 流式、多 Agent 并行节点 | `src/Support/AI/` |
-    | Agent | Static / Rule / Weighted / CostAware / RoundRobin / LLM 路由 + 协程调度 | `src/Support/Agent/` |
-    | RAG | 多向量库入库/检索、租户隔离、sync·queue Dispatcher | `src/Support/Rag/` |
-    | MCP | HTTP/SSE Tools、DB 多租户、stdio 生产禁用 | `src/Support/Mcp/` |
-    | DocumentOcr | Pandoc + DeepSeek OCR（图片/PDF）→ Markdown → RAG | `src/Support/DocumentOcr/` |
-    | CapabilityCenter | 百级 Tool Top-K + pinned（可选） | `src/Support/CapabilityCenter/` |
+  | 能力               | 说明                                                                | 主要路径                            |
+  | ---------------- | ----------------------------------------------------------------- | ------------------------------- |
+  | Workflow         | DAG 引擎、条件边、HITL、Saga、Plugin、多版本 Registry                          | `src/Support/Workflow/`         |
+  | Neuron / LLM     | Provider 工厂、Fallback、Middleware、Embedding、ChatHistory、出站 URL 守卫   | `src/Support/Neuron/`           |
+  | AI 节点            | AINode、Structured Output、SSE/WS 流式、多 Agent 并行节点                   | `src/Support/AI/`               |
+  | Agent            | Static / Rule / Weighted / CostAware / RoundRobin / LLM 路由 + 协程调度 | `src/Support/Agent/`            |
+  | RAG              | 多向量库入库/检索、租户隔离、sync·queue Dispatcher                              | `src/Support/Rag/`              |
+  | MCP              | HTTP/SSE Tools、DB 多租户、stdio 生产禁用                                  | `src/Support/Mcp/`              |
+  | DocumentOcr      | Pandoc + DeepSeek OCR（图片/PDF）→ Markdown → RAG                     | `src/Support/DocumentOcr/`      |
+  | CapabilityCenter | 百级 Tool Top-K + pinned（可选）                                        | `src/Support/CapabilityCenter/` |
 
-    ```bash
-    # 配置模版（create 应用时自动复制）
-    cp src/Stubs/workflow.conf.stub.php App/Config/workflow.php
-    cp src/Stubs/neuron_ai.conf.stub.php App/Config/neuron_ai.php
-    cp src/Stubs/document_ocr.conf.stub.php App/Config/document_ocr.php
 
-    # 回归测试
-    composer test:support
-    ```
 
-<a id="nav-4-components"></a>
 
 ### 四、🔌 适配协程环境组件
-| 组件名称             | 安装                                                         | 说明                                                  |
-|------------------|------------------------------------------------------------|-----------------------------------------------------|
-| predis           | composer require predis/predis:~3.4.0                      | predis组件、或者Phpredis扩展                               |
-| mongodb          | composer require mongodb/mongodb:~1.3                      | mongodb组件，需要使用mongodb必须安装此组件                        |
-| rpc-client       | composer require bingcool/rpc-client:dev-master            | swoolefy的rpc客户端组件，当与rpc服务端通信时，需要安装此组件，支持在php-fpm中使用 |
-| cron-expression  | composer require dragonmantank/cron-expression:~3.3.0      | crontab计划任务组件，类似Linux的crobtab                       |  
-| redis lock       | composer require malkusch/lock                             | Redis锁组件                                            |
-| amqp             | composer require php-amqplib/php-amqplib:~3.7.0            | amqp php原生实现amqp协议客户端                               |  
-| ffmpeg           | composer require php-ffmpeg/php-ffmpeg:~1.4.0              | php proc-open 调用ffmpeg处理音视频                         |  
-| image            | composer require intervention/image:~3.11.0                | php 图像处理组件                                          |    
-| validate         | composer require vlucas/valitron                           | validate数据校验组件                                      |    
-| guzzlehttp       | composer require guzzlehttp/guzzle:~7.9.0                  | guzzlehttp 组件                                       | 
-| oauth 2.0        | composer require league/oauth2-server                      | oauth 2.0 授权认证组件                                    |  
-| php-standard-library        | composer require php-standard-library/php-standard-library | php标准库(推荐)                                          |
-| bingcool/library | composer require bingcool/library                          | library组件库                                          |  
-| neuron-ai | composer require neuron-core/neuron-ai | Neuron AI 大模型 Agent / RAG / MCP 原语（框架已集成） |
 
-<a id="nav-5-library"></a>
 
-### 五、📚 bingcool/library 是 swoolefy require 内置库，专为 swoole 协程实现的组件库        
+| 组件名称                 | 安装                                                         | 说明                                                  |
+| -------------------- | ---------------------------------------------------------- | --------------------------------------------------- |
+| predis               | composer require predis/predis:~3.4.0                      | predis组件、或者Phpredis扩展                               |
+| mongodb              | composer require mongodb/mongodb:~1.3                      | mongodb组件，需要使用mongodb必须安装此组件                        |
+| rpc-client           | composer require bingcool/rpc-client:dev-master            | swoolefy的rpc客户端组件，当与rpc服务端通信时，需要安装此组件，支持在php-fpm中使用 |
+| cron-expression      | composer require dragonmantank/cron-expression:~3.3.0      | crontab计划任务组件，类似Linux的crobtab                       |
+| redis lock           | composer require malkusch/lock                             | Redis锁组件                                            |
+| amqp                 | composer require php-amqplib/php-amqplib:~3.7.0            | amqp php原生实现amqp协议客户端                               |
+| ffmpeg               | composer require php-ffmpeg/php-ffmpeg:~1.4.0              | php proc-open 调用ffmpeg处理音视频                         |
+| image                | composer require intervention/image:~3.11.0                | php 图像处理组件                                          |
+| validate             | composer require vlucas/valitron                           | validate数据校验组件                                      |
+| guzzlehttp           | composer require guzzlehttp/guzzle:~7.9.0                  | guzzlehttp 组件                                       |
+| oauth 2.0            | composer require league/oauth2-server                      | oauth 2.0 授权认证组件                                    |
+| php-standard-library | composer require php-standard-library/php-standard-library | php标准库(推荐)                                          |
+| bingcool/library     | composer require bingcool/library                          | library组件库                                          |
+| neuron-ai            | composer require neuron-core/neuron-ai                     | Neuron AI 大模型 Agent / RAG / MCP 原语（框架已集成）           |
+
+
+
+
+### 五、📚 bingcool/library 是 swoolefy require 内置库，专为 swoole 协程实现的组件库
+
 实现了包括：    
+
 - [x] Db ORM Model 组件(支持mysql、 postSql、 sqlite、 Oracle)
 - [x] DB Query Builder 链式操作查询组件      
 - [x] Kafka Producer Consumer组件
@@ -456,15 +446,15 @@ docker run -d -it --security-opt seccomp=unconfined -p 9501:9501 -p 9502:9502 -v
 - [x] Encrypt 加密解密组件   
 - [x] Captcha 验证码组件    
 - [x] Translation 国际化（I18N）    
-   
-github: https://github.com/bingcool/library    
+
+github: [https://github.com/bingcool/library](https://github.com/bingcool/library)    
+
+### 六、📥 安装
 
 
-<a id="nav-6-install"></a>
-
-### 六、📥 安装 
 
 #### 1、先配置环境变量(必须设置)
+
 ```
 // 独立物理机或者云主机配置系统环境变量
 vi /etc/profile
@@ -480,12 +470,17 @@ export SWOOLEFY_CLI_ENV='prd'  // 生产环境
 source /etc/profile
 
 ```
+
 ```
 // 如果是通过dockerfile 创建容器的, 可以根据不同环境生成的内置环境变量不同镜像，每个不同的环境镜像可以用在不同环境，代码将通过这个环境变量区分环境，加载不同的配置
 ENV SWOOLEFY_CLI_ENV=dev
 
 ```
+
+
+
 #### 2、创建项目
+
 ```
 // 下载代码到到你的自定义目录，这里定义为myproject, 新建composer.json
 
@@ -506,7 +501,7 @@ composer install
 
 ```
 
-<a id="nav-7-cli"></a>
+
 
 ### 七、📝 添加项目入口启动文件 `cli.php`, 并定义你的项目目录，命名为 `App`
 
@@ -570,7 +565,7 @@ include dirname(SRC_DIR_ROOT).'/swoolefy';
 
 ```
 
-<a id="nav-8-create"></a>
+
 
 ### 八、📂 执行创建你定义的 App 项目
 
@@ -623,7 +618,7 @@ myproject
 
 ```
 
-<a id="nav-9-start"></a>
+
 
 ### 九、🚀 启动 http应用项目
 
@@ -720,11 +715,12 @@ php daemon.php stop App --force=1
 
 ```
 
-<a id="nav-10-access"></a>
+
 
 ### 十、🌐 访问
 
-默认端口是9502,可以通过 http://localhost:9502 访问默认控制器
+默认端口是9502,可以通过 [http://localhost:9502](http://localhost:9502) 访问默认控制器
+
 ```php
 <?php
 namespace App\Controller;
@@ -748,9 +744,6 @@ class IndexController extends BController {
 ```
 
 至此一个最简单的http的服务就创建完成了，更多例子请参考项目下Test的demo
-
-
-<a id="nav-11-define"></a>
 
 ### 十一、🧩 定义组件
 
@@ -794,6 +787,7 @@ return [
 ```
 
 2、组件Component.php
+
 ```php
 <?php
 
@@ -870,9 +864,10 @@ return [
     
 ```
 
-<a id="nav-12-use"></a>
+
 
 ### 十二、💡 使用组件
+
 ```php
 use Swoolefy\Core\Application;
 
@@ -958,7 +953,6 @@ class TestController extends BController {
 ```
 
 
-<a id="nav-13-protocol"></a>
 
 ### 十三、⚙️ 默认协议层全局配置文件 Protocol/conf.php
 
@@ -1057,7 +1051,8 @@ return [
 ];
 
 ```
-<a id="nav-14-route"></a>
+
+
 
 ### 十四、🛣️ 路由系统
 
@@ -1135,11 +1130,12 @@ Route::group([
 
 ```
 
-<a id="nav-15-singleton"></a>
+
 
 ### 十五、⚡ 协程单例
 
 *协程单例*  
+
 ```php
 
 // 协程单例使用goApp直接调用创建, 每个协程的DB，redis,kafka,mq的socket对象相互隔离，互不影响，代码通用
@@ -1173,9 +1169,13 @@ goApp(function() {
     (独立 Socket 连接)              (独立 Socket 连接)
 
 ```
-<a id="nav-16-concurrent"></a>
 
-### 十六、⚡ 协程并发  
+
+
+### 十六、⚡ 协程并发
+
+
+
 #### Parallel 并发限制器
 
 ```php
@@ -1216,6 +1216,8 @@ $parallel->runWait(10.0)
 
 ```
 
+
+
 #### Parallel::run 迭代并发
 
 ```php
@@ -1234,6 +1236,8 @@ Parallel::run(
     0.01          // 每批间隔 0.01 秒
 );
 ```
+
+
 
 #### GoWaitGroup
 
@@ -1258,9 +1262,10 @@ for ($i = 0; $i < 10; $i++) {
 $wg->wait();  // 等待所有任务完成
 ```
 
-<a id="nav-17-db"></a>
+
 
 ### 十七、🗄️ 数据库操作
+
 ```php
 
 $db = Application::getApp()->get('db');
@@ -1299,7 +1304,7 @@ $db->newQuery()->table('tbl_users')->where(['id', '=', 100])->field(['id', 'user
 
 ```
 
-<a id="nav-18-sdk"></a>
+
 
 ### 十八、📦 SDK 自动生成
 
@@ -1313,6 +1318,8 @@ swoolefy 提供了 **SDK 自动生成工具**，可以扫描项目的 Route 路�
 - 🔄 **自动更新**: 路由变更后重新生成即可，无需手动维护
 - ☁️ **Nacos 服务发现**: 生成时通过 `NacosServiceRegisterConfig` 注入 `BaseClientApi::$serviceName`；构造 API 客户端时未传入 `ClientInterface` 则委托框架 `DiscoveryClient` 自动解析 `base_uri`（需 `NACOS_FILE_PATH` / `APP_PATH` 下存在 `nacos.yaml` 与 `application.yaml`）
 
+
+
 #### 使用方法
 
 ```bash
@@ -1325,6 +1332,8 @@ php script.php start App --c=gen:sdk --router=App/Router
 # 指定输出目录 ProjectName 是具体项目名 OrderService
 php script.php start App --c=gen:sdk --out=../sdk-library/{ProjectName}
 ```
+
+
 
 #### 生成的 SDK 结构
 
@@ -1348,6 +1357,8 @@ GenerateSdk/
 │       └── Response/             # Response DTO
 │           └── UserListResponse.php
 ```
+
+
 
 #### 示例代码
 
@@ -1382,11 +1393,13 @@ var_dump($response->getUserId());
 
 **前置条件**
 
-| 项 | 说明 |
-|:---|:---|
-| 依赖 | SDK 包需 `composer require bingcool/swoolefy`（`SdkNacosServiceDiscovery` 委托 `DiscoveryClient`） |
-| 配置文件 | 配置目录下需存在 `nacos.yaml`（Nacos 连接）与 `application.yaml`（`discovery_service_client` 等） |
-| 配置路径 | `NACOS_FILE_PATH`（nacos.yaml）+ `APP_PATH`（application.yaml） |
+
+| 项    | 说明                                                                                           |
+| ---- | -------------------------------------------------------------------------------------------- |
+| 依赖   | SDK 包需 `composer require bingcool/swoolefy`（`SdkNacosServiceDiscovery` 委托 `DiscoveryClient`） |
+| 配置文件 | 配置目录下需存在 `nacos.yaml`（Nacos 连接）与 `application.yaml`（`discovery_service_client` 等）            |
+| 配置路径 | `NACOS_FILE_PATH`（nacos.yaml）+ `APP_PATH`（application.yaml）                                  |
+
 
 ```php
 use GenerateSdk\MyProject\Order\Client\OrderApi;
@@ -1442,14 +1455,16 @@ $detail = $orderApi->detail($orderDetailReq);
 
 **重试与日志说明**
 
-| 场景 | 行为 |
-|:---|:---|
-| Nacos 发现 + 重试 | `RequestException` 时重新 `choose` 节点后立即重试，**无退避** |
-| 固定地址 + 重试 | 同一 `base_uri` 退避 **200ms → 500ms → 1s** 后重试 |
-| GET/HEAD/PUT/DELETE/OPTIONS | 默认重试 **1** 次 |
-| POST/PATCH 等 | 默认 **0** 次，须 `$options['connect_retry_num']` 显式指定 |
-| 重试上限 | `connect_retry_num` 最大 **3** |
-| 日志 | 重试时写入 guzzle_curl 日志（`CurlProxyHandler::buildLogChannel()`），含失败/下一跳 IP:端口及异常信息 |
+
+| 场景                          | 行为                                                                             |
+| --------------------------- | ------------------------------------------------------------------------------ |
+| Nacos 发现 + 重试               | `RequestException` 时重新 `choose` 节点后立即重试，**无退避**                                |
+| 固定地址 + 重试                   | 同一 `base_uri` 退避 **200ms → 500ms → 1s** 后重试                                    |
+| GET/HEAD/PUT/DELETE/OPTIONS | 默认重试 **1** 次                                                                   |
+| POST/PATCH 等                | 默认 **0** 次，须 `$options['connect_retry_num']` 显式指定                              |
+| 重试上限                        | `connect_retry_num` 最大 **3**                                                   |
+| 日志                          | 重试时写入 guzzle_curl 日志（`CurlProxyHandler::buildLogChannel()`），含失败/下一跳 IP:端口及异常信息 |
+
 
 > `$options['connect_retry_num']` 为 SDK 专用参数，不会传给 Guzzle；自定义请求头通过 `$options['headers']` 传入，会与默认 `Content-Type: application/json` 合并。
 
@@ -1487,16 +1502,20 @@ class UserController extends BController
 }
 ```
 
+
+
 #### 工作原理
 
 1. **扫描路由文件**: 解析 `App/Router/*.php` 中的所有路由定义
 2. **反射分析**: 通过 PHP Reflection 分析控制器方法的参数和返回类型
-3. **提取 DTO**: 识别 `Test\*` 命名空间下的 Request/Response 类
-4. **生成代码**: 
-   - 复制 DTO 类到 SDK 目录，移除框架依赖
-   - 生成 API 客户端类，每个控制器对应一个 `*Api.php` 文件
-   - 生成 Guzzle HTTP 客户端调用代码
+3. **提取 DTO**: 识别 `Test\`* 命名空间下的 Request/Response 类
+4. **生成代码**:
+  - 复制 DTO 类到 SDK 目录，移除框架依赖
+  - 生成 API 客户端类，每个控制器对应一个 `*Api.php` 文件
+  - 生成 Guzzle HTTP 客户端调用代码
 5. **类型转换**: 自动处理 JSON 响应到 DTO 对象的转换
+
+
 
 #### 注意事项
 
@@ -1506,7 +1525,7 @@ class UserController extends BController
 - SDK 基于 Guzzle HTTP 客户端，需要安装 `guzzlehttp/guzzle` 依赖
 - Nacos 发现配置：`NACOS_FILE_PATH` 指定 nacos.yaml，`APP_PATH` 指定 application.yaml
 
-<a id="nav-19-apidoc"></a>
+
 
 ### 十九、📘 ApiDoc 自动生成
 
@@ -1521,6 +1540,8 @@ swoolefy 提供了 **ApiDoc 自动生成工具**，可以扫描项目的 Route �
 - 🧩 **支持数组对象递归**: 支持 `ValidationRule(itemClass: XxxDto::class)` 和 `#[ArrayList(itemClass: XxxDto::class)]`
 - 🏷️ **自动生成 tags**: 默认使用路由文件名；若路由文件注释中存在 `@api`，则生成 `api内容(文件名)`
 
+
+
 #### 使用方法
 
 ```bash
@@ -1533,6 +1554,8 @@ php script.php start App --c=gen:apidoc --router=App/Router
 # 指定输出目录(可以到具体模块)
 php script.php start App --c=gen:apidoc --router=App/Router/Order --out=swaggerui/apidoc
 ```
+
+
 
 #### 模块信息配置
 
@@ -1550,6 +1573,8 @@ php script.php start App --c=gen:apidoc --router=App/Router/Order --out=swaggeru
   }
 }
 ```
+
+
 
 #### 路由文件 tags
 
@@ -1575,6 +1600,8 @@ tags:
   - 用户模块API(User)
 ```
 
+
+
 #### 生成的 ApiDoc 结构
 
 ```text
@@ -1584,6 +1611,8 @@ swaggerui/apidoc/
 ├── openapi-order.yaml
 └── openapi-user.yaml
 ```
+
+
 
 #### 注解示例
 
@@ -1625,17 +1654,21 @@ class UserCreateRequest extends BaseRequest
 }
 ```
 
+
+
 #### 工作原理
 
 1. **扫描路由文件**: 解析 `App/Router/**/*.php` 中包含 `dispatch_route` 的路由定义
 2. **按模块分组**: 根据 Router 目录下的模块文件或子目录输出 `openapi-{module}.yaml`
 3. **反射分析**: 通过 PHP Reflection 读取控制器 action 参数与返回值类型
 4. **生成 Schema**:
-   - 通过 `#[ApiProperty]` 读取字段说明
-   - 通过 `#[ValidationRule]` 判断字段是否必填和数组 item 类型
-   - 通过属性类型递归生成对象结构
-   - 通过 `#[IntToString]` / `#[StringToInt]` 修正字段类型
+  - 通过 `#[ApiProperty]` 读取字段说明
+  - 通过 `#[ValidationRule]` 判断字段是否必填和数组 item 类型
+  - 通过属性类型递归生成对象结构
+  - 通过 `#[IntToString]` / `#[StringToInt]` 修正字段类型
 5. **统一响应包装**: 生成 `code`、`msg`、`trace_id`、`data` 结构
+
+
 
 #### 注意事项
 
@@ -1645,7 +1678,7 @@ class UserCreateRequest extends BaseRequest
 - 路由文件的 `@api` 注释只读取第一个匹配项，用于拼接 OpenAPI `tags`
 - 每次生成前会清理输出目录下旧的 `openapi-*.yaml`，避免遗留过期文档
 
-<a id="nav-20-nacos"></a>
+
 
 ### 二十、☁️ Nacos 微服务集成
 
@@ -1653,10 +1686,14 @@ class UserCreateRequest extends BaseRequest
 
 #### 配置文件
 
-| 文件 | 内容 |
-|:---|:---|
-| `APP_PATH/nacos.yaml` | Nacos 服务器连接（host、port、鉴权等） |
+
+| 文件                          | 内容                                                                                                        |
+| --------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `APP_PATH/nacos.yaml`       | Nacos 服务器连接（host、port、鉴权等）                                                                                |
 | `APP_PATH/application.yaml` | `nacos.service_config`（配置中心 dataId）、`service_register`、`discovery_service_client`、`monitor_config_change` |
+
+
+
 
 #### 环境变量
 
@@ -1664,12 +1701,14 @@ class UserCreateRequest extends BaseRequest
 
 常用变量速查：
 
-| 分类 | 环境变量                                                        | 说明 |
-|:---|:------------------------------------------------------------|:---|
-| 全局 | `NACOS_FILE_PATH`                                           | `nacos.yaml` 路径 |
-| 连接 | `NACOS_HOST`、`NACOS_PORT`、`NACOS_USERNAME`、`NACOS_PASSWORD` | Nacos 服务器连接 |
-| 配置中心 | `application.yaml` → `nacos.service_config.data_id` / `group` | 项目配置 dataId（必填，不支持环境变量） |
-| 注册 | `NACOS_SERVICE_REGISTER_HOST`、`POD_IP`、`NACOS_SERVICE_REGISTER_PORT` | 本实例注册信息 |
+
+| 分类   | 环境变量                                                                 | 说明                      |
+| ---- | -------------------------------------------------------------------- | ----------------------- |
+| 全局   | `NACOS_FILE_PATH`                                                    | `nacos.yaml` 路径         |
+| 连接   | `NACOS_HOST`、`NACOS_PORT`、`NACOS_USERNAME`、`NACOS_PASSWORD`          | Nacos 服务器连接             |
+| 配置中心 | `application.yaml` → `nacos.service_config.data_id` / `group`        | 项目配置 dataId（必填，不支持环境变量） |
+| 注册   | `NACOS_SERVICE_REGISTER_HOST`、`POD_IP`、`NACOS_SERVICE_REGISTER_PORT` | 本实例注册信息                 |
+
 
 `application.yaml` 片段示例：
 
@@ -1704,6 +1743,8 @@ nacos:
     listener_timeout_ms: 30000
 ```
 
+
+
 #### 开发环境
 
 本地与 dev 共用同一份 `.env`（数据库等配置相同），连接同一套 Nacos；区别在于**注册 IP** 与**分组**：本机服务注册到个人调试分组，dev 已部署服务注册在 `application.yaml` 中配置的 `group_name`（如 `frame_group`）。
@@ -1717,12 +1758,14 @@ export LOCAL_NACOS_SERVICE_AUTO_SWITCH=1
 export INNER_EXTERNAL_BASE_URI="http://product-service-dev.example.com:19000"
 ```
 
-| 环境变量 | 说明                                                                                                                                                        |
-|:---|:----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `NACOS_SERVICE_REGISTER_HOST` | 本机注册到 Nacos 的 IP。本地开发设为 `127.0.0.1`，避免把内网 IP 注册出去                                                                                                         |
-| `NACOS_SERVICE_GROUP_NAME` | 本机注册与发现使用的分组（如个人名 `bingcool`），与 dev 环境部署的分组隔离，互不影响                                                                                                        |
+
+| 环境变量                              | 说明                                                                                                                                                        |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NACOS_SERVICE_REGISTER_HOST`     | 本机注册到 Nacos 的 IP。本地开发设为 `127.0.0.1`，避免把内网 IP 注册出去                                                                                                         |
+| `NACOS_SERVICE_GROUP_NAME`        | 本机注册与发现使用的分组（如个人名 `bingcool`），与 dev 环境部署的分组隔离，互不影响                                                                                                        |
 | `LOCAL_NACOS_SERVICE_AUTO_SWITCH` | 设为 `1` 时，SDK 调用依赖服务：先在当前分组（如 `bingcool`）查找实例；若无可用实例，自动回退到 `application.yaml` → `nacos.service_register.group_name`（frame_group 分组）中已部署的服务，便于本地只启动部分服务即可联调 |
-| `INNER_EXTERNAL_BASE_URI` | 内部跨环境可访问的服务 URL。服务注册时会写入 Nacos metadata 的 `inner_external_base_uri`；SDK 仅在本地自动切 dev 分组时优先用该 URL，避免本地直接访问 K8s Pod IP |
+| `INNER_EXTERNAL_BASE_URI`         | 内部跨环境可访问的服务 URL。服务注册时会写入 Nacos metadata 的 `inner_external_base_uri`；SDK 仅在本地自动切 dev 分组时优先用该 URL，避免本地直接访问 K8s Pod IP                                       |
+
 
 典型场景：本地启动 `order-service` 开发订单功能，需调用 `product-service`；本地未启动 `product-service` 时，SDK 会自动切到 dev 开发环境中已部署的 `product-service` 实例。**注意：本地网络需能访问 dev 部署实例注册的 IP。**
 
@@ -1740,11 +1783,13 @@ env:
         fieldPath: status.podIP
 ```
 
+
+
 #### 配置变更监听（自动重启）
 
-1. 长轮询 Nacos 配置变更  
-2. 拉取最新配置写入 `APP_PATH/.env`  
-3. 随机短暂延迟后执行 `php cli.php restart {APP_NAME} --force=1`，Worker 加载新环境变量  
+1. 长轮询 Nacos 配置变更
+2. 拉取最新配置写入 `APP_PATH/.env`
+3. 随机短暂延迟后执行 `php cli.php restart {APP_NAME} --force=1`，Worker 加载新环境变量
 
 在 `Event.php` 注册自定义进程 `NacosConfigReload`，或调用 `NacosMonitor::run()`。详见 [src/Support/Nacos/Monitor/README.md](src/Support/Nacos/Monitor/README.md)。
 
@@ -1762,6 +1807,8 @@ $register = ServiceRegister::create();
 $register->register();
 ```
 
+
+
 #### 服务发现
 
 `DiscoveryClient` 读取 `discovery_service_client` 配置，拉取实例列表（支持缓存 TTL），通过负载均衡器选择节点：
@@ -1775,12 +1822,16 @@ $uri = $client->chooseUri();
 $metadata = $instance?->getMetadata() ?? [];
 ```
 
+
+
 #### 与 gen:sdk 的关系
 
-| 步骤 | 行为 |
-|:---|:---|
-| 生成时 | 通过 `NacosServiceRegisterConfig` 读取 `service_register.service_name`，写入 `BaseClientApi::$serviceName` |
+
+| 步骤  | 行为                                                                                                                                       |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| 生成时 | 通过 `NacosServiceRegisterConfig` 读取 `service_register.service_name`，写入 `BaseClientApi::$serviceName`                                      |
 | 运行时 | `UserApi::make()` 未传 Guzzle Client → `SdkNacosServiceDiscovery` → `DiscoveryClient::choose()` → 设置 Guzzle `base_uri`，并保存选中实例的 `metadata` |
+
 
 SDK 客户端可读取当前选中实例 metadata：
 
@@ -1792,15 +1843,17 @@ $version = $api->getNacosInstanceMetadataValue('version', 0);
 
 SDK 调用下游服务时会自动透传入口请求中的白名单 Header，并兼容框架已有协程级 `x-trace-id`：
 
-| Header | 说明 |
-|:---|:---|
-| `x-trace-id` | 链路追踪 ID，优先使用协程上下文中的 trace id |
-| `x-user-id` | 登录用户 ID |
-| `x-user-code` | 登录用户编码 |
-| `x-tenant-id` | 租户 ID |
-| `x-user-name` | 用户名 |
-| `x-client-ip` | 客户端 IP |
+
+| Header         | 说明                             |
+| -------------- | ------------------------------ |
+| `x-trace-id`   | 链路追踪 ID，优先使用协程上下文中的 trace id   |
+| `x-user-id`    | 登录用户 ID                        |
+| `x-user-code`  | 登录用户编码                         |
+| `x-tenant-id`  | 租户 ID                          |
+| `x-user-name`  | 用户名                            |
+| `x-client-ip`  | 客户端 IP                         |
 | `x-user-agent` | SDK 下游请求固定为 `swoolefy-api-sdk` |
+
 
 业务显式传入 `$options['headers']` 时优先级最高，可覆盖自动透传值。
 
@@ -1821,28 +1874,34 @@ php script.php start App --c=gen:sdk --router=App/Router --out=../generate-sdk-l
 
 更多 API 说明见 [src/Support/Nacos/README.md](src/Support/Nacos/README.md)。
 
-<a id="nav-21-ai-workflow"></a>
-
 ### 二十一、🤖 AI / Workflow 工作流
 
 框架内置 **DAG 工作流引擎** + **Neuron AI** 集成，支持 AI 决策分支、多 Agent 并行、RAG 知识库、MCP 工具调用与人机协同（HITL）。已实现 **Phase 1–4** 及 **生产加固（Phase A/B/P0）**：HITL API 鉴权、status 脱敏、resume CAS、多版本 Registry、Embedding fail-fast、MCP 租户 DB、RAG 显式 tenantId、启动期 `ProductionHealthCheck` 等。
 
-| 文档 | 说明 |
-|:---|:---|
-| [docs/AI-WORKFLOW.md](docs/AI-WORKFLOW.md) | **快速接入**：配置、HTTP API、示例 curl、测试命令 |
-| [src/Support/Workflow/README.md](src/Support/Workflow/README.md) | 引擎原理、条件边、HITL、Saga、Plugin |
-| [SwoolefyAI.md](docs/SwoolefyAI.md) | 完整架构设计与 Phase 路线图 |
+
+| 文档                                                               | 说明                                |
+| ---------------------------------------------------------------- | --------------------------------- |
+| [docs/AI-WORKFLOW.md](docs/AI-WORKFLOW.md)                       | **快速接入**：配置、HTTP API、示例 curl、测试命令 |
+| [src/Support/Workflow/README.md](src/Support/Workflow/README.md) | 引擎原理、条件边、HITL、Saga、Plugin         |
+| [SwoolefyAI.md](docs/SwoolefyAI.md)                              | 完整架构设计与 Phase 路线图                 |
+
+
+
 
 #### 核心模块
 
-| 模块 | 路径 | 能力 |
-|:---|:---|:---|
+
+| 模块       | 路径                      | 能力                                                       |
+| -------- | ----------------------- | -------------------------------------------------------- |
 | Workflow | `src/Support/Workflow/` | Definition / Compiler / Engine、HITL 鉴权、多版本 Registry、Saga |
-| AI | `src/Support/AI/` | AINode、流式 SSE/WebSocket、StructuredOutput、节点超时 |
-| Agent | `src/Support/Agent/` | Static / Rule / LLM / CostAware / RoundRobin 路由 |
-| Neuron | `src/Support/Neuron/` | LLM 工厂、Redis/SQL 记忆、Embedding fail-fast、URL 校验 |
-| RAG | `src/Support/Rag/` | 向量库、同步/队列入库 Dispatcher、显式 tenantId、别名 fail-fast |
-| MCP | `src/Support/Mcp/` | HTTP/SSE MCP、DB 多租户、stdio 生产禁用 |
+| AI       | `src/Support/AI/`       | AINode、流式 SSE/WebSocket、StructuredOutput、节点超时            |
+| Agent    | `src/Support/Agent/`    | Static / Rule / LLM / CostAware / RoundRobin 路由          |
+| Neuron   | `src/Support/Neuron/`   | LLM 工厂、Redis/SQL 记忆、Embedding fail-fast、URL 校验           |
+| RAG      | `src/Support/Rag/`      | 向量库、同步/队列入库 Dispatcher、显式 tenantId、别名 fail-fast          |
+| MCP      | `src/Support/Mcp/`      | HTTP/SSE MCP、DB 多租户、stdio 生产禁用                           |
+
+
+
 
 #### 配置与装配
 
@@ -1867,6 +1926,8 @@ $compiled = $compiler->compile($registry->definition('order_processing'));
 $runId = $engine->start($compiled, ['orderId' => 10001]);
 ```
 
+
+
 #### HTTP API（Test 演示）
 
 启动 Test 应用后（默认端口 9501）：
@@ -1883,17 +1944,19 @@ curl -X POST http://127.0.0.1:9501/api/v1/agent/chat \
   -d '{"message":"hello","sessionId":"s1","userId":"u1"}'
 ```
 
-| 接口 | 说明 |
-|:---|:---|
-| `POST /api/v1/workflow/run` | 启动工作流 |
-| `GET /api/v1/workflow/run/status` | 查询 Run 状态（HITL 鉴权；默认脱敏摘要，`admin + detail=true` 返回完整调试视图） |
-| `POST /api/v1/workflow/run/resume` | HITL 恢复（须 `X-Workflow-Api-Key` 或角色，见 Workflow README） |
-| `POST /api/v1/workflow/run/cancel` | 取消 Run（HITL 鉴权） |
-| `GET /api/v1/workflow/pause/tasks` | 待审批任务（HITL 鉴权） |
-| `GET /api/v1/workflow/run/events` | SSE 流式事件 |
-| `POST /api/v1/agent/chat` | Agent 对话 |
-| `GET /api/v1/mcp/servers` | MCP 服务列表（`?tenantId=`） |
-| `GET /api/v1/mcp/servers/tools` | MCP 工具发现（`?server_id=&tenantId=`） |
+
+| 接口                                 | 说明                                                       |
+| ---------------------------------- | -------------------------------------------------------- |
+| `POST /api/v1/workflow/run`        | 启动工作流                                                    |
+| `GET /api/v1/workflow/run/status`  | 查询 Run 状态（HITL 鉴权；默认脱敏摘要，`admin + detail=true` 返回完整调试视图） |
+| `POST /api/v1/workflow/run/resume` | HITL 恢复（须 `X-Workflow-Api-Key` 或角色，见 Workflow README）    |
+| `POST /api/v1/workflow/run/cancel` | 取消 Run（HITL 鉴权）                                          |
+| `GET /api/v1/workflow/pause/tasks` | 待审批任务（HITL 鉴权）                                           |
+| `GET /api/v1/workflow/run/events`  | SSE 流式事件                                                 |
+| `POST /api/v1/agent/chat`          | Agent 对话                                                 |
+| `GET /api/v1/mcp/servers`          | MCP 服务列表（`?tenantId=`）                                   |
+| `GET /api/v1/mcp/servers/tools`    | MCP 工具发现（`?server_id=&tenantId=`）                        |
+
 
 示例工作流：`order_processing`、`order_saga`、`multi_agent_research`、`contract_review`、`knowledge_qa`、`mcp_research`（见 `Test/Module/`）。
 
@@ -1903,6 +1966,8 @@ curl -X POST http://127.0.0.1:9501/api/v1/agent/chat \
 php src/Support/Rag/Console/ingest_documents.php --kb=product_kb --path=/data/docs
 php src/Support/Rag/Console/ingest_documents.php --kb=product_kb --text="产品规格..."
 ```
+
+
 
 #### 回归测试
 
@@ -1914,31 +1979,37 @@ composer test:workflow
 
 大模型原语（Agent / RAG / MCP / OCR）详见 [二十二、AI Agent / RAG / MCP / OCR 大模型能力](#nav-22-ai-capabilities)。
 
-<a id="nav-22-ai-capabilities"></a>
-
 ### 二十二、🧠 AI Agent / RAG / MCP / OCR 大模型能力
 
 在 Workflow 编排之外，框架提供可独立使用的 **大模型能力层**：LLM 装配、多 Agent 路由、RAG 检索增强、MCP 工具协议、文档 OCR，以及可选的 CapabilityCenter 工具筛选。底层复用 [Neuron AI](https://docs.neuron-ai.dev/)，运行时由 Swoolefy 协程 / 组件容器承载。
 
-| 文档 | 说明 |
-|:---|:---|
-| [docs/SwoolefyAI.md](docs/SwoolefyAI.md) | 完整架构与模块边界 |
-| [docs/AI-WORKFLOW.md](docs/AI-WORKFLOW.md) | 生产接入快速指南 |
-| [docs/DocumentOcr.md](docs/DocumentOcr.md) | DocumentOcr 技术方案 |
-| [docs/CapabilityTool.md](docs/CapabilityTool.md) | CapabilityCenter 设计 |
-| 各模块 README | `src/Support/{Neuron,AI,Agent,Rag,Mcp,DocumentOcr,CapabilityCenter}/README.md` |
+
+| 文档                                               | 说明                                                                             |
+| ------------------------------------------------ | ------------------------------------------------------------------------------ |
+| [docs/SwoolefyAI.md](docs/SwoolefyAI.md)         | 完整架构与模块边界                                                                      |
+| [docs/AI-WORKFLOW.md](docs/AI-WORKFLOW.md)       | 生产接入快速指南                                                                       |
+| [docs/DocumentOcr.md](docs/DocumentOcr.md)       | DocumentOcr 技术方案                                                               |
+| [docs/CapabilityTool.md](docs/CapabilityTool.md) | CapabilityCenter 设计                                                            |
+| 各模块 README                                       | `src/Support/{Neuron,AI,Agent,Rag,Mcp,DocumentOcr,CapabilityCenter}/README.md` |
+
+
+
 
 #### 能力总览
 
-| 能力 | 路径 | 要点 |
-|:---|:---|:---|
-| **Neuron（LLM）** | `src/Support/Neuron/` | Provider 工厂、Fallback、Middleware、Embedding、ChatHistory（Redis/SQL）、出站 URL 守卫 |
-| **AI 节点** | `src/Support/AI/` | `AINode` / StructuredOutput / SSE·WS 流式 / `AgentParallelNode` |
-| **Agent 路由** | `src/Support/Agent/` | Static / Rule / Weighted / CostAware / RoundRobin / LLM 六种 Router + 协程并行调度 |
-| **RAG** | `src/Support/Rag/` | 入库 / 检索 / 多向量库 / 租户隔离 / sync·queue Dispatcher |
-| **MCP** | `src/Support/Mcp/` | HTTP/SSE Tools、DB 多租户配置、stdio 生产禁用、进程并发守卫 |
-| **DocumentOcr** | `src/Support/DocumentOcr/` | Pandoc（DOCX/HTML/MD）+ DeepSeek OCR（图片/PDF）→ Markdown → RAG |
-| **CapabilityCenter** | `src/Support/CapabilityCenter/` | 百级 Tool 场景 Top-K + pinned（默认关闭，按需启用） |
+
+| 能力                   | 路径                              | 要点                                                                         |
+| -------------------- | ------------------------------- | -------------------------------------------------------------------------- |
+| **Neuron（LLM）**      | `src/Support/Neuron/`           | Provider 工厂、Fallback、Middleware、Embedding、ChatHistory（Redis/SQL）、出站 URL 守卫 |
+| **AI 节点**            | `src/Support/AI/`               | `AINode` / StructuredOutput / SSE·WS 流式 / `AgentParallelNode`              |
+| **Agent 路由**         | `src/Support/Agent/`            | Static / Rule / Weighted / CostAware / RoundRobin / LLM 六种 Router + 协程并行调度 |
+| **RAG**              | `src/Support/Rag/`              | 入库 / 检索 / 多向量库 / 租户隔离 / sync·queue Dispatcher                              |
+| **MCP**              | `src/Support/Mcp/`              | HTTP/SSE Tools、DB 多租户配置、stdio 生产禁用、进程并发守卫                                  |
+| **DocumentOcr**      | `src/Support/DocumentOcr/`      | Pandoc（DOCX/HTML/MD）+ DeepSeek OCR（图片/PDF）→ Markdown → RAG                 |
+| **CapabilityCenter** | `src/Support/CapabilityCenter/` | 百级 Tool 场景 Top-K + pinned（默认关闭，按需启用）                                       |
+
+
+
 
 #### 配置
 
@@ -1969,6 +2040,8 @@ $agent = $factory->create(MyAgent::class, $state, [
 - Provider 缺凭证 / 未知别名 fail-fast；`baseUri` 经 `OutboundUrlGuard`
 - 演示：`POST /api/v1/agent/chat`、`POST /api/v1/agent/middleware/chat`
 
+
+
 #### Agent：多 Agent 并行路由
 
 ```php
@@ -1986,11 +2059,13 @@ $results = $scheduler->runParallel($ctx, [
 
 #### RAG：入库与检索
 
-| 向量库驱动 | 说明 |
-|:---|:---|
-| `file` / `phpvector` | 本地开发 |
-| `meilisearch` / `mariadb` / `pgvector` | 自建 |
-| `pinecone` / `qdrant` / `milvus` | 托管 / 云 |
+
+| 向量库驱动                                  | 说明     |
+| -------------------------------------- | ------ |
+| `file` / `phpvector`                   | 本地开发   |
+| `meilisearch` / `mariadb` / `pgvector` | 自建     |
+| `pinecone` / `qdrant` / `milvus`       | 托管 / 云 |
+
 
 ```bash
 # 离线入库 CLI
@@ -2009,10 +2084,14 @@ $tools = McpComponentFactory::factory()->tools(['docs']);
 
 生产优先远程 HTTP/SSE；stdio 默认禁用（`MCP_ALLOW_STDIO=1` 可开）。DB 仓储见 `Schema/mcp_server_configs.sql`。
 
-| 接口 | 说明 |
-|:---|:---|
-| `GET /api/v1/mcp/servers` | 服务列表（凭证脱敏，`?tenantId=`） |
+
+| 接口                              | 说明                            |
+| ------------------------------- | ----------------------------- |
+| `GET /api/v1/mcp/servers`       | 服务列表（凭证脱敏，`?tenantId=`）       |
 | `GET /api/v1/mcp/servers/tools` | 工具发现（`?server_id=&tenantId=`） |
+
+
+
 
 #### DocumentOcr：文档 → Markdown
 
@@ -2022,11 +2101,13 @@ $ocr = Application::getApp()->get('document_ocr');
 $result = $ocr->parseFile('/data/manual.docx'); // → $result->markdown
 ```
 
-| 输入 | 驱动 |
-|:---|:---|
-| `.docx` / `.html` / `.md` / `.txt` | Pandoc |
-| `.png` / `.jpg` / `.jpeg` | DeepSeek OCR `/api/ocr` |
-| `.pdf` | DeepSeek OCR `/api/ocr/pdf` |
+
+| 输入                                 | 驱动                          |
+| ---------------------------------- | --------------------------- |
+| `.docx` / `.html` / `.md` / `.txt` | Pandoc                      |
+| `.png` / `.jpg` / `.jpeg`          | DeepSeek OCR `/api/ocr`     |
+| `.pdf`                             | DeepSeek OCR `/api/ocr/pdf` |
+
 
 再经 `ChunkingAdapter` 接入 `IngestionPipeline` 即可入库。
 
@@ -2044,8 +2125,7 @@ composer test:capability
 
 生产启动前可用 `ProductionHealthCheck` 校验 Provider / Embedding / 出站 URL / HITL / RunStore 等（见 [二十一](#nav-21-ai-workflow) 与 `docs/AI-WORKFLOW.md`）。
 
-<a id="nav-license"></a>
-
 ### License
-MIT   
+
+MIT  
 Copyright (c) 2017-2026 zengbing huang    
