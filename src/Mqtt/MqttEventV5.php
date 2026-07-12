@@ -1,42 +1,36 @@
 <?php
-/**
- * +----------------------------------------------------------------------
- * | swoolefy framework bases on swoole extension development, we can use it easily!
- * +----------------------------------------------------------------------
- * | Licensed ( https://opensource.org/licenses/MIT )
- * +----------------------------------------------------------------------
- * | @see https://github.com/bingcool/swoolefy
- * +----------------------------------------------------------------------
- */
+
+declare(strict_types=1);
 
 namespace Swoolefy\Mqtt;
 
+use Simps\MQTT\Hex\ReasonCode;
 use Simps\MQTT\Protocol;
 use Simps\MQTT\Protocol\Types;
 use Swoolefy\Core\Swfy;
 
+/**
+ * MQTT 5.0 Broker 事件基类。
+ *
+ * 与 {@see MqttEventV3} 类似，额外支持：
+ * - auth() 增强认证流程
+ * - connect() 接收 properties（session expiry、auth method 等）
+ * - subscribe() 支持 no_local 等 V5 订阅选项
+ */
 abstract class MqttEventV5
 {
+    use MqttBrokerSupport;
 
-    /**
-     * @var \Swoole\Http\Server|\Swoole\Server|\Swoole\WebSocket\Server
-     */
+    /** @var \Swoole\Http\Server|\Swoole\Server|\Swoole\WebSocket\Server */
     protected $server;
 
-    /**
-     * @var int
-     */
-    protected $fd;
+    protected int $fd;
 
-    /**
-     * @var array
-     */
-    protected $data;
+    /** @var array<string, mixed> */
+    protected array $data;
 
-    /**
-     * @var array
-     */
-    public static $eventMaps = [
+    /** @var array<int, string> */
+    public static array $eventMaps = [
         Types::CONNECT => 'connect',
         Types::CONNACK => 'connectAck',
         Types::PUBLISH => 'publish',
@@ -51,54 +45,28 @@ abstract class MqttEventV5
         Types::PINGREQ => 'pingReq',
         Types::PINGRESP => 'pingResp',
         Types::DISCONNECT => 'disconnect',
-        Types::AUTH => 'auth'
+        Types::AUTH => 'auth',
     ];
 
     /**
-     * MqttEvent constructor.
-     * @param int $fd
-     * @param mixed $data
+     * @param array<string, mixed> $data
      */
-    public function __construct(int $fd, mixed $data)
+    public function __construct(int $fd, array $data)
     {
         $this->server = Swfy::getServer();
         $this->fd = $fd;
         $this->data = $data;
     }
 
-    /**
-     * @param $username
-     * @param $password
-     * @param $authenticationMethod
-     * @param $authenticationData
-     * @return bool
-     */
     abstract public function verify(
         $username,
         $password,
         $authentication_method,
-        $authentication_data
+        $authentication_data,
     ): bool;
 
-    /**
-     * @param $code
-     * @param array $properties
-     * @return mixed
-     */
     abstract public function auth($code, array $properties);
 
-    /**
-     * @param $protocol_name
-     * @param $protocol_level
-     * @param $username
-     * @param $password
-     * @param $client_id
-     * @param $keep_alive
-     * @param $properties
-     * @param $clean_session
-     * @param array $will
-     * @return bool
-     */
     abstract public function connect(
         $protocol_name,
         $protocol_level,
@@ -108,74 +76,56 @@ abstract class MqttEventV5
         $keep_alive,
         $properties,
         $clean_session,
-        array $will = []
+        array $will = [],
     ): bool;
 
-    /**
-     * @return bool
-     */
     abstract public function disconnect();
 
-    /**
-     * @param $topic
-     * @param $message
-     * @param $dup
-     * @param $qos
-     * @param $retain
-     * @param $message_id
-     * @return mixed
-     */
-    public function publish(
-        $topic,
-        $message,
-        $dup,
-        $qos,
-        $retain,
-        $message_id
-    ) {
-        // 循环发给订阅的客户端，这里要去除publish发布的连接端fd
-        // 读取$message的client_id，client_id与fd在connect的时候关联起来，保存好关系在redis
-        // 发布者可以通过向指定client_id发布消息，这时可以从关系中获取fd,从而向指定client_id发布消息
-        foreach ($this->server->connections as $subFd) {
-            $this->server->send(
-                $subFd,
-                Protocol\V5::pack(
-                    [
-                        'type' => Types::PUBLISH,
-                        'topic' => $topic,
-                        'message' => $message,
-                        'dup' => $dup,
-                        'qos' => $qos,
-                        'retain' => $retain,
-                        'message_id' => $message_id
-                    ]
-                )
-            );
-        }
+    public function publish($topic, $message, $dup, $qos, $retain, $message_id): void
+    {
+        $this->dispatchPublish(
+            (string) $topic,
+            (string) $message,
+            (bool) $dup,
+            (int) $qos,
+            (bool) $retain,
+            $message_id ?? 0,
+            $this->fd,
+        );
     }
 
     /**
-     * @param $type
-     * @param $topics
-     * @param $message_id
-     * @return mixed
+     * @return array<int> granted QoS / reason codes for SUBACK
      */
-    abstract public function subscribe($type, $topics, $message_id);
-
-    /**
-     * @param $type
-     * @param $topics
-     * @param $message_id
-     * @return mixed
-     */
-    abstract public function unSubscribe($type, $topics, $message_id);
-
-    /**
-     * @param $clean_session
-     * @return void
-     */
-    public function connectAck($clean_session, array $properties = [])
+    public function subscribe($type, $topics, $message_id): array
     {
+        unset($type);
+        $codes = $this->sessions()->subscribe($this->fd, (array) $topics, MQTT_PROTOCOL_LEVEL5);
+
+        foreach ((array) $topics as $filter => $option) {
+            if (!is_string($filter)) {
+                continue;
+            }
+            // V5 option 可能是 ['qos'=>..,'no_local'=>..] 或纯整数
+            $qos = is_array($option) ? (int) ($option['qos'] ?? 0) : (int) $option;
+            if ($qos <= 2) {
+                $this->deliverRetainedOnSubscribe($this->fd, $filter, $qos);
+            }
+        }
+
+        return $codes;
+    }
+
+    public function unSubscribe($type, $topics, $message_id): void
+    {
+        unset($type);
+        $this->sessions()->unsubscribe($this->fd, (array) $topics);
+        $this->unSubscribeAck($message_id);
+    }
+
+    public function connectAck($clean_session, array $properties = []): void
+    {
+        // 默认 Broker 能力声明，可被子类传入 properties 覆盖
         $properties = array_merge([
             'maximum_packet_size' => 1048576,
             'retain_available' => true,
@@ -187,77 +137,116 @@ abstract class MqttEventV5
 
         $this->server->send(
             $this->fd,
-            Protocol\V5::pack(
-                [
-                    'type' => Types::CONNACK,
-                    'code' => 0,
-                    'session_present' => $clean_session,
-                    'properties' => $properties
-                ]
-            )
+            Protocol\V5::pack([
+                'type' => Types::CONNACK,
+                'code' => 0,
+                'session_present' => $clean_session,
+                'properties' => $properties,
+            ]),
         );
     }
 
-    /**
-     * pingReq
-     * @return void
-     */
-    final public function pingReq()
+    public function connectReject(int $code = ReasonCode::NOT_AUTHORIZED, bool $sessionPresent = false, array $properties = []): void
+    {
+        if (!$this->server->exists($this->fd)) {
+            return;
+        }
+
+        $this->server->send(
+            $this->fd,
+            Protocol\V5::pack([
+                'type' => Types::CONNACK,
+                'code' => $code,
+                'session_present' => $sessionPresent,
+                'properties' => $properties,
+            ]),
+        );
+    }
+
+    final public function pingReq(): void
     {
         $this->server->send($this->fd, Protocol\V5::pack(['type' => Types::PINGRESP]));
     }
 
-    /**
-     * @param $message_id
-     * @return void
-     */
-    final public function publishAck($message_id)
+    final public function publishAck($message_id): void
     {
-        $this->server->send(
-            $this->fd,
-            Protocol\V5::pack(
-                [
-                    'type' => Types::PUBACK,
-                    'message_id' => $message_id ?? '',
-                ]
-            )
-        );
+        $this->packAndSend($this->fd, [
+            'type' => Types::PUBACK,
+            'message_id' => $message_id ?? '',
+        ]);
+    }
+
+    final public function publishRec($message_id): void
+    {
+        $this->packAndSend($this->fd, [
+            'type' => Types::PUBREC,
+            'message_id' => $message_id ?? 0,
+        ]);
+    }
+
+    final public function publishRel($message_id): void
+    {
+        $this->packAndSend($this->fd, [
+            'type' => Types::PUBREL,
+            'message_id' => $message_id ?? 0,
+        ]);
+    }
+
+    final public function publishComp($message_id): void
+    {
+        $this->packAndSend($this->fd, [
+            'type' => Types::PUBCOMP,
+            'message_id' => $message_id ?? 0,
+        ]);
     }
 
     /**
-     * @param $message_id
-     * @param $payload
-     * @return void
+     * @param array<int|string> $payload
      */
-    final public function subscribeAck($message_id, $payload)
+    final public function subscribeAck($message_id, $payload): void
     {
         $this->server->send(
             $this->fd,
-            Protocol\V5::pack(
-                [
-                    'type' => Types::SUBACK,
-                    'message_id' => $message_id ?? '',
-                    'codes' => $payload,
-                ]
-            )
+            Protocol\V5::pack([
+                'type' => Types::SUBACK,
+                'message_id' => $message_id ?? '',
+                'codes' => $payload,
+            ]),
         );
     }
 
-    /**
-     * @param $message_id
-     * @return void
-     */
-    final public function unSubscribeAck($message_id)
+    final public function unSubscribeAck($message_id): void
     {
         $this->server->send(
             $this->fd,
-            Protocol\V5::pack(
-                [
-                    'type' => Types::UNSUBACK,
-                    'message_id' => $message_id ?? '',
-                ]
-            )
+            Protocol\V5::pack([
+                'type' => Types::UNSUBACK,
+                'message_id' => $message_id ?? '',
+            ]),
         );
     }
 
+    protected function getBrokerServer(): \Swoole\Server
+    {
+        return $this->server;
+    }
+
+    protected function getBrokerFd(): int
+    {
+        return $this->fd;
+    }
+
+    protected function getBrokerProtocolLevel(): int
+    {
+        return MQTT_PROTOCOL_LEVEL5;
+    }
+
+    protected function packAndSend(int $fd, array $packet): bool
+    {
+        if (!$this->server->exists($fd)) {
+            return false;
+        }
+
+        return (bool) $this->server->send($fd, Protocol\V5::pack($packet));
+    }
 }

@@ -1,18 +1,12 @@
 <?php
+
 /**
- * +----------------------------------------------------------------------
- * | swoolefy framework bases on swoole extension development, we can use it easily!
- * +----------------------------------------------------------------------
- * | Licensed ( https://opensource.org/licenses/MIT )
- * +----------------------------------------------------------------------
- * | @see https://github.com/bingcool/swoolefy
- * +----------------------------------------------------------------------
+ * MQTT broker configuration stub (production defaults).
  */
 
 $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
 
 return [
-    // 应用层配置
     'app_conf'                 => \Swoolefy\Core\SystemEnv::loadAppConf(),
     'application_service'      => '',
     'event_handler'            => \Swoolefy\Core\EventHandler::class,
@@ -26,68 +20,75 @@ return [
     'time_zone'                => 'PRC',
     'runtime_enable_coroutine' => true,
 
-    //swoole setting
     'setting' => [
-        'reactor_num'           => 1,
-        'worker_num'            => 3,
-        'max_request'           => 1000,
-        'task_worker_num'       => 1,
+        'reactor_num'           => swoole_cpu_num(),
+        'worker_num'            => swoole_cpu_num(),
+        'max_request'           => 10000,
+        'task_worker_num'       => swoole_cpu_num(),
         'task_tmpdir'           => '/dev/shm',
         'daemonize'             => 0,
         'dispatch_mode'         => 2,
-        'open_mqtt_protocol'    => true, // only for mqtt
+        'open_mqtt_protocol'    => true,
+        'package_max_length'    => 2 * 1024 * 1024,
+        'heartbeat_check_interval' => 60,
+        'heartbeat_idle_time'    => 120,
         'reload_async'          => true,
         'enable_deadlock_check' => false,
         'enable_coroutine'      => 1,
         'task_enable_coroutine' => 1,
-        'log_file'               => \Swoolefy\Core\SystemEnv::loadLogFile('/tmp/' . APP_NAME . '/swoole.log'),
-        'log_rotation'           => SWOOLE_LOG_ROTATION_DAILY,
+        'log_file'              => \Swoolefy\Core\SystemEnv::loadLogFile('/tmp/' . APP_NAME . '/swoole.log'),
+        'log_rotation'          => SWOOLE_LOG_ROTATION_DAILY,
         'pid_file'              => \Swoolefy\Core\SystemEnv::loadPidFile('/data/' . APP_NAME . '/log/server.pid'),
-
-        'hook_flags'             => \Swoolefy\Core\SystemEnv::loadHookFlag(),
+        'hook_flags'            => \Swoolefy\Core\SystemEnv::loadHookFlag(),
     ],
 
     'coroutine_setting' => [
-        'max_coroutine' => 50000
+        'max_coroutine' => 50000,
     ],
 
     'enable_table_tick_task' => true,
-
-    // 是否开启内存回收
-    'gc_mem_cache_enable' => true,
+    'gc_mem_cache_enable'    => true,
     'gc_mem_cache_tick_time' => 10,
 
+    /**
+     * MQTT Broker 配置
+     *
+     * protocol_level   : 4 = MQTT 3.1.1，5 = MQTT 5.0
+     * auto_protocol    : true 时从 CONNECT 报文自动识别协议版本
+     * username/password: 均为空时不鉴权；生产环境务必设置
+     * mqtt_event_handler: 事件类，默认 ProductionMqttEventV3
+     */
     'mqtt' => [
+        'protocol_level'     => MQTT_PROTOCOL_LEVEL3,
+        'auto_protocol'      => false,
         'username'           => '',
         'password'           => '',
-        'mqtt_event_handler' => \Swoolefy\Mqtt\MqttEventV3::class
+        'mqtt_event_handler' => \Swoolefy\Mqtt\ProductionMqttEventV3::class,
     ],
 
-    // 依赖于EnableSysCollector = true，否则设置没有意义,不生效
     'enable_pv_collector'  => true,
     'enable_sys_collector' => true,
-    'sys_collector_conf' => [
+    'sys_collector_conf'   => [
         'type'           => SWOOLEFY_SYS_COLLECTOR_UDP,
         'host'           => '127.0.0.1',
         'port'           => 9504,
-        'from_service'   => 'http-app',
+        'from_service'   => 'mqtt-app',
         'target_service' => 'collectorService/system',
         'event'          => 'collect',
         'tick_time'      => 2,
-        'callback'       => function () {
+        'callback'       => static function () {
             $sysCollector = new \Swoolefy\Core\SysCollector\SysCollector();
+
             return $sysCollector->test();
-        }
+        },
     ],
 
-    // 热更新
-    'reload_conf'=>[
+    'reload_conf' => [
         'enable_reload'     => false,
         'after_seconds'     => 3,
-        'monitor_path'      => APP_PATH, // 开发者自己定义目录
+        'monitor_path'      => APP_PATH,
         'reload_file_types' => ['.php', '.html', '.js'],
-        //'reloadFn'          => function () {}, // 定义此项，reload将被接管
         'ignore_dirs'       => [],
-        'callback'          => function () {}
-    ]
+        'callback'          => static function () {},
+    ],
 ];
