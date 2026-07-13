@@ -296,8 +296,8 @@ AINode::make('research')
 
 ```php
 // 业务 Agent 自行声明
-protected function chatHistory(): ChatHistoryInterface
-{
+    protected function chatHistory(): ChatHistoryInterface
+    {
     return ChatHistoryFactory::sql($threadId, $pdo); // 或 inMemory / redis / file
 }
 ```

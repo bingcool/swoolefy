@@ -130,6 +130,11 @@ class CreateCmd extends BaseCmd
                         @copy(SRC_DIR_ROOT . '/Stubs/document_ocr.conf.stub.php', $documentOcrFile);
                     }
 
+                    $jobFile = $appPathDir . '/' . $dir . '/job.php';
+                    if (!file_exists($jobFile)) {
+                        @copy(SRC_DIR_ROOT . '/Stubs/job.conf.stub.php', $jobFile);
+                    }
+
                     if ($protocol == self::WEBSOCKET_PROTOCOL) {
                         $socketioFile = $appPathDir . '/' . $dir . '/socketio.php';
                         if (!file_exists($socketioFile)) {

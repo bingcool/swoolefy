@@ -49,6 +49,7 @@
 - [二十、☁️ Nacos 微服务集成](#nav-20-nacos)
 - [二十一、🤖 AI / Workflow 工作流](#nav-21-ai-workflow)
 - [二十二、🧠 AI Agent / RAG / MCP / OCR 大模型能力](#nav-22-ai-capabilities)
+- [二十三、📬 Job 异步任务](#nav-23-job)
 
 ---
 
@@ -93,6 +94,7 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
   - **MCP**: HTTP/SSE Tools、DB 多租户配置、stdio 生产禁用（`src/Support/Mcp/`）
   - **DocumentOcr**: Pandoc（DOCX/HTML/MD）+ DeepSeek OCR（图片/PDF）→ Markdown → RAG（`src/Support/DocumentOcr/`）
   - **Workflow**: DAG 工作流引擎，支持 AI 决策分支、多 Agent 并行、RAG/MCP 节点与人机协同 HITL（详见 [二十一](#nav-21-ai-workflow)、[二十二](#nav-22-ai-capabilities)）
+- 📬 **Job 异步任务**: 统一信封 + Handler + Registry + 重试/退避，对接现有 Redis/AMQP/Kafka 自定义进程（详见 [二十三](#nav-23-job)、[docs/Job.md](docs/Job.md)）
 
 
 
@@ -342,7 +344,8 @@ docker run -d -it --security-opt seccomp=unconfined -p 9501:9501 -p 9502:9502 -v
 - [x] 内存表管理TableManager  
 - [x] 支持自定义进程管理ProcessManager，进程池管理PoolsManger
 - [x] 支持底层异常错误的所有日志捕捉,支持全局日志,包括debug、info、notice、warning、error等级       
-- [x] 支持自定义进程的redis，rabbitmq，kafka的订阅发布，消息队列等      
+- [x] 支持自定义进程的redis，rabbitmq，kafka的订阅发布，消息队列等
+- [x] **Job 轻量异步任务**（`Swoolefy\Support\Job`，详见 [docs/Job.md](docs/Job.md)、[src/Support/Job/README.md](src/Support/Job/README.md)、[二十三](#nav-23-job)）：统一信封 / Handler / Registry / Runner（重试退避）/ Redis 死信重放，零建表，不替换 ProcessManager  
 - [x] 支持热更新reload worker 监控以及更新                 
 - [x] 支持定时的系统信息采集，并以订阅发布，udp等方式收集至存贮端    
 - [x] 支持命令行形式高度封装启动|停止控制的脚本，简单命令即可管理整个框架, 并对外提供控制启动|停止|重启|查看状态的api接口，可开发成可视化控制页面    
@@ -2124,6 +2127,23 @@ composer test:capability
 ```
 
 生产启动前可用 `ProductionHealthCheck` 校验 Provider / Embedding / 出站 URL / HITL / RunStore 等（见 [二十一](#nav-21-ai-workflow) 与 `docs/AI-WORKFLOW.md`）。
+
+### 二十三、📬 Job 异步任务
+
+在**现有自定义进程消费**（Redis / AMQP / Kafka）之上提供统一 Job 信封、Handler、Registry 与重试/退避，**默认不新建 SQL 表**，不替换 `ProcessManager` / `Event.php` 进程模型。
+
+
+| 文档                                                         | 说明                                      |
+| ---------------------------------------------------------- | --------------------------------------- |
+| [docs/Job.md](docs/Job.md)                                 | 技术方案、语义约定、Phase 路线图                     |
+| [src/Support/Job/README.md](src/Support/Job/README.md)     | 快速接入：Publisher / Registry / 死信重放 / 测试命令 |
+
+
+```bash
+composer test:job
+```
+
+配置模版：`create` 时复制 `src/Stubs/job.conf.stub.php` → `Config/job.php`；Demo 进程见 `Test/Process/JobProcess/`（在 `Test/Event.php` 中注释注册）。
 
 ### License
 

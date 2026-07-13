@@ -75,6 +75,10 @@
         "test:ai": "@php src/Support/AI/Tests/AIModuleTest.php",
         "test:mcp": "@php src/Support/Mcp/Tests/McpModuleTest.php",
         "test:capability": "@php src/Support/CapabilityCenter/Tests/CapabilityCenterTest.php",
+        "test:job": [
+            "@php src/Support/Job/Tests/JobPhase1Test.php",
+            "@php src/Support/Job/Tests/JobPhase2Test.php"
+        ],
         "test:document-ocr": "@php src/Support/DocumentOcr/Tests/DocumentOcrTest.php",
         "test:neuron": "@php src/Support/Neuron/Tests/NeuronModuleTest.php",
         "test:rag": "@php src/Support/Rag/Tests/RagModuleTest.php",
@@ -88,6 +92,7 @@
             "@test:ai",
             "@test:mcp",
             "@test:capability",
+            "@test:job",
             "@test:document-ocr",
             "@test:neuron",
             "@test:rag",

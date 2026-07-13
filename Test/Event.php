@@ -50,6 +50,14 @@ class Event extends EventHandler
             // redis的队列消费
             // ProcessManager::getInstance()->addProcess('redis_list_test', \Test\Process\ListProcess\RedisList::class,true, [], null, true);
 
+            // Job 轻量封装 demo：统一信封 + JobRunner 重试/死信（见 docs/Job.md）
+            // ProcessManager::getInstance()->addProcess('job-order-notify', \Test\Process\JobProcess\OrderNotifyConsumer::class, true, [], null, true);
+            // 多 jobType 共进程（Registry）
+            // ProcessManager::getInstance()->addProcess('job-redis-multi', \Test\Process\JobProcess\JobRedisMultiConsumer::class, true, [], null, true);
+            // AMQP / Kafka Job 信封 demo
+            // ProcessManager::getInstance()->addProcess('job-amqp-consumer', \Test\Process\JobProcess\JobAmqpConsumer::class, true, [], null, true);
+            // ProcessManager::getInstance()->addProcess('job-kafka-consumer', \Test\Process\JobProcess\JobKafkaConsumer::class, true, [], null, true);
+
             // redis的延迟队列消费
             // ProcessManager::getInstance()->addProcess('redis_delay_list_test', \Test\Process\QueueProcess\Queue::class,true, [], null, true);
 
