@@ -42,6 +42,9 @@ class WebsocketPushStreamConsumerProcess extends AbstractProcess
     /** @var string|null 当前进程 consumer 名，供 SIGTERM drain 复用 */
     private ?string $consumerName = null;
 
+    /** 防止协程 break 路径与 SIGTERM gracefulShutdownDrain 并发双重 drain */
+    private bool $drainStarted = false;
+
     public function run()
     {
         if (!ClusterConfig::isEnabled() || ClusterConfig::pushTransport() !== 'streams') {
@@ -78,6 +81,7 @@ class WebsocketPushStreamConsumerProcess extends AbstractProcess
                 }
             }
 
+            // 看到停机标志后立刻 drain PEL（与 SIGTERM 路径互斥，只跑一次）
             if (WebsocketShutdownCoordinator::isEnabled()) {
                 $this->drainStreamConsumer($handler);
             }
@@ -86,6 +90,8 @@ class WebsocketPushStreamConsumerProcess extends AbstractProcess
 
     /**
      * SIGTERM 时在 Event::exit 前同步 drain PEL（协程可能来不及跑完）。
+     *
+     * 与 run() 协程 break 路径共用 drainStarted，避免双重投递。
      */
     public function gracefulShutdownDrain(): void
     {
@@ -108,9 +114,10 @@ class WebsocketPushStreamConsumerProcess extends AbstractProcess
     /** @param callable(string, string): bool $handler */
     private function drainStreamConsumer(callable $handler): void
     {
-        if ($this->consumerName === null) {
+        if ($this->consumerName === null || $this->drainStarted) {
             return;
         }
+        $this->drainStarted = true;
 
         PushStreamConsumer::drain(
             $this->consumerName,

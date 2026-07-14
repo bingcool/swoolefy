@@ -178,9 +178,24 @@ function testOnBeforeShutdownMarksFlag(): void
     echo "[OK] onBeforeShutdown marks flag\n";
 }
 
+/** StopCmd 建议超时应覆盖 drain_timeout + max_wait_time */
+function testRecommendedStopTimeouts(): void
+{
+    bootGracefulConfig();
+    $force = WebsocketShutdownCoordinator::recommendedForceKillTimeout(10);
+    $total = WebsocketShutdownCoordinator::recommendedStopTimeout(10);
+    assertTrue($force >= 5 + 5, 'force kill >= drain + half max_wait');
+    assertTrue($total >= 5 + 10 + 5, 'total wait >= drain + max_wait + buffer');
+    assertTrue($total > $force, 'total wait > force kill');
+
+    teardownGracefulConfig();
+    echo "[OK] recommended stop timeouts\n";
+}
+
 testShouldRejectNewConnections();
 testRunControlledStopsWhenShouldContinueFalse();
 testDrainProcessesPending();
 testOnBeforeShutdownMarksFlag();
+testRecommendedStopTimeouts();
 
 echo "All websocket graceful shutdown tests passed.\n";

@@ -10,11 +10,13 @@ use Swoolefy\Core\Table\TableManager;
  * SIGTERM / cli stop 流程：
  * 1. Master 收到 SIGTERM → Swoole 内置 shutdown → BeforeShutdown 回调
  * 2. 置 shutting_down + 停止 accept（Swoole 已处理）+ 等待 Stream PEL drain
- * 3. open / handshake 拒绝新连接（1008 / 503）
- * 4. 自定义进程 SIGTERM → gracefulShutdownDrain → 退出
- * 5. Swoole 按 max_wait_time 等待 Worker 后退出
+ * 3. open / handshake / message 拒绝新连接与新业务帧（1008 / 503）
+ * 4. Stream / PubSub 推送消费进程停止拉取并 drain（PEL 或本地 List）
+ * 5. 自定义进程 SIGTERM → gracefulShutdownDrain → 退出
+ * 6. WorkerStop 主动 disconnect 剩余 fd；Swoole 按 max_wait_time 等待后退出
  *
  * 注意：勿对 Master 重复 Process::signal(SIGTERM)，会与 Swoole 冲突。
+ * StopCmd 强制 kill 超时须 ≥ recommendedStopTimeout()，否则会半截杀掉 drain。
  */
 class WebsocketShutdownCoordinator
 {
@@ -57,6 +59,23 @@ class WebsocketShutdownCoordinator
     public static function drainTimeout(): int
     {
         return max(1, (int) (self::settings()['drain_timeout'] ?? 30));
+    }
+
+    /**
+     * StopCmd 建议等待上限：drain_timeout + max_wait_time + 缓冲。
+     * 保证 Master PEL 排水与 Worker 收尾不被 CLI SIGKILL 提前打断。
+     */
+    public static function recommendedStopTimeout(int $maxWaitTime = 10): int
+    {
+        return self::drainTimeout() + max(1, $maxWaitTime) + 5;
+    }
+
+    /**
+     * StopCmd 建议开始强制 kill 的时间：略大于 drain_timeout，留给消费进程 SIGTERM drain。
+     */
+    public static function recommendedForceKillTimeout(int $maxWaitTime = 10): int
+    {
+        return self::drainTimeout() + max(1, (int) ceil($maxWaitTime / 2));
     }
 
     public static function rejectReason(): string

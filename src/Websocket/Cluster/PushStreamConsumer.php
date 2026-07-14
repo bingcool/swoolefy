@@ -195,19 +195,27 @@ class PushStreamConsumer
         return $processed;
     }
 
-    /** @param callable(): bool $shouldContinue */
+    /**
+     * XREADGROUP block 时长。
+     *
+     * 优雅停机启用时上限 500ms，避免长 BLOCK 拖慢感知 shutting_down；
+     * 已进入停机则进一步压到 ≤200ms，尽快退出循环交给 drain。
+     *
+     * @param callable(): bool $shouldContinue
+     */
     private static function blockMsForLoop(callable $shouldContinue): int
     {
         $configured = ClusterConfig::pushStreamBlockMs();
-        if (!$shouldContinue()) {
-            return min(200, $configured);
+        if (!$shouldContinue() || WebsocketShutdownCoordinator::shouldStopConsuming()) {
+            return min(200, max(1, $configured));
         }
 
-        if (WebsocketShutdownCoordinator::shouldStopConsuming()) {
-            return min(200, $configured);
+        // 启用 graceful_shutdown 时缩短常态 block，SIGTERM 前也能更快看到 Table 标志
+        if (WebsocketShutdownCoordinator::isEnabled()) {
+            return min(500, max(1, $configured));
         }
 
-        return $configured;
+        return max(1, $configured);
     }
 
     /**

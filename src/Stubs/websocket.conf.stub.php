@@ -113,9 +113,13 @@ return [
         'replay_limit' => 100,
     ],
     /*
-     * 优雅停机：SIGTERM / cli stop 时停止 accept → drain Stream PEL → 退出 Worker
+     * 优雅停机：SIGTERM / cli stop
      *
-     * drain_timeout 建议 ≥ setting.max_wait_time，确保推送消费与连接处理均完成
+     * 顺序：停接新连接与新业务帧 → 推送消费进程 drain（Stream PEL / PubSub List）
+     * → Worker 收尾并 disconnect 剩余 fd。
+     *
+     * drain_timeout 建议 ≥ setting.max_wait_time；
+     * StopCmd 会按 drain_timeout + max_wait_time 自动拉长强制 kill 等待。
      */
     'graceful_shutdown' => [
         'enable' => true,

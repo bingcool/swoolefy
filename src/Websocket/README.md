@@ -812,24 +812,26 @@ XADD {key_prefix}push:stream:{server_id}
 
 #### 优雅停机（`graceful_shutdown`）
 
-`php cli.php stop` 或 `kill -15 MASTER_PID` 时，框架按以下顺序退出，避免 SIGTERM 直接杀进程导致正在处理的 Stream 推送丢失：
+`php cli.php stop` 或 `kill -15 MASTER_PID` 时，框架按以下顺序退出，避免 SIGTERM 直接杀进程导致正在处理的 Stream / PubSub 推送半截丢失：
 
 ```
 SIGTERM → Master 置 shutting_down + shutdown() 停止 accept
-       → open/handshake 拒绝新连接（1008 / 503）
-       → Stream 消费进程 drain PEL（XAUTOCLAIM minIdle=0 + XREADGROUP id=0）
-       → Master 轮询 XPENDING 直至清空或 drain_timeout
-       → Swoole max_wait_time 等待 Worker 内正在处理的 WebSocket 连接
+       → open/handshake/message 拒绝新连接与新业务帧（1008 / 503）
+       → Stream 消费进程停止 XREADGROUP 并 drain PEL（XAUTOCLAIM minIdle=0 + XREADGROUP id=0）
+         或 Pub/Sub：Subscriber 停直推 / Delivery 排空本地 List 并等在途 push
+       → Master 轮询 XPENDING 直至清空或 drain_timeout（streams）
+       → WorkerStop 主动 disconnect 剩余 fd；Swoole max_wait_time 等待 Worker 协程收尾
+       → StopCmd 等待 ≥ drain_timeout + max_wait_time，避免提前 SIGKILL
 ```
 
 | 配置项 | 说明 | 默认 |
 |--------|------|------|
 | `graceful_shutdown.enable` | 启用优雅停机 | `true` |
-| `graceful_shutdown.drain_timeout` | PEL 排空最长等待秒数 | `30` |
+| `graceful_shutdown.drain_timeout` | PEL / 本地队列排空最长等待秒数 | `30` |
 | `graceful_shutdown.reject_reason` | 拒绝新连接时的提示文案 | `server shutting down` |
 | `setting.max_wait_time` | Worker 退出前等待已有连接完成（Swoole 原生） | `10` |
 
-建议 `drain_timeout` ≥ `max_wait_time`，确保推送 drain 完成后再杀 Worker。
+建议 `drain_timeout` ≥ `max_wait_time`。停机中若 Worker 已不可用，Stream 对 `serverUnavailable` 会 ACK 以放行 PEL（在途推送可能丢失；离线必达仍靠 OfflineStore）。
 
 ```php
 'graceful_shutdown' => [

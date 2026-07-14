@@ -17,10 +17,16 @@ class StopCmd extends BaseCmd
     
     // 定义睡眠时间
     private const SLEEP_INTERVAL_SECOND = 1;
-    // 定义超时
+    // 定义超时（默认；WebSocket 优雅停机时按 Config 上调，见 resolveStopTimeouts）
     private const MAX_KILL_TIMEOUT = 10;
     private const MAX_STOP_TIMEOUT = 20;
     private const MAX_WAIT_INTERVAL_SECOND = 3;
+
+    /** @var int|null 本次 stop 解析出的强制 kill 秒数 */
+    private ?int $killTimeoutSeconds = null;
+
+    /** @var int|null 本次 stop 总等待秒数 */
+    private ?int $stopTimeoutSeconds = null;
     
     // 定义信号
     private const SIGNAL_TERMINATE = SIGTERM;
@@ -123,6 +129,8 @@ class StopCmd extends BaseCmd
      */
     protected function serverStop(string $appName): void
     {
+        $this->resolveStopTimeouts();
+
         $pidFile = $this->getPidFile($appName);
         $this->validatePidFile($pidFile, $appName);
         
@@ -135,6 +143,58 @@ class StopCmd extends BaseCmd
         $this->terminateProcess($pid, $appName);
         $this->waitForProcessStop($pid, $pidFile, $appName);
         \Swoole\Process::wait();
+    }
+
+    /**
+     * 按 Protocol/conf.php + Config/websocket.php 上调 stop 等待，避免 drain 未完成就被 SIGKILL。
+     */
+    private function resolveStopTimeouts(): void
+    {
+        $kill = self::MAX_KILL_TIMEOUT;
+        $stop = self::MAX_STOP_TIMEOUT;
+        $maxWait = 10;
+        $gracefulEnabled = false;
+        $drainTimeout = 30;
+
+        try {
+            $protocolFile = APP_PATH . '/Protocol/conf.php';
+            if (is_file($protocolFile)) {
+                $protocol = include $protocolFile;
+                if (is_array($protocol)) {
+                    $maxWait = max(1, (int) ($protocol['setting']['max_wait_time'] ?? $maxWait));
+                }
+            }
+
+            $websocketFile = APP_PATH . '/Config/websocket.php';
+            if (is_file($websocketFile)) {
+                $websocket = include $websocketFile;
+                if (is_array($websocket)) {
+                    $gs = $websocket['graceful_shutdown'] ?? [];
+                    if (is_array($gs) && !empty($gs['enable'])) {
+                        $gracefulEnabled = true;
+                        $drainTimeout = max(1, (int) ($gs['drain_timeout'] ?? 30));
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // 配置读取失败时回退默认常量
+        }
+
+        if ($gracefulEnabled) {
+            $kill = $drainTimeout + max(1, (int) ceil($maxWait / 2));
+            $stop = $drainTimeout + $maxWait + 5;
+            fmtPrintInfo(sprintf(
+                "%s graceful stop timeouts: force_kill=%ds total_wait=%ds (drain=%ds max_wait_time=%ds)",
+                self::LOG_PREFIX,
+                $kill,
+                $stop,
+                $drainTimeout,
+                $maxWait
+            ));
+        }
+
+        $this->killTimeoutSeconds = max(self::MAX_KILL_TIMEOUT, $kill);
+        $this->stopTimeoutSeconds = max(self::MAX_STOP_TIMEOUT, $stop);
     }
 
     /**
@@ -285,7 +345,9 @@ class StopCmd extends BaseCmd
      */
     private function shouldForceKill(int $startTime): bool
     {
-        return (time() - $startTime) > self::MAX_KILL_TIMEOUT;
+        $timeout = $this->killTimeoutSeconds ?? self::MAX_KILL_TIMEOUT;
+
+        return (time() - $startTime) > $timeout;
     }
     
     /**
@@ -296,7 +358,9 @@ class StopCmd extends BaseCmd
      */
     private function isStopTimeout(int $startTime): bool
     {
-        return (time() - $startTime) > self::MAX_STOP_TIMEOUT;
+        $timeout = $this->stopTimeoutSeconds ?? self::MAX_STOP_TIMEOUT;
+
+        return (time() - $startTime) > $timeout;
     }
     
     /**

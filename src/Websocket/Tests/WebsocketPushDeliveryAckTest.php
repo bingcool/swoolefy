@@ -70,7 +70,7 @@ function testShouldNotAckFailed(): void
     echo "[OK] shouldNotAck failed\n";
 }
 
-/** 空 targets / 非法 payload / 去重命中 ACK；server 不可用不 ACK */
+/** 空 targets / 非法 payload / 去重命中 ACK；server 不可用默认不 ACK，停机中则 ACK */
 function testShouldAckEmptyAndInvalid(): void
 {
     assertTrue((new PushDeliveryResult())->shouldAck(), 'empty targets should ack');
@@ -78,6 +78,28 @@ function testShouldAckEmptyAndInvalid(): void
     assertTrue(PushDeliveryResult::duplicateSkipped()->shouldAck(), 'duplicate skipped should ack');
     assertTrue(!PushDeliveryResult::serverUnavailable()->shouldAck(), 'server unavailable should not ack');
     echo "[OK] shouldAck empty/invalid/server\n";
+}
+
+/** 优雅停机中 serverUnavailable 应 ACK，避免 PEL 卡满 drain_timeout */
+function testShouldAckServerUnavailableDuringShutdown(): void
+{
+    \Swoolefy\Websocket\Cluster\ClusterConfig::setWebsocketOverride([
+        'graceful_shutdown' => [
+            'enable' => true,
+            'drain_timeout' => 5,
+        ],
+    ]);
+    \Swoolefy\Websocket\Cluster\WebsocketShutdownCoordinator::useMemoryFlagForTest();
+    \Swoolefy\Websocket\Cluster\WebsocketShutdownCoordinator::setShuttingDownForTest(true);
+
+    assertTrue(
+        PushDeliveryResult::serverUnavailable()->shouldAck(),
+        'server unavailable during shutdown should ack to unblock PEL drain'
+    );
+
+    \Swoolefy\Websocket\Cluster\WebsocketShutdownCoordinator::resetForTest();
+    \Swoolefy\Websocket\Cluster\ClusterConfig::setWebsocketOverride(null);
+    echo "[OK] shouldAck serverUnavailable during shutdown\n";
 }
 
 /** 非法 JSON payload 应 ACK 丢弃，避免毒消息阻塞 Stream */
@@ -139,6 +161,7 @@ testShouldAckDelivered();
 testShouldAckAllGoneOrSkipped();
 testShouldNotAckFailed();
 testShouldAckEmptyAndInvalid();
+testShouldAckServerUnavailableDuringShutdown();
 testDeliverWithResultInvalidPayload();
 testDeliverWithResultServerUnavailable();
 testStreamConsumerHandlerIntegration();

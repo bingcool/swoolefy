@@ -212,6 +212,19 @@ abstract class WebsocketServer extends BaseServer
          */
         $this->webServer->on('message', function (\Swoole\WebSocket\Server $server, Frame $frame) {
             try {
+                // 停机中：不再处理新业务帧，主动断开，把时间留给在途推送/协程收尾
+                if (Cluster\WebsocketShutdownCoordinator::shouldRejectNewConnections()) {
+                    if ($server->isEstablished((int) $frame->fd)) {
+                        $server->disconnect(
+                            (int) $frame->fd,
+                            1008,
+                            Cluster\WebsocketShutdownCoordinator::rejectReason()
+                        );
+                    }
+
+                    return false;
+                }
+
                 SwooleContext::set(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID, Helper::UUid());
                 parent::beforeHandle();
 
@@ -359,11 +372,20 @@ abstract class WebsocketServer extends BaseServer
         }
 
         /**
-         * WorkerStop
+         * WorkerStop：优雅停机时主动断开剩余 fd，给客户端明确关闭码；
+         * 在途 goApp 由 Swoole max_wait_time 约束。
          */
         $this->webServer->on('WorkerStop', function (\Swoole\WebSocket\Server $server, $worker_id) {
             \Swoole\Coroutine::create(function () use ($server, $worker_id) {
                 try {
+                    if (Cluster\WebsocketShutdownCoordinator::shouldRejectNewConnections()) {
+                        foreach ($server->connections as $fd) {
+                            $fd = (int) $fd;
+                            if ($server->isEstablished($fd)) {
+                                $server->disconnect($fd, 1001, Cluster\WebsocketShutdownCoordinator::rejectReason());
+                            }
+                        }
+                    }
                     (new EventApp())->registerApp(function () use ($server, $worker_id) {
                         $this->startCtrl->workerStop($server, $worker_id);
                     });

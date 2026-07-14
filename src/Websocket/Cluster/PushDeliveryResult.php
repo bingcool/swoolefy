@@ -149,6 +149,10 @@ class PushDeliveryResult
 
     /**
      * 是否应对 Stream entry 执行 XACK。
+     *
+     * 优雅停机中 serverUnavailable：Worker/Server 正在退出，PEL 重试无意义，
+     * 应 ACK 以放行 Master waitForStreamPelDrain（否则卡满 drain_timeout）。
+     * 代价是该条在途推送可能丢失；离线必达仍依赖业务 OfflineStore。
      */
     public function shouldAck(): bool
     {
@@ -161,7 +165,7 @@ class PushDeliveryResult
         }
 
         if ($this->serverUnavailable) {
-            return false;
+            return WebsocketShutdownCoordinator::shouldStopConsuming();
         }
 
         if ($this->delivered > 0) {
