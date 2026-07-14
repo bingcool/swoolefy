@@ -14,6 +14,13 @@ use Swoole\Server;
  * - 记录每个 fd 的 topic filter 订阅（供 publish 路由）
  * - 内存 Retain 消息表（生产环境大量 retain 建议换 Redis/DB）
  * - QoS2 入站报文暂存（PUBLISH → PUBREC，待 PUBREL 释放后 dispatch）
+ * - Broker→Client 出站 QoS1/2 待确认（优雅停机 drain 用）
+ *
+ * ## 会话 / 重连语义（当前实现）
+ * - 状态均为 **Worker 内存**，断连即 `remove()`，**无跨断连持久会话**
+ * - 同 client_id 新连接会踢掉旧 fd（`bind`）
+ * - `clean_session=0` 仅保留协议字段；CONNACK `session_present` 恒为 false（无恢复可声明）
+ * - 异常断连 Will 发送尚未实现（retain will 在 CONNECT 时写入 Retain 表）
  *
  * ## 多 Worker
  * fd 仅在本 Worker 有效。Swoole 建议 `dispatch_mode=2` 保证同一 TCP 连接固定 Worker。
@@ -35,8 +42,12 @@ final class MqttSessionManager
     /** @var array<string, array{message:string,qos:int,retain:bool,timestamp:int}> */
     private array $retainedMessages = [];
 
-    /** @var array<int, array{topic:string,message:string,qos:int,retain:bool,dup:bool,message_id:int|string}> */
-    private array $outboundQoS2 = [];
+    /**
+     * Broker→Client 出站待确认：fd => [message_id => qos]
+     *
+     * @var array<int, array<int, int>>
+     */
+    private array $outboundPending = [];
 
     private function __construct()
     {
@@ -311,11 +322,76 @@ final class MqttSessionManager
         return $payload;
     }
 
-    /** 连接关闭时清理会话；sendWill 预留扩展（当前未发送 will MQTT 报文）。 */
+    /**
+     * 记录 Broker→Client 出站 QoS1/2，待客户端 PUBACK/PUBCOMP 清除。
+     */
+    public function rememberOutbound(int $fd, int $messageId, int $qos): void
+    {
+        if ($messageId <= 0 || $qos < 1) {
+            return;
+        }
+        if ($this->get($fd) === null) {
+            return;
+        }
+
+        $this->outboundPending[$fd][$messageId] = min(2, max(1, $qos));
+    }
+
+    /**
+     * 客户端确认出站报文：QoS1→PUBACK；QoS2→PUBCOMP（或简化为 PUBREC 即清）。
+     */
+    public function ackOutbound(int $fd, int|string $messageId): void
+    {
+        $id = (int) $messageId;
+        if ($id <= 0 || !isset($this->outboundPending[$fd][$id])) {
+            return;
+        }
+        unset($this->outboundPending[$fd][$id]);
+        if (($this->outboundPending[$fd] ?? []) === []) {
+            unset($this->outboundPending[$fd]);
+        }
+    }
+
+    /** 本 Worker 在途 QoS 数量（入站 QoS2 暂存 + 出站待确认）。 */
+    public function pendingWorkCount(): int
+    {
+        $count = 0;
+        foreach ($this->sessions as $session) {
+            $count += count($session->inboundQoS2);
+        }
+        foreach ($this->outboundPending as $pending) {
+            $count += count($pending);
+        }
+
+        return $count;
+    }
+
+    /** @return list<int> */
+    public function connectedFds(): array
+    {
+        $fds = [];
+        foreach ($this->sessions as $fd => $session) {
+            if ($session->connected) {
+                $fds[] = (int) $fd;
+            }
+        }
+
+        return $fds;
+    }
+
+    /**
+     * 连接关闭时清理会话。
+     *
+     * - 当前无跨断连持久会话：无论 cleanSession，订阅与 QoS 暂存均随 fd 销毁
+     * - sendWill 预留扩展（当前未发送 will MQTT 报文）
+     */
     public function remove(int $fd, bool $sendWill = false): void
     {
+        unset($sendWill);
         $session = $this->sessions[$fd] ?? null;
         if ($session === null) {
+            unset($this->outboundPending[$fd]);
+
             return;
         }
 
@@ -324,12 +400,8 @@ final class MqttSessionManager
             unset($this->clientIndex[$session->clientId]);
         }
 
-        // cleanSession 订阅随 sessions[$fd] 一并销毁；persistent session 扩展可在此保留
-        if ($session->cleanSession) {
-            // subscriptions are worker-local and cleared with session
-        }
-
-        unset($this->sessions[$fd], $this->outboundQoS2[$fd]);
+        // 无持久会话：clean_session=0 也不跨断连保留订阅（见类注释）
+        unset($this->sessions[$fd], $this->outboundPending[$fd]);
     }
 
     public function stats(): array
@@ -348,6 +420,7 @@ final class MqttSessionManager
             'connected' => $connected,
             'subscriptions' => $subscriptionCount,
             'retained_topics' => count($this->retainedMessages),
+            'pending_qos' => $this->pendingWorkCount(),
         ];
     }
 }

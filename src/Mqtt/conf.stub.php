@@ -32,6 +32,8 @@ return [
         'package_max_length'    => 2 * 1024 * 1024,
         'heartbeat_check_interval' => 60,
         'heartbeat_idle_time'    => 120,
+        // Worker 退出前等待在途请求（优雅停机配合 graceful_shutdown.drain_timeout）
+        'max_wait_time'         => 10,
         'reload_async'          => true,
         'enable_deadlock_check' => false,
         'enable_coroutine'      => 1,
@@ -40,6 +42,18 @@ return [
         'log_rotation'          => SWOOLE_LOG_ROTATION_DAILY,
         'pid_file'              => \Swoolefy\Core\SystemEnv::loadPidFile('/data/' . APP_NAME . '/log/server.pid'),
         'hook_flags'            => \Swoolefy\Core\SystemEnv::loadHookFlag(),
+    ],
+
+    /*
+     * 优雅停机：停接新会话 → 排空在途 PUBLISH/QoS → 再断连
+     *
+     * drain_timeout 建议 ≥ setting.max_wait_time；
+     * StopCmd 会按 drain_timeout + max_wait_time 拉长强制 kill 等待。
+     */
+    'graceful_shutdown' => [
+        'enable' => true,
+        'drain_timeout' => 30,
+        'reject_reason' => 'server shutting down',
     ],
 
     'coroutine_setting' => [

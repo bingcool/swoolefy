@@ -26,6 +26,11 @@ use Swoolefy\Core\Swfy;
  * | 0   | 直接 dispatchPublish |
  * | 1   | dispatch + PUBACK |
  * | 2   | 暂存 → PUBREC；PUBREL 后 dispatch → PUBCOMP |
+ *
+ * ## 优雅停机
+ * - CONNECT：CONNACK 拒绝并关连接
+ * - 新 SUBSCRIBE / 新 PUBLISH：拒绝（关连接或忽略）
+ * - PING / PUBREL / PUBACK / PUBREC / PUBCOMP：放行，排空在途 QoS
  */
 final class MqttReceiveDispatcher
 {
@@ -81,7 +86,6 @@ final class MqttReceiveDispatcher
         try {
             switch ($type) {
                 case Types::CONNECT:
-                    // CONNECT 单独走鉴权 + bind 流程，成功后才 CONNACK
                     return self::handleConnectV3($server, $fd, $mqttEvent, $data);
 
                 case Types::PINGREQ:
@@ -94,11 +98,16 @@ final class MqttReceiveDispatcher
                     break;
 
                 case Types::PUBLISH:
+                    if (MqttShutdownCoordinator::shouldRejectNewWork()) {
+                        // 停机中拒绝新 PUBLISH，避免扩大在途；已开始的 QoS2 走 PUBREL
+                        self::close($server, $fd);
+                        break;
+                    }
                     self::handlePublish($mqttEvent, $fd, $data);
                     break;
 
                 case Types::PUBREL:
-                    // QoS2 第二阶段：释放暂存 payload 后真正路由，再回 PUBCOMP
+                    // QoS2 第二阶段：释放暂存 payload 后真正路由，再回 PUBCOMP（停机中仍放行）
                     $payload = MqttSessionManager::getInstance()->releaseInboundQoS2($fd, $data['message_id'] ?? 0);
                     if ($payload !== null) {
                         $mqttEvent->publish(
@@ -114,7 +123,10 @@ final class MqttReceiveDispatcher
                     break;
 
                 case Types::SUBSCRIBE:
-                    // Event 返回 granted codes，Dispatcher 负责组 SUBACK
+                    if (MqttShutdownCoordinator::shouldRejectNewWork()) {
+                        self::close($server, $fd);
+                        break;
+                    }
                     $codes = $mqttEvent->subscribe($data['type'], $data['topics'], $data['message_id']);
                     $payload = array_map(static fn ($code) => chr((int) $code), $codes);
                     $mqttEvent->subscribeAck($data['message_id'], $payload);
@@ -126,9 +138,14 @@ final class MqttReceiveDispatcher
                     break;
 
                 case Types::PUBACK:
-                case Types::PUBREC:
                 case Types::PUBCOMP:
-                    // 客户端对 Broker 下发 QoS1/2 的确认，Broker 侧暂不追踪 outbound 状态
+                    // 客户端确认 Broker 出站 QoS1/2
+                    MqttSessionManager::getInstance()->ackOutbound($fd, $data['message_id'] ?? 0);
+                    break;
+
+                case Types::PUBREC:
+                    // QoS2 简化：收到 PUBREC 即清除出站 pending（完整 PUBREL 握手可后续增强）
+                    MqttSessionManager::getInstance()->ackOutbound($fd, $data['message_id'] ?? 0);
                     break;
 
                 default:
@@ -163,7 +180,6 @@ final class MqttReceiveDispatcher
                     return self::handleConnectV5($server, $fd, $mqttEvent, $data);
 
                 case Types::AUTH:
-                    // 增强认证（Challenge/Response），默认 Production 空实现
                     $mqttEvent->auth($data['code'], $data['properties'] ?? []);
                     break;
 
@@ -177,6 +193,10 @@ final class MqttReceiveDispatcher
                     break;
 
                 case Types::PUBLISH:
+                    if (MqttShutdownCoordinator::shouldRejectNewWork()) {
+                        self::close($server, $fd);
+                        break;
+                    }
                     self::handlePublish($mqttEvent, $fd, $data);
                     break;
 
@@ -196,7 +216,10 @@ final class MqttReceiveDispatcher
                     break;
 
                 case Types::SUBSCRIBE:
-                    // V5 SUBACK codes 为整数 reason code，无需 chr 转换
+                    if (MqttShutdownCoordinator::shouldRejectNewWork()) {
+                        self::close($server, $fd);
+                        break;
+                    }
                     $codes = $mqttEvent->subscribe($data['type'], $data['topics'], $data['message_id']);
                     $mqttEvent->subscribeAck($data['message_id'], $codes);
                     break;
@@ -207,8 +230,12 @@ final class MqttReceiveDispatcher
                     break;
 
                 case Types::PUBACK:
-                case Types::PUBREC:
                 case Types::PUBCOMP:
+                    MqttSessionManager::getInstance()->ackOutbound($fd, $data['message_id'] ?? 0);
+                    break;
+
+                case Types::PUBREC:
+                    MqttSessionManager::getInstance()->ackOutbound($fd, $data['message_id'] ?? 0);
                     break;
 
                 default:
@@ -227,6 +254,14 @@ final class MqttReceiveDispatcher
      */
     private static function handleConnectV3(Server $server, int $fd, MqttEventV3 $mqttEvent, array $data): bool
     {
+        // 优雅停机：拒绝新会话（MQTT 3.1.1 CONNACK=3 Server unavailable）
+        if (MqttShutdownCoordinator::shouldRejectNewSessions()) {
+            $mqttEvent->connectReject(3);
+            self::close($server, $fd);
+
+            return false;
+        }
+
         // 协议名必须为 MQTT（3.1.1），否则 CONNACK=1 拒绝
         if (($data['protocol_name'] ?? '') !== 'MQTT') {
             $mqttEvent->connectReject(1);
@@ -239,7 +274,6 @@ final class MqttReceiveDispatcher
         $password = $data['password'] ?? '';
 
         if (!$mqttEvent->verify($username, $password)) {
-            // 鉴权失败：CONNACK=5 Not authorized，再关闭 TCP
             $mqttEvent->connectReject(5);
             self::close($server, $fd);
 
@@ -264,8 +298,8 @@ final class MqttReceiveDispatcher
             return false;
         }
 
-        // session_present 由 clean_session 决定（简化实现，未做持久会话恢复）
-        $mqttEvent->connectAck((bool) ($data['clean_session'] ?? 0));
+        // 无跨断连持久会话：session_present 恒 false（与 clean_session 字段解耦）
+        $mqttEvent->connectAck(false);
 
         return true;
     }
@@ -275,6 +309,13 @@ final class MqttReceiveDispatcher
      */
     private static function handleConnectV5(Server $server, int $fd, MqttEventV5 $mqttEvent, array $data): bool
     {
+        if (MqttShutdownCoordinator::shouldRejectNewSessions()) {
+            $mqttEvent->connectReject(ReasonCode::SERVER_SHUTTING_DOWN);
+            self::close($server, $fd);
+
+            return false;
+        }
+
         $properties = $data['properties'] ?? [];
         $username = $data['user_name'] ?? '';
         $password = $data['password'] ?? '';
@@ -307,8 +348,8 @@ final class MqttReceiveDispatcher
             return false;
         }
 
-        // connectAck 会附带 Broker 能力属性（retain_available 等）
-        $mqttEvent->connectAck((bool) ($data['clean_session'] ?? 0));
+        // session_present=false：当前无持久会话恢复
+        $mqttEvent->connectAck(false);
 
         return true;
     }
@@ -326,7 +367,6 @@ final class MqttReceiveDispatcher
         $messageId = $data['message_id'] ?? 0;
 
         if ($qos === 2) {
-            // QoS2 第一阶段：只暂存 + 回 PUBREC，不立即路由（等 PUBREL）
             MqttSessionManager::getInstance()->rememberInboundQoS2(
                 $fd,
                 $messageId,
@@ -340,7 +380,6 @@ final class MqttReceiveDispatcher
             return;
         }
 
-        // QoS0/1：收到即路由
         $mqttEvent->publish(
             $data['topic'],
             $data['message'],
@@ -351,14 +390,12 @@ final class MqttReceiveDispatcher
         );
 
         if ($qos === 1) {
-            // QoS1：路由完成后回 PUBACK
             $mqttEvent->publishAck($messageId);
         }
     }
 
     private static function close(Server $server, int $fd): void
     {
-        // 先清会话再关 TCP，避免 close 回调重复 remove 时状态不一致
         MqttSessionManager::getInstance()->remove($fd);
         if ($server->exists($fd)) {
             $server->close($fd);

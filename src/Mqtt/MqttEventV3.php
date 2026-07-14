@@ -130,11 +130,14 @@ abstract class MqttEventV3
         $this->unSubscribeAck($message_id);
     }
 
-    final public function connectAck($clean_session): void
+    /**
+     * @param bool $sessionPresent 是否存在可恢复会话；当前无持久会话，Dispatcher 传 false
+     */
+    final public function connectAck($sessionPresent): void
     {
         $this->server->send(
             $this->fd,
-            (new ConnAck())->setCode(0)->setSessionPresent($clean_session),
+            (new ConnAck())->setCode(0)->setSessionPresent((bool) $sessionPresent),
         );
     }
 

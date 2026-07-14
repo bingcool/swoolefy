@@ -123,7 +123,10 @@ abstract class MqttEventV5
         $this->unSubscribeAck($message_id);
     }
 
-    public function connectAck($clean_session, array $properties = []): void
+    /**
+     * @param bool $sessionPresent 是否存在可恢复会话；当前实现无持久会话，Dispatcher 传 false
+     */
+    public function connectAck($sessionPresent, array $properties = []): void
     {
         // 默认 Broker 能力声明，可被子类传入 properties 覆盖
         $properties = array_merge([
@@ -140,7 +143,7 @@ abstract class MqttEventV5
             Protocol\V5::pack([
                 'type' => Types::CONNACK,
                 'code' => 0,
-                'session_present' => $clean_session,
+                'session_present' => (bool) $sessionPresent,
                 'properties' => $properties,
             ]),
         );

@@ -73,7 +73,7 @@ trait MqttBrokerSupport
             // QoS0 不需要 message_id；QoS1/2 由 Broker 生成新 id
             $outMessageId = $deliveryQos > 0 ? $this->nextMessageId($targetFd) : ($messageId ?: 0);
 
-            $this->packAndSend($targetFd, [
+            $sent = $this->packAndSend($targetFd, [
                 'type' => \Simps\MQTT\Protocol\Types::PUBLISH,
                 'topic' => $topic,
                 'message' => $message,
@@ -82,6 +82,10 @@ trait MqttBrokerSupport
                 'retain' => $retain,
                 'message_id' => $outMessageId,
             ]);
+            // 出站 QoS1/2 记入 pending，优雅停机时等待客户端确认
+            if ($sent && $deliveryQos > 0) {
+                $this->sessions()->rememberOutbound($targetFd, (int) $outMessageId, $deliveryQos);
+            }
         }
     }
 
@@ -98,15 +102,19 @@ trait MqttBrokerSupport
         foreach ($this->sessions()->retainedForSubscription($topicFilter) as $topic => $retained) {
             // 订阅时推送 Retain：QoS 同样取 min(sub, retain)
             $deliveryQos = min($maxQos, (int) $retained['qos']);
-            $this->packAndSend($fd, [
+            $outMessageId = $deliveryQos > 0 ? $this->nextMessageId($fd) : 0;
+            $sent = $this->packAndSend($fd, [
                 'type' => \Simps\MQTT\Protocol\Types::PUBLISH,
                 'topic' => $topic,
                 'message' => $retained['message'],
                 'dup' => false,
                 'qos' => $deliveryQos,
                 'retain' => true, // 必须带 retain 标志，客户端才能识别为 Retain 消息
-                'message_id' => $deliveryQos > 0 ? $this->nextMessageId($fd) : 0,
+                'message_id' => $outMessageId,
             ]);
+            if ($sent && $deliveryQos > 0) {
+                $this->sessions()->rememberOutbound($fd, (int) $outMessageId, $deliveryQos);
+            }
         }
     }
 

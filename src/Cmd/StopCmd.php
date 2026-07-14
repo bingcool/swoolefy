@@ -146,7 +146,8 @@ class StopCmd extends BaseCmd
     }
 
     /**
-     * 按 Protocol/conf.php + Config/websocket.php 上调 stop 等待，避免 drain 未完成就被 SIGKILL。
+     * 按 Protocol/conf.php（MQTT graceful_shutdown）+ Config/websocket.php 上调 stop 等待，
+     * 避免 drain 未完成就被 SIGKILL。
      */
     private function resolveStopTimeouts(): void
     {
@@ -174,6 +175,15 @@ class StopCmd extends BaseCmd
                         $gracefulEnabled = true;
                         $drainTimeout = max(1, (int) ($gs['drain_timeout'] ?? 30));
                     }
+                }
+            }
+
+            // MQTT：graceful_shutdown 写在 Protocol/conf.php（与 websocket Config 并列）
+            if (!$gracefulEnabled && isset($protocol) && is_array($protocol)) {
+                $gs = $protocol['graceful_shutdown'] ?? [];
+                if (is_array($gs) && !empty($gs['enable'])) {
+                    $gracefulEnabled = true;
+                    $drainTimeout = max(1, (int) ($gs['drain_timeout'] ?? 30));
                 }
             }
         } catch (\Throwable $e) {

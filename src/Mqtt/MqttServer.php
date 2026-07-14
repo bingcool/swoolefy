@@ -64,6 +64,13 @@ abstract class MqttServer extends BaseServer
         }
         self::clearCache();
         self::$config = $config;
+        // 优雅停机 Table 须在 Server 启动前创建，供 Master/Worker 共享
+        if (!empty(self::$config['graceful_shutdown']['enable'])) {
+            self::$config['table'] = array_merge(
+                self::$config['table'] ?? [],
+                MqttShutdownCoordinator::tableDefinitions()
+            );
+        }
         self::$setting = array_merge(self::$setting, self::$config['setting']);
         self::$config['setting'] = self::$setting;
         self::setSwooleSockType();
@@ -82,6 +89,7 @@ abstract class MqttServer extends BaseServer
             try {
                 self::setMasterProcessName(self::$config['master_process_name']);
                 $this->startCtrl->start($server);
+                MqttShutdownCoordinator::installForegroundSignalHandler($server);
             } catch (\Throwable $e) {
                 self::catchException($e);
             }
@@ -126,6 +134,12 @@ abstract class MqttServer extends BaseServer
          */
         $this->mqttServer->on('connect', function (\Swoole\Server $server, $fd) {
             try {
+                // 停机中直接关 TCP，不等待 CONNECT（Swoole 已停 accept，仍可能有半开连接）
+                if (MqttShutdownCoordinator::shouldRejectNewSessions()) {
+                    $server->close((int) $fd);
+
+                    return;
+                }
                 (new EventApp())->registerApp(function () use ($server, $fd) {
                     static::onConnect($server, $fd);
                 });
@@ -226,11 +240,19 @@ abstract class MqttServer extends BaseServer
         });
 
         /**
-         * WorkerStop
+         * WorkerStop：优雅停机时先排空本 Worker 在途 QoS，再关连接。
          */
         $this->mqttServer->on('WorkerStop', function (\Swoole\Server $server, $worker_id) {
             \Swoole\Coroutine::create(function () use ($server, $worker_id) {
                 try {
+                    if (MqttShutdownCoordinator::shouldRejectNewSessions()) {
+                        MqttShutdownCoordinator::waitForLocalPendingDrain();
+                        foreach (MqttSessionManager::getInstance()->connectedFds() as $fd) {
+                            if ($server->exists($fd)) {
+                                $server->close($fd);
+                            }
+                        }
+                    }
                     (new EventApp())->registerApp(function () use ($server, $worker_id) {
                         $this->startCtrl->workerStop($server, $worker_id);
                     });
@@ -239,6 +261,10 @@ abstract class MqttServer extends BaseServer
                 }
             });
         });
+
+        if (!empty(self::$config['graceful_shutdown']['enable'])) {
+            MqttShutdownCoordinator::registerServerShutdownHook($this->mqttServer);
+        }
 
         /**
          * WorkerExit

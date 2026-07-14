@@ -8,7 +8,8 @@
 Mqtt/
 ├── MqttServer.php              # Swoole Server 入口，注册 connect/receive/close
 ├── MqttReceiveDispatcher.php   # V3/V5 报文分发、QoS2 状态机、CONNACK 拒绝
-├── MqttSessionManager.php      # Worker 内会话/订阅/Retain/QoS2 暂存
+├── MqttShutdownCoordinator.php # 优雅停机共享标志 / drain
+├── MqttSessionManager.php      # Worker 内会话/订阅/Retain/QoS 暂存
 ├── MqttSession.php             # 单连接会话快照
 ├── MqttTopicMatcher.php        # 主题通配符 + / # 匹配
 ├── MqttBrokerSupport.php       # publish 路由 Trait
@@ -57,12 +58,46 @@ composer require simps/mqtt
 
 | 能力 | 说明 |
 |------|------|
-| 会话管理 | `client_id` ↔ `fd`、Clean Session、重复登录踢旧连接 |
+| 会话管理 | `client_id` ↔ `fd`、重复登录踢旧连接；状态为 Worker 内存 |
 | 主题路由 | 按订阅 filter 匹配 publish（`+` / `#`），非全连接广播 |
 | Retain | 保留消息；新 SUBSCRIBE 时下发匹配 retain |
-| QoS | 0/1 直发；2 四步握手（PUBREC → PUBREL → PUBCOMP） |
+| QoS | 入站 0/1 直发、2 四步握手；出站 QoS1/2 记 pending（停机 drain） |
 | 鉴权失败 | 返回 CONNACK 原因码后再断开 |
 | 心跳 | 建议 `heartbeat_check_interval` / `heartbeat_idle_time` |
+| 优雅停机 | `graceful_shutdown`：停接 → 排在途 QoS → 断连 |
+
+### 会话 / 重连语义（当前）
+
+| 场景 | 行为 |
+|------|------|
+| 同 `client_id` 新连接 | 踢掉旧 fd，旧会话立即 `remove` |
+| `clean_session=1` | 绑定前清本 fd 残留；断连后无残留 |
+| `clean_session=0` | **仍无跨断连持久会话**（Worker 内存）；CONNACK `session_present=0` |
+| 异常断连 Will | 尚未发送 Will 报文；CONNECT 时 retain will 可写入 Retain 表 |
+
+持久会话 / Session Expiry 为后续增强；重连请按「新会话」处理订阅恢复。
+
+### 优雅停机（`graceful_shutdown`）
+
+`php cli.php stop` 或 `kill -15 MASTER`：
+
+```
+SIGTERM → Master 置 shutting_down + 停 accept
+       → TCP connect / CONNECT 拒绝（V3 CONNACK=3 / V5 Server shutting down）
+       → 已有连接：拒绝新 SUBSCRIBE/PUBLISH；放行 PING 与 QoS 完成（PUBREL/PUBACK/…）
+       → WorkerStop：等待本 Worker pending QoS 清空或 drain_timeout → close fd
+       → StopCmd 等待 ≥ drain_timeout + max_wait_time
+```
+
+```php
+'graceful_shutdown' => [
+    'enable' => true,
+    'drain_timeout' => 30,
+],
+'setting' => [
+    'max_wait_time' => 10,
+],
+```
 
 ## 自定义 Event Handler
 
@@ -92,6 +127,7 @@ class DeviceMqttEvent extends ProductionMqttEventV3
 
 ```bash
 php src/Mqtt/Tests/MqttModuleTest.php
+php src/Mqtt/Tests/MqttGracefulShutdownTest.php
 ```
 
 覆盖：
@@ -104,6 +140,7 @@ php src/Mqtt/Tests/MqttModuleTest.php
 | retain / will | Retain 存储与订阅下发 |
 | QoS2 staging | PUBREC/PUBREL 暂存释放 |
 | verify logic | 鉴权 hash_equals 行为 |
+| graceful shutdown | 拒接标志、pending drain、重连踢旧 |
 
 ### 可选端到端冒烟
 

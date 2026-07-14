@@ -19,3 +19,4 @@ require_once $mqttRoot . '/MqttProtocolException.php';
 require_once $mqttRoot . '/MqttTopicMatcher.php';
 require_once $mqttRoot . '/MqttSession.php';
 require_once $mqttRoot . '/MqttSessionManager.php';
+require_once $mqttRoot . '/MqttShutdownCoordinator.php';
