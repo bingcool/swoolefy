@@ -48,29 +48,104 @@ return [
             'database' => 0,
             'timeout' => 2.0,
         ],
+        /*
+         * 跨节点推送总线（HTTP/外部进程 → 本机 WS Worker 的 push 指令通道）
+         *
+         * streams（默认）：Redis Stream + 消费组，崩溃可 XAUTOCLAIM 恢复
+         * pubsub：Redis PUBLISH，消费进程不在线则丢消息
+         */
         'push' => [
+            /**
+             * Pub/Sub 频道前缀；完整频道 = prefix + server_id
+             * 例：ws:push:App:node-1。仅 transport=pubsub 时用于 SUBSCRIBE/PUBLISH
+             */
             'channel_prefix' => 'ws:push:__APP_NAMESPACE__:',
+
+            /**
+             * 推送传输：streams | pubsub
+             * - streams：XADD → XREADGROUP，推荐生产
+             * - pubsub：兼容旧模式，不持久化
+             */
             'transport' => 'streams',
+
+            /**
+             * 本节点并行投递进程数（addProcess）
+             * - streams：同组内 N 个 consumer 竞争消费，>1 可提高吞吐
+             * - pubsub：=1 时订阅进程直推；>1 时订阅进程只入本地 List，另起 N 个 DeliveryProcess BRPOP
+             */
             'delivery_process_num' => 1,
+
+            /**
+             * Redis Stream 消费组名（XGROUP CREATE / XREADGROUP）
+             * 同一 server 的 stream 共用一组；勿与其他业务组名冲突
+             */
             'stream_group' => 'deliver',
+
+            /**
+             * Stream 近似最大长度（XADD MAXLEN ~）
+             * 超出后裁剪旧条目，防止无限堆积；过小可能丢掉尚未投递的指令
+             */
             'stream_max_len' => 50000,
+
+            /**
+             * XAUTOCLAIM 最小空闲毫秒：pending 超过该时间才被其他 consumer 认领
+             * 过小易抢尚未 ACK 的在途消息；过大则崩溃恢复变慢
+             */
             'stream_claim_idle_ms' => 30000,
+
+            /**
+             * XREADGROUP BLOCK 毫秒（拉取新消息阻塞时长）
+             * 优雅停机启用时框架会压到 ≤500ms，以便更快感知 shutting_down
+             */
             'stream_block_ms' => 5000,
+
+            /**
+             * 单次 XREADGROUP / XAUTOCLAIM 最多拉取条数（1~100）
+             * 越大单批吞吐越高，单次循环占用越久
+             */
             'stream_read_count' => 10,
+
             /*
              * 推送去重：Redis SET push:dedup:{msg_id} EX ttl
              * 防止 XAUTOCLAIM / 重试导致同一条 PushMessage 重复 server->push
              */
             'dedup' => [
+                /** 是否启用按 msg_id 去重 */
                 'enable' => true,
+                /** 去重键 TTL（秒）；应覆盖「投递 + 可能重试」窗口，默认 1 天 */
                 'ttl' => 86400,
             ],
         ],
+
+        /**
+         * Redis 连接索引 TTL（秒）
+         * 超过未 touch 的 fd 索引视为过期，由 cleanup 清理；须大于 touch_interval
+         */
         'conn_ttl' => 180,
+
+        /**
+         * 过期连接索引扫描间隔（秒）
+         * Worker 定时扫 Redis 中过期 conn，删除脏索引
+         */
         'cleanup_interval' => 30,
+
+        /**
+         * 活跃连接续期间隔（秒）
+         * 已建立连接周期性 EXPIRE/touch Redis 索引；应小于 conn_ttl，建议对齐 heartbeat
+         */
         'touch_interval' => 30,
-        // 投递 outcome=gone 时主动清理 Redis 索引的节流间隔（秒）
+
+        /**
+         * 投递 outcome=gone（fd 已断开）时，主动清理 Redis 索引的节流间隔（秒）
+         * 同一连接短时间内多次 gone 不重复打 Redis，降低风暴
+         */
         'gone_cleanup_interval' => 5,
+
+        /**
+         * 集群 Redis 操作失败时的建连策略
+         * - reject_open：握手/open 阶段注册失败则断开（1011），保证索引一致
+         * - allow_open：允许建连但可能无集群索引（单机可用、跨节点推送可能找不到）
+         */
         'on_redis_failure' => 'reject_open',
     ],
     'push' => [
