@@ -16,10 +16,29 @@ namespace Swoolefy\Support\Workflow\Tests;
 use PDO;
 
 /**
- * 单测专用：在 SQLite 内存库安装 workflow_runs 表（生产须预执行 Schema/workflow_runs.sql）。
+ * 单测专用：在 SQLite 内存库安装 `workflow_runs` 表结构。
+ *
+ * ## 覆盖范围
+ * | 区域 | 要点 |
+ * |------|------|
+ * | install | 创建 workflow_runs 主表及 status/assignee 索引 |
+ * | 约束 | 仅支持 SQLite；表名须符合标识符规则 |
+ *
+ * 生产环境须预执行 `Schema/workflow_runs.sql`，本类仅供单元/集成测试快速建表。
  */
 final class WorkflowRunsSchemaInstaller
 {
+    /**
+     * 在给定 PDO（须为 SQLite）上创建 workflow_runs 表及查询索引。
+     *
+     * 验证目的：DbRunStore 相关用例无需依赖外部数据库迁移即可在内存库中运行。
+     * 表结构对齐生产 schema：run_id、workflow_id、status、pause_node_id、assignee、payload 等。
+     *
+     * @param PDO $pdo SQLite 连接（通常为 `sqlite::memory:`）
+     * @param string $table 表名，默认 `workflow_runs`
+     * @throws \RuntimeException 非 SQLite 驱动时抛出
+     * @throws \InvalidArgumentException 表名非法时抛出
+     */
     public static function install(PDO $pdo, string $table = 'workflow_runs'): void
     {
         if ((string) $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'sqlite') {

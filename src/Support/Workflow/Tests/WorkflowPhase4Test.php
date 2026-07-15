@@ -14,7 +14,19 @@ declare(strict_types=1);
 /**
  * Phase 4 工作流回归测试。
  *
- * 运行：php src/Support/Workflow/Tests/WorkflowPhase4Test.php
+ * ## 覆盖范围
+ * | 区域 | 要点 |
+ * |------|------|
+ * | RAG | VectorStoreFactory 文件模式、RagIngestNode 入库与检索、RetrievalToolFactory |
+ * | Saga | OrderSagaWorkflow 失败补偿与 COMPENSATED 状态 |
+ * | 路由 | CostAwareRouter 预算内选低价 agent |
+ * | 插件 | RateLimit 占位/释放、Permission 角色校验、限流+权限组合 |
+ * | MCP | McpFactory 列表、McpProcessRunner 本地进程上限 |
+ *
+ * ## 运行
+ * ```bash
+ * php src/Support/Workflow/Tests/WorkflowPhase4Test.php
+ * ```
  */
 
 use Swoolefy\Support\Agent\Router\CostAwareRouter;
@@ -47,6 +59,11 @@ use Test\Module\Workflow\WorkflowService;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
+// ---------------------------------------------------------------------------
+// 通用断言与引擎夹具
+// ---------------------------------------------------------------------------
+
+/** 断言条件为真，否则抛 RuntimeException 使单测失败。 */
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -54,6 +71,11 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+/**
+ * 构造 Phase 4 测试引擎，可注入自定义 PluginManager 与 InMemoryRunStore。
+ *
+ * 默认仅 RetryPlugin；Saga/限流等用例按需覆盖 plugins/store。
+ */
 function makeEngine(?PluginManager $plugins = null, ?InMemoryRunStore $store = null): WorkflowEngine
 {
     return new WorkflowEngine(
@@ -64,6 +86,15 @@ function makeEngine(?PluginManager $plugins = null, ?InMemoryRunStore $store = n
     );
 }
 
+// ---------------------------------------------------------------------------
+// RAG 向量存储与入库
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：VectorStoreFactory 在 FILE 模式下 storeType=file 且能创建向量存储实例。
+ *
+ * 使用临时目录与 allow_fake_embeddings，无需真实 embedding API。
+ */
 function testVectorStoreFactoryFileMode(): void
 {
     $basePath = sys_get_temp_dir() . '/swoolefy_rag_test';
@@ -82,6 +113,11 @@ function testVectorStoreFactoryFileMode(): void
     assertTrue($factory->make('test_kb') !== null, 'should create vector store');
 }
 
+/**
+ * 验证：RagIngestNode 工作流入库 2 条文档后，RetrievalService 能检索到内容。
+ *
+ * 端到端覆盖 ingest 节点 + 检索服务集成。
+ */
 function testRagIngestAndRetrieve(): void
 {
     WorkflowService::reset();
@@ -106,6 +142,11 @@ function testRagIngestAndRetrieve(): void
     assertTrue(count($docs) >= 1, 'retrieval should find ingested content');
 }
 
+/**
+ * 验证：RetrievalToolFactory 能为 product_kb 创建名为 context_retrieval 的 Neuron 工具。
+ *
+ * Agent 侧 RAG 工具装配回归。
+ */
 function testRetrievalToolFactory(): void
 {
     WorkflowService::reset();
@@ -114,6 +155,15 @@ function testRetrievalToolFactory(): void
     assertTrue($tool->getName() === 'context_retrieval', 'should create Neuron RetrievalTool');
 }
 
+// ---------------------------------------------------------------------------
+// Saga 补偿
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：OrderSagaWorkflow 在 notify 失败时抛异常，run 状态为 COMPENSATED 且支付/库存已回滚。
+ *
+ * 分布式 Saga 补偿路径的核心回归。
+ */
 function testOrderSagaCompensation(): void
 {
     $store = new InMemoryRunStore();
@@ -136,6 +186,15 @@ function testOrderSagaCompensation(): void
     assertTrue(in_array('payment', $run->state->get('compensatedNodes') ?? [], true), 'payment should be compensated');
 }
 
+// ---------------------------------------------------------------------------
+// 成本感知路由
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：CostAwareRouter 在预算内优先选择单价更低的 agent（cheap）。
+ *
+ * 长 query 仍须在 budgetUsd 约束下选路。
+ */
 function testCostAwareRouter(): void
 {
     $router = new CostAwareRouter(['cheap' => 0.001, 'expensive' => 0.05], budgetUsd: 0.01);
@@ -144,6 +203,15 @@ function testCostAwareRouter(): void
     assertTrue($ids === ['cheap'], 'should pick cheaper agent within budget');
 }
 
+// ---------------------------------------------------------------------------
+// RateLimit 与 Permission 插件
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：RateLimitPlugin 在 run 正常完成后 activeRuns 归零（槽位已释放）。
+ *
+ * 防止并发计数泄漏导致后续 start 被误拒。
+ */
 function testRateLimitPluginRelease(): void
 {
     $plugin = RateLimitPlugin::make(maxConcurrent: 2);
@@ -157,6 +225,11 @@ function testRateLimitPluginRelease(): void
     assertTrue($plugin->activeRuns() === 0, 'slot released after complete');
 }
 
+/**
+ * 验证：maxConcurrent=0 时 start 抛出 WorkflowRateLimitException。
+ *
+ * 零并发配置应拒绝一切新 run。
+ */
 function testRateLimitExceeded(): void
 {
     $plugin = RateLimitPlugin::make(maxConcurrent: 0);
@@ -174,6 +247,11 @@ function testRateLimitExceeded(): void
     }
 }
 
+/**
+ * 验证：PermissionPlugin 拒绝 guest 角色，允许 metadata.allowedRoles 内的 operator。
+ *
+ * 工作流级 RBAC 门禁。
+ */
 function testPermissionPlugin(): void
 {
     $engine = makeEngine(new PluginManager([new PermissionPlugin(['admin'])]));
@@ -194,6 +272,11 @@ function testPermissionPlugin(): void
     assertTrue($runId !== '', 'operator should pass');
 }
 
+/**
+ * 验证：先 acquire 限流槽再被 Permission 拒绝时，槽位仍须释放；后续 admin 可正常 start。
+ *
+ * 避免「权限拒绝但占着限流槽」导致死锁式拒绝。
+ */
 function testRateLimitReleasedWhenPermissionDeniedAfterAcquire(): void
 {
     $rateLimit = RateLimitPlugin::make(maxConcurrent: 1);
@@ -220,6 +303,15 @@ function testRateLimitReleasedWhenPermissionDeniedAfterAcquire(): void
     assertTrue($rateLimit->activeRuns() === 0, 'slot released after successful run');
 }
 
+// ---------------------------------------------------------------------------
+// MCP 工厂与进程限制
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：WorkflowService::mcpFactory()->listServers() 至少返回一个已配置 server。
+ *
+ * MCP 集成配置加载回归。
+ */
 function testMcpFactoryListServers(): void
 {
     WorkflowService::reset();
@@ -227,6 +319,11 @@ function testMcpFactoryListServers(): void
     assertTrue(count($servers) >= 1, 'should list mcp servers');
 }
 
+/**
+ * 验证：McpProcessRunner maxLocalProcesses=1 时第二次 acquire 抛 McpProcessLimitException。
+ *
+ * 本地 MCP 子进程数须受控，防止 fork 风暴。
+ */
 function testMcpProcessRunnerLimit(): void
 {
     McpProcessRunner::reset();
@@ -242,6 +339,10 @@ function testMcpProcessRunnerLimit(): void
         $runner->release();
     }
 }
+
+// ---------------------------------------------------------------------------
+// 执行入口
+// ---------------------------------------------------------------------------
 
 $tests = [
     'vector store factory' => 'testVectorStoreFactoryFileMode',

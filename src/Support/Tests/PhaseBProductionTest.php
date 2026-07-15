@@ -12,9 +12,29 @@
 declare(strict_types=1);
 
 /**
- * Phase B 生产稳定性测试。
+ * Phase B 生产稳定性测试 —— Workflow 多版本 / MCP 动态配置 / 出站 URL / 健康检查。
  *
- * 运行：php src/Support/Tests/PhaseBProductionTest.php
+ * ## 覆盖范围
+ * | 区域 | 要点 |
+ * |------|------|
+ * | WorkflowRegistry | 多版本注册、latest、compiled 按 version 取图 |
+ * | WorkflowRunSnapshot | hydrate 时缺版本 fail-fast |
+ * | WorkflowConfig / Engine | default_node_timeout 贯通到引擎 |
+ * | AgentParallelNode | ConfigurableTimeoutNodeInterface |
+ * | McpFactory + Repository | 内存/SQLite 仓库覆盖静态 conf；NeuronFactory 可挂 MCP |
+ * | McpStdioGuard | 生产禁 stdio；command allowlist |
+ * | OutboundUrlGuard | 禁私网；host 后缀 allowlist |
+ * | ProductionHealthCheck | 缺配置、prd 禁 memory store、HITL、Redis TTL、embedding baseUri |
+ * | NeuronProviderFactory | createFromAlias 时校验 baseUri |
+ *
+ * ## 运行
+ * ```bash
+ * php src/Support/Tests/PhaseBProductionTest.php
+ * # 或
+ * composer test:phase-b
+ * ```
+ *
+ * 说明：部分用例临时把 `SWOOLEFY_ENV=prd` 以触发生产态健康检查规则，结束后恢复。
  */
 
 use Swoolefy\Support\Mcp\DbMcpServerConfigRepository;
@@ -45,6 +65,7 @@ use Swoolefy\Support\Neuron\NeuronProviderFactory;
 
 require dirname(__DIR__, 3) . '/vendor/autoload.php';
 
+/** 断言为真，否则抛 RuntimeException（单测失败） */
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -52,12 +73,21 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+/** 打印通过标记 */
 function pass(string $name): void
 {
     echo "[PASS] {$name}\n";
 }
 
-/** @param callable(): void $callback */
+// ---------------------------------------------------------------------------
+// 环境夹具：临时改 SWOOLEFY_ENV / 任意 ENV，避免污染后续用例
+// ---------------------------------------------------------------------------
+
+/**
+ * 在回调内强制 `SWOOLEFY_ENV=prd`，结束后还原（含未设置过的情况）。
+ *
+ * @param callable(): void $callback
+ */
 function withProductionEnv(callable $callback): void
 {
     $previous = $_ENV['SWOOLEFY_ENV'] ?? getenv('SWOOLEFY_ENV');
@@ -78,6 +108,8 @@ function withProductionEnv(callable $callback): void
 }
 
 /**
+ * 在回调内临时覆盖一组环境变量；`null` 表示 unset。
+ *
  * @param array<string, string|null> $vars null 表示临时 unset
  * @param callable(): void $callback
  */
@@ -110,6 +142,14 @@ function withEnvVars(array $vars, callable $callback): void
     }
 }
 
+// ---------------------------------------------------------------------------
+// Workflow：多版本注册与 Snapshot 版本校验
+// ---------------------------------------------------------------------------
+
+/**
+ * 同一 workflowId 可并存多版本：registerVersion + register（后者成为 latest），
+ * compiled(id, version) 各自返回对应图。
+ */
 function testWorkflowRegistryMultiVersion(): void
 {
     $registry = new WorkflowRegistry();
@@ -117,6 +157,7 @@ function testWorkflowRegistryMultiVersion(): void
     $registry->registerVersion('demo', '1.0.0', static fn () => WorkflowDefinition::create('demo', '1.0.0')
         ->addNode('a', new ClosureNode('a', static fn () => NodeExecutionResult::success(['v' => '1']))));
 
+    // register() 不带显式 version 参数时，以 Definition 内 version 为准并更新 latest
     $registry->register('demo', static fn () => WorkflowDefinition::create('demo', '2.0.0')
         ->addNode('a', new ClosureNode('a', static fn () => NodeExecutionResult::success(['v' => '2']))));
 
@@ -132,6 +173,10 @@ function testWorkflowRegistryMultiVersion(): void
     pass('workflow registry multi version');
 }
 
+/**
+ * 持久化 Snapshot 引用的 version 若已从 Registry 删除/从未注册，hydrate 必须抛 WorkflowException，
+ * 防止静默落到 latest 造成「跑错图」。
+ */
 function testSnapshotRejectsMissingVersion(): void
 {
     $registry = new WorkflowRegistry();
@@ -158,6 +203,9 @@ function testSnapshotRejectsMissingVersion(): void
     pass('snapshot rejects missing version');
 }
 
+/**
+ * WorkflowConfig.default_node_timeout_seconds 经 ComponentFactory 注入引擎。
+ */
 function testWorkflowDefaultNodeTimeout(): void
 {
     $config = WorkflowConfig::fromArray([
@@ -176,6 +224,9 @@ function testWorkflowDefaultNodeTimeout(): void
     pass('workflow default node timeout');
 }
 
+/**
+ * AgentParallelNode 实现 ConfigurableTimeoutNodeInterface，构造参数超时可被引擎读取。
+ */
 function testAgentParallelNodeTimeoutInterface(): void
 {
     $scheduler = new AgentScheduler(new NeuronFactory());
@@ -193,6 +244,14 @@ function testAgentParallelNodeTimeoutInterface(): void
     pass('agent parallel node timeout');
 }
 
+// ---------------------------------------------------------------------------
+// MCP：Repository 覆盖静态配置 / SQLite / Neuron 挂载
+// ---------------------------------------------------------------------------
+
+/**
+ * InMemory 仓库中的 server 配置应覆盖同名静态 servers（此处静态为 disabled，
+ * 仓库为合法 https URL + OutboundUrlGuard 放行）。
+ */
 function testMcpRepositoryOverridesStatic(): void
 {
     $repo = new InMemoryMcpServerConfigRepository();
@@ -214,6 +273,9 @@ function testMcpRepositoryOverridesStatic(): void
     pass('mcp repository overrides static');
 }
 
+/**
+ * DbMcpServerConfigRepository 在 SQLite 内存库上 autoMigrate 后可 find 到手工插入行。
+ */
 function testDbMcpRepository(): void
 {
     $pdo = new PDO('sqlite::memory:');
@@ -233,6 +295,10 @@ function testDbMcpRepository(): void
     pass('db mcp repository');
 }
 
+/**
+ * NeuronFactory.create 传入 mcpServers 时，应从 McpFactory（含 repository）解析 server 名并完成 Agent boot。
+ * agentFactory 钩子返回空 Agent，避免真实 LLM。
+ */
 function testNeuronFactoryLoadsMcpFromRepository(): void
 {
     $repo = new InMemoryMcpServerConfigRepository();
@@ -260,6 +326,13 @@ function testNeuronFactoryLoadsMcpFromRepository(): void
     pass('neuron factory loads mcp from repository');
 }
 
+// ---------------------------------------------------------------------------
+// MCP Stdio / 出站 URL 安全护栏
+// ---------------------------------------------------------------------------
+
+/**
+ * allowStdio=false 时，即使 command 在 allowlist 中也应拒绝（生产默认关 stdio）。
+ */
 function testStdioMcpDisabledInProduction(): void
 {
     $guard = new McpStdioGuard(allowStdio: false, commandAllowlist: ['npx']);
@@ -274,6 +347,9 @@ function testStdioMcpDisabledInProduction(): void
     pass('stdio mcp disabled in production');
 }
 
+/**
+ * allowStdio=true 时按 basename allowlist：npx 可过，/bin/bash 不可。
+ */
 function testStdioCommandAllowlist(): void
 {
     $guard = new McpStdioGuard(allowStdio: true, commandAllowlist: ['npx']);
@@ -290,6 +366,9 @@ function testStdioCommandAllowlist(): void
     pass('stdio command allowlist');
 }
 
+/**
+ * allowPrivateNetworks=false 时拒绝 127.0.0.1（防 SSRF / 误连内网 MCP）。
+ */
 function testOutboundUrlBlocksPrivateNetwork(): void
 {
     $guard = new OutboundUrlGuard(allowlistHostSuffixes: [], allowPrivateNetworks: false, requireAllowlist: false);
@@ -304,6 +383,9 @@ function testOutboundUrlBlocksPrivateNetwork(): void
     pass('outbound url blocks private network');
 }
 
+/**
+ * host 后缀 allowlist：api.openai.com 放行，evil.example.com 拒绝。
+ */
 function testOutboundUrlAllowlist(): void
 {
     $guard = new OutboundUrlGuard(allowlistHostSuffixes: ['api.openai.com'], allowPrivateNetworks: false);
@@ -320,6 +402,13 @@ function testOutboundUrlAllowlist(): void
     pass('outbound url allowlist');
 }
 
+// ---------------------------------------------------------------------------
+// ProductionHealthCheck：配置面 fail-fast 清单
+// ---------------------------------------------------------------------------
+
+/**
+ * 明显错误配置（缺 vector store、节点超时为 0 等）应一次检出多条错误。
+ */
 function testProductionHealthCheckDetectsIssues(): void
 {
     $errors = ProductionHealthCheck::check(
@@ -345,6 +434,10 @@ function testProductionHealthCheckDetectsIssues(): void
     pass('production health check detects issues');
 }
 
+/**
+ * 生产环境（SWOOLEFY_ENV=prd）下 default_run_store=memory 必须被标记，
+ * 避免 HITL / 多 Worker 下状态丢失。
+ */
 function testProductionHealthCheckRejectsMemoryRunStoreInProduction(): void
 {
     withProductionEnv(static function (): void {
@@ -380,6 +473,9 @@ function testProductionHealthCheckRejectsMemoryRunStoreInProduction(): void
     pass('production health check rejects memory run store');
 }
 
+/**
+ * 构造一份「除 HITL / Redis TTL 外」尽量干净的 Neuron 配置，供后续健康检查用例复用。
+ */
 function productionSafeNeuronConfig(): NeuronAiConfig
 {
     return NeuronAiConfig::fromArray([
@@ -397,6 +493,10 @@ function productionSafeNeuronConfig(): NeuronAiConfig
     ]);
 }
 
+/**
+ * 生产环境要求 HITL 鉴权开启且配置 api_key；缺任一项各报一条错误。
+ * ENV 与 conf 同步置空，避免 HealthCheck 从 ENV 读到旧值。
+ */
 function testProductionHealthCheckRequiresHitlAuthAndApiKey(): void
 {
     withProductionEnv(static function (): void {
@@ -435,6 +535,10 @@ function testProductionHealthCheckRequiresHitlAuthAndApiKey(): void
     pass('production health check requires hitl auth and api key');
 }
 
+/**
+ * Redis RunStore TTL 过短（如 1 天）在生产会被标记：长时 HITL 等待可能丢 run。
+ * 本用例把 HITL 配齐，只断言 TTL 相关错误。
+ */
 function testProductionHealthCheckRejectsShortRedisRunStoreTtl(): void
 {
     withProductionEnv(static function (): void {
@@ -475,6 +579,10 @@ function testProductionHealthCheckRejectsShortRedisRunStoreTtl(): void
     pass('production health check rejects short redis ttl');
 }
 
+/**
+ * NeuronProviderFactory 创建 Provider 时对 baseUri 走 OutboundUrlGuard：
+ * 公网 openai 可过，127.0.0.1 被拦。
+ */
 function testProviderFactoryValidatesOutboundUrl(): void
 {
     $config = NeuronAiConfig::fromArray([
@@ -507,6 +615,9 @@ function testProviderFactoryValidatesOutboundUrl(): void
     pass('provider factory validates outbound url');
 }
 
+/**
+ * HealthCheck 应把 Provider 上的私网 embedding/baseUri 报出来（与运行时 Guard 对齐）。
+ */
 function testProductionHealthCheckValidatesEmbeddingBaseUri(): void
 {
     $errors = ProductionHealthCheck::check(

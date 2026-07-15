@@ -14,7 +14,20 @@ declare(strict_types=1);
 /**
  * SupportLog 端到端写入 support_log 组件验证。
  *
- * 运行：php src/Support/Tests/SupportLogIntegrationTest.php
+ * ## 覆盖范围
+ * | 区域 | 要点 |
+ * |------|------|
+ * | SupportLog + LogManager | 注册 CHANNEL 后 info/warning 落盘到 support.log |
+ * | FileAuditLogWriter | workflow 审计经 SupportLog，带 `[workflow_audit]` 前缀 |
+ * | WorkflowConfig | 默认 log_component === SupportLog::CHANNEL |
+ * | SupportLog 降级 | 无 logger 时 fallback error_log，不抛异常 |
+ *
+ * ## 运行
+ * ```bash
+ * php src/Support/Tests/SupportLogIntegrationTest.php
+ * ```
+ *
+ * 说明：CLI 无真实 Swoole Server，需 stub Swfy::setSwooleServer；依赖 {@see SwoolefyTestBootstrap.php}。
  */
 
 use Swoolefy\Core\Log\LogManager;
@@ -25,6 +38,7 @@ use Swoolefy\Support\Workflow\WorkflowConfig;
 require dirname(__DIR__, 3) . '/vendor/autoload.php';
 require __DIR__ . '/SwoolefyTestBootstrap.php';
 
+/** 断言为真，否则抛 RuntimeException（单测失败） */
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -32,11 +46,22 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+/** 打印通过标记 */
 function pass(string $name): void
 {
     echo "[PASS] {$name}\n";
 }
 
+// ---------------------------------------------------------------------------
+// 夹具：临时目录 + 最小 Server stub + 注册 support_log Logger
+// ---------------------------------------------------------------------------
+
+/**
+ * 在系统临时目录注册 SupportLog::CHANNEL，并 stub Swoole Server 元数据，
+ * 使 Util\Log 写盘前的进程类型探测不崩。
+ *
+ * @return string 日志根目录（含 support/support.log）
+ */
 function registerSupportLogComponent(): string
 {
     $logRoot = sys_get_temp_dir() . '/swoolefy_support_log_test_' . getmypid();
@@ -60,6 +85,9 @@ function registerSupportLogComponent(): string
     return $logRoot;
 }
 
+/**
+ * 读取已注册 support_log 组件对应文件的全部内容，供断言 marker / 通道前缀。
+ */
 function readSupportLogFile(): string
 {
     $logger = LogManager::getInstance()->getLogger(SupportLog::CHANNEL);
@@ -71,6 +99,13 @@ function readSupportLogFile(): string
     return (string) file_get_contents($path);
 }
 
+// ---------------------------------------------------------------------------
+// 用例
+// ---------------------------------------------------------------------------
+
+/**
+ * SupportLog::info / warning 应出现在 support.log，并带 `[integration]` 通道前缀。
+ */
 function testSupportLogWritesToSupportLogComponent(): void
 {
     registerSupportLogComponent();
@@ -87,6 +122,9 @@ function testSupportLogWritesToSupportLogComponent(): void
     pass('SupportLog writes to support_log component');
 }
 
+/**
+ * FileAuditLogWriter 默认走 SupportLog，审计行含 `[workflow_audit]`、事件名与 context。
+ */
 function testFileAuditLogWriterUsesSupportLog(): void
 {
     registerSupportLogComponent();
@@ -105,6 +143,9 @@ function testFileAuditLogWriterUsesSupportLog(): void
     pass('FileAuditLogWriter writes workflow_audit via SupportLog');
 }
 
+/**
+ * WorkflowConfig 未显式配置 log_component 时，默认应为 SupportLog::CHANNEL（support_log）。
+ */
 function testWorkflowConfigDefaultLogComponentIsSupportLog(): void
 {
     $config = WorkflowConfig::fromArray([
@@ -118,6 +159,9 @@ function testWorkflowConfigDefaultLogComponentIsSupportLog(): void
     pass('WorkflowConfig defaults log_component to support_log');
 }
 
+/**
+ * 未注册组件且重置 test handler 后，SupportLog::warning 降级到 error_log，调用不抛。
+ */
 function testSupportLogFallbackUsesErrorLogWhenLoggerMissing(): void
 {
     SupportLog::resetTestHandler();

@@ -12,9 +12,23 @@
 declare(strict_types=1);
 
 /**
- * Phase 1–4 补充集成测试：SubWorkflow、JsonLogic、RoundRobin、ComponentFactory。
+ * Phase 1–4 补充集成测试：SubWorkflow、JsonLogic、RoundRobin、ComponentFactory、DbRunStore、RAG CLI、Neuron。
  *
- * 运行：php src/Support/Workflow/Tests/WorkflowIntegrationTest.php
+ * ## 覆盖范围
+ * | 区域 | 要点 |
+ * |------|------|
+ * | 条件路由 | JsonLogic 条件边按 score 选 high/low |
+ * | SubWorkflow | 嵌套执行、WAITING 向上传播、FAILED 向上传播 |
+ * | Agent 路由 | RoundRobinRouter 轮询与回绕 |
+ * | ComponentFactory | conditionEvaluator、runStore、ConditionEvaluatorFactory 驱动 |
+ * | DbRunStore | SQLite 跨 Engine 持久化 restore |
+ * | RAG CLI | ingest_documents.php 无 key 时 mock 路径 |
+ * | Neuron | NeuronProviderFactory 实例化与 Agent provider 覆盖检测 |
+ *
+ * ## 运行
+ * ```bash
+ * php src/Support/Workflow/Tests/WorkflowIntegrationTest.php
+ * ```
  */
 
 use Swoolefy\Support\Agent\Router\RoundRobinRouter;
@@ -45,6 +59,11 @@ use Test\Module\Order\Agent\OrderDecisionAgent;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
+// ---------------------------------------------------------------------------
+// 通用断言与输出
+// ---------------------------------------------------------------------------
+
+/** 断言条件为真，否则抛 RuntimeException 使单测失败。 */
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -52,12 +71,21 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+/** 在 CLI 输出 [PASS] 标记。 */
 function pass(string $name): void
 {
     echo "[PASS] {$name}\n";
 }
 
-/** JsonLogic 条件边路由。 */
+// ---------------------------------------------------------------------------
+// JsonLogic 条件边
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：JsonLogic 条件边根据 data.score≥80 路由到 high 节点，否则 default 到 low。
+ *
+ * 覆盖 CompositeConditionEvaluator 与 JsonLogic 表达式集成。
+ */
 function testJsonLogicRouting(): void
 {
     $evaluator = new JsonLogicEvaluator();
@@ -95,7 +123,15 @@ function testJsonLogicRouting(): void
     pass('jsonlogic routing');
 }
 
-/** SubWorkflowNode 嵌套执行。 */
+// ---------------------------------------------------------------------------
+// SubWorkflow 嵌套执行
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：SubWorkflowNode 启动子工作流，子节点输出经 outputKey 写回父 state。
+ *
+ * 典型父子数据传递：prepare → run_child → doubled=42。
+ */
 function testSubWorkflowNode(): void
 {
     $registry = new WorkflowRegistry();
@@ -133,7 +169,11 @@ function testSubWorkflowNode(): void
     pass('sub workflow node');
 }
 
-/** 子流程 HITL WAITING 时父 Run 必须同步 WAITING，不得继续 SUCCESS。 */
+/**
+ * 验证：子流程在 HITL WAITING 时父 Run 同步 WAITING，pause 在 SubWorkflowNode；resume 父级联恢复子流程。
+ *
+ * 父不得在子 WAITING 时继续执行 after 节点。
+ */
 function testSubWorkflowWaitingPropagatesToParent(): void
 {
     $registry = new WorkflowRegistry();
@@ -181,7 +221,11 @@ function testSubWorkflowWaitingPropagatesToParent(): void
     pass('sub workflow waiting propagates');
 }
 
-/** 子流程 FAILED 时父节点失败。 */
+/**
+ * 验证：子流程节点 FAILED 时父 start 抛异常，失败向上传播。
+ *
+ * 父不得吞掉子工作流异常并标记成功。
+ */
 function testSubWorkflowFailedPropagatesToParent(): void
 {
     $registry = new WorkflowRegistry();
@@ -209,7 +253,15 @@ function testSubWorkflowFailedPropagatesToParent(): void
     pass('sub workflow failed propagates');
 }
 
-/** RoundRobinRouter 轮询。 */
+// ---------------------------------------------------------------------------
+// Agent 路由与 ComponentFactory
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：RoundRobinRouter 按 agent 列表顺序轮询，第四请求回绕到第一个。
+ *
+ * 多 Agent 负载均衡基础行为。
+ */
 function testRoundRobinRouter(): void
 {
     $router = new RoundRobinRouter(['agent_a', 'agent_b', 'agent_c']);
@@ -227,7 +279,11 @@ function testRoundRobinRouter(): void
     pass('round robin router');
 }
 
-/** WorkflowComponentFactory 默认装配。 */
+/**
+ * 验证：WorkflowComponentFactory 与 ConditionEvaluatorFactory 按配置创建 evaluator/store/driver。
+ *
+ * 默认 memory store、symfony/jsonlogic 驱动解析。
+ */
 function testWorkflowComponentFactory(): void
 {
     $registry = new WorkflowRegistry();
@@ -263,7 +319,15 @@ function testWorkflowComponentFactory(): void
     pass('workflow component factory');
 }
 
-/** DbRunStore：SQLite 持久化 save/find/listWaiting。 */
+// ---------------------------------------------------------------------------
+// DbRunStore 跨 Worker 持久化
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：DbRunStore 在 SQLite 上 save/find；新 Engine 实例可 restore 已完成 run 的 state。
+ *
+ * 模拟多 Worker 共享同一持久化层的读取场景。
+ */
 function testDbRunStorePersistence(): void
 {
     $registry = new WorkflowRegistry();
@@ -321,7 +385,15 @@ function testDbRunStorePersistence(): void
     pass('db run store persistence');
 }
 
-/** RAG ingest CLI（无 embedding key 时走 mock/空向量路径）。 */
+// ---------------------------------------------------------------------------
+// RAG CLI 与 Neuron Provider
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：ingest_documents.php CLI 在 NEURON_ALLOW_FAKE_EMBEDDINGS=1 时成功并输出 documentCount/chunkCount。
+ *
+ * 无真实 embedding API key 时的集成冒烟。
+ */
 function testIngestCli(): void
 {
     $script = dirname(__DIR__, 2) . '/Rag/Console/ingest_documents.php';
@@ -337,7 +409,11 @@ function testIngestCli(): void
     pass('rag ingest cli');
 }
 
-/** Neuron 默认 Provider 工厂与 Agent 覆盖检测。 */
+/**
+ * 验证：NeuronProviderFactory 能从参数/别名创建 Anthropic；agentDeclaresCustomProvider 检测 Agent 覆盖。
+ *
+ * Provider 工厂与业务 Agent 自定义 provider 契约。
+ */
 function testNeuronProviderFactory(): void
 {
     $factory = new NeuronProviderFactory();
@@ -370,6 +446,10 @@ function testNeuronProviderFactory(): void
 
     pass('neuron provider factory');
 }
+
+// ---------------------------------------------------------------------------
+// 执行入口
+// ---------------------------------------------------------------------------
 
 $tests = [
     'jsonlogic routing' => 'testJsonLogicRouting',

@@ -14,10 +14,25 @@ declare(strict_types=1);
 /**
  * Agent 模块回归测试。
  *
- * 覆盖：Static / Rule / Weighted / CostAware / RoundRobin 路由、AgentScheduler 串行执行与 agentOutputs。
+ * ## 覆盖范围
+ * | 区域 | 要点 |
+ * |------|------|
+ * | StaticRouter | 固定列表；空列表回退 availableAgents |
+ * | RuleRouter | callable 按 state 选中 agent |
+ * | WeightedRouter | weight≥1 必选、0 不选 |
+ * | CostAwareRouter | 预算内选最便宜；超预算 fallback |
+ * | RoundRobinRouter | 轮转；cursor 按 WorkflowState 隔离 |
+ * | AgentScheduler | 只跑路由选中任务；写 agentOutputs；错误载荷；未知 id 拒绝 |
+ * | AgentParallelNode | 路由缺任务失败；引擎超时 vs 节点显式超时 |
  *
- * 运行：php src/Support/Agent/Tests/AgentModuleTest.php
- * 或：composer test:agent
+ * ## 运行
+ * ```bash
+ * php src/Support/Agent/Tests/AgentModuleTest.php
+ * # 或
+ * composer test:agent
+ * ```
+ *
+ * 说明：任务闭包直接返回字符串，不启动真实 Neuron Agent / LLM。
  */
 
 use Swoolefy\Support\Agent\AgentScheduler;
@@ -37,6 +52,7 @@ use Swoolefy\Support\Workflow\State\WorkflowState;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
+/** 断言为真，否则抛 RuntimeException（单测失败） */
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -44,6 +60,12 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+/**
+ * 构造 RouterContext（固定 runId，可注入 state 数据与 availableAgents）。
+ *
+ * @param array<string, mixed> $data WorkflowState 初始数据
+ * @param list<string> $agents 可用 agent id
+ */
 function makeCtx(array $data = [], array $agents = ['a', 'b', 'c']): RouterContext
 {
     return new RouterContext(
@@ -53,6 +75,13 @@ function makeCtx(array $data = [], array $agents = ['a', 'b', 'c']): RouterConte
     );
 }
 
+// ---------------------------------------------------------------------------
+// Routers
+// ---------------------------------------------------------------------------
+
+/**
+ * StaticRouter 返回构造时给定的固定 agent id 列表。
+ */
 function testStaticRouterFixedList(): void
 {
     $router = new StaticRouter(['b', 'c']);
@@ -60,6 +89,9 @@ function testStaticRouterFixedList(): void
     assertTrue($ids === ['b', 'c'], 'static router should return fixed agent ids');
 }
 
+/**
+ * Static 列表为空时，回退为 context.availableAgents（便于「全员并行」默认）。
+ */
 function testStaticRouterFallsBackToAvailable(): void
 {
     $router = new StaticRouter([]);
@@ -67,6 +99,9 @@ function testStaticRouterFallsBackToAvailable(): void
     assertTrue($ids === ['x', 'y'], 'empty static list should use availableAgents');
 }
 
+/**
+ * RuleRouter：仅 callable 返回 true 的 agent 入选（按 state 字段）。
+ */
 function testRuleRouterCallable(): void
 {
     $router = new RuleRouter([
@@ -77,6 +112,9 @@ function testRuleRouterCallable(): void
     assertTrue($ids === ['b'], 'rule router should select matching agents');
 }
 
+/**
+ * WeightedRouter：weight≥1 必选，0 永不选（边界，避免随机抖动）。
+ */
 function testWeightedRouterAlwaysSelectsWeightOne(): void
 {
     $router = new WeightedRouter(['must' => 1.0, 'never' => 0.0]);
@@ -85,6 +123,9 @@ function testWeightedRouterAlwaysSelectsWeightOne(): void
     assertTrue(!in_array('never', $ids, true), 'weight 0 must not be selected');
 }
 
+/**
+ * CostAware：按 estimatedTokens × 单价，在 budget 内选最便宜的。
+ */
 function testCostAwareRouterPicksCheapestInBudget(): void
 {
     $router = new CostAwareRouter([
@@ -96,6 +137,9 @@ function testCostAwareRouterPicksCheapestInBudget(): void
     assertTrue($ids === ['cheap'], 'should pick lowest cost agent within budget');
 }
 
+/**
+ * 全部超预算时 fallback 到配置中的第一个 agent，避免路由空结果。
+ */
 function testCostAwareRouterFallbackWhenOverBudget(): void
 {
     $router = new CostAwareRouter([
@@ -106,6 +150,9 @@ function testCostAwareRouterFallbackWhenOverBudget(): void
     assertTrue($ids === ['only'], 'over-budget should fallback to first agent');
 }
 
+/**
+ * RoundRobin 在同一 state 上连续 route：a→b→c→a。
+ */
 function testRoundRobinCycles(): void
 {
     $router = new RoundRobinRouter(['a', 'b', 'c']);
@@ -116,6 +163,9 @@ function testRoundRobinCycles(): void
     assertTrue($router->route($ctx) === ['a'], 'round 4 wraps');
 }
 
+/**
+ * RoundRobin cursor 存在 WorkflowState：不同 run 的 state 互不影响起点。
+ */
 function testRoundRobinCursorIsScopedToWorkflowState(): void
 {
     $router = new RoundRobinRouter(['a', 'b', 'c']);
@@ -127,6 +177,13 @@ function testRoundRobinCursorIsScopedToWorkflowState(): void
     assertTrue($router->route($runB) === ['a'], 'run B starts from first route');
 }
 
+// ---------------------------------------------------------------------------
+// AgentScheduler
+// ---------------------------------------------------------------------------
+
+/**
+ * runParallel：只执行路由选中的 a/c；结果写入返回值与 state.agentOutput。
+ */
 function testAgentSchedulerRunsTasksAndWritesOutputs(): void
 {
     $scheduler = new AgentScheduler(new NeuronFactory());
@@ -145,6 +202,9 @@ function testAgentSchedulerRunsTasksAndWritesOutputs(): void
     assertTrue($ctx->state->agentOutput('c') === 'out-c', 'state agentOutput c');
 }
 
+/**
+ * 默认 failFast=false：任务抛错被收成 array{error, agentId}，不向上抛。
+ */
 function testAgentSchedulerCapturesTaskErrors(): void
 {
     $scheduler = new AgentScheduler(new NeuronFactory());
@@ -161,6 +221,9 @@ function testAgentSchedulerCapturesTaskErrors(): void
     assertTrue(($results['a']['agentId'] ?? '') === 'a', 'agentId preserved');
 }
 
+/**
+ * 路由选出的 id 在 tasks map 中不存在时抛 WorkflowException（含 ghost）。
+ */
 function testAgentSchedulerRejectsUnknownSelectedIds(): void
 {
     $scheduler = new AgentScheduler(new NeuronFactory());
@@ -181,6 +244,13 @@ function testAgentSchedulerRejectsUnknownSelectedIds(): void
     }
 }
 
+// ---------------------------------------------------------------------------
+// AgentParallelNode
+// ---------------------------------------------------------------------------
+
+/**
+ * AgentParallelNode 透传 Scheduler「路由缺任务」错误，不静默空跑。
+ */
 function testAgentParallelNodeFailsWhenRouterMissesTasks(): void
 {
     $scheduler = new AgentScheduler(new NeuronFactory());
@@ -206,6 +276,9 @@ function testAgentParallelNodeFailsWhenRouterMissesTasks(): void
     }
 }
 
+/**
+ * 节点未配置超时（0）时，RouterContext.timeoutSeconds 取自 RunContext（引擎默认）。
+ */
 function testAgentParallelNodeUsesEngineTimeoutFromRunContext(): void
 {
     $capturedTimeout = null;
@@ -233,6 +306,9 @@ function testAgentParallelNodeUsesEngineTimeoutFromRunContext(): void
     assertTrue($capturedTimeout === 88.0, 'scheduler receives engine-resolved timeout');
 }
 
+/**
+ * 节点构造显式 timeout=45 时，覆盖 RunContext 上的 88。
+ */
 function testAgentParallelNodeExplicitTimeoutOverridesRunContext(): void
 {
     $capturedTimeout = null;

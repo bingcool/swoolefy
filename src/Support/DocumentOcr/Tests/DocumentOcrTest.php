@@ -12,13 +12,24 @@
 declare(strict_types=1);
 
 /**
- * DocumentOcr 模块回归测试。
+ * DocumentOcr 模块回归测试（无需真实 Pandoc / DeepSeek OCR 服务）。
  *
- * 覆盖：AutoParser 选择（含 PDF）、Pandoc/OCR mock、超时校验、
- * metadata 固定字段、异常体系、Chunking、边界。
+ * ## 覆盖范围
+ * | 区域 | 要点 |
+ * |------|------|
+ * | AutoParser | docx→Pandoc、png/pdf→OCR、强制 parser、不支持扩展名异常 |
+ * | PandocDriver | mock 执行器成功/失败、metadata 固定字段 |
+ * | DeepSeekOcrDriver | 图片/PDF 端点、JSON 字段解析、大小/超时校验 |
+ * | MarkdownNormalizer / ChunkingAdapter | 空白规范化、分块 metadata |
+ * | DocumentOcrFactory | parseFile 规范化、fromConfig PDF 启用 |
+ * | LocalFileLoader / WorkDirectory | 缺失文件、路径安全边界 |
  *
- * 运行：php src/Support/DocumentOcr/Tests/DocumentOcrTest.php
- * 或：composer test:document-ocr
+ * ## 运行
+ * ```bash
+ * php src/Support/DocumentOcr/Tests/DocumentOcrTest.php
+ * # 或
+ * composer test:document-ocr
+ * ```
  */
 
 use Swoolefy\Support\DocumentOcr\Chunking\ChunkingAdapter;
@@ -38,6 +49,7 @@ use Swoolefy\Support\DocumentOcr\WorkDirectory;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
+/** 断言为真，否则抛 RuntimeException（单测失败） */
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -45,6 +57,12 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+/**
+ * 在系统临时目录创建带随机后缀的测试文件。
+ *
+ * @param string $suffix   文件扩展名（含点，如 `.md`）
+ * @param string $contents 写入内容
+ */
 function tempFile(string $suffix, string $contents): string
 {
     $path = sys_get_temp_dir() . '/swoolefy_ocr_' . bin2hex(random_bytes(4)) . $suffix;
@@ -53,6 +71,13 @@ function tempFile(string $suffix, string $contents): string
     return $path;
 }
 
+// ---------------------------------------------------------------------------
+// AutoParser：按扩展名与强制选项路由
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 AutoParser 对 docx 选择 Pandoc，且 selectionReason 为 `structured_format:docx`。
+ */
 function testAutoParserSelectsPandocForDocx(): void
 {
     $auto = new AutoParser([
@@ -65,6 +90,9 @@ function testAutoParserSelectsPandocForDocx(): void
     assertTrue($reason === 'structured_format:docx', 'docx selection reason');
 }
 
+/**
+ * 验证 AutoParser 对 png 选择 DeepSeek OCR，且 reason 为 `image_extension:png`。
+ */
 function testAutoParserSelectsOcrForPng(): void
 {
     $auto = new AutoParser([
@@ -77,6 +105,9 @@ function testAutoParserSelectsOcrForPng(): void
     assertTrue($reason === 'image_extension:png', 'png selection reason');
 }
 
+/**
+ * 验证 AutoParser 对 pdf 直接走 DeepSeek OCR（非 Pandoc），reason 为 `pdf_direct_deepseek_ocr`。
+ */
 function testAutoParserSelectsOcrForPdf(): void
 {
     $auto = new AutoParser([
@@ -89,6 +120,9 @@ function testAutoParserSelectsOcrForPdf(): void
     assertTrue($reason === 'pdf_direct_deepseek_ocr', 'pdf selection reason');
 }
 
+/**
+ * 验证 ParseOptions::parser 强制指定解析器，覆盖扩展名默认路由。
+ */
 function testForcedParser(): void
 {
     $auto = new AutoParser([
@@ -104,6 +138,9 @@ function testForcedParser(): void
     assertTrue($reason === 'forced_parser:pandoc', 'forced reason');
 }
 
+/**
+ * 验证不支持的扩展名（xlsx）抛 UnsupportedDocumentException，且继承 ParserException / DocumentException。
+ */
 function testUnsupportedExtensionThrows(): void
 {
     $auto = new AutoParser([
@@ -121,6 +158,13 @@ function testUnsupportedExtensionThrows(): void
     }
 }
 
+// ---------------------------------------------------------------------------
+// PandocDriver：mock 执行器
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 PandocDriver 在 mock 成功时产出 markdown、parserName 及标准 metadata 字段。
+ */
 function testPandocDriverWithMockExecutor(): void
 {
     $work = new WorkDirectory(sys_get_temp_dir() . '/swoolefy_ocr_pandoc_test');
@@ -147,6 +191,9 @@ function testPandocDriverWithMockExecutor(): void
     @unlink($input);
 }
 
+/**
+ * 验证 Pandoc 非零退出码时抛 ParserException，消息含 exit code。
+ */
 function testPandocDriverFailure(): void
 {
     $work = new WorkDirectory(sys_get_temp_dir() . '/swoolefy_ocr_pandoc_fail');
@@ -167,6 +214,13 @@ function testPandocDriverFailure(): void
     @unlink($input);
 }
 
+// ---------------------------------------------------------------------------
+// DeepSeekOcrDriver：HTTP mock 与校验
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证图片 OCR 走 `/api/ocr` 端点（非 pdf），multipart 含文件，响应 markdown 写入结果。
+ */
 function testDeepSeekOcrDriverMock(): void
 {
     $input = tempFile('.png', 'fake-png-bytes');
@@ -190,6 +244,9 @@ function testDeepSeekOcrDriverMock(): void
     @unlink($input);
 }
 
+/**
+ * 验证 PDF 文件请求 `/api/ocr/pdf` 端点，且响应 `text` 字段映射为 markdown。
+ */
 function testDeepSeekOcrPdfUsesPdfEndpoint(): void
 {
     $input = tempFile('.pdf', '%PDF-1.4 fake');
@@ -210,6 +267,9 @@ function testDeepSeekOcrPdfUsesPdfEndpoint(): void
     @unlink($input);
 }
 
+/**
+ * 验证 OCR 响应缺少 markdown/text 时抛 ParserException。
+ */
 function testDeepSeekOcrInvalidJsonFields(): void
 {
     $input = tempFile('.jpg', 'bytes');
@@ -228,6 +288,9 @@ function testDeepSeekOcrInvalidJsonFields(): void
     @unlink($input);
 }
 
+/**
+ * 验证超过 maxFileSize 时在上传前 fail-fast，抛 ParserException。
+ */
 function testDeepSeekOcrMaxFileSize(): void
 {
     $input = tempFile('.png', str_repeat('x', 100));
@@ -246,6 +309,9 @@ function testDeepSeekOcrMaxFileSize(): void
     @unlink($input);
 }
 
+/**
+ * 验证构造时 connectTimeout > timeout 抛 ParserException（参数合法性校验）。
+ */
 function testDeepSeekOcrTimeoutValidation(): void
 {
     try {
@@ -256,6 +322,9 @@ function testDeepSeekOcrTimeoutValidation(): void
     }
 }
 
+/**
+ * 验证响应 `data.markdown` 嵌套字段可被正确提取为结果 markdown。
+ */
 function testDeepSeekOcrDataMarkdownField(): void
 {
     $input = tempFile('.jpeg', 'img');
@@ -269,6 +338,9 @@ function testDeepSeekOcrDataMarkdownField(): void
     @unlink($input);
 }
 
+/**
+ * 验证 endpointFor() 按扩展名返回图片 `/api/ocr` 与 PDF `/api/ocr/pdf`。
+ */
 function testDeepSeekEndpointFor(): void
 {
     $driver = new DeepSeekOcrDriver(httpClient: static fn (): array => ['markdown' => 'x']);
@@ -276,6 +348,13 @@ function testDeepSeekEndpointFor(): void
     assertTrue($driver->endpointFor('pdf') === '/api/ocr/pdf', 'pdf endpoint');
 }
 
+// ---------------------------------------------------------------------------
+// Markdown 规范化与分块
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 MarkdownNormalizer 折叠多余空行、统一换行并 trim 行首尾空白。
+ */
 function testMarkdownNormalizer(): void
 {
     $n = new MarkdownNormalizer();
@@ -283,6 +362,9 @@ function testMarkdownNormalizer(): void
     assertTrue($out === "a\n\nb", 'normalize whitespace');
 }
 
+/**
+ * 验证 ChunkingAdapter 将 ParseResult 切分为 Document，并设置 sourceName / sourceType。
+ */
 function testChunkingAdapter(): void
 {
     $result = new ParseResult(
@@ -298,6 +380,13 @@ function testChunkingAdapter(): void
     assertTrue($docs[0]->sourceType === 'document_ocr', 'sourceType');
 }
 
+// ---------------------------------------------------------------------------
+// DocumentOcrFactory 集成
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 Factory::parseFile 经 Pandoc mock 后规范化多余空行；parseFileToDocuments 产出分块。
+ */
 function testFactoryParseFileNormalizes(): void
 {
     $input = tempFile('.md', "# Title\n\n\n\nBody");
@@ -326,6 +415,9 @@ function testFactoryParseFileNormalizes(): void
     @unlink($input);
 }
 
+/**
+ * 验证 fromConfig 在 pandoc 禁用、deepseek_ocr 含 pdf 扩展时，pdf 仍路由到 OCR。
+ */
 function testFactoryFromConfigPdfEnabled(): void
 {
     $factory = DocumentOcrFactory::fromConfig([
@@ -344,6 +436,13 @@ function testFactoryFromConfigPdfEnabled(): void
     assertTrue($reason === 'pdf_direct_deepseek_ocr', 'pdf reason from config');
 }
 
+// ---------------------------------------------------------------------------
+// Loader 与 WorkDirectory 边界
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 LocalFileLoader 对不存在路径抛 DocumentException，消息含 not found。
+ */
 function testLocalFileLoaderMissingFile(): void
 {
     try {
@@ -354,6 +453,9 @@ function testLocalFileLoaderMissingFile(): void
     }
 }
 
+/**
+ * 验证 WorkDirectory::removeDir 仅删除自身 job 目录，不越界删除外部路径。
+ */
 function testWorkDirectoryPathSafety(): void
 {
     $base = sys_get_temp_dir() . '/swoolefy_ocr_safe_' . bin2hex(random_bytes(3));

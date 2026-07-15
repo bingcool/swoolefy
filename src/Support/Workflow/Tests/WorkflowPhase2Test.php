@@ -14,7 +14,19 @@ declare(strict_types=1);
 /**
  * Phase 2 工作流回归测试。
  *
- * 运行：php src/Support/Workflow/Tests/WorkflowPhase2Test.php
+ * ## 覆盖范围
+ * | 区域 | 要点 |
+ * |------|------|
+ * | Agent 路由 | StaticRouter 固定列表、RuleRouter 表达式选路 |
+ * | 流式事件 | StreamBridge 在协程内收集 token/edge 事件 |
+ * | MetricsPlugin | 节点与 run 计数快照 |
+ * | WorkflowRegistry | 注册、has、compiled 工作流 ID |
+ * | 多 Agent | MultiAgentResearchWorkflow 端到端完成与输出 |
+ *
+ * ## 运行
+ * ```bash
+ * php src/Support/Workflow/Tests/WorkflowPhase2Test.php
+ * ```
  */
 
 use Swoolefy\Support\Agent\AgentScheduler;
@@ -41,6 +53,11 @@ use Test\Module\Research\Workflow\MultiAgentResearchWorkflow;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
+// ---------------------------------------------------------------------------
+// 通用断言
+// ---------------------------------------------------------------------------
+
+/** 断言条件为真，否则抛 RuntimeException 使单测失败。 */
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -48,6 +65,15 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+// ---------------------------------------------------------------------------
+// Agent 路由
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：StaticRouter 无视上下文，始终返回构造时固定的 agent ID 列表。
+ *
+ * 用于多 Agent 并行或固定编排场景。
+ */
 function testStaticRouter(): void
 {
     $router = new StaticRouter(['coding', 'finance']);
@@ -56,6 +82,11 @@ function testStaticRouter(): void
     assertTrue($ids === ['coding', 'finance'], 'StaticRouter should return fixed ids');
 }
 
+/**
+ * 验证：RuleRouter 根据 Symfony EL 条件从 data 字段选择匹配的 agent。
+ *
+ * topic=tech 时应仅路由到 coding。
+ */
 function testRuleRouter(): void
 {
     $evaluator = new SymfonyExpressionLanguageEvaluator();
@@ -68,6 +99,15 @@ function testRuleRouter(): void
     assertTrue($router->route($ctx) === ['coding'], 'RuleRouter should select coding for tech topic');
 }
 
+// ---------------------------------------------------------------------------
+// 流式事件桥接
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：StreamBridge 绑定的 CollectingStreamSink 能收到 emit 的 token 与 edge.route 事件。
+ *
+ * 非协程 CLI 须通过 Swoole\Coroutine\run 包裹，模拟 Worker 协程环境。
+ */
 function testStreamBridgeCollectsEvents(): void
 {
     $run = static function (): void {
@@ -91,6 +131,15 @@ function testStreamBridgeCollectsEvents(): void
     \Swoole\Coroutine\run($run);
 }
 
+// ---------------------------------------------------------------------------
+// 插件与注册表
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：MetricsPlugin 在 OrderProcessingWorkflow 执行后 snapshot 中 runs/nodes 计数 ≥1。
+ *
+ * 确保指标插件正确挂钩引擎生命周期。
+ */
 function testMetricsPluginCountsNodes(): void
 {
     $metrics = new MetricsPlugin();
@@ -108,6 +157,29 @@ function testMetricsPluginCountsNodes(): void
     assertTrue(($snapshot['nodes'] ?? 0) >= 1, 'MetricsPlugin should count nodes');
 }
 
+/**
+ * 验证：WorkflowRegistry register/has/compiled 与 definition 工厂联动正常。
+ *
+ * compiled 返回的 workflowId 应与注册名一致。
+ */
+function testWorkflowRegistry(): void
+{
+    $registry = new WorkflowRegistry();
+    $registry->register('order_processing', static fn () => OrderProcessingWorkflow::definition(new NeuronFactory()));
+    assertTrue($registry->has('order_processing'), 'Registry should know order_processing');
+    $compiled = $registry->compiled('order_processing');
+    assertTrue($compiled->workflowId() === 'order_processing', 'Compiled workflow id should match');
+}
+
+// ---------------------------------------------------------------------------
+// 多 Agent 研究工作流
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：MultiAgentResearchWorkflow 端到端完成，产出双 agent 输出与 summary。
+ *
+ * 覆盖 AgentScheduler + 流式事件分发 + 多节点 DAG 集成。
+ */
 function testMultiAgentResearchWorkflow(): void
 {
     $scheduler = new AgentScheduler(new NeuronFactory());
@@ -128,14 +200,9 @@ function testMultiAgentResearchWorkflow(): void
     assertTrue(isset($run->state->data['summary']), 'Summary node should write data.summary');
 }
 
-function testWorkflowRegistry(): void
-{
-    $registry = new WorkflowRegistry();
-    $registry->register('order_processing', static fn () => OrderProcessingWorkflow::definition(new NeuronFactory()));
-    assertTrue($registry->has('order_processing'), 'Registry should know order_processing');
-    $compiled = $registry->compiled('order_processing');
-    assertTrue($compiled->workflowId() === 'order_processing', 'Compiled workflow id should match');
-}
+// ---------------------------------------------------------------------------
+// 执行入口
+// ---------------------------------------------------------------------------
 
 $tests = [
     'static router' => 'testStaticRouter',

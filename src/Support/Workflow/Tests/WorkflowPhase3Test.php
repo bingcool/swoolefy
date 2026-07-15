@@ -14,7 +14,19 @@ declare(strict_types=1);
 /**
  * Phase 3 工作流回归测试。
  *
- * 运行：php src/Support/Workflow/Tests/WorkflowPhase3Test.php
+ * ## 覆盖范围
+ * | 区域 | 要点 |
+ * |------|------|
+ * | HITL | ContractReviewWorkflow 批准路径与拒绝修订循环 |
+ * | RAG | KnowledgeQaWorkflow 检索与回答 |
+ * | MCP | McpResearchWorkflow 摘要与 notify/archive 路由 |
+ * | Agent 路由 | LLMRouter 启发式、WeightedRouter 权重选路 |
+ * | 暂停任务 | listPauseTasks 按 legal-team assignee 列出 |
+ *
+ * ## 运行
+ * ```bash
+ * php src/Support/Workflow/Tests/WorkflowPhase3Test.php
+ * ```
  */
 
 use Swoolefy\Support\Agent\Router\LLMRouter;
@@ -40,6 +52,11 @@ use Test\Module\Workflow\WorkflowService;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
+// ---------------------------------------------------------------------------
+// 通用断言与引擎夹具
+// ---------------------------------------------------------------------------
+
+/** 断言条件为真，否则抛 RuntimeException 使单测失败。 */
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -47,6 +64,11 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+/**
+ * 构造 Phase 3 标准测试引擎：Retry + OTel + Audit，内存 RunStore，流式事件分发。
+ *
+ * 各业务工作流用例共用，减少重复装配代码。
+ */
 function makeEngine(): WorkflowEngine
 {
     return new WorkflowEngine(
@@ -61,6 +83,15 @@ function makeEngine(): WorkflowEngine
     );
 }
 
+// ---------------------------------------------------------------------------
+// 合同审阅 HITL
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：ContractReviewWorkflow 在 legal_review 暂停，批准后完成并 published=true。
+ *
+ * 覆盖典型 HITL 批准单路径。
+ */
 function testContractReviewHitlApprove(): void
 {
     $engine = makeEngine();
@@ -76,6 +107,11 @@ function testContractReviewHitlApprove(): void
     assertTrue(($run->state->get('published') ?? false) === true, 'Should publish contract');
 }
 
+/**
+ * 验证：首次拒绝进入修订循环再次 WAITING；二次批准后完成。
+ *
+ * 覆盖 HITL 拒绝→修订→再审路径。
+ */
 function testContractReviewHitlRejectLoop(): void
 {
     $engine = makeEngine();
@@ -93,6 +129,15 @@ function testContractReviewHitlRejectLoop(): void
     assertTrue($engine->getRun($runId)->status->value === 'completed', 'Second approve completes');
 }
 
+// ---------------------------------------------------------------------------
+// 知识库问答与 MCP 研究
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：KnowledgeQaWorkflow 在种子知识库后能完成检索并生成 answer。
+ *
+ * 依赖 KnowledgeSeeder 预置 product_kb 文档。
+ */
 function testKnowledgeQaWorkflow(): void
 {
     WorkflowService::reset();
@@ -114,6 +159,11 @@ function testKnowledgeQaWorkflow(): void
     assertTrue(is_string($run->state->get('answer')), 'Should have answer');
 }
 
+/**
+ * 验证：McpResearchWorkflow 完成并产出 summary，路由至 notify 或 archive。
+ *
+ * 覆盖 MCP 工具集成与条件边归档路径。
+ */
 function testMcpResearchWorkflow(): void
 {
     WorkflowService::reset();
@@ -130,6 +180,15 @@ function testMcpResearchWorkflow(): void
     assertTrue(($run->state->nodeOutputs['notify'] ?? null) !== null || $run->lastRoutedEdge === 'archive', 'Should route notify or archive');
 }
 
+// ---------------------------------------------------------------------------
+// Agent 路由策略
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：LLMRouter 对含 code/api 关键词的 query 启发式选择 coding agent。
+ *
+ * 无真实 LLM 调用时的规则回退路径。
+ */
 function testLLMRouterHeuristic(): void
 {
     $router = new LLMRouter(['coding', 'finance']);
@@ -138,6 +197,11 @@ function testLLMRouterHeuristic(): void
     assertTrue(in_array('coding', $ids, true), 'LLMRouter should select coding for code query');
 }
 
+/**
+ * 验证：WeightedRouter 在 finance 权重为 0 时始终选择 coding。
+ *
+ * 权重为 0 的 agent 不应被选中。
+ */
 function testWeightedRouter(): void
 {
     $router = new WeightedRouter(['coding' => 1.0, 'finance' => 0.0]);
@@ -146,6 +210,15 @@ function testWeightedRouter(): void
     assertTrue($ids === ['coding'], 'WeightedRouter should always pick weight 1.0 agent');
 }
 
+// ---------------------------------------------------------------------------
+// 暂停任务列表
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：ContractReviewWorkflow 启动后 listPauseTasks('legal-team') 包含当前 runId。
+ *
+ * 操作员待办列表 API 的基础行为。
+ */
 function testPauseTaskListing(): void
 {
     $engine = makeEngine();
@@ -156,6 +229,10 @@ function testPauseTaskListing(): void
     assertTrue(count($tasks) >= 1, 'Should list pause task for legal-team');
     assertTrue($tasks[0]['runId'] === $runId, 'Task runId should match');
 }
+
+// ---------------------------------------------------------------------------
+// 执行入口
+// ---------------------------------------------------------------------------
 
 $tests = [
     'HITL approve path' => 'testContractReviewHitlApprove',

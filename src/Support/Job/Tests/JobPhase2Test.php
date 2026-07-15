@@ -12,10 +12,24 @@
 declare(strict_types=1);
 
 /**
- * Job Phase 2 回归：Registry / Config / RedisDeadLetter 重放。
+ * Job Phase 2 回归：Handler 注册表、配置工厂、Redis 死信重放。
  *
- * 运行：php src/Support/Job/Tests/JobPhase2Test.php
- * 或：composer test:job
+ * ## 覆盖范围
+ * | 区域 | 要点 |
+ * |------|------|
+ * | JobHandlerRegistry | 多类型注册、has/require、缺失类型抛 JobException |
+ * | JobRunner::runRegistered | 已注册类型 SUCCESS；未知类型 DEAD |
+ * | JobConfig / JobComponentFactory | fromArray 映射、retryPolicy 与 runner 工厂 |
+ * | RedisDeadLetter | push / replay 清空队列、attempt 重置为 1 |
+ *
+ * ## 运行
+ * ```bash
+ * php src/Support/Job/Tests/JobPhase2Test.php
+ * # 或
+ * composer test:job
+ * ```
+ *
+ * 说明：Redis 使用本文件 {@see FakeRedisList} 内存假实现；业务 Handler 来自 Test\Module\Job。
  */
 
 use Swoolefy\Support\Job\JobComponentFactory;
@@ -34,6 +48,7 @@ use Test\Module\Job\OrderPaidNotifyHandler;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
+/** 断言为真，否则抛 RuntimeException（单测失败） */
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -41,17 +56,27 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+/** 打印通过标记，便于 CLI 逐条扫结果 */
 function pass(string $name): void
 {
     echo "[PASS] {$name}\n";
 }
 
-/** 死信单测用的最小 Redis List 假实现。 */
+// ---------------------------------------------------------------------------
+// 测试替身：内存 Redis List，供 RedisDeadLetter 单测
+// ---------------------------------------------------------------------------
+
+/**
+ * 死信单测用的最小 Redis List 假实现。
+ *
+ * 仅实现 lPush / rPop / lLen，语义与 Redis 列表 FIFO（rPop 消费）一致。
+ */
 final class FakeRedisList
 {
     /** @var array<string, list<string>> */
     private array $lists = [];
 
+    /** 从列表头部入队，返回当前列表长度 */
     public function lPush(string $key, string $value): int
     {
         $this->lists[$key] ??= [];
@@ -60,6 +85,7 @@ final class FakeRedisList
         return count($this->lists[$key]);
     }
 
+    /** 从列表尾部出队；空列表返回 false */
     public function rPop(string $key): string|false
     {
         if (($this->lists[$key] ?? []) === []) {
@@ -69,12 +95,18 @@ final class FakeRedisList
         return array_pop($this->lists[$key]);
     }
 
+    /** 返回指定 key 的列表元素个数 */
     public function lLen(string $key): int
     {
         return count($this->lists[$key] ?? []);
     }
 }
 
+// ---------------------------------------------------------------------------
+// 测试替身：简单成功 Handler
+// ---------------------------------------------------------------------------
+
+/** 注册表路由用：类型 demo.echo，handle 恒返回 success */
 final class EchoHandler implements JobHandlerInterface
 {
     public function types(): array
@@ -88,6 +120,14 @@ final class EchoHandler implements JobHandlerInterface
     }
 }
 
+// ---------------------------------------------------------------------------
+// JobHandlerRegistry：类型注册与查找
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 JobComponentFactory::registry 聚合多 Handler；
+ * has / require 正确路由；require 未知类型抛 JobException 且消息含类型名。
+ */
 function testRegistryRoutesTypes(): void
 {
     $registry = JobComponentFactory::registry(
@@ -111,6 +151,14 @@ function testRegistryRoutesTypes(): void
     pass('registry routes types');
 }
 
+// ---------------------------------------------------------------------------
+// JobRunner::runRegistered：按注册表执行
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 runRegistered：已注册 order.paid.notify 返回 SUCCESS；
+ * 未知 unknown.type 返回 DEAD 并触发 dead 回调。
+ */
 function testRunnerRunRegistered(): void
 {
     $registry = (new JobHandlerRegistry())->register(new OrderPaidNotifyHandler());
@@ -142,6 +190,14 @@ function testRunnerRunRegistered(): void
     pass('runner runRegistered');
 }
 
+// ---------------------------------------------------------------------------
+// JobConfig：配置解析与组件工厂
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 JobConfig::fromArray 正确映射 default_max_attempts、退避参数、死信 Redis 前缀；
+ * retryPolicy 与 JobComponentFactory::runner 使用同一 maxAttempts。
+ */
 function testJobConfigFromArray(): void
 {
     $config = JobConfig::fromArray([
@@ -170,6 +226,14 @@ function testJobConfigFromArray(): void
     pass('job config fromArray');
 }
 
+// ---------------------------------------------------------------------------
+// RedisDeadLetter：入队与重放
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证死信 push 后 length=1；replay 消费一条、队列清空；
+ * 重放数据 attempt 重置为 1，payload 保持不变。
+ */
 function testRedisDeadLetterReplay(): void
 {
     $redis = new FakeRedisList();
@@ -190,6 +254,10 @@ function testRedisDeadLetterReplay(): void
 
     pass('redis dead letter replay');
 }
+
+// ---------------------------------------------------------------------------
+// 执行入口：静默 SupportLog，逐条跑用例
+// ---------------------------------------------------------------------------
 
 SupportLog::setTestHandler(static function (): void {
 });

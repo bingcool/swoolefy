@@ -14,11 +14,24 @@ declare(strict_types=1);
 /**
  * AI 模块回归测试。
  *
- * 覆盖：AINodeBuilder DSL、Structured Output（executor mock）、stream/structured 互斥、
- * WorkflowState::dto、StructuredOutputNode、CollectingStreamSink。
+ * ## 覆盖范围
+ * | 区域 | 要点 |
+ * |------|------|
+ * | AINodeBuilder | structured 配置、timeout、缺配置 fail-fast |
+ * | Structured Output | executor mock 写 state 数组；stream/structured 互斥 |
+ * | WorkflowState::dto | schemas 注册后数组可 hydrate 为 DTO |
+ * | StructuredOutputNode | 独立节点委托写 outputKey |
+ * | CollectingStreamSink | publish / events / clear |
+ * | Chat executor | 默认 outputKey=output 写字符串 |
  *
- * 运行：php src/Support/AI/Tests/AIModuleTest.php
- * 或：composer test:ai
+ * ## 运行
+ * ```bash
+ * php src/Support/AI/Tests/AIModuleTest.php
+ * # 或
+ * composer test:ai
+ * ```
+ *
+ * 说明：全部用 executor 闭包 mock，不打真实 LLM。OrderDecisionDto 来自 Test 应用模块。
  */
 
 use Swoolefy\Support\AI\Node\AINode;
@@ -33,6 +46,7 @@ use Test\Module\Order\Dto\OrderDecisionDto;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
+/** 断言为真，否则抛 RuntimeException（单测失败） */
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -40,6 +54,12 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+/**
+ * 构造测试用 OrderDecisionDto（executor mock 返回值）。
+ *
+ * @param bool $approved 是否批准
+ * @param float $confidence 置信度
+ */
 function makeDecisionDto(bool $approved = true, float $confidence = 0.9): OrderDecisionDto
 {
     $dto = new OrderDecisionDto();
@@ -50,6 +70,9 @@ function makeDecisionDto(bool $approved = true, float $confidence = 0.9): OrderD
     return $dto;
 }
 
+/**
+ * 编译最小 Workflow 并 execute 单个 AINode（注册 decision schema）。
+ */
 function executeNode(AINode $node, WorkflowState $state): void
 {
     $compiled = WorkflowBootstrap::compiler()->compile(
@@ -61,6 +84,13 @@ function executeNode(AINode $node, WorkflowState $state): void
     $node->execute($ctx, $state);
 }
 
+// ---------------------------------------------------------------------------
+// AINodeBuilder / Structured Output
+// ---------------------------------------------------------------------------
+
+/**
+ * Builder：structured(DTO) + timeout 应落到节点 id 与 configuredTimeoutSeconds。
+ */
 function testBuilderStructuredConfig(): void
 {
     $node = AINode::make('ai_decision')
@@ -73,6 +103,9 @@ function testBuilderStructuredConfig(): void
     assertTrue($node->configuredTimeoutSeconds() === 30, 'timeout config');
 }
 
+/**
+ * Structured 执行后，state 中 outputKey 存的是数组（非 DTO 对象），字段可断言。
+ */
 function testStructuredOutputWritesStateArray(): void
 {
     $node = AINode::make('ai_decision')
@@ -89,6 +122,9 @@ function testStructuredOutputWritesStateArray(): void
     assertTrue(($decision['confidence'] ?? 0) === 0.95, 'confidence field');
 }
 
+/**
+ * WorkflowState::dto() 按 schemas 把数组 hydrate 为 OrderDecisionDto。
+ */
 function testWorkflowStateDtoHydration(): void
 {
     $state = new WorkflowState(
@@ -109,6 +145,9 @@ function testWorkflowStateDtoHydration(): void
     assertTrue($dto->reason === 'reject', 'dto reason');
 }
 
+/**
+ * stream 与 structured 互斥：同时开启时 execute 抛 WorkflowException。
+ */
 function testStreamAndStructuredAreMutuallyExclusive(): void
 {
     $node = AINode::make('bad')
@@ -125,6 +164,9 @@ function testStreamAndStructuredAreMutuallyExclusive(): void
     }
 }
 
+/**
+ * 空配置 AINode（无 executor / structured / chat）execute 应 fail-fast。
+ */
 function testAiNodeRequiresConfiguration(): void
 {
     $node = AINode::make('empty')->build();
@@ -137,6 +179,9 @@ function testAiNodeRequiresConfiguration(): void
     }
 }
 
+/**
+ * StructuredOutputNode 作为独立节点，executor 结果写入配置的 outputKey。
+ */
 function testStructuredOutputNodeDelegate(): void
 {
     $node = new StructuredOutputNode('so', OrderDecisionDto::class, [
@@ -155,6 +200,13 @@ function testStructuredOutputNodeDelegate(): void
     assertTrue(($state->get('decision')['approved'] ?? true) === false, 'structured node output');
 }
 
+// ---------------------------------------------------------------------------
+// Stream sink / Chat
+// ---------------------------------------------------------------------------
+
+/**
+ * CollectingStreamSink：open → publish 两次 → events 形状正确 → clear 清空。
+ */
 function testCollectingStreamSink(): void
 {
     $sink = new CollectingStreamSink();
@@ -171,6 +223,9 @@ function testCollectingStreamSink(): void
     assertTrue($sink->events() === [], 'cleared');
 }
 
+/**
+ * 纯 chat executor 返回字符串时，默认写入 state['output']。
+ */
 function testChatExecutorWritesStringOutput(): void
 {
     $node = AINode::make('chat')

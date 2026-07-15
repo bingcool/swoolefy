@@ -12,9 +12,21 @@
 declare(strict_types=1);
 
 /**
- * RunStore 配置与 memory / redis / db 驱动测试。
+ * RunStore 配置解析与 memory / redis / db 驱动行为测试。
  *
- * 运行：php src/Support/Workflow/Tests/WorkflowRunStoreTest.php
+ * ## 覆盖范围
+ * | 区域 | 要点 |
+ * |------|------|
+ * | WorkflowRunStoreName | 常量、all()、isSupported() |
+ * | WorkflowConfig | run_stores 解析、自定义 alias/driver、redis/db 参数 |
+ * | WorkflowComponentFactory | memory 构建、不支持 driver 抛错、redis/db 需 ApplicationContext |
+ * | InMemoryRunStore | 跨 Engine 共享、run_id 格式 |
+ * | DbRunStore | 持久化、listWaiting、resume、upsert 幂等 |
+ *
+ * ## 运行
+ * ```bash
+ * php src/Support/Workflow/Tests/WorkflowRunStoreTest.php
+ * ```
  */
 
 use Swoolefy\Support\Workflow\Condition\ConditionEvaluatorFactory;
@@ -41,6 +53,11 @@ use Test\Module\Order\Workflow\OrderProcessingWorkflow;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
+// ---------------------------------------------------------------------------
+// 通用断言与输出
+// ---------------------------------------------------------------------------
+
+/** 断言条件为真，否则抛 RuntimeException 使单测失败。 */
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -48,12 +65,21 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+/** 在 CLI 输出 [PASS] 标记。 */
 function pass(string $name): void
 {
     echo "[PASS] {$name}\n";
 }
 
-/** @return array<string, mixed> */
+// ---------------------------------------------------------------------------
+// 配置与注册夹具
+// ---------------------------------------------------------------------------
+
+/**
+ * 返回含 memory/redis/db 三套 run_stores 的示例 Workflow 配置数组。
+ *
+ * @return array<string, mixed>
+ */
 function sampleRunStoresConfig(string $default = WorkflowRunStoreName::MEMORY): array
 {
     return [
@@ -76,6 +102,9 @@ function sampleRunStoresConfig(string $default = WorkflowRunStoreName::MEMORY): 
     ];
 }
 
+/**
+ * 向 Registry 注册 order_processing 工作流（高置信度批准路径），供 RunStore 持久化用例使用。
+ */
 function registerOrderWorkflow(WorkflowRegistry $registry): void
 {
     $registry->register('order_processing', static fn () => OrderProcessingWorkflow::definition(
@@ -91,6 +120,9 @@ function registerOrderWorkflow(WorkflowRegistry $registry): void
     ));
 }
 
+/**
+ * 构造绑定指定 RunStore 的最小 WorkflowEngine（无插件）。
+ */
 function makeEngine($runStore): WorkflowEngine
 {
     return new WorkflowEngine(
@@ -100,6 +132,13 @@ function makeEngine($runStore): WorkflowEngine
     );
 }
 
+// ---------------------------------------------------------------------------
+// WorkflowRunStoreName 与 WorkflowConfig
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：WorkflowRunStoreName 常量值、all() 列表与 isSupported() 对合法/非法 driver 的判断。
+ */
 function testRunStoreNameConstants(): void
 {
     assertTrue(WorkflowRunStoreName::MEMORY === 'memory', 'MEMORY');
@@ -115,6 +154,9 @@ function testRunStoreNameConstants(): void
     pass('run store name constants');
 }
 
+/**
+ * 验证：WorkflowConfig::fromArray 正确解析 default_run_store、各 alias 的 driver、redis prefix/ttl、db table。
+ */
 function testWorkflowConfigParsesRunStores(): void
 {
     $config = WorkflowConfig::fromArray(sampleRunStoresConfig(WorkflowRunStoreName::DB));
@@ -132,6 +174,11 @@ function testWorkflowConfigParsesRunStores(): void
     pass('workflow config parses run_stores');
 }
 
+/**
+ * 验证：自定义 alias（primary_db、cache_redis）通过 driver 字段映射到 db/redis 驱动及表名。
+ *
+ * 生产可多租户/多环境使用不同 alias 指向同一 driver 类型。
+ */
 function testWorkflowConfigCustomAliasWithDriver(): void
 {
     $config = WorkflowConfig::fromArray([
@@ -160,6 +207,13 @@ function testWorkflowConfigCustomAliasWithDriver(): void
     pass('workflow config custom alias driver');
 }
 
+// ---------------------------------------------------------------------------
+// WorkflowComponentFactory RunStore 构建
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：默认与显式 memory alias 均构建 InMemoryRunStore 实例。
+ */
 function testFactoryBuildsMemoryRunStore(): void
 {
     $registry = new WorkflowRegistry();
@@ -172,6 +226,9 @@ function testFactoryBuildsMemoryRunStore(): void
     pass('factory builds memory run store');
 }
 
+/**
+ * 验证：配置不支持的 driver（mongo）时 WorkflowComponentFactory::runStore 抛 WorkflowException。
+ */
 function testFactoryUnsupportedDriverThrows(): void
 {
     $registry = new WorkflowRegistry();
@@ -193,6 +250,11 @@ function testFactoryUnsupportedDriverThrows(): void
     pass('factory unsupported driver throws');
 }
 
+/**
+ * 验证：无 ApplicationContext 时构建 redis RunStore 失败，错误信息提及 Application context。
+ *
+ * Redis 连接须从 Swoolefy 应用容器获取，CLI 单测无上下文。
+ */
 function testFactoryRedisRequiresApplicationContext(): void
 {
     $registry = new WorkflowRegistry();
@@ -207,6 +269,9 @@ function testFactoryRedisRequiresApplicationContext(): void
     pass('factory redis requires application context');
 }
 
+/**
+ * 验证：无 ApplicationContext 时构建 db RunStore 失败，错误信息提及 Application context。
+ */
 function testFactoryDbRequiresApplicationContext(): void
 {
     $registry = new WorkflowRegistry();
@@ -221,6 +286,13 @@ function testFactoryDbRequiresApplicationContext(): void
     pass('factory db requires application context');
 }
 
+// ---------------------------------------------------------------------------
+// InMemoryRunStore 与 DbRunStore 运行时行为
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：InMemoryRunStore 在多个 Engine 间共享；run_id 符合 run_YYYYMMDD_hex 格式。
+ */
 function testMemoryRunStorePersistence(): void
 {
     $registry = new WorkflowRegistry();
@@ -242,6 +314,9 @@ function testMemoryRunStorePersistence(): void
     pass('memory run store persistence');
 }
 
+/**
+ * 验证：DbRunStore 持久化 COMPLETED 与 WAITING run；listWaiting 按 assignee 过滤；跨 Engine resume 后无待办。
+ */
 function testDbRunStorePersistenceAndListWaiting(): void
 {
     $registry = new WorkflowRegistry();
@@ -299,6 +374,9 @@ function testDbRunStorePersistenceAndListWaiting(): void
     pass('db run store persistence and listWaiting');
 }
 
+/**
+ * 验证：DbRunStore 对同一 run_id 多次 save 为 upsert，表中仅保留一行。
+ */
 function testDbRunStoreUpsertIdempotent(): void
 {
     $registry = new WorkflowRegistry();
@@ -320,6 +398,10 @@ function testDbRunStoreUpsertIdempotent(): void
     assertTrue($count === 1, 'upsert keeps single row');
     pass('db run store upsert idempotent');
 }
+
+// ---------------------------------------------------------------------------
+// 执行入口
+// ---------------------------------------------------------------------------
 
 $tests = [
     'run store name constants' => 'testRunStoreNameConstants',

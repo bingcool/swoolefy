@@ -14,11 +14,20 @@ declare(strict_types=1);
 /**
  * CapabilityCenter 模块回归测试。
  *
- * 覆盖：Policy 过滤、Top-K + pinned、MCP only/exclude、懒加载 materialize、
- * CapabilityComponentFactory 配置注册。
+ * ## 覆盖范围
+ * | 区域 | 要点 |
+ * |------|------|
+ * | PolicyToolFilter | tenant / role / risk / enabled 过滤 |
+ * | CapabilityCenter | Top-K、pinned、MCP only/exclude、懒加载 materialize |
+ * | CapabilityComponentFactory | 配置注册与组件装配 |
+ * | McpCapabilitySync | MCP 能力同步到 Registry |
  *
- * 运行：php src/Support/CapabilityCenter/Tests/CapabilityCenterTest.php
- * 或：composer test:capability
+ * ## 运行
+ * ```bash
+ * php src/Support/CapabilityCenter/Tests/CapabilityCenterTest.php
+ * # 或
+ * composer test:capability
+ * ```
  */
 
 use NeuronAI\Tools\Tool;

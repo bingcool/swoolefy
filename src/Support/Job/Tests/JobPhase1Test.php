@@ -12,10 +12,24 @@
 declare(strict_types=1);
 
 /**
- * Job Phase 1 回归：信封、重试策略、Runner 结果映射。
+ * Job Phase 1 回归：信封序列化、重试策略、Runner 结果映射、Publisher 投递。
  *
- * 运行：php src/Support/Job/Tests/JobPhase1Test.php
- * 或：composer test:job
+ * ## 覆盖范围
+ * | 区域 | 要点 |
+ * |------|------|
+ * | JobEnvelope | toArray/fromArray 往返、jobType 必填、wrapLegacy 兼容旧载荷 |
+ * | JobRetryPolicy | 指数退避 delay、shouldRetry 次数边界 |
+ * | JobRunner | SUCCESS / REQUEUED / DEAD 三分支；attempt 递增；异常当可重试 |
+ * | JobPublisher | dispatch 组装信封并回调发布 |
+ *
+ * ## 运行
+ * ```bash
+ * php src/Support/Job/Tests/JobPhase1Test.php
+ * # 或
+ * composer test:job
+ * ```
+ *
+ * 说明：Stub Handler 均为本文件内假实现，不依赖 Redis / AMQP 等外部中间件。
  */
 
 use Swoolefy\Support\Job\JobEnvelope;
@@ -30,6 +44,7 @@ use Swoolefy\Support\SupportLog;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
+/** 断言为真，否则抛 RuntimeException（单测失败） */
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -37,11 +52,20 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+/** 打印通过标记，便于 CLI 逐条扫结果 */
 function pass(string $name): void
 {
     echo "[PASS] {$name}\n";
 }
 
+// ---------------------------------------------------------------------------
+// JobEnvelope：序列化往返与校验
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 JobEnvelope::make → toArray → fromArray 往返后字段一致：
+ * jobId、jobType、payload、meta、maxAttempts（来自 RetryPolicy）、withAttempt 不可变副本。
+ */
 function testEnvelopeRoundTrip(): void
 {
     $job = JobEnvelope::make('order.paid.notify', ['orderId' => 1], [
@@ -60,6 +84,9 @@ function testEnvelopeRoundTrip(): void
     pass('envelope round trip');
 }
 
+/**
+ * 验证 fromArray 缺少 jobType 时抛 JobException，防止无类型任务进入队列。
+ */
 function testEnvelopeRequiresJobType(): void
 {
     try {
@@ -72,6 +99,9 @@ function testEnvelopeRequiresJobType(): void
     pass('envelope requires jobType');
 }
 
+/**
+ * 验证 wrapLegacy：普通数组包装为信封；已是信封数组时保留原 jobType、忽略传入 type 参数。
+ */
 function testWrapLegacy(): void
 {
     $job = JobEnvelope::wrapLegacy(['name' => 'legacy'], 'demo.legacy');
@@ -84,6 +114,14 @@ function testWrapLegacy(): void
     pass('wrap legacy');
 }
 
+// ---------------------------------------------------------------------------
+// JobRetryPolicy：退避与重试次数
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证指数退避：baseDelay × multiplier^(attempt-1)；jitter=0 时 delay 可预测；
+ * shouldRetry 在末次 attempt 返回 false。
+ */
 function testRetryBackoffIncreases(): void
 {
     $policy = new JobRetryPolicy(
@@ -103,6 +141,11 @@ function testRetryBackoffIncreases(): void
     pass('retry backoff');
 }
 
+// ---------------------------------------------------------------------------
+// 测试替身：JobRunner 各分支用的 Handler 假实现
+// ---------------------------------------------------------------------------
+
+/** 始终返回 success，用于验证 Runner 成功路径不触发 requeue / dead-letter */
 final class StubSuccessHandler implements JobHandlerInterface
 {
     public function types(): array
@@ -116,6 +159,7 @@ final class StubSuccessHandler implements JobHandlerInterface
     }
 }
 
+/** 前两次返回 retry，第三次 success；用于多轮重试场景（本文件未直接调用，供扩展） */
 final class StubRetryThenOkHandler implements JobHandlerInterface
 {
     public int $calls = 0;
@@ -136,6 +180,7 @@ final class StubRetryThenOkHandler implements JobHandlerInterface
     }
 }
 
+/** 始终返回 retry，用于验证 requeue 与耗尽后进死信 */
 final class StubAlwaysRetryHandler implements JobHandlerInterface
 {
     public function types(): array
@@ -149,6 +194,7 @@ final class StubAlwaysRetryHandler implements JobHandlerInterface
     }
 }
 
+/** 返回 fail，用于验证不可重试失败直接进死信 */
 final class StubFailHandler implements JobHandlerInterface
 {
     public function types(): array
@@ -162,6 +208,7 @@ final class StubFailHandler implements JobHandlerInterface
     }
 }
 
+/** handle 抛异常，用于验证 Runner 将未捕获异常视为可重试 */
 final class StubThrowHandler implements JobHandlerInterface
 {
     public function types(): array
@@ -175,6 +222,13 @@ final class StubThrowHandler implements JobHandlerInterface
     }
 }
 
+// ---------------------------------------------------------------------------
+// JobRunner：SUCCESS / REQUEUED / DEAD 与副作用回调
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 Handler 返回 success 时 outcome 为 SUCCESS，且不调用 requeue / dead 回调。
+ */
 function testRunnerSuccessNoRequeue(): void
 {
     $requeued = 0;
@@ -198,6 +252,10 @@ function testRunnerSuccessNoRequeue(): void
     pass('runner success');
 }
 
+/**
+ * 验证 Handler 返回 retry 时 outcome 为 REQUEUED；
+ * 回调收到 attempt+1 的信封与按策略计算的 delayMs。
+ */
 function testRunnerRequeueIncrementsAttempt(): void
 {
     $captured = null;
@@ -223,6 +281,9 @@ function testRunnerRequeueIncrementsAttempt(): void
     pass('runner requeue attempt');
 }
 
+/**
+ * 验证已达 maxAttempts 仍 retry 时 outcome 为 DEAD，dead 回调收到错误信息。
+ */
 function testRunnerExhaustedGoesDead(): void
 {
     $deadError = null;
@@ -246,6 +307,9 @@ function testRunnerExhaustedGoesDead(): void
     pass('runner exhausted dead');
 }
 
+/**
+ * 验证 Handler 显式 fail 时 outcome 为 DEAD，不进入 requeue 路径。
+ */
 function testRunnerFailGoesDead(): void
 {
     $outcome = (new JobRunner())->run(
@@ -262,6 +326,9 @@ function testRunnerFailGoesDead(): void
     pass('runner fail dead');
 }
 
+/**
+ * 验证 Handler 抛异常时 Runner 按可重试处理，outcome 为 REQUEUED。
+ */
 function testRunnerExceptionTreatedAsRetry(): void
 {
     $outcome = (new JobRunner(new JobRetryPolicy(maxAttempts: 3, jitterRatio: 0.0)))->run(
@@ -278,6 +345,14 @@ function testRunnerExceptionTreatedAsRetry(): void
     pass('runner exception retry');
 }
 
+// ---------------------------------------------------------------------------
+// JobPublisher：组装信封并发布
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 dispatch 生成完整信封数组并调用 publish 回调；
+ * 返回的 JobEnvelope 与 published 数据 jobId 一致，maxAttempts 来自 Publisher 策略。
+ */
 function testPublisherDispatch(): void
 {
     $published = null;
@@ -294,6 +369,10 @@ function testPublisherDispatch(): void
 
     pass('publisher dispatch');
 }
+
+// ---------------------------------------------------------------------------
+// 执行入口：静默 SupportLog，逐条跑用例
+// ---------------------------------------------------------------------------
 
 SupportLog::setTestHandler(static function (): void {
 });

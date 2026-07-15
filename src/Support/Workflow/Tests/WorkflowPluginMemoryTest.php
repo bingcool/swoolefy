@@ -14,9 +14,20 @@ declare(strict_types=1);
 /**
  * TracingPlugin / MetricsPlugin / OpenTelemetryPlugin 内存上限回归。
  *
- * 验证：按已完成 run 清理 + FIFO 硬上限，避免 Worker 长驻涨内存。
+ * ## 覆盖范围
+ * | 区域 | 要点 |
+ * |------|------|
+ * | TracingPlugin | retainCompletedRuns 滑动窗口、maxSpans FIFO、retain=0 即清 |
+ * | MetricsPlugin | 计数保留 + node_latency_ms 窗口与硬上限 |
+ * | OpenTelemetryPlugin | retainCompletedRuns 仅保留最近 run 的 span |
+ * | PluginManager | 同名插件 add 替换而非累积 hooks |
  *
- * 运行：php src/Support/Workflow/Tests/WorkflowPluginMemoryTest.php
+ * 验证按已完成 run 清理 + FIFO 硬上限，避免 Worker 长驻涨内存。
+ *
+ * ## 运行
+ * ```bash
+ * php src/Support/Workflow/Tests/WorkflowPluginMemoryTest.php
+ * ```
  */
 
 use Swoolefy\Support\Workflow\Definition\CompiledWorkflow;
@@ -35,6 +46,11 @@ use Swoolefy\Support\Workflow\State\WorkflowState;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
+// ---------------------------------------------------------------------------
+// 通用断言
+// ---------------------------------------------------------------------------
+
+/** 断言条件为真，否则抛 RuntimeException 使单测失败。 */
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -42,6 +58,13 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+// ---------------------------------------------------------------------------
+// 插件事件夹具
+// ---------------------------------------------------------------------------
+
+/**
+ * 构造最小 CompiledWorkflow 夹具（无实际节点图），供插件钩子测试使用。
+ */
 function makeCompiled(): CompiledWorkflow
 {
     return new CompiledWorkflow(
@@ -58,6 +81,9 @@ function makeCompiled(): CompiledWorkflow
     );
 }
 
+/**
+ * 构造 COMPLETED 状态的 WorkflowRun 夹具。
+ */
 function makeRun(string $runId, CompiledWorkflow $compiled): WorkflowRun
 {
     $now = date('c');
@@ -72,6 +98,9 @@ function makeRun(string $runId, CompiledWorkflow $compiled): WorkflowRun
     );
 }
 
+/**
+ * 构造匿名 NodeInterface 实现，execute 返回带 latencyMs 的成功结果。
+ */
 function makeNode(string $id): NodeInterface
 {
     return new class ($id) implements NodeInterface {
@@ -124,7 +153,9 @@ function makeNode(string $id): NodeInterface
 }
 
 /**
- * 模拟一次完整 run：start → node before/after → complete。
+ * 模拟一次完整 run 的插件生命周期：start → node before/after → complete。
+ *
+ * 不经过真实 WorkflowEngine，直接驱动 PluginManager 钩子。
  */
 function fireOneRun(PluginManager $manager, string $runId, CompiledWorkflow $compiled, string $nodeId = 'n1'): void
 {
@@ -140,6 +171,15 @@ function fireOneRun(PluginManager $manager, string $runId, CompiledWorkflow $com
     $manager->fireRunComplete($run);
 }
 
+// ---------------------------------------------------------------------------
+// TracingPlugin 内存策略
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：retainCompletedRuns=2 时仅保留最近 2 个已完成 run 的 span，最早 run-1 被丢弃。
+ *
+ * 长驻 Worker 须按 run 滑动清理 trace 缓冲。
+ */
 function testTracingRetainsOnlyRecentCompletedRuns(): void
 {
     $tracing = new TracingPlugin(maxSpans: 2000, retainCompletedRuns: 2);
@@ -162,6 +202,11 @@ function testTracingRetainsOnlyRecentCompletedRuns(): void
     assertTrue(count($runIds) === 2, 'only 2 completed runs retained');
 }
 
+/**
+ * 验证：retainCompletedRuns 很大时，span 总数仍受 maxSpans FIFO 硬上限截断。
+ *
+ * 双重保护：按 run 清理 + 全局 span 条数上限。
+ */
 function testTracingFifoMaxSpans(): void
 {
     // retainCompletedRuns 很大，只靠 maxSpans 截断
@@ -176,6 +221,11 @@ function testTracingFifoMaxSpans(): void
     assertTrue(count($tracing->spans()) <= 5, 'spans capped by maxSpans');
 }
 
+/**
+ * 验证：retainCompletedRuns=0 时 run 完成后立即清空所有 span。
+ *
+ * 最激进内存策略：不保留任何历史 trace。
+ */
 function testTracingRetainZeroClearsOnComplete(): void
 {
     $tracing = new TracingPlugin(maxSpans: 2000, retainCompletedRuns: 0);
@@ -186,6 +236,15 @@ function testTracingRetainZeroClearsOnComplete(): void
     assertTrue($tracing->spans() === [], 'retain=0 clears spans after complete');
 }
 
+// ---------------------------------------------------------------------------
+// MetricsPlugin 与 OpenTelemetryPlugin
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：MetricsPlugin 保留 run/node 计数，但 node_latency_ms 按 retainCompletedRuns 丢弃旧 run 且受 maxLatencySamples 上限。
+ *
+ * 指标计数与延迟样本采用不同保留策略。
+ */
 function testMetricsLatencyRetainAndCap(): void
 {
     $metrics = new MetricsPlugin(maxLatencySamples: 3, retainCompletedRuns: 1);
@@ -211,6 +270,11 @@ function testMetricsLatencyRetainAndCap(): void
     assertTrue(count($samples) <= 3, 'latency samples capped');
 }
 
+/**
+ * 验证：OpenTelemetryPlugin retainCompletedRuns=1 时仅保留最近 run 的 span。
+ *
+ * 与 TracingPlugin 类似的滑动窗口，适配 OTel 导出缓冲。
+ */
 function testOpenTelemetryRetainWindow(): void
 {
     $otel = new OpenTelemetryPlugin(exporter: null, maxSpans: 2000, retainCompletedRuns: 1);
@@ -229,6 +293,15 @@ function testOpenTelemetryRetainWindow(): void
     assertTrue(in_array('o-2', $runIds, true), 'otel kept latest run');
 }
 
+// ---------------------------------------------------------------------------
+// PluginManager 同名插件替换
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：PluginManager::add 同名插件时替换实例，旧实例不再接收 hooks，registry 仅一条 run.start。
+ *
+ * 防止热重载或重复注册导致双倍限流/双倍钩子。
+ */
 function testPluginManagerReplaceSameNameDoesNotDuplicateHooks(): void
 {
     $first = RateLimitPlugin::make(maxConcurrent: 10);
@@ -247,6 +320,10 @@ function testPluginManagerReplaceSameNameDoesNotDuplicateHooks(): void
     assertTrue($second->activeRuns() === 0, 'single complete releases once');
     assertTrue(count($manager->registry()->hooks('run.start')) === 1, 'exactly one run.start hook');
 }
+
+// ---------------------------------------------------------------------------
+// 执行入口
+// ---------------------------------------------------------------------------
 
 $tests = [
     'tracing retain recent runs' => 'testTracingRetainsOnlyRecentCompletedRuns',

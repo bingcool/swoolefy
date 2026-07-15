@@ -12,15 +12,24 @@
 declare(strict_types=1);
 
 /**
- * MCP 模块回归测试。
+ * MCP 模块回归测试（无需真实 MCP Server 或外网）。
  *
- * 覆盖：McpFactory 静态/仓储解析、disabled stub、listServers 脱敏、
- * DbMcpServerConfigRepository 全局配置与软删、McpPdoResolver / McpComponentFactory、
- * InMemory 仓储 upsert/find、
- * McpProcessRunner 限流、Neuron MCP 传输类型推断。
+ * ## 覆盖范围
+ * | 区域 | 要点 |
+ * |------|------|
+ * | McpFactory | 静态/仓储 server 合并、缺省 disabled stub、tools 空列表、listServers 公开视图 |
+ * | McpServerConfig | toPublicArray 脱敏 token/敏感 header、detectTransport 推断 Neuron MCP 模式 |
+ * | InMemoryMcpServerConfigRepository | upsert 覆盖、find/list |
+ * | DbMcpServerConfigRepository | 全局配置读取、软删行不可见 |
+ * | McpProcessRunner | 本地进程并发上限、stdio 本地判定 |
+ * | NeuronAiConfig / McpPdoResolver / McpComponentFactory | db_component、PDO 解析、工厂装配 |
  *
- * 运行：php src/Support/Mcp/Tests/McpModuleTest.php
- * 或：composer test:mcp
+ * ## 运行
+ * ```bash
+ * php src/Support/Mcp/Tests/McpModuleTest.php
+ * # 或
+ * composer test:mcp
+ * ```
  */
 
 use Swoolefy\Core\Application;
@@ -36,6 +45,7 @@ use Swoolefy\Support\Neuron\NeuronAiConfig;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
+/** 断言为真，否则抛 RuntimeException（单测失败） */
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -43,6 +53,15 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+// ---------------------------------------------------------------------------
+// McpFactory：server 列表合并与缺省行为
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 McpFactory::serverNames() 同时包含静态配置与仓储中的 server_id。
+ *
+ * 场景：静态 `static-docs` + 仓储 `repo-docs` 均应出现在合并列表中。
+ */
 function testServerNamesMergeStaticAndRepository(): void
 {
     $repo = new InMemoryMcpServerConfigRepository();
@@ -61,6 +80,11 @@ function testServerNamesMergeStaticAndRepository(): void
     assertTrue(in_array('repo-docs', $names, true), 'repository server listed');
 }
 
+/**
+ * 验证未配置的 server_id 返回 disabled stub connector，而非 null 或抛错。
+ *
+ * 目的：Agent 启动不因单个 MCP 缺失而中断。
+ */
 function testMissingServerReturnsDisabledConnector(): void
 {
     $factory = new McpFactory();
@@ -68,6 +92,11 @@ function testMissingServerReturnsDisabledConnector(): void
     assertTrue($connector !== null, 'disabled stub connector');
 }
 
+/**
+ * 验证 tools() 对不存在的 server 返回空数组。
+ *
+ * 目的：与 connector stub 一致，避免向上层抛异常。
+ */
 function testToolsForMissingServerReturnsEmpty(): void
 {
     $factory = new McpFactory();
@@ -75,6 +104,9 @@ function testToolsForMissingServerReturnsEmpty(): void
     assertTrue($tools === [], 'missing server tools empty');
 }
 
+/**
+ * 验证 listServers() 公开视图字段：server_id、enabled、transport，且不暴露 tenantId / 旧 id。
+ */
 function testListServersPublicView(): void
 {
     $factory = new McpFactory([
@@ -90,6 +122,15 @@ function testListServersPublicView(): void
     assertTrue(!array_key_exists('id', $list[0]), 'no legacy id in public view');
 }
 
+// ---------------------------------------------------------------------------
+// McpServerConfig：公开视图脱敏
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 toPublicArray() 对 token、Authorization、x-api-key 等敏感字段脱敏为 `***`。
+ *
+ * 非敏感字段（url、自定义 header）应保持原值；且不输出 tenantId / 旧 id。
+ */
 function testRepositoryMasksSecretsInPublicArray(): void
 {
     $config = new McpServerConfig(
@@ -116,6 +157,13 @@ function testRepositoryMasksSecretsInPublicArray(): void
     assertTrue(!array_key_exists('id', $public), 'no legacy id field');
 }
 
+// ---------------------------------------------------------------------------
+// 仓储：InMemory / Db
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 InMemoryMcpServerConfigRepository 的 upsert 同 server_id 覆盖、find 与 list 计数。
+ */
 function testInMemoryRepositoryUpsertFind(): void
 {
     $repo = new InMemoryMcpServerConfigRepository();
@@ -134,6 +182,11 @@ function testInMemoryRepositoryUpsertFind(): void
     assertTrue(count($repo->list()) === 1, 'one server id in list');
 }
 
+/**
+ * 验证 DbMcpServerConfigRepository 读取全局（无租户）配置行：find、list、字段解析。
+ *
+ * 使用 SQLite 内存库 + autoMigrate，直接 INSERT 模拟已迁移表。
+ */
 function testDbMcpRepositoryGlobalConfig(): void
 {
     $pdo = new PDO('sqlite::memory:');
@@ -160,6 +213,11 @@ function testDbMcpRepositoryGlobalConfig(): void
     assertTrue($list[0]->server_id === 'global_docs', 'listed server_id');
 }
 
+/**
+ * 验证 DbMcpServerConfigRepository 跳过 deleted_at 非空的软删行。
+ *
+ * find 与 list 均不应包含 `removed_srv`。
+ */
 function testDbMcpRepositorySkipsSoftDeletedRows(): void
 {
     $pdo = new PDO('sqlite::memory:');
@@ -184,6 +242,13 @@ function testDbMcpRepositorySkipsSoftDeletedRows(): void
     assertTrue(!in_array('removed_srv', $ids, true), 'soft-deleted not in list');
 }
 
+// ---------------------------------------------------------------------------
+// McpProcessRunner：本地进程限流与 stdio 判定
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 McpProcessRunner 达到 max 后 acquire 抛 McpProcessLimitException，release 后可恢复。
+ */
 function testProcessRunnerLimit(): void
 {
     McpProcessRunner::reset();
@@ -202,6 +267,9 @@ function testProcessRunnerLimit(): void
     }
 }
 
+/**
+ * 验证 isLocalStdioConfig() 仅将 transport=stdio + command 判为本地进程配置。
+ */
 function testIsLocalStdioConfig(): void
 {
     assertTrue(McpProcessRunner::isLocalStdioConfig([
@@ -214,6 +282,14 @@ function testIsLocalStdioConfig(): void
     ]), 'http is not local');
 }
 
+// ---------------------------------------------------------------------------
+// 传输类型推断与工具过滤
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 McpServerConfig::detectTransport() 覆盖 Neuron MCP 常见模式：
+ * url→http、url+async→sse、command→stdio、显式 sse/disabled 保持。
+ */
 function testDetectTransportCoversNeuronMcpModes(): void
 {
     assertTrue(McpServerConfig::detectTransport([
@@ -236,6 +312,9 @@ function testDetectTransportCoversNeuronMcpModes(): void
     ]) === 'disabled', 'disabled transport kept');
 }
 
+/**
+ * 验证 McpFactory::normalizeToolFilter()（反射调用）去重、去空、仅保留字符串。
+ */
 function testToolFilterNormalization(): void
 {
     $factory = new McpFactory();
@@ -247,6 +326,13 @@ function testToolFilterNormalization(): void
     assertTrue($normalized === ['search', 'read'], 'tool filter should keep unique non-empty strings');
 }
 
+// ---------------------------------------------------------------------------
+// NeuronAiConfig / PDO 解析 / 组件工厂
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 NeuronAiConfig::mcpDbComponent() 从配置读取及默认值 `db`。
+ */
 function testMcpDbComponentFromConfig(): void
 {
     $config = NeuronAiConfig::fromArray([
@@ -258,6 +344,9 @@ function testMcpDbComponentFromConfig(): void
     assertTrue($default->mcpDbComponent() === 'db', 'db_component default');
 }
 
+/**
+ * 验证无 Application 上下文时 McpPdoResolver::resolve() fail-fast 并提示需要 Application。
+ */
 function testMcpPdoResolverRequiresApplication(): void
 {
     try {
@@ -268,6 +357,9 @@ function testMcpPdoResolverRequiresApplication(): void
     }
 }
 
+/**
+ * 验证 McpPdoResolver::resolveFromContainer() 从容器组件取出 PDO 并设置 ERRMODE_EXCEPTION。
+ */
 function testMcpPdoResolverFromDbComponent(): void
 {
     $pdo = new PDO('sqlite::memory:');
@@ -287,6 +379,11 @@ function testMcpPdoResolverFromDbComponent(): void
     assertTrue($resolved->getAttribute(PDO::ATTR_ERRMODE) === PDO::ERRMODE_EXCEPTION, 'errmode exception');
 }
 
+/**
+ * 验证 McpComponentFactory 用 Db 仓储装配 McpFactory，且 dbRepository() 接受注入 PDO。
+ *
+ * 场景：SQLite 插入 `factory_docs` 行后，factory()->serverNames() 应包含该 server。
+ */
 function testMcpComponentFactoryDbRepository(): void
 {
     $pdo = new PDO('sqlite::memory:');

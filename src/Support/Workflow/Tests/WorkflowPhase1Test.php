@@ -14,15 +14,20 @@ declare(strict_types=1);
 /**
  * Phase 1 工作流引擎回归测试。
  *
- * 覆盖：
- *   - 编译器：环检测、入口节点
- *   - 条件边：Symfony EL 读 data['decision']
- *   - 引擎：三条路由（payment / manual_review / reject）
- *   - Facade：Workflow::fromDefinition()->compile()->start()
- *   - 插件：TracingPlugin span 收集
- *   - Neuron：ChatHistoryFactory 内存记忆
+ * ## 覆盖范围
+ * | 区域 | 要点 |
+ * |------|------|
+ * | WorkflowCompiler | 环检测、条件边 default 必填、单入口约束 |
+ * | 条件路由 | 高置信度 payment / 低置信度 manual_review / 拒绝 reject |
+ * | Workflow Facade | fromDefinition()->compile()->start() 链式调用 |
+ * | 插件 | TracingPlugin span 收集 |
+ * | Neuron | ChatHistoryFactory 内存记忆 |
+ * | Symfony EL | decision 分支表达式求值 |
  *
- * 运行：php src/Support/Workflow/Tests/WorkflowPhase1Test.php
+ * ## 运行
+ * ```bash
+ * php src/Support/Workflow/Tests/WorkflowPhase1Test.php
+ * ```
  */
 
 use Swoolefy\Support\Neuron\NeuronFactory;
@@ -42,7 +47,11 @@ use Test\Module\Order\Workflow\OrderProcessingWorkflow;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
-/** 断言条件为真，否则抛 RuntimeException。 */
+// ---------------------------------------------------------------------------
+// 通用断言
+// ---------------------------------------------------------------------------
+
+/** 断言条件为真，否则抛 RuntimeException 使单测失败。 */
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -50,7 +59,15 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
-/** 测试：编译器应检测到 a↔b 环并抛 WorkflowCompileException。 */
+// ---------------------------------------------------------------------------
+// 编译期校验
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：含 a↔b 双向边的图在编译时应抛出 WorkflowCompileException。
+ *
+ * 为何重要：DAG 不允许环，否则调度器可能死循环。
+ */
 function testCompilerDetectsCycle(): void
 {
     $definition = \Swoolefy\Support\Workflow\Definition\WorkflowDefinition::create('cycle')
@@ -68,7 +85,11 @@ function testCompilerDetectsCycle(): void
     }
 }
 
-/** 测试：条件边缺少 default 应在编译期失败。 */
+/**
+ * 验证：条件边未配置 default 分支时编译失败，且错误信息提及 default。
+ *
+ * 为何重要：运行时须保证每条出边有且仅有一条可走路径，缺 default 会导致未定义行为。
+ */
 function testCompilerRequiresConditionalDefault(): void
 {
     $definition = \Swoolefy\Support\Workflow\Definition\WorkflowDefinition::create('no_default')
@@ -86,7 +107,11 @@ function testCompilerRequiresConditionalDefault(): void
     }
 }
 
-/** 测试：多入口图应在编译期失败（Engine 只执行第一个入口）。 */
+/**
+ * 验证：存在多个无入边入口节点时编译失败。
+ *
+ * 为何重要：引擎只执行单一入口，多入口图语义不明确，应在编译期拒绝。
+ */
 function testCompilerRejectsMultipleEntryNodes(): void
 {
     $definition = \Swoolefy\Support\Workflow\Definition\WorkflowDefinition::create('multi_entry')
@@ -104,7 +129,15 @@ function testCompilerRejectsMultipleEntryNodes(): void
     }
 }
 
-/** 测试：高置信度批准应直连 payment，跳过 manual_review。 */
+// ---------------------------------------------------------------------------
+// 订单处理条件路由（OrderProcessingWorkflow）
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：高置信度批准（confidence≥0.8）应直连 payment，跳过 manual_review。
+ *
+ * 同时确认 TracingPlugin 记录了足够 span，便于可观测性回归。
+ */
 function testConditionalRoutingHighConfidence(): void
 {
     $tracing = new TracingPlugin();
@@ -141,7 +174,11 @@ function testConditionalRoutingHighConfidence(): void
     assertTrue(count($tracing->spans()) >= 4, 'Tracing plugin should record spans');
 }
 
-/** 测试：低置信度批准应经 manual_review 再到 payment。 */
+/**
+ * 验证：低置信度批准应经 manual_review 节点后再到 payment。
+ *
+ * 覆盖「批准但需人工复核」业务路径。
+ */
 function testConditionalRoutingManualReview(): void
 {
     $engine = WorkflowBootstrap::engine();
@@ -163,7 +200,11 @@ function testConditionalRoutingManualReview(): void
     assertTrue($run->state->get('paymentStatus') === 'captured', 'Should continue to payment');
 }
 
-/** 测试：拒绝应路由到 reject，不执行 payment。 */
+/**
+ * 验证：拒绝决策应路由到 reject，且不执行 payment 捕获。
+ *
+ * 确保拒绝路径与支付路径互斥。
+ */
 function testConditionalRoutingReject(): void
 {
     $engine = WorkflowBootstrap::engine();
@@ -185,12 +226,19 @@ function testConditionalRoutingReject(): void
     assertTrue($run->state->get('paymentStatus') === null, 'Should not capture payment');
 }
 
-/** 测试：Workflow Facade 链式调用可完成整次 Run。 */
+// ---------------------------------------------------------------------------
+// Facade 与基础设施
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：Workflow Facade 链式 compile/start 可完成整次 Run。
+ *
+ * 非协程 CLI 无 Context 缓存，须显式传入同一 Engine 实例。
+ */
 function testWorkflowFacade(): void
 {
     WorkflowBootstrap::reset();
 
-    // 非协程 CLI 无 Context 缓存，须显式复用同一 Engine 实例
     $engine = WorkflowBootstrap::engine();
 
     $runId = Workflow::fromDefinition(OrderProcessingWorkflow::definition(new NeuronFactory()))
@@ -204,14 +252,22 @@ function testWorkflowFacade(): void
     assertTrue($run->status->value === 'completed', 'Facade run should complete');
 }
 
-/** 测试：ChatHistoryFactory::inMemory 返回进程内会话记忆。 */
+/**
+ * 验证：ChatHistoryFactory::inMemory 返回可用的进程内会话记忆实现。
+ *
+ * 供 Neuron Agent 单测与 CLI 场景使用，无需外部存储。
+ */
 function testChatHistoryFactoryInMemory(): void
 {
     $history = \Swoolefy\Support\Neuron\Memory\ChatHistoryFactory::inMemory();
     assertTrue($history instanceof \NeuronAI\Chat\History\ChatHistoryInterface, 'ChatHistoryFactory should return chat history');
 }
 
-/** 测试：Symfony EL 能正确求值 decision 分支条件。 */
+/**
+ * 验证：Symfony ExpressionLanguage 能正确求值 decision 分支条件。
+ *
+ * 条件边依赖 data['decision'] 结构，本用例隔离验证求值器本身。
+ */
 function testExpressionEvaluator(): void
 {
     $evaluator = new SymfonyExpressionLanguageEvaluator();
@@ -227,6 +283,10 @@ function testExpressionEvaluator(): void
         'Symfony EL should evaluate decision branch',
     );
 }
+
+// ---------------------------------------------------------------------------
+// 执行入口
+// ---------------------------------------------------------------------------
 
 $tests = [
     'compiler cycle detection' => 'testCompilerDetectsCycle',

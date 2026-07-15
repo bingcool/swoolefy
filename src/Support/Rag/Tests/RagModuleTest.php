@@ -12,13 +12,25 @@
 declare(strict_types=1);
 
 /**
- * RAG 模块回归测试。
+ * RAG 模块回归测试（无需真实 Milvus / PostgreSQL / 外网 Embedding）。
  *
- * 覆盖：VectorStoreFactory file 模式、IngestionPipeline、RetrievalService、
- * RagFactory 一致性、MilvusVectorStore::make 参数装配（不连真实服务）。
+ * ## 覆盖范围
+ * | 区域 | 要点 |
+ * |------|------|
+ * | VectorStoreFactory | FILE 模式、知识库名净化、自定义 alias/driver、未知 alias/driver 抛错 |
+ * | IngestionPipeline / RetrievalService | ingestTexts/ingest、空文本跳过、检索命中形状 |
+ * | RagIngestNode / RagRetrieveNode | Workflow state 传递 tenantId |
+ * | RagIngestDispatcher | 队列模式 producer/consumer、消费后可检索 |
+ * | MilvusVectorStore / MilvusFilterExpr | make 参数、collection 名净化、过滤表达式转义 |
+ * | PgVectorStore | make 参数、非法表名/metric 拒绝 |
+ * | NeuronAiConfig | Milvus / PgVector 配置段读取 |
  *
- * 运行：php src/Support/Rag/Tests/RagModuleTest.php
- * 或：composer test:rag
+ * ## 运行
+ * ```bash
+ * php src/Support/Rag/Tests/RagModuleTest.php
+ * # 或
+ * composer test:rag
+ * ```
  */
 
 use NeuronAI\RAG\Document;
@@ -49,6 +61,13 @@ use Swoolefy\Support\Workflow\WorkflowConfig;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
+// ---------------------------------------------------------------------------
+// 测试替身：队列 producer / consumer
+// ---------------------------------------------------------------------------
+
+/**
+ * 队列模式测试用 Producer：将 RagIngestJob 序列化后存入静态 $jobs 供断言。
+ */
 final class TestRagIngestProducer
 {
     /** @var list<array<string, mixed>> */
@@ -60,6 +79,9 @@ final class TestRagIngestProducer
     }
 }
 
+/**
+ * 队列模式测试用 Consumer：直接调用 IngestionPipeline::ingestTexts 完成入库。
+ */
 final class TestRagIngestConsumer
 {
     public function handle(RagIngestJob $job, IngestionPipeline $pipeline): IngestResult
@@ -73,6 +95,7 @@ final class TestRagIngestConsumer
     }
 }
 
+/** 断言为真，否则抛 RuntimeException（单测失败） */
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -80,6 +103,11 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+/**
+ * 构造带 FILE 向量库与 allow_fake_embeddings 的 RagFactory 测试夹具。
+ *
+ * @param string|null $basePath 向量文件目录，默认按 pid 隔离的临时路径
+ */
 function makeRagFactory(?string $basePath = null): RagFactory
 {
     $path = $basePath ?? (sys_get_temp_dir() . '/swoolefy_rag_module_' . getmypid());
@@ -100,6 +128,13 @@ function makeRagFactory(?string $basePath = null): RagFactory
     return new RagFactory(new VectorStoreFactory($config, $path), new EmbeddingFactory($config));
 }
 
+// ---------------------------------------------------------------------------
+// VectorStoreFactory：FILE 模式与 alias
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 VectorStoreFactory 在 FILE 默认配置下 storeType/alias 正确，make() 返回 FileVectorStore。
+ */
 function testVectorStoreFactoryFileMode(): void
 {
     $path = sys_get_temp_dir() . '/swoolefy_rag_vs_' . getmypid();
@@ -121,6 +156,9 @@ function testVectorStoreFactoryFileMode(): void
     assertTrue($store instanceof FileVectorStore, 'file vector store');
 }
 
+/**
+ * 验证知识库名含 `../`、空格、特殊字符时 make() 仍能创建 FileVectorStore（内部净化路径）。
+ */
 function testVectorStoreSanitizesKnowledgeBaseName(): void
 {
     $path = sys_get_temp_dir() . '/swoolefy_rag_sanitize_' . getmypid();
@@ -138,6 +176,11 @@ function testVectorStoreSanitizesKnowledgeBaseName(): void
     assertTrue($store instanceof FileVectorStore, 'sanitized store created');
 }
 
+/**
+ * 验证多 alias 配置下 defaultVectorStoreAlias、vectorStoreDriver、milvusUri、pgvectorComponent 等读取正确。
+ *
+ * 默认 alias 与显式 primary_file 均应产出 FileVectorStore。
+ */
 function testVectorStoreCustomAliasWithDriver(): void
 {
     $path = sys_get_temp_dir() . '/swoolefy_rag_alias_' . getmypid();
@@ -182,6 +225,13 @@ function testVectorStoreCustomAliasWithDriver(): void
     assertTrue($store2 instanceof FileVectorStore, 'explicit alias file');
 }
 
+// ---------------------------------------------------------------------------
+// Ingestion / Retrieval 端到端（FILE + fake embedding）
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 ingestTexts 写入两条文档后，RetrievalService 能检索到相关内容且 hit 含 content/score。
+ */
 function testIngestTextsAndRetrieve(): void
 {
     $rag = makeRagFactory();
@@ -200,6 +250,9 @@ function testIngestTextsAndRetrieve(): void
     assertTrue(isset($hits[0]['content'], $hits[0]['score']), 'hit shape');
 }
 
+/**
+ * 验证 ingestTexts 对空串/纯空白文本跳过，documentCount 为 0。
+ */
 function testIngestEmptyReturnsZero(): void
 {
     $rag = makeRagFactory();
@@ -207,6 +260,9 @@ function testIngestEmptyReturnsZero(): void
     assertTrue($result->documentCount === 0, 'empty texts skipped');
 }
 
+/**
+ * 验证 ingest() 直接接受 NeuronAI Document 对象列表并计数。
+ */
 function testIngestDocumentsDirectly(): void
 {
     $rag = makeRagFactory();
@@ -216,6 +272,15 @@ function testIngestDocumentsDirectly(): void
     assertTrue($result->documentCount === 2, 'document ingest count');
 }
 
+// ---------------------------------------------------------------------------
+// Workflow Node：tenantId 从 state 传递
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 RagIngestNode / RagRetrieveNode 在 require_tenant_isolation 下从 WorkflowState 读取 tenantId。
+ *
+ * 场景：state 含 tenantId、documents、question，ingest 后 retrieve 应命中同租户数据。
+ */
 function testRagNodesPassTenantIdFromState(): void
 {
     $path = sys_get_temp_dir() . '/swoolefy_rag_node_tenant_' . getmypid();
@@ -251,6 +316,13 @@ function testRagNodesPassTenantIdFromState(): void
     assertTrue(is_array($docs) && count($docs) >= 1, 'node retrieve ok with state tenant');
 }
 
+// ---------------------------------------------------------------------------
+// RagIngestDispatcher：队列模式
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 MODE_QUEUE 下 dispatcher 返回 queued 状态，producer 收到 tenant/metadata，consumer 消费后可检索。
+ */
 function testRagIngestDispatcherQueueMode(): void
 {
     TestRagIngestProducer::$jobs = [];
@@ -295,11 +367,10 @@ function testRagIngestDispatcherQueueMode(): void
     assertTrue((TestRagIngestProducer::$jobs[0]['tenantId'] ?? '') === 'tenant_queue', 'tenant in job');
     assertTrue((TestRagIngestProducer::$jobs[0]['metadata']['traceId'] ?? '') === 'trace-queue-1', 'metadata in job');
 
-    // 模拟从队列中获取job
+    // 模拟从队列中取出 job 并由 ConfigurableRagIngestQueue 消费入库
     $job = RagIngestJob::fromArray(TestRagIngestProducer::$jobs[0]);
     $ingestion = (array) ($config->ragSection()['ingestion'] ?? []);
     $queueConfig = $ingestion['queue'] ?? [];
-    // 模拟消费处理job入库
     $consumed = (new ConfigurableRagIngestQueue(is_array($queueConfig) ? $queueConfig : []))->consume($job, $pipeline);
     assertTrue($consumed->documentCount === 1, 'consumer ingests one document');
 
@@ -307,6 +378,13 @@ function testRagIngestDispatcherQueueMode(): void
     assertTrue(count($hits) >= 1, 'queued document is retrievable after consume');
 }
 
+// ---------------------------------------------------------------------------
+// RagFactory 检索接口
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 RagFactory::retrieval() 构建 similarity 检索器，embeddings() 返回 EmbeddingsProviderInterface。
+ */
 function testRagFactoryRetrievalInterface(): void
 {
     $rag = makeRagFactory();
@@ -315,6 +393,13 @@ function testRagFactoryRetrievalInterface(): void
     assertTrue($rag->embeddings() instanceof \NeuronAI\RAG\Embeddings\EmbeddingsProviderInterface, 'embeddings');
 }
 
+// ---------------------------------------------------------------------------
+// MilvusVectorStore / MilvusFilterExpr（不连真实服务）
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 MilvusVectorStore::make() 参数装配与 getCollectionName()（无网络调用）。
+ */
 function testMilvusVectorStoreMakeParams(): void
 {
     $store = MilvusVectorStore::make([
@@ -332,6 +417,9 @@ function testMilvusVectorStoreMakeParams(): void
     assertTrue($store->getCollectionName() === 'kb_test', 'collection name');
 }
 
+/**
+ * 验证 sanitizeCollectionName：连字符转下划线、数字开头加 c_ 前缀、合法名不变；make() 自动净化。
+ */
 function testMilvusSanitizeCollectionName(): void
 {
     assertTrue(
@@ -355,6 +443,9 @@ function testMilvusSanitizeCollectionName(): void
     assertTrue($store->getCollectionName() === 'acme_corp_kb_v1', 'make() sanitizes collection name');
 }
 
+/**
+ * 验证 MilvusFilterExpr::deleteBySourceFilter 对引号转义、仅 sourceType、控制字符拒绝。
+ */
 function testMilvusFilterExprEscapesQuotes(): void
 {
     $filter = MilvusFilterExpr::deleteBySourceFilter('file', 'readme "draft".md');
@@ -374,6 +465,13 @@ function testMilvusFilterExprEscapesQuotes(): void
     }
 }
 
+// ---------------------------------------------------------------------------
+// PgVectorStore
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 PgVectorStore::make() 参数与 embeddingLiteral() 向量字面量格式。
+ */
 function testPgVectorStoreMakeParams(): void
 {
     $store = PgVectorStore::make([
@@ -389,6 +487,9 @@ function testPgVectorStoreMakeParams(): void
     assertTrue(PgVectorStore::embeddingLiteral([0.1, 2, -3.5]) === '[0.1,2,-3.5]', 'pgvector vector literal');
 }
 
+/**
+ * 验证非法 table_name 与未知 metric 时 PgVectorStore::make() 抛 RuntimeException。
+ */
 function testPgVectorStoreRejectsInvalidConfig(): void
 {
     try {
@@ -413,6 +514,13 @@ function testPgVectorStoreRejectsInvalidConfig(): void
     }
 }
 
+// ---------------------------------------------------------------------------
+// VectorStoreFactory 错误路径
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证显式传入不存在的 storeAlias 时 make() 抛 Unknown vector store alias。
+ */
 function testVectorStoreUnknownAliasThrows(): void
 {
     $path = sys_get_temp_dir() . '/swoolefy_rag_unknown_' . getmypid();
@@ -434,6 +542,9 @@ function testVectorStoreUnknownAliasThrows(): void
     }
 }
 
+/**
+ * 验证 default_vector_store 指向未声明 alias 时 make() 抛错。
+ */
 function testVectorStoreUnknownDefaultAliasThrows(): void
 {
     $config = NeuronAiConfig::fromArray([
@@ -452,6 +563,9 @@ function testVectorStoreUnknownDefaultAliasThrows(): void
     }
 }
 
+/**
+ * 验证 vector_stores 中 driver 拼写错误（如 milvu）时抛 Unknown vector store driver。
+ */
 function testVectorStoreUnknownDriverThrows(): void
 {
     $path = sys_get_temp_dir() . '/swoolefy_rag_bad_driver_' . getmypid();
@@ -478,6 +592,13 @@ function testVectorStoreUnknownDriverThrows(): void
     }
 }
 
+// ---------------------------------------------------------------------------
+// NeuronAiConfig：Milvus / PgVector 配置段
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证 NeuronAiConfig 对 Milvus 默认 alias、driver、uri/user/password/db/dimension 的读取。
+ */
 function testMilvusConfigSectionInNeuronAiConfig(): void
 {
     $config = NeuronAiConfig::fromArray([
@@ -504,6 +625,9 @@ function testMilvusConfigSectionInNeuronAiConfig(): void
     assertTrue($config->milvusDimension() === 1024, 'dimension');
 }
 
+/**
+ * 验证 NeuronAiConfig 对 PgVector alias、driver、component、table、dimension、metric 的读取。
+ */
 function testPgVectorConfigSectionInNeuronAiConfig(): void
 {
     $config = NeuronAiConfig::fromArray([

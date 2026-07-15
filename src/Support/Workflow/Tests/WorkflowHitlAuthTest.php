@@ -12,9 +12,21 @@
 declare(strict_types=1);
 
 /**
- * Phase A 生产加固测试 —— HITL 鉴权、resume CAS 等。
+ * Phase A 生产加固测试 —— HITL 鉴权、resume CAS、Run 生命周期钩子。
  *
- * 运行：php src/Support/Workflow/Tests/WorkflowHitlAuthTest.php
+ * ## 覆盖范围
+ * | 区域 | 要点 |
+ * |------|------|
+ * | WorkflowHitlAuth | API Key / 角色校验、鉴权关闭、assignee 匹配 |
+ * | 列表过滤 | resolveListAssigneeFilter、listPauseTasks 按 assignee 范围 |
+ * | resume CAS | 双 resume 防护、pauseNodeId 清除、DbRunStore saveIfStatus |
+ * | run.complete | WAITING 中间态不触发；cancel 释放 RateLimit |
+ * | WorkflowRunPresenter | 默认脱敏 data/nodeOutputs/agentOutputs |
+ *
+ * ## 运行
+ * ```bash
+ * php src/Support/Workflow/Tests/WorkflowHitlAuthTest.php
+ * ```
  */
 
 use Swoolefy\Support\Workflow\Definition\WorkflowDefinition;
@@ -46,6 +58,11 @@ use Swoolefy\Support\Workflow\Tests\WorkflowRunsSchemaInstaller;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
+// ---------------------------------------------------------------------------
+// 通用断言与输出
+// ---------------------------------------------------------------------------
+
+/** 断言条件为真，否则抛 RuntimeException 使单测失败。 */
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -53,14 +70,23 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+/** 在 CLI 输出 [PASS] 标记。 */
 function pass(string $name): void
 {
     echo "[PASS] {$name}\n";
 }
 
+// ---------------------------------------------------------------------------
+// 环境变量夹具
+// ---------------------------------------------------------------------------
+
 /**
- * @param array<string, string|null> $vars null 表示临时 unset
- * @param callable(): void $callback
+ * 在回调执行期间临时设置/清除环境变量，结束后恢复原值。
+ *
+ * 用于测试 WORKFLOW_HITL_AUTH_ENABLED 等开关，避免污染进程全局状态。
+ *
+ * @param array<string, string|null> $vars null 表示临时 unset 该变量
+ * @param callable(): void $callback 在修改后的环境中执行的测试逻辑
  */
 function withHitlEnv(array $vars, callable $callback): void
 {
@@ -91,6 +117,15 @@ function withHitlEnv(array $vars, callable $callback): void
     }
 }
 
+// ---------------------------------------------------------------------------
+// 测试用 Spy / 插件
+// ---------------------------------------------------------------------------
+
+/**
+ * RunStore 装饰器：在 saveIfStatus 时记录 run 的 pauseNodeId。
+ *
+ * 用于验证 resume CAS 持久化时是否正确清空 pauseNodeId。
+ */
 final class PauseNodeIdSpyRunStore implements RunStoreInterface, PauseTaskQueryableInterface
 {
     public ?string $pauseNodeIdAtCas = null;
@@ -122,6 +157,11 @@ final class PauseNodeIdSpyRunStore implements RunStoreInterface, PauseTaskQuerya
     }
 }
 
+/**
+ * 计数 run.complete 钩子触发次数的测试插件。
+ *
+ * 用于验证 WAITING 中间态与 cancel 场景下 run.complete 触发时机。
+ */
 final class RunCompleteCounterPlugin implements WorkflowPluginInterface
 {
     public int $count = 0;
@@ -139,6 +179,15 @@ final class RunCompleteCounterPlugin implements WorkflowPluginInterface
     }
 }
 
+// ---------------------------------------------------------------------------
+// 配置夹具
+// ---------------------------------------------------------------------------
+
+/**
+ * 构造启用 HITL 鉴权的 WorkflowConfig，支持数组覆盖默认项。
+ *
+ * 默认：memory store、auth_enabled、api_key、allowed_roles、require_assignee_match。
+ */
 function hitlConfig(array $overrides = []): WorkflowConfig
 {
     return WorkflowConfig::fromArray([
@@ -154,6 +203,15 @@ function hitlConfig(array $overrides = []): WorkflowConfig
     ]);
 }
 
+// ---------------------------------------------------------------------------
+// WorkflowHitlAuth 凭证校验
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：提供正确 API Key 时 assertAuthorized 通过。
+ *
+ * 生产 API 网关常用 Key 鉴权，须支持无角色仅 Key 的场景。
+ */
 function testHitlAuthWithValidApiKey(): void
 {
     $auth = new WorkflowHitlAuth(hitlConfig());
@@ -161,6 +219,11 @@ function testHitlAuthWithValidApiKey(): void
     pass('hitl auth valid api key');
 }
 
+/**
+ * 验证：提供 allowed_roles 内角色时 assertAuthorized 通过（无需 Key）。
+ *
+ * 支持基于角色的内部服务调用。
+ */
 function testHitlAuthWithValidRole(): void
 {
     $auth = new WorkflowHitlAuth(hitlConfig());
@@ -168,6 +231,11 @@ function testHitlAuthWithValidRole(): void
     pass('hitl auth valid role');
 }
 
+/**
+ * 验证：鉴权开启且 Key 与角色均缺失时抛出 WorkflowPermissionException。
+ *
+ * 防止匿名 resume/list 操作。
+ */
 function testHitlAuthRejectsMissingCredentials(): void
 {
     $auth = new WorkflowHitlAuth(hitlConfig());
@@ -179,6 +247,11 @@ function testHitlAuthRejectsMissingCredentials(): void
     pass('hitl auth rejects missing credentials');
 }
 
+/**
+ * 验证：auth_enabled=false 或环境变量关闭时，无凭证也可通过鉴权。
+ *
+ * 开发/内网场景可关闭 HITL 鉴权而不改业务代码。
+ */
 function testHitlAuthDisabledAllowsAll(): void
 {
     withHitlEnv(['WORKFLOW_HITL_AUTH_ENABLED' => '0'], static function (): void {
@@ -188,6 +261,11 @@ function testHitlAuthDisabledAllowsAll(): void
     pass('hitl auth disabled allows all');
 }
 
+/**
+ * 验证：require_assignee_match 时，resume 方 assignee 须与 PauseNode 配置一致。
+ *
+ * 基于真实 WAITING run（DbRunStore）验证 assertCanResume 行为与错误信息。
+ */
 function testHitlAssigneeMatch(): void
 {
     $registry = new WorkflowRegistry();
@@ -227,6 +305,15 @@ function testHitlAssigneeMatch(): void
     pass('hitl assignee match');
 }
 
+// ---------------------------------------------------------------------------
+// 暂停任务列表与 assignee 过滤
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：resolveListAssigneeFilter 对非 admin 默认限定为当前 actor；admin 或鉴权关闭时可见全部。
+ *
+ * 列表 API 须防止普通操作员越权查看他人任务。
+ */
 function testResolveListAssigneeFilterScopesNonAdminToActor(): void
 {
     $auth = new WorkflowHitlAuth(hitlConfig());
@@ -245,6 +332,11 @@ function testResolveListAssigneeFilterScopesNonAdminToActor(): void
     pass('resolve list assignee filter');
 }
 
+/**
+ * 验证：listPauseTasks(assignee) 按 assignee 过滤；null 返回全部。
+ *
+ * 与 RunStore.listWaiting 集成，覆盖多工作流多 assignee 场景。
+ */
 function testListPauseTasksScopesByAssigneeFilter(): void
 {
     $registry = new WorkflowRegistry();
@@ -276,6 +368,15 @@ function testListPauseTasksScopesByAssigneeFilter(): void
     pass('list pause tasks scopes by assignee filter');
 }
 
+// ---------------------------------------------------------------------------
+// resume CAS 与 DbRunStore
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：同一 WAITING run 被 CAS 认领后，第二次 saveIfStatus 失败且 engine.resume 被拒绝。
+ *
+ * 模拟多 Worker 并发 resume 的竞态防护。
+ */
 function testResumeCasPreventsDoubleResume(): void
 {
     $registry = new WorkflowRegistry();
@@ -319,6 +420,11 @@ function testResumeCasPreventsDoubleResume(): void
     pass('resume cas prevents double resume');
 }
 
+/**
+ * 验证：DbRunStore.saveIfStatus 在期望状态不匹配时返回 false；匹配时可更新状态。
+ *
+ * 覆盖已完成 run 不能按 WAITING 期望 CAS、以及 COMPLETED→WAITING 反向更新路径。
+ */
 function testDbRunStoreSaveIfStatus(): void
 {
     $registry = new WorkflowRegistry();
@@ -346,6 +452,11 @@ function testDbRunStoreSaveIfStatus(): void
     pass('db run store saveIfStatus');
 }
 
+/**
+ * 验证：engine.resume 在 CAS 持久化时将 pauseNodeId 置为 null，且 run 最终 COMPLETED。
+ *
+ * 通过 PauseNodeIdSpyRunStore 观测 saveIfStatus 写入时的 pauseNodeId。
+ */
 function testResumeCasPersistClearsPauseNodeId(): void
 {
     $registry = new WorkflowRegistry();
@@ -377,6 +488,15 @@ function testResumeCasPersistClearsPauseNodeId(): void
     pass('resume cas persist clears pause node id');
 }
 
+// ---------------------------------------------------------------------------
+// run.complete 与 cancel 生命周期
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：run 处于 WAITING（含多次 pause）时不触发 run.complete；最终 COMPLETED 时触发一次。
+ *
+ * 与 start 语义对齐：仅真正结束才计为完成，避免 WAITING 误释放资源。
+ */
 function testResumeDoesNotFireRunCompleteWhileWaiting(): void
 {
     $registry = new WorkflowRegistry();
@@ -414,6 +534,11 @@ function testResumeDoesNotFireRunCompleteWhileWaiting(): void
     pass('resume run complete aligned with start');
 }
 
+/**
+ * 验证：cancel WAITING run 时触发 run.complete 一次，并释放 RateLimit 占位。
+ *
+ * WAITING 期间仍占用并发槽，cancel 须与正常结束一样清理插件状态。
+ */
 function testCancelWaitingFiresRunCompleteAndReleasesRateLimit(): void
 {
     $registry = new WorkflowRegistry();
@@ -446,6 +571,15 @@ function testCancelWaitingFiresRunCompleteAndReleasesRateLimit(): void
     pass('cancel waiting releases rate limit');
 }
 
+// ---------------------------------------------------------------------------
+// API 响应脱敏
+// ---------------------------------------------------------------------------
+
+/**
+ * 验证：WorkflowRunPresenter 默认 toArray 脱敏 data/nodeOutputs/agentOutputs；includeDetails 时返回完整内容。
+ *
+ * 列表/状态 API 不应泄露敏感业务字段。
+ */
 function testWorkflowRunPresenterRedactsDetailsByDefault(): void
 {
     $definition = WorkflowDefinition::create('secure_status', '1.0.0')
@@ -482,6 +616,10 @@ function testWorkflowRunPresenterRedactsDetailsByDefault(): void
 
     pass('workflow run presenter redacts details by default');
 }
+
+// ---------------------------------------------------------------------------
+// 执行入口
+// ---------------------------------------------------------------------------
 
 $tests = [
     'hitl auth valid api key' => 'testHitlAuthWithValidApiKey',

@@ -12,9 +12,25 @@
 declare(strict_types=1);
 
 /**
- * Phase C / P0 生产加固测试 —— URL guard、cancel CAS、Agent 并行失败传播。
+ * Phase C / P0 生产加固测试 —— URL 后缀绕过、Cancel CAS、Agent 并行失败传播、协程超时。
  *
- * 运行：composer test:phase-c
+ * ## 覆盖范围
+ * | 区域 | 要点 |
+ * |------|------|
+ * | OutboundUrlGuard | 后缀绕过（notopenai.com）拦截；空 allowlist + requireAllowlist fail-closed |
+ * | InMemoryRunStore / Engine.cancel | WAITING 取消走 CAS；RUNNING 合作式标志；立即释放 RateLimit 槽位 |
+ * | AgentParallelNode / AgentScheduler | 部分失败 → 节点 FAILED；failFast 同步/协程内向上抛 |
+ * | GoWaitGroup | 协程内 batch 超时抛 SystemException |
+ *
+ * ## 运行
+ * ```bash
+ * php src/Support/Tests/PhaseCProductionTest.php
+ * # 或
+ * composer test:phase-c
+ * ```
+ *
+ * 说明：含 Swoole 协程的用例在无 swoole 扩展时打印 `[SKIP]` 并跳过，不计入失败。
+ * 依赖 {@see SwoolefyTestBootstrap.php} 提供 CLI 下 APP_PATH 等常量。
  */
 
 use Swoolefy\Support\Agent\AgentScheduler;
@@ -48,6 +64,7 @@ use Swoolefy\Support\Workflow\WorkflowRegistry;
 require dirname(__DIR__, 3) . '/vendor/autoload.php';
 require __DIR__ . '/SwoolefyTestBootstrap.php';
 
+/** 断言为真，否则抛 RuntimeException（单测失败） */
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -55,11 +72,20 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+/** 打印通过标记 */
 function pass(string $name): void
 {
     echo "[PASS] {$name}\n";
 }
 
+// ---------------------------------------------------------------------------
+// OutboundUrlGuard：后缀匹配不得被「包含子串」的恶意域名绕过
+// ---------------------------------------------------------------------------
+
+/**
+ * allowlist 为 openai.com 时：api.openai.com 合法；
+ * notopenai.com 不得因 endsWith/含 openai.com 子串而误放行。
+ */
 function testOutboundUrlSuffixBypassBlocked(): void
 {
     $guard = new OutboundUrlGuard(['openai.com'], allowPrivateNetworks: false, requireAllowlist: false);
@@ -76,6 +102,9 @@ function testOutboundUrlSuffixBypassBlocked(): void
     pass('outbound url suffix bypass blocked');
 }
 
+/**
+ * requireAllowlist=true 且后缀列表为空时 fail-closed：任何 URL 都拒绝。
+ */
 function testOutboundUrlRequireAllowlistEmpty(): void
 {
     $guard = new OutboundUrlGuard([], allowPrivateNetworks: false, requireAllowlist: true);
@@ -90,6 +119,14 @@ function testOutboundUrlRequireAllowlistEmpty(): void
     pass('outbound url require allowlist empty');
 }
 
+// ---------------------------------------------------------------------------
+// Cancel：CAS 条件写 + WAITING 成功路径 + RUNNING 合作式取消
+// ---------------------------------------------------------------------------
+
+/**
+ * saveIfStatus 模拟「取消 WAITING」的 CAS：内存中实际仍是 RUNNING 时，
+ * 期望状态 WAITING 的写入应失败，避免并发覆盖。
+ */
 function testCancelWaitingUsesCas(): void
 {
     $store = new InMemoryRunStore();
@@ -111,11 +148,15 @@ function testCancelWaitingUsesCas(): void
     $stale = $store->find('run_cas');
     assertTrue($stale !== null, 'run loaded');
     $stale->status = RunStatus::CANCELLED;
+    // 期望「当前为 WAITING」才允许写成 CANCELLED —— 实际是 RUNNING → CAS 失败
     assertTrue(!$store->saveIfStatus($stale, RunStatus::WAITING), 'cas rejects when persisted RUNNING');
 
     pass('cancel waiting uses cas');
 }
 
+/**
+ * 引擎 start 到 PauseNode（WAITING）后 cancel，run 状态应变为 CANCELLED。
+ */
 function testCancelWaitingSuccess(): void
 {
     $store = new InMemoryRunStore();
@@ -138,6 +179,10 @@ function testCancelWaitingSuccess(): void
     pass('cancel waiting success');
 }
 
+/**
+ * RUNNING 取消不立刻改 status（合作式）：打上 `_cancelRequested`，
+ * 并提前 fire runComplete（`_runCompleteFired`）以便释放并发槽位等副作用。
+ */
 function testCancelRunningSetsCooperativeFlag(): void
 {
     $store = new InMemoryRunStore();
@@ -172,6 +217,10 @@ function testCancelRunningSetsCooperativeFlag(): void
     pass('cancel running sets cooperative flag');
 }
 
+/**
+ * RUNNING cancel 必须立刻把 RateLimitPlugin 占用的 activeRuns 减回 0，
+ * 否则合作式结束前会长期占满并发配额。
+ */
 function testCancelRunningReleasesRateLimitImmediately(): void
 {
     $store = new InMemoryRunStore();
@@ -207,6 +256,13 @@ function testCancelRunningReleasesRateLimitImmediately(): void
     pass('cancel running releases rate limit immediately');
 }
 
+// ---------------------------------------------------------------------------
+// Agent 并行：部分失败汇总 vs failFast 立即抛出（含协程）
+// ---------------------------------------------------------------------------
+
+/**
+ * failFast=false：一个 agent 抛错时节点整体 FAILED，output.failedAgents 含失败 agent id。
+ */
 function testAgentParallelNodeFailsOnPartialError(): void
 {
     $scheduler = new AgentScheduler(new NeuronFactory());
@@ -238,6 +294,9 @@ function testAgentParallelNodeFailsOnPartialError(): void
     pass('agent parallel node fails on partial error');
 }
 
+/**
+ * failFast=true（同步路径）：首个 agent 异常原样向上抛，不等待其它任务。
+ */
 function testAgentParallelFailFastThrows(): void
 {
     $scheduler = new AgentScheduler(new NeuronFactory());
@@ -262,6 +321,10 @@ function testAgentParallelFailFastThrows(): void
     pass('agent parallel fail fast throws');
 }
 
+/**
+ * failFast=true 在 Swoole\Coroutine\run 内同样能把异常传到外层 catch。
+ * 无 swoole 扩展时 SKIP。
+ */
 function testAgentParallelFailFastInCoroutine(): void
 {
     if (!extension_loaded('swoole') || !class_exists(\Swoole\Coroutine::class)) {
@@ -296,6 +359,10 @@ function testAgentParallelFailFastInCoroutine(): void
     pass('agent parallel fail fast in coroutine');
 }
 
+/**
+ * GoWaitGroup::batchParallelRunWait 超时应抛 SystemException（含 timed out）。
+ * 任务 sleep 0.3s、超时 0.05s。无 swoole 时 SKIP。
+ */
 function testGoWaitGroupTimeoutInCoroutine(): void
 {
     if (!extension_loaded('swoole') || !class_exists(\Swoole\Coroutine::class)) {

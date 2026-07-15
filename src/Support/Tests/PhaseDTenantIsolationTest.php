@@ -14,7 +14,23 @@ declare(strict_types=1);
 /**
  * Phase D —— 多租户 RAG / ChatHistory 隔离测试。
  *
- * 运行：composer test:phase-d
+ * ## 覆盖范围
+ * | 区域 | 要点 |
+ * |------|------|
+ * | TenantScope | knowledgeBase 前缀、Redis chat key 格式 |
+ * | VectorStoreFactory | 同 kb 名不同 tenant → 不同 FileVectorStore 目录 |
+ * | require_tenant_isolation | 缺 tenantId 时 factory / redis prefix fail-fast |
+ * | ProductionHealthCheck | 生产建议开启 require_tenant_isolation |
+ * | RetrievalService | 显式 tenantId 检索；缺租户抛错 |
+ *
+ * ## 运行
+ * ```bash
+ * php src/Support/Tests/PhaseDTenantIsolationTest.php
+ * # 或
+ * composer test:phase-d
+ * ```
+ *
+ * 说明：File 向量库存于系统临时目录；ingestion 使用 allow_fake_embeddings，不打外网 Embedding API。
  */
 
 use NeuronAI\RAG\VectorStore\FileVectorStore;
@@ -30,6 +46,7 @@ use Swoolefy\Support\Workflow\WorkflowConfig;
 
 require dirname(__DIR__, 3) . '/vendor/autoload.php';
 
+/** 断言为真，否则抛 RuntimeException（单测失败） */
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -37,11 +54,16 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+/** 打印通过标记 */
 function pass(string $name): void
 {
     echo "[PASS] {$name}\n";
 }
 
+/**
+ * 通过反射读取 FileVectorStore 内部 directory，用于断言租户目录隔离。
+ * （NeuronAI FileVectorStore 未暴露 public getter。）
+ */
 function fileStoreDirectory(FileVectorStore $store): string
 {
     $ref = new ReflectionClass($store);
@@ -51,6 +73,13 @@ function fileStoreDirectory(FileVectorStore $store): string
     return (string) $prop->getValue($store);
 }
 
+// ---------------------------------------------------------------------------
+// TenantScope 命名约定
+// ---------------------------------------------------------------------------
+
+/**
+ * scopedKnowledgeBase 按 `{tenantId}_{kb}` 拼接，保证不同租户逻辑库名不同。
+ */
 function testScopedKnowledgeBaseSeparatesTenants(): void
 {
     assertTrue(
@@ -70,6 +99,10 @@ function testScopedKnowledgeBaseSeparatesTenants(): void
     pass('scoped knowledge base separates tenants');
 }
 
+/**
+ * VectorStoreFactory.make 在传入 tenantId 时，File store 目录应以 `/{tenant}_{kb}` 结尾，
+ * 且 t1 / t2 目录路径不同。
+ */
 function testVectorStoreFactoryUsesTenantPrefix(): void
 {
     $path = sys_get_temp_dir() . '/swoolefy_tenant_vs_' . getmypid();
@@ -98,6 +131,11 @@ function testVectorStoreFactoryUsesTenantPrefix(): void
     pass('vector store factory uses tenant prefix');
 }
 
+/**
+ * require_tenant_isolation=true 时：
+ * - VectorStoreFactory.make 无 tenantId → RuntimeException
+ * - TenantScope::redisChatKeyPrefix(null, true) → RuntimeException
+ */
 function testRequireTenantIsolationThrowsWithoutTenant(): void
 {
     $path = sys_get_temp_dir() . '/swoolefy_tenant_req_' . getmypid();
@@ -129,6 +167,9 @@ function testRequireTenantIsolationThrowsWithoutTenant(): void
     pass('require tenant isolation throws without tenant');
 }
 
+/**
+ * Redis ChatHistory key 约定：`chat:{tenant}:thread:` / `chat:{tenant}:thread:{id}`。
+ */
 function testRedisChatKeyFormat(): void
 {
     assertTrue(
@@ -143,6 +184,9 @@ function testRedisChatKeyFormat(): void
     pass('redis chat key format');
 }
 
+/**
+ * HealthCheck 在 require_tenant_isolation=false 时应给出提示项（生产多租户场景防串库）。
+ */
 function testProductionHealthCheckRequiresTenantIsolation(): void
 {
     $errors = ProductionHealthCheck::check(
@@ -179,6 +223,9 @@ function testProductionHealthCheckRequiresTenantIsolation(): void
     pass('production health check requires tenant isolation');
 }
 
+/**
+ * RetrievalService：带 tenantId 可 ingest+retrieve；缺 tenantId 在 require 开启时 fail-fast。
+ */
 function testRagRetrievalServiceUsesExplicitTenantId(): void
 {
     $path = sys_get_temp_dir() . '/swoolefy_tenant_retrieval_' . getmypid();
