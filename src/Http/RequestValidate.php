@@ -373,9 +373,63 @@ class RequestValidate
 
         if (!empty($rules)) {
             [$rules, $messages] = $this->expandMultiWildcardRulesAndMessages($inputParams, $rules, $messages);
+            // 父集合未传或为空时，跳过 itemClass 展开的 `parent.*.field` 规则，
+            // 避免 Validate::getDataValue 得到 null 后误触发嵌套 required（如可选 cronBetween）。
+            $rules = $this->omitWildcardRulesForAbsentOrEmptyCollections($inputParams, $rules);
             $this->enforceWildcardRequiredPresence($inputParams, $rules, $messages);
             $this->requestInput->validate($inputParams, $rules, $messages);
         }
+    }
+
+    /**
+     * Drop `collection.*.nested` rules when the parent collection is missing or empty.
+     *
+     * library Validate resolves `a.*.b` via array_column; missing/empty `a` yields null,
+     * so nested `required` on item DTO fields would fail even when the list is optional.
+     *
+     * @param array<string, mixed> $data
+     * @param array<string, mixed> $rules
+     * @return array<string, mixed>
+     */
+    protected function omitWildcardRulesForAbsentOrEmptyCollections(array $data, array $rules): array
+    {
+        $filtered = [];
+        foreach ($rules as $field => $rule) {
+            if (!is_string($field) || !str_contains($field, '*')) {
+                $filtered[$field] = $rule;
+                continue;
+            }
+
+            $fieldKey = $field;
+            if (str_contains($fieldKey, '|')) {
+                [$fieldKey] = explode('|', $fieldKey, 2);
+            }
+
+            $segments = explode('.', $fieldKey);
+            $starPos = array_search('*', $segments, true);
+            if ($starPos === false || $starPos === 0) {
+                $filtered[$field] = $rule;
+                continue;
+            }
+
+            $parent = $data;
+            $missing = false;
+            foreach (array_slice($segments, 0, $starPos) as $segment) {
+                if (!is_array($parent) || !array_key_exists($segment, $parent)) {
+                    $missing = true;
+                    break;
+                }
+                $parent = $parent[$segment];
+            }
+
+            if ($missing || !is_array($parent) || $parent === []) {
+                continue;
+            }
+
+            $filtered[$field] = $rule;
+        }
+
+        return $filtered;
     }
 
     /**
