@@ -6,23 +6,24 @@ namespace Test\Module\Cron\Service;
 
 use Test\Module\Cron\Dto\CronTaskManager\CronTaskPayloadBuildResultDto;
 use Test\Module\Cron\Dto\CronTaskManager\CronTaskPayloadDto;
-use Test\Module\Cron\Request\CronTaskManager\CronTaskCreateRequest;
-use Test\Module\Cron\Request\CronTaskManager\CronTaskUpdateRequest;
 
+/**
+ * 将原始 payload 数组规范为 {@see CronTaskPayloadDto}。
+ *
+ * ## 设计
+ * - **不依赖** HTTP Request；入参为 snake_case 数组（与 Request::toPayloadArray() 对齐）
+ * - 创建态（$isCreate=true）：强制 name/expression/command、合法 exec_type、node_id
+ * - 更新态：仅 put 有值/合法字段，空更新由上层根据 {@see CronTaskPayloadDto::isEmpty} 拒绝
+ * - 成功/失败统一包在 {@see CronTaskPayloadBuildResultDto}，不抛异常
+ */
 class CronTaskPayloadBuilder
 {
-    public function buildFromCreate(CronTaskCreateRequest $request): CronTaskPayloadBuildResultDto
-    {
-        return $this->build($request->toPayloadArray(), true);
-    }
-
-    public function buildFromUpdate(CronTaskUpdateRequest $request): CronTaskPayloadBuildResultDto
-    {
-        return $this->build($request->toPayloadArray(), false);
-    }
-
     /**
-     * @param array<string, mixed> $payload
+     * 构建可持久化的任务字段集合。
+     *
+     * @param array<string, mixed> $payload snake_case：name、expression、command、exec_type、node_id、
+     *        description、status、with_block_lapping、http_*、cron_between、cron_skip 等
+     * @param bool $isCreate true=创建校验；false=部分更新（缺省字段不写入 DTO）
      */
     public function build(array $payload, bool $isCreate): CronTaskPayloadBuildResultDto
     {
@@ -106,7 +107,9 @@ class CronTaskPayloadBuilder
     }
 
     /**
-     * @return array<string, mixed>|null
+     * 规范化 JSON 类字段：空 → null；字符串尝试 json_decode；数组原样返回。
+     *
+     * @return array<string, mixed>|mixed|null
      */
     protected function normalizeJsonField(mixed $value): mixed
     {
@@ -127,6 +130,10 @@ class CronTaskPayloadBuilder
     }
 
     /**
+     * 规范化时间段列表为 `[['start'=>..., 'end'=>...], ...]`。
+     *
+     * 支持已是数组，或 JSON 字符串；缺 start/end 的项丢弃；全无效则 null。
+     *
      * @return array<int, array{start: string, end: string}>|null
      */
     protected function normalizeTimeRanges(mixed $value): ?array

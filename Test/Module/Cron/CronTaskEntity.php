@@ -9,7 +9,7 @@ use Test\Model\ClientModel;
  * @property int id
  * @property string name 任务名称
  * @property string expression cron表达式
- * @property string exec_script 执行命令
+ * @property string command 执行命令
  * @property int exec_type 执行类型 1-shell，2-http
  * @property int status 状态 0-禁用，1-启用
  * @property int with_block_lapping 是否阻塞执行 0-否，1->是

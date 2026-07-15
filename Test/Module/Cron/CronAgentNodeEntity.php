@@ -27,7 +27,7 @@ class CronAgentNodeEntity extends ClientModel
      * @param int $id
      * @return static|null
      */
-    public function loadById(int $id)
+    public function loadById(int $id): ?static
     {
         return $this->loadOne([
             'id' => $id,

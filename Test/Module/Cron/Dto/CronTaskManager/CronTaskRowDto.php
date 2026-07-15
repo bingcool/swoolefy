@@ -8,7 +8,23 @@ use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Core\Dto\AbstractDto;
 
 /**
- * Cron 任务列表/详情行（与 cron_task 查询字段对齐）。
+ * Cron 任务列表/详情行 DTO。
+ *
+ * **职责**：表示 cron_task 表的单条任务记录，字段与数据库查询结果对齐（camelCase 输出）。
+ *
+ * **生产者**：{@see \Test\Module\Cron\Service\CronTaskManagerService::listTasks} 通过
+ * {@see static::fromEntityRow} 映射查询行；{@see \Test\Module\Cron\Response\CronTaskManager\CronTaskRowResponse}
+ * 在 create/update 后同样调用 fromEntityRow。
+ *
+ * **消费者**：{@see \Test\Module\Cron\Response\CronTaskManager\ListTasksPageResult} 收集列表项；
+ * API 序列化时通过 ApiProperty 注解生成文档。
+ *
+ * **关键字段语义**：
+ * - execType：1=shell，2=http
+ * - status：0=禁用，1=启用
+ * - withBlockLapping：0=允许重叠执行，1=阻塞重叠执行
+ * - command：shell 时为脚本路径，http 时为请求 URL
+ * - cronBetween / cronSkip：允许/跳过执行的时间段 JSON 数组
  */
 class CronTaskRowDto extends AbstractDto
 {
@@ -40,12 +56,16 @@ class CronTaskRowDto extends AbstractDto
     protected string $description = '';
 
     /**
+     * 允许执行的时间段列表。
+     *
      * @var array<int, array<string, mixed>>
      */
     #[ApiProperty(description: '允许执行时间段列表')]
     protected array $cronBetween = [];
 
     /**
+     * 跳过执行的时间段列表。
+     *
      * @var array<int, array<string, mixed>>
      */
     #[ApiProperty(description: '跳过执行时间段列表')]
@@ -55,12 +75,16 @@ class CronTaskRowDto extends AbstractDto
     protected string $httpMethod = 'GET';
 
     /**
+     * HTTP 请求体。
+     *
      * @var array<string, mixed>|null
      */
     #[ApiProperty(description: 'HTTP 请求体')]
     protected ?array $httpBody = null;
 
     /**
+     * HTTP 请求头。
+     *
      * @var array<string, mixed>|null
      */
     #[ApiProperty(description: 'HTTP 请求头')]
@@ -76,7 +100,12 @@ class CronTaskRowDto extends AbstractDto
     protected string $updatedAt = '';
 
     /**
-     * @param array<string, mixed> $row
+     * 从数据库实体行（snake_case）映射为 DTO。
+     *
+     * JSON 列（cron_between、cron_skip、http_body、http_headers）在非法类型时
+     * 分别回退为空数组或 null。
+     *
+     * @param array<string, mixed> $row cron_task 查询行或实体 getAttributes() 结果
      */
     public static function fromEntityRow(array $row): self
     {
@@ -106,11 +135,13 @@ class CronTaskRowDto extends AbstractDto
         return $dto;
     }
 
+    /** 获取任务 ID */
     public function getId(): int
     {
         return $this->id;
     }
 
+    /** 设置任务 ID */
     public function setId(int $id): static
     {
         $this->id = $id;
@@ -118,11 +149,13 @@ class CronTaskRowDto extends AbstractDto
         return $this;
     }
 
+    /** 获取节点 ID */
     public function getNodeId(): int
     {
         return $this->nodeId;
     }
 
+    /** 设置节点 ID */
     public function setNodeId(int $nodeId): static
     {
         $this->nodeId = $nodeId;
@@ -130,11 +163,13 @@ class CronTaskRowDto extends AbstractDto
         return $this;
     }
 
+    /** 获取任务名称 */
     public function getName(): string
     {
         return $this->name;
     }
 
+    /** 设置任务名称 */
     public function setName(string $name): static
     {
         $this->name = $name;
@@ -142,11 +177,13 @@ class CronTaskRowDto extends AbstractDto
         return $this;
     }
 
+    /** 获取 Cron 表达式 */
     public function getExpression(): string
     {
         return $this->expression;
     }
 
+    /** 设置 Cron 表达式 */
     public function setExpression(string $expression): static
     {
         $this->expression = $expression;
@@ -154,11 +191,13 @@ class CronTaskRowDto extends AbstractDto
         return $this;
     }
 
+    /** 获取执行命令或 URL */
     public function getCommand(): string
     {
         return $this->command;
     }
 
+    /** 设置执行命令或 URL */
     public function setCommand(string $command): static
     {
         $this->command = $command;
@@ -166,11 +205,13 @@ class CronTaskRowDto extends AbstractDto
         return $this;
     }
 
+    /** 获取执行类型 */
     public function getExecType(): int
     {
         return $this->execType;
     }
 
+    /** 设置执行类型 */
     public function setExecType(int $execType): static
     {
         $this->execType = $execType;
@@ -178,11 +219,13 @@ class CronTaskRowDto extends AbstractDto
         return $this;
     }
 
+    /** 获取任务状态 */
     public function getStatus(): int
     {
         return $this->status;
     }
 
+    /** 设置任务状态 */
     public function setStatus(int $status): static
     {
         $this->status = $status;
@@ -190,11 +233,13 @@ class CronTaskRowDto extends AbstractDto
         return $this;
     }
 
+    /** 获取是否阻塞重叠执行 */
     public function getWithBlockLapping(): int
     {
         return $this->withBlockLapping;
     }
 
+    /** 设置是否阻塞重叠执行 */
     public function setWithBlockLapping(int $withBlockLapping): static
     {
         $this->withBlockLapping = $withBlockLapping;
@@ -202,11 +247,13 @@ class CronTaskRowDto extends AbstractDto
         return $this;
     }
 
+    /** 获取任务描述 */
     public function getDescription(): string
     {
         return $this->description;
     }
 
+    /** 设置任务描述 */
     public function setDescription(string $description): static
     {
         $this->description = $description;
@@ -215,6 +262,8 @@ class CronTaskRowDto extends AbstractDto
     }
 
     /**
+     * 获取允许执行时间段列表。
+     *
      * @return array<int, array<string, mixed>>
      */
     public function getCronBetween(): array
@@ -223,6 +272,8 @@ class CronTaskRowDto extends AbstractDto
     }
 
     /**
+     * 设置允许执行时间段列表。
+     *
      * @param array<int, array<string, mixed>> $cronBetween
      */
     public function setCronBetween(array $cronBetween): static
@@ -233,6 +284,8 @@ class CronTaskRowDto extends AbstractDto
     }
 
     /**
+     * 获取跳过执行时间段列表。
+     *
      * @return array<int, array<string, mixed>>
      */
     public function getCronSkip(): array
@@ -241,6 +294,8 @@ class CronTaskRowDto extends AbstractDto
     }
 
     /**
+     * 设置跳过执行时间段列表。
+     *
      * @param array<int, array<string, mixed>> $cronSkip
      */
     public function setCronSkip(array $cronSkip): static
@@ -250,11 +305,13 @@ class CronTaskRowDto extends AbstractDto
         return $this;
     }
 
+    /** 获取 HTTP 请求方法 */
     public function getHttpMethod(): string
     {
         return $this->httpMethod;
     }
 
+    /** 设置 HTTP 请求方法 */
     public function setHttpMethod(string $httpMethod): static
     {
         $this->httpMethod = $httpMethod;
@@ -263,6 +320,8 @@ class CronTaskRowDto extends AbstractDto
     }
 
     /**
+     * 获取 HTTP 请求体。
+     *
      * @return array<string, mixed>|null
      */
     public function getHttpBody(): ?array
@@ -271,6 +330,8 @@ class CronTaskRowDto extends AbstractDto
     }
 
     /**
+     * 设置 HTTP 请求体。
+     *
      * @param array<string, mixed>|null $httpBody
      */
     public function setHttpBody(?array $httpBody): static
@@ -281,6 +342,8 @@ class CronTaskRowDto extends AbstractDto
     }
 
     /**
+     * 获取 HTTP 请求头。
+     *
      * @return array<string, mixed>|null
      */
     public function getHttpHeaders(): ?array
@@ -289,6 +352,8 @@ class CronTaskRowDto extends AbstractDto
     }
 
     /**
+     * 设置 HTTP 请求头。
+     *
      * @param array<string, mixed>|null $httpHeaders
      */
     public function setHttpHeaders(?array $httpHeaders): static
@@ -298,11 +363,13 @@ class CronTaskRowDto extends AbstractDto
         return $this;
     }
 
+    /** 获取 HTTP 请求超时时间（秒） */
     public function getHttpRequestTimeOut(): int
     {
         return $this->httpRequestTimeOut;
     }
 
+    /** 设置 HTTP 请求超时时间（秒） */
     public function setHttpRequestTimeOut(int $httpRequestTimeOut): static
     {
         $this->httpRequestTimeOut = $httpRequestTimeOut;
@@ -310,11 +377,13 @@ class CronTaskRowDto extends AbstractDto
         return $this;
     }
 
+    /** 获取创建时间 */
     public function getCreatedAt(): string
     {
         return $this->createdAt;
     }
 
+    /** 设置创建时间 */
     public function setCreatedAt(string $createdAt): static
     {
         $this->createdAt = $createdAt;
@@ -322,11 +391,13 @@ class CronTaskRowDto extends AbstractDto
         return $this;
     }
 
+    /** 获取更新时间 */
     public function getUpdatedAt(): string
     {
         return $this->updatedAt;
     }
 
+    /** 设置更新时间 */
     public function setUpdatedAt(string $updatedAt): static
     {
         $this->updatedAt = $updatedAt;

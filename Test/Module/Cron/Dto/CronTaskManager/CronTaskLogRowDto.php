@@ -8,7 +8,21 @@ use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Core\Dto\AbstractDto;
 
 /**
- * Cron 任务执行日志行。
+ * Cron 任务执行日志行 DTO。
+ *
+ * **职责**：表示 cron_task_log 表的单条执行记录，字段与数据库查询结果对齐（camelCase 输出）。
+ *
+ * **生产者**：{@see \Test\Module\Cron\Service\CronTaskManagerService::taskLogs} 通过
+ * {@see static::fromEntityRow} 将实体行映射为 DTO；Agent 上报由 Service 直接写库。
+ *
+ * **消费者**：{@see \Test\Module\Cron\Response\CronTaskManager\TaskLogsPageResult} 收集列表项；
+ * API 序列化时通过 ApiProperty 注解生成文档。
+ *
+ * **关键字段语义**：
+ * - cronId：关联的 cron_task 主键
+ * - execBatchId：同一次调度触发的批次号
+ * - taskItem：执行时的任务元数据快照（JSON 列）
+ * - message：执行结果描述，统计接口会解析其中的关键词与耗时
  */
 class CronTaskLogRowDto extends AbstractDto
 {
@@ -22,6 +36,8 @@ class CronTaskLogRowDto extends AbstractDto
     protected string $execBatchId = '';
 
     /**
+     * 任务项快照，执行时的调度元数据。
+     *
      * @var array<string, mixed>|null
      */
     #[ApiProperty(description: '任务项快照')]
@@ -37,7 +53,11 @@ class CronTaskLogRowDto extends AbstractDto
     protected string $updatedAt = '';
 
     /**
-     * @param array<string, mixed> $row
+     * 从数据库实体行（snake_case）映射为 DTO。
+     *
+     * taskItem 列：数组原样保留；非数组非空值包装为 `['raw' => ...]`；空值置 null。
+     *
+     * @param array<string, mixed> $row cron_task_log 查询行
      */
     public static function fromEntityRow(array $row): self
     {
@@ -60,11 +80,13 @@ class CronTaskLogRowDto extends AbstractDto
         return $dto;
     }
 
+    /** 获取日志 ID */
     public function getId(): int
     {
         return $this->id;
     }
 
+    /** 设置日志 ID */
     public function setId(int $id): static
     {
         $this->id = $id;
@@ -72,11 +94,13 @@ class CronTaskLogRowDto extends AbstractDto
         return $this;
     }
 
+    /** 获取关联任务 ID */
     public function getCronId(): int
     {
         return $this->cronId;
     }
 
+    /** 设置关联任务 ID */
     public function setCronId(int $cronId): static
     {
         $this->cronId = $cronId;
@@ -84,11 +108,13 @@ class CronTaskLogRowDto extends AbstractDto
         return $this;
     }
 
+    /** 获取执行批次 ID */
     public function getExecBatchId(): string
     {
         return $this->execBatchId;
     }
 
+    /** 设置执行批次 ID */
     public function setExecBatchId(string $execBatchId): static
     {
         $this->execBatchId = $execBatchId;
@@ -97,6 +123,8 @@ class CronTaskLogRowDto extends AbstractDto
     }
 
     /**
+     * 获取任务项快照。
+     *
      * @return array<string, mixed>|null
      */
     public function getTaskItem(): ?array
@@ -105,6 +133,8 @@ class CronTaskLogRowDto extends AbstractDto
     }
 
     /**
+     * 设置任务项快照。
+     *
      * @param array<string, mixed>|null $taskItem
      */
     public function setTaskItem(?array $taskItem): static
@@ -114,11 +144,13 @@ class CronTaskLogRowDto extends AbstractDto
         return $this;
     }
 
+    /** 获取运行消息 */
     public function getMessage(): string
     {
         return $this->message;
     }
 
+    /** 设置运行消息 */
     public function setMessage(string $message): static
     {
         $this->message = $message;
@@ -126,11 +158,13 @@ class CronTaskLogRowDto extends AbstractDto
         return $this;
     }
 
+    /** 获取创建时间 */
     public function getCreatedAt(): string
     {
         return $this->createdAt;
     }
 
+    /** 设置创建时间 */
     public function setCreatedAt(string $createdAt): static
     {
         $this->createdAt = $createdAt;
@@ -138,11 +172,13 @@ class CronTaskLogRowDto extends AbstractDto
         return $this;
     }
 
+    /** 获取更新时间 */
     public function getUpdatedAt(): string
     {
         return $this->updatedAt;
     }
 
+    /** 设置更新时间 */
     public function setUpdatedAt(string $updatedAt): static
     {
         $this->updatedAt = $updatedAt;

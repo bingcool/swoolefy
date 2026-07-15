@@ -8,7 +8,19 @@ use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Core\Dto\AbstractDto;
 
 /**
- * Cron Agent 节点行。
+ * Cron Agent 节点行 DTO。
+ *
+ * **职责**：表示 cron_agent_node 表的单条节点记录，字段与数据库查询结果对齐（camelCase 输出）。
+ *
+ * **生产者**：{@see \Test\Module\Cron\Response\CronTaskManager\CronNodeRowResponse} 与
+ * {@see \Test\Module\Cron\Response\CronTaskManager\CronNodeListResponse} 通过
+ * {@see static::fromEntityRow} 将 Service 返回的实体属性映射为 DTO。
+ *
+ * **消费者**：Controller 将 DTO 包装进 Response 后由 API 层序列化输出。
+ *
+ * **关键字段语义**：
+ * - nodeName / nodeIp：Agent 节点的标识信息，创建时必填
+ * - remark：可选备注
  */
 class CronAgentNodeRowDto extends AbstractDto
 {
@@ -31,7 +43,9 @@ class CronAgentNodeRowDto extends AbstractDto
     protected string $updatedAt = '';
 
     /**
-     * @param array<string, mixed> $row
+     * 从数据库实体行（snake_case）映射为 DTO。
+     *
+     * @param array<string, mixed> $row cron_agent_node 查询行或实体 getAttributes() 结果
      */
     public static function fromEntityRow(array $row): self
     {
@@ -46,11 +60,13 @@ class CronAgentNodeRowDto extends AbstractDto
         return $dto;
     }
 
+    /** 获取节点 ID */
     public function getId(): int
     {
         return $this->id;
     }
 
+    /** 设置节点 ID */
     public function setId(int $id): static
     {
         $this->id = $id;
@@ -58,11 +74,13 @@ class CronAgentNodeRowDto extends AbstractDto
         return $this;
     }
 
+    /** 获取节点名称 */
     public function getNodeName(): string
     {
         return $this->nodeName;
     }
 
+    /** 设置节点名称 */
     public function setNodeName(string $nodeName): static
     {
         $this->nodeName = $nodeName;
@@ -70,11 +88,13 @@ class CronAgentNodeRowDto extends AbstractDto
         return $this;
     }
 
+    /** 获取节点 IP */
     public function getNodeIp(): string
     {
         return $this->nodeIp;
     }
 
+    /** 设置节点 IP */
     public function setNodeIp(string $nodeIp): static
     {
         $this->nodeIp = $nodeIp;
@@ -82,11 +102,13 @@ class CronAgentNodeRowDto extends AbstractDto
         return $this;
     }
 
+    /** 获取备注 */
     public function getRemark(): string
     {
         return $this->remark;
     }
 
+    /** 设置备注 */
     public function setRemark(string $remark): static
     {
         $this->remark = $remark;
@@ -94,11 +116,13 @@ class CronAgentNodeRowDto extends AbstractDto
         return $this;
     }
 
+    /** 获取创建时间 */
     public function getCreatedAt(): string
     {
         return $this->createdAt;
     }
 
+    /** 设置创建时间 */
     public function setCreatedAt(string $createdAt): static
     {
         $this->createdAt = $createdAt;
@@ -106,11 +130,13 @@ class CronAgentNodeRowDto extends AbstractDto
         return $this;
     }
 
+    /** 获取更新时间 */
     public function getUpdatedAt(): string
     {
         return $this->updatedAt;
     }
 
+    /** 设置更新时间 */
     public function setUpdatedAt(string $updatedAt): static
     {
         $this->updatedAt = $updatedAt;

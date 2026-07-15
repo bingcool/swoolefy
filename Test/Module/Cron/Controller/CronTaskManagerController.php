@@ -4,12 +4,18 @@ namespace Test\Module\Cron\Controller;
 
 use Swoolefy\Annotation\ApiOperation;
 use Swoolefy\Core\Controller\BController;
-use Test\Module\Cron\CronAgentNodeEntity;
-use Test\Module\Cron\CronTaskEntity;
-use Test\Module\Cron\CronTaskLogEntity;
-use Test\Module\Cron\Exception\CronTaskException;
-use Test\Module\Cron\Dto\CronTaskManager\CronTaskLogRowDto;
-use Test\Module\Cron\Dto\CronTaskManager\CronTaskRowDto;
+use Test\Module\Cron\Dto\CronTaskManager\AgentHeartbeatDto;
+use Test\Module\Cron\Dto\CronTaskManager\AgentReportDto;
+use Test\Module\Cron\Dto\CronTaskManager\AgentTasksQueryDto;
+use Test\Module\Cron\Dto\CronTaskManager\CreateNodeDto;
+use Test\Module\Cron\Dto\CronTaskManager\ListTasksQueryDto;
+use Test\Module\Cron\Dto\CronTaskManager\NodeIdDto;
+use Test\Module\Cron\Dto\CronTaskManager\SwitchTaskStatusDto;
+use Test\Module\Cron\Dto\CronTaskManager\TaskIdDto;
+use Test\Module\Cron\Dto\CronTaskManager\TaskLogsQueryDto;
+use Test\Module\Cron\Dto\CronTaskManager\TaskPayloadInputDto;
+use Test\Module\Cron\Dto\CronTaskManager\TaskStatsQueryDto;
+use Test\Module\Cron\Dto\CronTaskManager\UpdateTaskCommandDto;
 use Test\Module\Cron\Request\CronTaskManager\CronAgentHeartbeatRequest;
 use Test\Module\Cron\Request\CronTaskManager\CronAgentReportRequest;
 use Test\Module\Cron\Request\CronTaskManager\CronAgentTasksQueryRequest;
@@ -31,71 +37,34 @@ use Test\Module\Cron\Response\CronTaskManager\CronNodeRowResponse;
 use Test\Module\Cron\Response\CronTaskManager\CronTaskRowResponse;
 use Test\Module\Cron\Response\CronTaskManager\CronTaskStatsResponse;
 use Test\Module\Cron\Response\CronTaskManager\CronTaskStatusAckResponse;
-use Test\Module\Cron\Response\CronTaskManager\ListTasksPageResult;
 use Test\Module\Cron\Response\CronTaskManager\ListTasksResponse;
-use Test\Module\Cron\Response\CronTaskManager\TaskLogsPageResult;
 use Test\Module\Cron\Response\CronTaskManager\TaskLogsResponse;
-use Test\Module\Cron\Dto\CronTaskManager\CronTaskPayloadDto;
-use Test\Module\Cron\Service\CronTaskPayloadBuilder;
-use Test\Module\Cron\Service\CronTaskService;
+use Test\Module\Cron\Service\CronTaskManagerService;
 
+/**
+ * Cron 任务管理控制器 —— 仅做 Request ↔ DTO / Response 映射，业务在 {@see CronTaskManagerService}。
+ */
 class CronTaskManagerController extends BController
 {
+    /** PHP 8.4 property hook：首次访问时惰性创建 Service */
+    private CronTaskManagerService $cronTaskManagerService {
+        get => $this->cronTaskManagerService ??= new CronTaskManagerService();
+    }
+
     #[ApiOperation(
         "分页查询定时任务列表"
     )]
     public function listTasks(ListTasksRequest $request): ListTasksResponse
     {
-        $page = $request->getPage();
-        $pageSize = $request->getPageSize();
-        $offset = ($page - 1) * $pageSize;
-        $keyword = trim((string)($request->getKeyword() ?? ''));
-        $status = $request->getStatus();
-        $nodeId = $request->getNodeId();
-        $execType = $request->getExecType();
+        $query = (new ListTasksQueryDto())
+            ->setPage($request->getPage())
+            ->setPageSize($request->getPageSize())
+            ->setKeyword($request->getKeyword())
+            ->setStatus($request->getStatus())
+            ->setNodeId($request->getNodeId())
+            ->setExecType($request->getExecType());
 
-        $query = CronTaskEntity::query()->field([
-            'id',
-            'node_id',
-            'name',
-            'expression',
-            'command',
-            'exec_type',
-            'status',
-            'with_block_lapping',
-            'description',
-            'cron_between',
-            'cron_skip',
-            'http_method',
-            'http_body',
-            'http_headers',
-            'http_request_time_out',
-            'created_at',
-            'updated_at',
-        ]);
-        if ($keyword !== '') {
-            $query->where('name', 'like', '%' . $keyword . '%');
-        }
-        if ($status !== null) {
-            $query->where('status', $status);
-        }
-        if ($nodeId !== null) {
-            $query->where('node_id', $nodeId);
-        }
-        if ($execType !== null) {
-            $query->where('exec_type', $execType);
-        }
-
-        $total = $query->clone()->count();
-        $list = $query->order('id', 'desc')->limit($offset, $pageSize)->select()->toArray();
-
-        $pageResult = new ListTasksPageResult();
-        $pageResult->setTotal($total);
-        foreach ($list as $row) {
-            $pageResult->addListItem(CronTaskRowDto::fromEntityRow($row));
-        }
-
-        return new ListTasksResponse($pageResult);
+        return new ListTasksResponse($this->cronTaskManagerService->listTasks($query));
     }
 
     #[ApiOperation(
@@ -103,16 +72,9 @@ class CronTaskManagerController extends BController
     )]
     public function createTask(CronTaskCreateRequest $request): CronTaskRowResponse
     {
-        $result = (new CronTaskPayloadBuilder())->buildFromCreate($request);
-        if ($result->hasError()) {
-            throw CronTaskException::throw($result->getError(), -1);
-        }
+        $input = TaskPayloadInputDto::fromPayloadArray($request->toPayloadArray());
 
-        $task = new CronTaskEntity();
-        $task->setData($result->getPayload()->toEntityArray());
-        $task->save();
-
-        return new CronTaskRowResponse($task->getAttributes());
+        return new CronTaskRowResponse($this->cronTaskManagerService->createTask($input));
     }
 
     #[ApiOperation(
@@ -120,30 +82,11 @@ class CronTaskManagerController extends BController
     )]
     public function updateTask(CronTaskUpdateRequest $request): CronTaskRowResponse
     {
-        $id = $request->getId();
-        if ($id <= 0) {
-            throw CronTaskException::throw('id不能为空', -1);
-        }
+        $command = (new UpdateTaskCommandDto())
+            ->setId($request->getId())
+            ->setPayload(TaskPayloadInputDto::fromPayloadArray($request->toPayloadArray()));
 
-        $task = (new CronTaskEntity())->loadById($id);
-        if (!$task) {
-            throw CronTaskException::throw('任务不存在', -1);
-        }
-
-        $result = (new CronTaskPayloadBuilder())->buildFromUpdate($request);
-        if ($result->hasError()) {
-            throw CronTaskException::throw($result->getError(), -1, []);
-        }
-
-        $payload = $result->getPayload();
-        if ($payload === null || $payload->isEmpty()) {
-            throw CronTaskException::throw('没有可更新字段', -1);
-        }
-
-        $task->setData($payload->toEntityArray());
-        $task->save();
-
-        return new CronTaskRowResponse($task->getAttributes());
+        return new CronTaskRowResponse($this->cronTaskManagerService->updateTask($command));
     }
 
     #[ApiOperation(
@@ -151,17 +94,7 @@ class CronTaskManagerController extends BController
     )]
     public function deleteTask(CronTaskIdRequest $request): CronDeleteAckResponse
     {
-        $id = $request->getId();
-        if ($id <= 0) {
-            throw CronTaskException::throw('id不能为空', -1);
-        }
-
-        $task = (new CronTaskEntity())->loadById($id);
-        if (!$task) {
-            throw CronTaskException::throw('任务不存在', -1);
-        }
-
-        $task->delete();
+        $id = $this->cronTaskManagerService->deleteTask(TaskIdDto::of($request->getId()));
 
         return new CronDeleteAckResponse($id);
     }
@@ -171,21 +104,12 @@ class CronTaskManagerController extends BController
     )]
     public function switchTaskStatus(CronTaskStatusSwitchRequest $request): CronTaskStatusAckResponse
     {
-        $id = $request->getId();
-        $status = $request->getStatus();
-        if ($id <= 0 || !in_array($status, [0, 1], true)) {
-            throw CronTaskException::throw('参数错误', -1);
-        }
+        $dto = (new SwitchTaskStatusDto())
+            ->setId($request->getId())
+            ->setStatus($request->getStatus());
+        $ack = $this->cronTaskManagerService->switchTaskStatus($dto);
 
-        $task = (new CronTaskEntity())->loadById($id);
-        if (!$task) {
-            throw CronTaskException::throw('任务不存在', -1);
-        }
-
-        $task->status = $status;
-        $task->save();
-
-        return new CronTaskStatusAckResponse($id, $status);
+        return new CronTaskStatusAckResponse($ack->getId(), $ack->getStatus());
     }
 
     #[ApiOperation(
@@ -193,9 +117,7 @@ class CronTaskManagerController extends BController
     )]
     public function listNodes(): CronNodeListResponse
     {
-        $list = CronAgentNodeEntity::query()->order('id', 'desc')->select()->toArray();
-
-        return new CronNodeListResponse($list);
+        return new CronNodeListResponse($this->cronTaskManagerService->listNodes());
     }
 
     #[ApiOperation(
@@ -203,22 +125,12 @@ class CronTaskManagerController extends BController
     )]
     public function createNode(CronNodeCreateRequest $request): CronNodeRowResponse
     {
-        $nodeName = $request->getNodeName();
-        $nodeIp = $request->getNodeIp();
-        $remark = $request->getRemark();
-        if ($nodeName === '' || $nodeIp === '') {
-            throw CronTaskException::throw('nodeName和nodeIp不能为空', -1);
-        }
+        $dto = (new CreateNodeDto())
+            ->setNodeName($request->getNodeName())
+            ->setNodeIp($request->getNodeIp())
+            ->setRemark($request->getRemark());
 
-        $node = new CronAgentNodeEntity();
-        $node->setData([
-            'node_name' => $nodeName,
-            'node_ip' => $nodeIp,
-            'remark' => $remark,
-        ]);
-        $node->save();
-
-        return new CronNodeRowResponse($node->getAttributes());
+        return new CronNodeRowResponse($this->cronTaskManagerService->createNode($dto));
     }
 
     #[ApiOperation(
@@ -226,17 +138,7 @@ class CronTaskManagerController extends BController
     )]
     public function deleteNode(CronNodeIdRequest $request): CronDeleteAckResponse
     {
-        $id = $request->getId();
-        if ($id <= 0) {
-            throw CronTaskException::throw('id不能为空', -1);
-        }
-
-        $node = (new CronAgentNodeEntity())->loadById($id);
-        if (!$node) {
-            throw CronTaskException::throw('节点不存在', -1);
-        }
-
-        $node->delete();
+        $id = $this->cronTaskManagerService->deleteNode(NodeIdDto::of($request->getId()));
 
         return new CronDeleteAckResponse($id);
     }
@@ -246,27 +148,12 @@ class CronTaskManagerController extends BController
     )]
     public function taskLogs(TaskLogsQueryRequest $request): TaskLogsResponse
     {
-        $taskId = $request->getTaskId();
-        $page = $request->getPage();
-        $pageSize = $request->getPageSize();
-        $offset = ($page - 1) * $pageSize;
-        if ($taskId <= 0) {
-            throw CronTaskException::throw('taskId不能为空', -1);
-        }
+        $query = (new TaskLogsQueryDto())
+            ->setTaskId($request->getTaskId())
+            ->setPage($request->getPage())
+            ->setPageSize($request->getPageSize());
 
-        $query = CronTaskLogEntity::query()->where([
-            'cron_id' => $taskId,
-        ]);
-        $total = $query->clone()->count();
-        $list  = $query->order('id', 'desc')->limit($offset, $pageSize)->select()->toArray();
-
-        $pageResult = new TaskLogsPageResult();
-        $pageResult->setTotal($total);
-        foreach ($list as $row) {
-            $pageResult->addListItem(CronTaskLogRowDto::fromEntityRow($row));
-        }
-
-        return new TaskLogsResponse($pageResult);
+        return new TaskLogsResponse($this->cronTaskManagerService->taskLogs($query));
     }
 
     #[ApiOperation(
@@ -274,55 +161,17 @@ class CronTaskManagerController extends BController
     )]
     public function taskStats(CronTaskStatsQueryRequest $request): CronTaskStatsResponse
     {
-        $taskId = $request->getTaskId();
-        if ($taskId <= 0) {
-            throw CronTaskException::throw('taskId不能为空', -1);
-        }
-
-        $logs = CronTaskLogEntity::query()->field(['id', 'message', 'created_at'])->where([
-            'cron_id' => $taskId,
-        ])->order('id', 'desc')->limit(0, 2000)->select()->toArray();
-
-        $total = count($logs);
-        $success = 0;
-        $failed = 0;
-        $skipped = 0;
-        $durationTotalMs = 0;
-        $durationSamples = 0;
-
-        foreach ($logs as $log) {
-            $message = (string)($log['message'] ?? '');
-            $normalized = strtolower($message);
-
-            if (strpos($message, '成功') !== false || strpos($normalized, 'success') !== false) {
-                $success++;
-            }
-            if (strpos($message, '失败') !== false || strpos($message, '报错') !== false || strpos($normalized, 'error') !== false || strpos($normalized, 'fail') !== false) {
-                $failed++;
-            }
-            if (strpos($message, '跳过') !== false || strpos($message, '不能执行') !== false || strpos($normalized, 'skip') !== false) {
-                $skipped++;
-            }
-
-            $durationMs = $this->extractDurationMs($message);
-            if ($durationMs > 0) {
-                $durationTotalMs += $durationMs;
-                $durationSamples++;
-            }
-        }
-
-        $successRate = $total > 0 ? round(($success / $total) * 100, 2) : 0.0;
-        $avgDurationMs = $durationSamples > 0 ? round($durationTotalMs / $durationSamples, 2) : 0.0;
+        $stats = $this->cronTaskManagerService->taskStats(TaskStatsQueryDto::of($request->getTaskId()));
 
         return new CronTaskStatsResponse(
-            $taskId,
-            $total,
-            $success,
-            $failed,
-            $skipped,
-            $successRate,
-            $avgDurationMs,
-            $durationSamples
+            $stats->getTaskId(),
+            $stats->getTotal(),
+            $stats->getSuccess(),
+            $stats->getFailed(),
+            $stats->getSkipped(),
+            $stats->getSuccessRate(),
+            $stats->getAvgDurationMs(),
+            $stats->getSamples()
         );
     }
 
@@ -331,23 +180,24 @@ class CronTaskManagerController extends BController
     )]
     public function agentTasks(CronAgentTasksQueryRequest $request): CronAgentTasksResponse
     {
-        $nodeId = $request->getNodeId();
-        $execType = (int)($request->getExecType() ?? 0);
-        if ($nodeId <= 0) {
-            throw CronTaskException::throw('nodeId不能为空', -1, []);
+        $query = (new AgentTasksQueryDto())
+            ->setNodeId($request->getNodeId())
+            ->setExecType($request->getExecType());
+        $result = $this->cronTaskManagerService->agentTasks($query);
+
+        if ($result->isSingleExecType()) {
+            return CronAgentTasksResponse::forExecType(
+                $result->getNodeId(),
+                (int)$result->getExecType(),
+                $result->getList() ?? [],
+            );
         }
 
-        $service = new CronTaskService();
-        if (in_array($execType, [CronTaskPayloadDto::EXEC_TYPE_SHELL, CronTaskPayloadDto::EXEC_TYPE_HTTP], true)) {
-            $list = $service->fetchCronTask($execType, $nodeId);
-
-            return CronAgentTasksResponse::forExecType($nodeId, $execType, $list);
-        }
-
-        $shellTasks = $service->fetchCronTask(CronTaskPayloadDto::EXEC_TYPE_SHELL, $nodeId);
-        $httpTasks = $service->fetchCronTask(CronTaskPayloadDto::EXEC_TYPE_HTTP, $nodeId);
-
-        return CronAgentTasksResponse::forAllTypes($nodeId, $shellTasks, $httpTasks);
+        return CronAgentTasksResponse::forAllTypes(
+            $result->getNodeId(),
+            $result->getShellTasks() ?? [],
+            $result->getHttpTasks() ?? [],
+        );
     }
 
     #[ApiOperation(
@@ -355,12 +205,9 @@ class CronTaskManagerController extends BController
     )]
     public function agentHeartbeat(CronAgentHeartbeatRequest $request): CronAgentHeartbeatResponse
     {
-        $nodeId = $request->getNodeId();
-        if ($nodeId <= 0) {
-            throw CronTaskException::throw('nodeId不能为空', -1);
-        }
+        $result = $this->cronTaskManagerService->agentHeartbeat(AgentHeartbeatDto::of($request->getNodeId()));
 
-        return new CronAgentHeartbeatResponse($nodeId, date('Y-m-d H:i:s'));
+        return new CronAgentHeartbeatResponse($result->getNodeId(), $result->getServerTime());
     }
 
     #[ApiOperation(
@@ -368,57 +215,13 @@ class CronTaskManagerController extends BController
     )]
     public function agentReport(CronAgentReportRequest $request): CronAgentReportAckResponse
     {
-        $cronId = $request->getCronId();
-        $message = $request->getMessage();
-        if ($cronId <= 0 || $message === '') {
-            throw CronTaskException::throw('cronId和message不能为空', -1);
-        }
+        $dto = (new AgentReportDto())
+            ->setCronId($request->getCronId())
+            ->setMessage($request->getMessage())
+            ->setTaskItem($request->getTaskItem())
+            ->setExecBatchId($request->getExecBatchId())
+            ->setPid($request->getPid());
 
-        $taskItem = $this->normalizeJsonField($request->getTaskItem());
-        $execBatchId = $request->getExecBatchId();
-        $pid = $request->getPid();
-
-        CronTaskLogEntity::query()->insert([
-            'cron_id' => $cronId,
-            'exec_batch_id' => $execBatchId,
-            'pid' => $pid,
-            'task_item' => is_array($taskItem) ? $taskItem : ['raw' => (string)$taskItem],
-            'message' => $message
-        ]);
-
-        return new CronAgentReportAckResponse($cronId);
-    }
-
-    protected function normalizeJsonField($value)
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-        if (is_array($value)) {
-            return $value;
-        }
-        if (is_string($value)) {
-            $decoded = json_decode($value, true);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                return $decoded;
-            }
-        }
-
-        return $value;
-    }
-
-    protected function extractDurationMs(string $message)
-    {
-        if (preg_match('/(?:耗时|duration|cost)\\s*[:=]\\s*(\\d+(?:\\.\\d+)?)\\s*(ms|s)?/i', $message, $match)) {
-            $value = (float)$match[1];
-            $unit = strtolower((string)($match[2] ?? 'ms'));
-            if ($unit === 's') {
-                return $value * 1000;
-            }
-
-            return $value;
-        }
-
-        return 0.0;
+        return new CronAgentReportAckResponse($this->cronTaskManagerService->agentReport($dto));
     }
 }
