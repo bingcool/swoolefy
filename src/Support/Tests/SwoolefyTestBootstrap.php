@@ -23,7 +23,7 @@ declare(strict_types=1);
  * ## 本文件做什么
  * | 项 | 行为 |
  * |----|------|
- * | 路径常量 | 指向仓库内 `Test/` 应用根，便于读到 demo conf |
+ * | 路径常量 | 指向仓库内 `Test/` 应用根（含 CONFIG_PATH→Config/），便于读到 demo conf |
  * | 进程类型 helper | 一律按「非 Worker CLI」返回，避免误走守护进程分支 |
  *
  * ## 谁会 require
@@ -45,6 +45,12 @@ if (!\defined('APP_NAME')) {
 }
 if (!\defined('LOG_PATH')) {
     \define('LOG_PATH', APP_PATH . '/Storage/Logs');
+}
+if (!\defined('CONFIG_PATH')) {
+    \define('CONFIG_PATH', APP_PATH . '/Config');
+}
+if (!\defined('CONFIG_COMPONENT_PATH')) {
+    \define('CONFIG_COMPONENT_PATH', CONFIG_PATH . '/component');
 }
 
 if (!\function_exists('isDaemonService')) {

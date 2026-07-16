@@ -21,7 +21,7 @@ use Swoolefy\Support\Security\OutboundUrlGuard;
 /**
  * Neuron AI / RAG / MCP / Capability 模块配置加载器。
  *
- * 读取 APP_PATH/config/neuron_ai.php（可选），环境变量优先（env > 配置文件 > 默认值）。
+ * 读取 APP_PATH/Config/neuron_ai.php（可选），环境变量优先（env > 配置文件 > 默认值）。
  *
  * 配置分段：
  * - rag         — 向量库、Embedding、入库模式
@@ -42,7 +42,7 @@ final class NeuronAiConfig
     ) {
     }
 
-    /** 从 APP_PATH/config/neuron_ai.php 加载配置（文件不存在时返回空数组）。 */
+    /** 从 APP_PATH/Config/neuron_ai.php 加载配置（文件不存在时返回空数组；不依赖 application.yaml）。 */
     public static function load(): self
     {
         return new self(ApplicationConfig::loadPhpConfig('neuron_ai.php'));

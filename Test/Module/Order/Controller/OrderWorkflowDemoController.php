@@ -13,12 +13,15 @@ use Swoolefy\Support\Workflow\Engine\WorkflowRun;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\WorkflowComponentFactory;
 use Test\Module\Order\Dto\OrderDecisionDto;
+use Test\Module\Order\OrderWorkflowService;
 use Test\Module\Order\Workflow\OrderProcessingWorkflow;
 use Test\Module\Order\Workflow\OrderSagaWorkflow;
-use Test\Module\Workflow\WorkflowService;
 
 /**
  * 订单工作流演示控制器 —— 展示 order_processing / order_saga 用法。
+ *
+ * 本模块使用 {@see OrderWorkflowService} 独立 Registry / Engine，
+ * 不依赖 Test\Module\Workflow\WorkflowService。
  *
  * POST /api/v1/order/workflow/process
  *   启动订单处理（AI 风控三分支）。Body:
@@ -61,7 +64,7 @@ final class OrderWorkflowDemoController extends BController
             : null;
 
         $definition = OrderProcessingWorkflow::definition(
-            WorkflowService::neuronFactory(),
+            OrderWorkflowService::neuronFactory(),
             $aiExecutor,
             pauseForHumanReview: $pauseForHumanReview,
         );
@@ -95,7 +98,7 @@ final class OrderWorkflowDemoController extends BController
         }
 
         try {
-            $run = WorkflowService::engine()->getRun($runId);
+            $run = OrderWorkflowService::engine()->getRun($runId);
         } catch (WorkflowException $e) {
             throw new SystemException($e->getMessage(), 404, $e);
         }
@@ -121,7 +124,7 @@ final class OrderWorkflowDemoController extends BController
         }
 
         try {
-            $engine = WorkflowService::engine(events: new StreamWorkflowEventDispatcher());
+            $engine = OrderWorkflowService::engine(events: new StreamWorkflowEventDispatcher());
             $engine->resume($runId, $feedback);
             $run = $engine->getRun($runId);
         } catch (WorkflowException $e) {
@@ -140,9 +143,9 @@ final class OrderWorkflowDemoController extends BController
         \Swoolefy\Support\Workflow\Definition\WorkflowDefinition $definition,
     ): array {
         try {
-            // 演示可注入 mock definition；Engine 走 workflow.php RunStore（跨 Worker status/resume）
+            // 演示可注入 mock definition；Engine 走本模块 Registry + workflow.php RunStore
             $compiled = WorkflowComponentFactory::compiler()->compile($definition);
-            $engine = WorkflowService::engine(events: new StreamWorkflowEventDispatcher());
+            $engine = OrderWorkflowService::engine(events: new StreamWorkflowEventDispatcher());
             $runId = $engine->start($compiled, $input);
             $run = $engine->getRun($runId);
         } catch (WorkflowException $e) {

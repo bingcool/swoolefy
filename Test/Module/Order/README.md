@@ -2,12 +2,18 @@
 
 本模块演示订单处理（AI 风控三分支）与 Saga 补偿两类工作流。演示入口为 `Controller/OrderWorkflowDemoController.php`。
 
+本模块通过 `OrderWorkflowService` 独立装配 Registry / NeuronFactory / Engine，
+**不依赖** `Test\Module\Workflow\WorkflowService`。统一目录 API 仍可列出 `order_*`。
+
 默认 API 前缀：`/api`（以实际 `Test` 应用路由配置为准）。下文假设服务监听 `http://127.0.0.1:9501`。
+
+本地回归：`composer test:order-workflow`
 
 ## 目录结构
 
 ```
 Order/
+├── OrderWorkflowService.php          # 本模块独立 Registry / Engine / Neuron
 ├── Agent/OrderDecisionAgent.php      # AI 风控决策 Agent
 ├── Controller/
 │   ├── OrderWorkflowDemoController.php  # 工作流演示（本文档）
@@ -22,6 +28,7 @@ Order/
 │   ├── CompleteNode.php
 │   ├── ReserveInventoryNode.php
 │   └── FailAfterPaymentNode.php
+├── Tests/OrderWorkflowModuleTest.php
 └── Workflow/
     ├── OrderProcessingWorkflow.php   # order_processing
     └── OrderSagaWorkflow.php         # order_saga

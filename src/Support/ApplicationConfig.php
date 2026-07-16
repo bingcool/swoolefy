@@ -16,7 +16,13 @@ namespace Swoolefy\Support;
 use Symfony\Component\Yaml\Yaml;
 
 /**
- * 读取 APP_PATH/application.yaml。
+ * 应用配置入口：application.yaml + APP_PATH/Config/*.php。
+ *
+ * PHP 配置目录与 Core {@see \Swoolefy\Core\SystemEnv} / create 脚手架一致，
+ * 优先使用已定义的 CONFIG_PATH，否则回退 APP_PATH/Config。
+ *
+ * 注意：加载 workflow.php / neuron_ai.php / job.php 等**不依赖** application.yaml；
+ * yaml 仅用于 Nacos 等声明式开关（{@see isEnableNacosRegister()}）。
  */
 final class ApplicationConfig
 {
@@ -46,6 +52,36 @@ final class ApplicationConfig
         return rtrim((string) APP_PATH, '/');
     }
 
+    /**
+     * PHP 配置根目录：CONFIG_PATH（若已定义）或 APP_PATH/Config。
+     *
+     * 与 SystemEnv、CreateCmd、constants.php 保持一致（大小写敏感文件系统上不可用小写 config/）。
+     *
+     * @throws \RuntimeException CONFIG_PATH 与 APP_PATH 均未定义时
+     */
+    public static function resolveConfigPath(): string
+    {
+        if (defined('CONFIG_PATH') && '' !== (string) CONFIG_PATH) {
+            return rtrim((string) CONFIG_PATH, '/');
+        }
+
+        if (!defined('APP_PATH') || '' === (string) APP_PATH) {
+            throw new \RuntimeException('Neither CONFIG_PATH nor APP_PATH is defined');
+        }
+
+        return self::resolveAppPath() . '/Config';
+    }
+
+    /** 是否已具备解析 Config 目录的路径常量（CONFIG_PATH 或 APP_PATH）。 */
+    public static function hasConfigPathContext(): bool
+    {
+        if (defined('CONFIG_PATH') && '' !== (string) CONFIG_PATH) {
+            return true;
+        }
+
+        return defined('APP_PATH') && '' !== (string) APP_PATH;
+    }
+
     public static function applicationYamlPath(): string
     {
         return self::resolveAppPath() . '/application.yaml';
@@ -61,10 +97,11 @@ final class ApplicationConfig
     }
 
     /**
-     * 加载 APP_PATH/config/{filename} 返回的 PHP 配置数组。
+     * 加载 Config/{filename} 返回的 PHP 配置数组。
      *
-     * 文件不存在返回 []；require / 语法错误时记录日志。
-     * 生产环境（{@see SystemEnv::isPrdEnv()}）重新抛出，避免静默回退到危险默认值。
+     * 不依赖 application.yaml。无 APP_PATH/CONFIG_PATH、或文件不存在时返回 []；
+     * require / 语法错误时记录日志。
+     * 生产环境（{@see \Swoolefy\Core\SystemEnv::isPrdEnv()}）重新抛出，避免静默回退到危险默认值。
      *
      * @return array<string, mixed>
      *
@@ -72,11 +109,12 @@ final class ApplicationConfig
      */
     public static function loadPhpConfig(string $filename): array
     {
-        if (!self::hasApplicationYaml()) {
+        // CLI 单测等未 bootstrap 场景：与旧 yaml 闸门「无上下文 → []」兼容，避免硬抛
+        if (!self::hasConfigPathContext()) {
             return [];
         }
 
-        $configFile = self::resolveAppPath() . '/config/' . ltrim($filename, '/');
+        $configFile = self::resolveConfigPath() . '/' . ltrim($filename, '/');
         if (!is_file($configFile)) {
             return [];
         }
@@ -100,6 +138,9 @@ final class ApplicationConfig
         }
     }
 
+    /**
+     * Nacos 注册开关：仅当存在 application.yaml 且 nacos.enable_nacos_register 为真时启用。
+     */
     public static function isEnableNacosRegister(): bool
     {
         if (!self::hasApplicationYaml()) {

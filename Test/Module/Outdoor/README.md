@@ -1,5 +1,8 @@
 # Outdoor — 多 Agent 并行户外骑行演示
 
+本模块通过 `OutdoorWorkflowService` 独立装配 Registry / AgentScheduler / Engine，
+**不依赖** `Test\Module\Workflow\WorkflowService`。统一目录 API 仍可列出 `outdoor_cycling`。
+
 三个 Agent 并行准备，再按天气决定是否骑自行车出发：
 
 | Agent | 职责 |
@@ -40,3 +43,9 @@ curl "http://localhost:9501/api/v1/outdoor/workflow/status?runId=..."
 `useMock=false` 时走真实/Fake Provider Agent。
 
 也可经通用入口：`POST /api/v1/workflow/run`，`workflowId=outdoor_cycling`。
+
+## 本地测试
+
+```bash
+composer test:outdoor-workflow
+```

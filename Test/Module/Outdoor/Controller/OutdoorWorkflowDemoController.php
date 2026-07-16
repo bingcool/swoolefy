@@ -13,11 +13,11 @@ use Swoolefy\Support\Workflow\Engine\StreamWorkflowEventDispatcher;
 use Swoolefy\Support\Workflow\Engine\WorkflowRun;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\WorkflowComponentFactory;
+use Test\Module\Outdoor\OutdoorWorkflowService;
 use Test\Module\Outdoor\Workflow\OutdoorCyclingWorkflow;
-use Test\Module\Workflow\WorkflowService;
 
 /**
- * 户外骑行多 Agent 并行工作流演示。
+ * 户外骑行多 Agent 并行工作流演示（本模块独立 Registry / Engine）。
  *
  * POST /api/v1/outdoor/workflow/cycling
  *   AgentA 天气 + AgentB 路线 + AgentC 备车（并行）→ 天气好则骑自行车出发。
@@ -66,7 +66,7 @@ final class OutdoorWorkflowDemoController extends BController
         ];
 
         $definition = OutdoorCyclingWorkflow::definition(
-            WorkflowService::agentScheduler(),
+            OutdoorWorkflowService::agentScheduler(),
             useMockAgents: $useMock,
         );
 
@@ -84,7 +84,7 @@ final class OutdoorWorkflowDemoController extends BController
         }
 
         try {
-            $run = WorkflowService::engine()->getRun($runId);
+            $run = OutdoorWorkflowService::engine()->getRun($runId);
         } catch (WorkflowException $e) {
             throw new SystemException($e->getMessage(), 404, $e);
         }
@@ -101,7 +101,7 @@ final class OutdoorWorkflowDemoController extends BController
     {
         try {
             $compiled = WorkflowComponentFactory::compiler()->compile($definition);
-            $engine = WorkflowService::engine(events: new StreamWorkflowEventDispatcher());
+            $engine = OutdoorWorkflowService::engine(events: new StreamWorkflowEventDispatcher());
             $runId = $engine->start($compiled, $input);
             $run = $engine->getRun($runId);
         } catch (WorkflowException $e) {

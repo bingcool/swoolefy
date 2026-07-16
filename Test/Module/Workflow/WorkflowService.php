@@ -47,10 +47,12 @@ use Test\Module\Research\Workflow\MultiAgentResearchWorkflow;
  *   order_processing、order_saga、multi_agent_research、mcp_research、
  *   outdoor_cycling、contract_review、knowledge_qa、rag_qa
  *
- * 注意：Order / Research 模块另有专用 Demo 控制器，可注入 mock；
- * 本 Registry 使用各工作流的默认 definition（适合统一入口演示）。
+ * 注意：Order / Outdoor / Research 等业务模块各自维护独立的 *WorkflowService
+ *（如 {@see \Test\Module\Order\OrderWorkflowService}、
+ * {@see \Test\Module\Outdoor\OutdoorWorkflowService}），Demo 控制器不依赖本类。
+ * 本 Registry 仍注册上述 workflowId，仅供统一入口 /api/v1/workflow/* 目录与演示。
  *
- * @see Test\Module\Workflow\Controller\WorkflowController
+ * @see \Test\Module\Workflow\Controller\WorkflowController
  * @see \Test\Module\Workflow\README.md
  */
 final class WorkflowService

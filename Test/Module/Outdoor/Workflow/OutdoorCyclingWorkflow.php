@@ -83,8 +83,8 @@ use Test\Module\Outdoor\Agent\WeatherOutdoorAgent;
  *
  * @see \Test\Module\Outdoor\README.md
  * @see \Test\Module\Outdoor\Controller\OutdoorWorkflowDemoController
- * @see Swoolefy\Support\AI\Node\AgentParallelNode
- * @see Swoolefy\Support\Agent\Router\StaticRouter
+ * @see \Swoolefy\Support\AI\Node\AgentParallelNode
+ * @see \Swoolefy\Support\Agent\Router\StaticRouter
  */
 final class OutdoorCyclingWorkflow
 {

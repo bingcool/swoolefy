@@ -18,7 +18,7 @@ use Swoolefy\Support\ApplicationConfig;
 /**
  * Workflow 引擎配置加载器。
  *
- * 读取 APP_PATH/config/workflow.php（可选），环境变量优先。
+ * 读取 APP_PATH/Config/workflow.php（可选），环境变量优先。
  *
  * 结构：
  *   workflow.default_run_store     — 默认 RunStore 别名（env WORKFLOW_RUN_STORE）
@@ -26,6 +26,7 @@ use Swoolefy\Support\ApplicationConfig;
  *   workflow.condition_evaluator   — symfony | jsonlogic
  *
  * 模版：src/Stubs/workflow.conf.stub.php（create 命令复制到 Config/workflow.php）
+ * 加载经 {@see ApplicationConfig::loadPhpConfig()}，不依赖 application.yaml。
  */
 final class WorkflowConfig
 {
