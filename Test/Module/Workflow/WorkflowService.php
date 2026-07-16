@@ -20,40 +20,39 @@ use Swoolefy\Support\Rag\Retrieval\RetrievalService;
 use Swoolefy\Support\Rag\Tool\RetrievalToolFactory;
 use Swoolefy\Support\Workflow\Definition\EdgeCondition;
 use Swoolefy\Support\Workflow\Definition\WorkflowDefinition;
-use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\Engine\WorkflowEngine;
 use Swoolefy\Support\Workflow\Engine\WorkflowEventDispatcherInterface;
+use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\WorkflowComponentFactory;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
 use Test\Module\Contract\Workflow\ContractReviewWorkflow;
 use Test\Module\Knowledge\Workflow\KnowledgeQaWorkflow;
-use Test\Module\Order\Workflow\OrderProcessingWorkflow;
-use Test\Module\Order\Workflow\OrderSagaWorkflow;
+use Test\Module\Order\OrderWorkflowService;
+use Test\Module\Outdoor\OutdoorWorkflowService;
 use Test\Module\Rag\RagService;
-use Test\Module\Rag\Workflow\RagQaWorkflow;
-use Test\Module\Outdoor\Workflow\OutdoorCyclingWorkflow;
-use Test\Module\Research\Workflow\McpResearchWorkflow;
-use Test\Module\Research\Workflow\MultiAgentResearchWorkflow;
+use Test\Module\Rag\RagWorkflowService;
+use Test\Module\Research\ResearchWorkflowService;
 
 /**
- * Workflow 模块依赖装配中心。
+ * Workflow 模块联邦门面（目录 + 路由），不是业务工作流的唯一 Runtime。
  *
- * 职责：
- *   1. 注册 Phase 1~4 示例工作流到 {@see WorkflowRegistry}（供通用 HTTP API 按 id 启动）
- *   2. 惰性创建共享依赖：NeuronFactory、AgentScheduler、RAG、MCP
- *   3. 提供 catalog / describe，便于演示控制器列出与探查 DAG
+ * ## 所有权模型（模块本地装配）
+ * | workflowId | 拥有模块 | Runtime |
+ * |------------|----------|---------|
+ * | order_processing / order_saga | Order | {@see OrderWorkflowService} |
+ * | outdoor_cycling | Outdoor | {@see OutdoorWorkflowService} |
+ * | multi_agent_research / mcp_research | Research | {@see ResearchWorkflowService} |
+ * | rag_qa | Rag | {@see RagWorkflowService} |
+ * | contract_review / knowledge_qa | Workflow 枢纽 | 本类本地 Registry |
  *
- * 已注册 workflowId：
- *   order_processing、order_saga、multi_agent_research、mcp_research、
- *   outdoor_cycling、contract_review、knowledge_qa、rag_qa
+ * ## RunStore ↔ Registry
+ * - 业务 Demo：只使用拥有模块的 engine()（谁启动谁查询）
+ * - 统一 API：{@see engineFor()} / {@see engineForRun()} 路由到拥有方 Registry 绑定的 RunStore
+ * - 联邦 {@see registry()} 仅用于 catalog/describe，以及枢纽自有工作流的 Runtime
  *
- * 注意：Order / Outdoor / Research 等业务模块各自维护独立的 *WorkflowService
- *（如 {@see \Test\Module\Order\OrderWorkflowService}、
- * {@see \Test\Module\Outdoor\OutdoorWorkflowService}），Demo 控制器不依赖本类。
- * 本 Registry 仍注册上述 workflowId，仅供统一入口 /api/v1/workflow/* 目录与演示。
+ * Agent / MCP Demo 仍可复用本类 neuronFactory() / mcpFactory()（与工作流 Runtime 无关）。
  *
- * @see \Test\Module\Workflow\Controller\WorkflowController
- * @see \Test\Module\Workflow\README.md
+ * @see Controller\WorkflowController
  */
 final class WorkflowService
 {
@@ -76,22 +75,22 @@ final class WorkflowService
     private static ?InMemoryMcpServerConfigRepository $mcpRepository = null;
 
     /**
-     * 获取全局工作流注册表（首次调用时完成全部示例注册）。
+     * 联邦注册表：模块工作流以 definition 委托，避免与模块 Registry 双份 DAG 定义。
      */
     public static function registry(): WorkflowRegistry
     {
         if (self::$registry === null) {
             self::$registry = new WorkflowRegistry();
-            self::registerBuiltinWorkflows(self::$registry);
+            self::registerFederatedWorkflows(self::$registry);
         }
 
         return self::$registry;
     }
 
     /**
-     * 生产级 Engine：按 workflow.php 的 default_run_store 装配 RunStore（memory/redis/db）。
+     * 枢纽自有工作流的 Engine（contract_review / knowledge_qa）。
      *
-     * HTTP 控制器应使用本方法，保证 status / resume / pauseTasks 跨 Worker 一致。
+     * 业务模块工作流请用 {@see engineFor()}，勿用本方法跨模块查 Run。
      */
     public static function engine(?WorkflowEventDispatcherInterface $events = null): WorkflowEngine
     {
@@ -99,47 +98,108 @@ final class WorkflowService
     }
 
     /**
-     * 注册内置示例工作流。
-     *
-     * 工厂闭包惰性求值：只有 compiled() / definition() / catalog() 时才构建 DAG，
-     * 避免启动阶段强依赖外部服务。
+     * 按 workflowId 返回拥有方 Engine（与模块 Demo 共用同一 Registry→RunStore 绑定）。
      */
-    private static function registerBuiltinWorkflows(WorkflowRegistry $registry): void
-    {
-        // Phase 1：订单处理（AI 决策路由）
-        $registry->register('order_processing', static fn () => OrderProcessingWorkflow::definition(self::neuronFactory()));
-        // Phase 4：订单 Saga 补偿
-        $registry->register('order_saga', static fn () => OrderSagaWorkflow::definition());
-        // Phase 2：多 Agent 并行（默认走真实/Fake Agent，非 mock）
-        $registry->register('multi_agent_research', static fn () => MultiAgentResearchWorkflow::definition(
-            self::agentScheduler(),
-        ));
-        // 多 Agent 并行：天气 + 路线 + 备车 → 天气好则骑行出发
-        $registry->register('outdoor_cycling', static fn () => OutdoorCyclingWorkflow::definition(
-            self::agentScheduler(),
-        ));
-        // Phase 3：MCP 研究（默认 research/summarize 为 stub，可离线）
-        $registry->register('mcp_research', static fn () => McpResearchWorkflow::definition(
-            self::neuronFactory(),
-        ));
-        // Phase 3：合同 HITL（legal_review 暂停，需 resume）
-        $registry->register('contract_review', static fn () => ContractReviewWorkflow::definition());
-        // Phase 3：知识库问答（依赖 RAG 检索服务）
-        $registry->register('knowledge_qa', static fn () => KnowledgeQaWorkflow::definition(
-            self::retrievalService(),
-            self::neuronFactory(),
-        ));
-        // Rag 模块：retrieve → extractive answer
-        $registry->register('rag_qa', static fn () => RagQaWorkflow::definition(
-            self::retrievalService(),
-        ));
+    public static function engineFor(
+        string $workflowId,
+        ?WorkflowEventDispatcherInterface $events = null,
+    ): WorkflowEngine {
+        return match (self::moduleFor($workflowId)) {
+            'Order' => OrderWorkflowService::engine($events),
+            'Outdoor' => OutdoorWorkflowService::engine($events),
+            'Research' => ResearchWorkflowService::engine($events),
+            'Rag' => RagWorkflowService::engine($events),
+            default => self::engine($events),
+        };
     }
 
     /**
-     * 工作流目录：id、版本、元数据、节点列表、示例入参。
+     * 按 runId 解析拥有方 Engine（扫描各绑定 RunStore；用于 status/resume/cancel）。
      *
-     * 供 GET /api/v1/workflow/list 使用。
-     *
+     * @throws WorkflowException 所有绑定 Store 均未找到该 runId
+     */
+    public static function engineForRun(
+        string $runId,
+        ?WorkflowEventDispatcherInterface $events = null,
+    ): WorkflowEngine {
+        foreach (self::runtimeRegistries() as $registry) {
+            $store = WorkflowComponentFactory::runStore($registry);
+            if ($store->find($runId) !== null) {
+                return WorkflowComponentFactory::engine($registry, events: $events);
+            }
+        }
+
+        throw new WorkflowException("Workflow run not found: {$runId}");
+    }
+
+    /**
+     * 拥有方 Registry（definition 真源）；未知 id 回退联邦表。
+     */
+    public static function registryFor(string $workflowId): WorkflowRegistry
+    {
+        return match (self::moduleFor($workflowId)) {
+            'Order' => OrderWorkflowService::registry(),
+            'Outdoor' => OutdoorWorkflowService::registry(),
+            'Research' => ResearchWorkflowService::registry(),
+            'Rag' => RagWorkflowService::registry(),
+            default => self::registry(),
+        };
+    }
+
+    /**
+     * @return list<WorkflowRegistry>
+     */
+    private static function runtimeRegistries(): array
+    {
+        return [
+            OrderWorkflowService::registry(),
+            OutdoorWorkflowService::registry(),
+            ResearchWorkflowService::registry(),
+            RagWorkflowService::registry(),
+            self::registry(),
+        ];
+    }
+
+    private static function registerFederatedWorkflows(WorkflowRegistry $registry): void
+    {
+        // 委托模块 Registry（单一 definition 真源，联邦仅作目录 / 枢纽兜底）
+        $registry->register(
+            'order_processing',
+            static fn () => OrderWorkflowService::registry()->definition('order_processing'),
+        );
+        $registry->register(
+            'order_saga',
+            static fn () => OrderWorkflowService::registry()->definition('order_saga'),
+        );
+        $registry->register(
+            'outdoor_cycling',
+            static fn () => OutdoorWorkflowService::registry()->definition('outdoor_cycling'),
+        );
+        $registry->register(
+            'multi_agent_research',
+            static fn () => ResearchWorkflowService::registry()->definition('multi_agent_research'),
+        );
+        $registry->register(
+            'mcp_research',
+            static fn () => ResearchWorkflowService::registry()->definition('mcp_research'),
+        );
+        $registry->register(
+            'rag_qa',
+            static fn () => RagWorkflowService::registry()->definition('rag_qa'),
+        );
+
+        // 枢纽自有（无独立 *WorkflowService）
+        $registry->register('contract_review', static fn () => ContractReviewWorkflow::definition());
+        $registry->register(
+            'knowledge_qa',
+            static fn () => KnowledgeQaWorkflow::definition(
+                self::retrievalService(),
+                self::neuronFactory(),
+            ),
+        );
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     public static function catalog(): array
@@ -148,27 +208,21 @@ final class WorkflowService
         $items = [];
 
         foreach ($registry->ids() as $workflowId) {
-            $definition = $registry->definition($workflowId);
-            $items[] = self::summarizeDefinition($definition);
+            $items[] = self::summarizeDefinition($registry->definition($workflowId));
         }
 
         return $items;
     }
 
     /**
-     * 工作流详情：节点、固定边、条件边表达式、schema、插件。
-     *
-     * 供 GET /api/v1/workflow/describe?workflowId= 使用。
-     *
      * @return array<string, mixed>
      *
-     * @throws WorkflowException 未注册时抛出
+     * @throws WorkflowException
      */
     public static function describe(string $workflowId): array
     {
-        $definition = self::registry()->definition($workflowId);
+        $definition = self::registryFor($workflowId)->definition($workflowId);
 
-        // 固定边：from => to
         $fixedEdges = [];
         foreach ($definition->getEdges() as $edge) {
             $fixedEdges[] = [
@@ -177,7 +231,6 @@ final class WorkflowService
             ];
         }
 
-        // 条件边组：from => branches[to => expression] + default
         $conditionalEdges = [];
         foreach ($definition->getConditionalGroups() as $group) {
             $branches = [];
@@ -208,8 +261,6 @@ final class WorkflowService
     }
 
     /**
-     * 各工作流推荐演示入参（文档 / list 接口展示，不强制校验）。
-     *
      * @return array<string, mixed>
      */
     public static function demoInputFor(string $workflowId): array
@@ -250,9 +301,6 @@ final class WorkflowService
         };
     }
 
-    /**
-     * 工作流所属业务模块（文档用）。
-     */
     public static function moduleFor(string $workflowId): string
     {
         return match ($workflowId) {
@@ -266,9 +314,6 @@ final class WorkflowService
         };
     }
 
-    /**
-     * 多 Agent 调度器（内部持有 NeuronFactory）。
-     */
     public static function agentScheduler(): AgentScheduler
     {
         if (self::$agentScheduler === null) {
@@ -278,9 +323,6 @@ final class WorkflowService
         return self::$agentScheduler;
     }
 
-    /**
-     * RAG 工厂：向量库 + Embedding（路径默认系统临时目录）。
-     */
     public static function ragFactory(): RagFactory
     {
         if (self::$ragFactory === null) {
@@ -305,7 +347,6 @@ final class WorkflowService
         return self::$ragFactory;
     }
 
-    /** 检索服务（KnowledgeQaWorkflow 依赖）。 */
     public static function retrievalService(): RetrievalService
     {
         if (self::$retrievalService === null) {
@@ -315,7 +356,6 @@ final class WorkflowService
         return self::$retrievalService;
     }
 
-    /** 文档摄入管道。 */
     public static function ingestionPipeline(): IngestionPipeline
     {
         if (self::$ingestionPipeline === null) {
@@ -325,7 +365,6 @@ final class WorkflowService
         return self::$ingestionPipeline;
     }
 
-    /** 检索 Tool 工厂（Agent Tool 场景）。 */
     public static function retrievalToolFactory(): RetrievalToolFactory
     {
         if (self::$retrievalToolFactory === null) {
@@ -335,11 +374,6 @@ final class WorkflowService
         return self::$retrievalToolFactory;
     }
 
-    /**
-     * MCP 配置仓库（内存实现，演示用）。
-     *
-     * 预置 demo_http（transport=disabled），避免本地无 MCP 进程时报错。
-     */
     public static function mcpRepository(): InMemoryMcpServerConfigRepository
     {
         if (self::$mcpRepository === null) {
@@ -354,9 +388,6 @@ final class WorkflowService
         return self::$mcpRepository;
     }
 
-    /**
-     * MCP 工厂：声明可用 server（github 等），供 AINode::mcp() 绑定。
-     */
     public static function mcpFactory(): McpFactory
     {
         if (self::$mcpFactory === null) {
@@ -372,10 +403,6 @@ final class WorkflowService
         return self::$mcpFactory;
     }
 
-    /**
-     * Neuron 工厂：只注入 Provider / MCP。
-     * 会话记忆由各 Agent::chatHistory() 自行声明。
-     */
     public static function neuronFactory(): NeuronFactory
     {
         if (self::$neuronFactory === null) {
@@ -385,9 +412,6 @@ final class WorkflowService
         return self::$neuronFactory;
     }
 
-    /**
-     * 重置全部单例（单测隔离用）。
-     */
     public static function reset(): void
     {
         self::$registry = null;
@@ -399,6 +423,11 @@ final class WorkflowService
         self::$neuronFactory = null;
         self::$mcpFactory = null;
         self::$mcpRepository = null;
+        OrderWorkflowService::reset();
+        OutdoorWorkflowService::reset();
+        ResearchWorkflowService::reset();
+        RagWorkflowService::reset();
+        WorkflowComponentFactory::resetRunStores();
         McpProcessRunner::reset();
     }
 
@@ -423,8 +452,6 @@ final class WorkflowService
     }
 
     /**
-     * 将 EdgeCondition 转为可读描述（表达式或类型名）。
-     *
      * @return array<string, mixed>
      */
     private static function describeCondition(EdgeCondition $condition): array

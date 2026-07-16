@@ -73,6 +73,8 @@
         ],
         "test:outdoor-workflow": "@php Test/Module/Outdoor/Tests/OutdoorWorkflowModuleTest.php",
         "test:order-workflow": "@php Test/Module/Order/Tests/OrderWorkflowModuleTest.php",
+        "test:research-workflow": "@php Test/Module/Research/Tests/ResearchWorkflowModuleTest.php",
+        "test:workflow-federation": "@php Test/Module/Workflow/Tests/WorkflowFederationTest.php",
         "test:agent": "@php src/Support/Agent/Tests/AgentModuleTest.php",
         "test:ai": "@php src/Support/AI/Tests/AIModuleTest.php",
         "test:mcp": "@php src/Support/Mcp/Tests/McpModuleTest.php",

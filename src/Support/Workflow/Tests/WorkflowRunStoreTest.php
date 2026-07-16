@@ -216,6 +216,7 @@ function testWorkflowConfigCustomAliasWithDriver(): void
  */
 function testFactoryBuildsMemoryRunStore(): void
 {
+    WorkflowComponentFactory::resetRunStores();
     $registry = new WorkflowRegistry();
     $config = WorkflowConfig::fromArray(sampleRunStoresConfig(WorkflowRunStoreName::MEMORY));
     $store = WorkflowComponentFactory::runStore($registry, $config);
@@ -223,6 +224,7 @@ function testFactoryBuildsMemoryRunStore(): void
 
     $store2 = WorkflowComponentFactory::runStore($registry, $config, WorkflowRunStoreName::MEMORY);
     assertTrue($store2 instanceof InMemoryRunStore, 'explicit memory alias');
+    assertTrue($store === $store2, 'same registry+alias must reuse RunStore binding');
     pass('factory builds memory run store');
 }
 

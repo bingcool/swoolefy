@@ -35,12 +35,20 @@ use Swoolefy\Support\Workflow\Plugin\PluginManager;
  *   workflow.default_run_store → workflow.run_stores[alias]
  *   驱动：memory | redis | db（section.driver 可覆盖别名）
  *
+ * RunStore ↔ Registry 绑定：
+ *   同一 {@see WorkflowRegistry} 实例 + storeAlias 复用同一个 RunStore。
+ *   Redis/DB 水合依赖构造时注入的 Registry；换 Registry 查询会导致 hydrate 失败。
+ *   约定：谁注册谁启动谁查询（同一 Registry 生命周期内）。
+ *
  * 生产推荐：
  *   - 默认 default_run_store=db（可查询、可审计、易备份）
  *   - 或 redis（低延迟 HITL）；db 须预执行 Schema/workflow_runs.sql
  */
 final class WorkflowComponentFactory
 {
+    /** @var array<string, RunStoreInterface> key = spl_object_id(registry) + ':' + alias */
+    private static array $runStoreCache = [];
+
     public static function conditionEvaluator(?WorkflowConfig $config = null): ConditionEvaluatorInterface
     {
         $config ??= WorkflowConfig::load();
@@ -49,7 +57,7 @@ final class WorkflowComponentFactory
     }
 
     /**
-     * 按配置构建 RunStore。
+     * 按配置构建（或复用）与 Registry 绑定的 RunStore。
      *
      * @param string|null $storeAlias 覆盖 default_run_store
      */
@@ -60,6 +68,12 @@ final class WorkflowComponentFactory
     ): RunStoreInterface {
         $config ??= WorkflowConfig::load();
         $alias = $storeAlias ?? $config->defaultRunStoreAlias();
+        $cacheKey = spl_object_id($registry) . ':' . $alias;
+
+        if (isset(self::$runStoreCache[$cacheKey])) {
+            return self::$runStoreCache[$cacheKey];
+        }
+
         $driver = $config->runStoreDriver($alias);
 
         if (!WorkflowRunStoreName::isSupported($driver)) {
@@ -68,11 +82,21 @@ final class WorkflowComponentFactory
             );
         }
 
-        return match ($driver) {
+        $store = match ($driver) {
             WorkflowRunStoreName::REDIS => self::makeRedisRunStore($registry, $config, $alias),
             WorkflowRunStoreName::DB => self::makeDbRunStore($registry, $config, $alias),
             default => new InMemoryRunStore(),
         };
+
+        self::$runStoreCache[$cacheKey] = $store;
+
+        return $store;
+    }
+
+    /** 清空 RunStore 缓存（单测隔离）。 */
+    public static function resetRunStores(): void
+    {
+        self::$runStoreCache = [];
     }
 
     public static function engine(

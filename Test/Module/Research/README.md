@@ -180,25 +180,25 @@ curl -s 'http://127.0.0.1:9501/api/v1/research/workflow/status?runId=<runId>' | 
 ## 代码用法（非 HTTP）
 
 ```php
-use Swoolefy\Support\Workflow\WorkflowBootstrap;
+use Swoolefy\Support\Workflow\WorkflowComponentFactory;
+use Test\Module\Research\ResearchWorkflowService;
 use Test\Module\Research\Workflow\McpResearchWorkflow;
 use Test\Module\Research\Workflow\MultiAgentResearchWorkflow;
-use Test\Module\Workflow\WorkflowService;
 
-// 多 Agent
+// 多 Agent（本模块 Registry / Engine）
 $def = MultiAgentResearchWorkflow::definition(
-    WorkflowService::agentScheduler(),
+    ResearchWorkflowService::agentScheduler(),
     useMockAgents: true,
 );
-$runId = WorkflowBootstrap::engine()->start(
-    WorkflowBootstrap::compiler()->compile($def),
+$runId = ResearchWorkflowService::engine()->start(
+    WorkflowComponentFactory::compiler()->compile($def),
     ['query' => 'Analyze workflow design'],
 );
 
 // MCP
-$def = McpResearchWorkflow::definition(WorkflowService::neuronFactory());
-$runId = WorkflowBootstrap::engine()->start(
-    WorkflowBootstrap::compiler()->compile($def),
+$def = McpResearchWorkflow::definition(ResearchWorkflowService::neuronFactory());
+$runId = ResearchWorkflowService::engine()->start(
+    WorkflowComponentFactory::compiler()->compile($def),
     ['query' => 'urgent security review'],
 );
 ```

@@ -12,14 +12,17 @@ Run 持久化由 `Test/Config/workflow.php` 控制（`default_run_store` + `run_
 
 生产将 `default_run_store` 设为 `db` 或 `redis`；DB 场景须先执行 `Schema/workflow_runs.sql`。
 
-与业务专用 Demo 的关系：
+与业务专用 Demo 的关系（**模块本地装配 + 联邦目录**）：
 
-| 入口 | 路径前缀 | 特点 |
-|------|----------|------|
-| **本模块** | `/api/v1/workflow/*` | Registry 统一调度，适合网关 / 运维 |
-| Order Demo | `/api/v1/order/workflow/*` | 可注入 `mockDecision`，绕过 registry 缓存 |
-| Research Demo | `/api/v1/research/workflow/*` | 可注入 `useMock` / `mockSummary` |
-| Outdoor Demo | `/api/v1/outdoor/workflow/*` | 三 Agent 并行 + 天气条件边 |
+| 入口 | 路径前缀 | Runtime |
+|------|----------|---------|
+| **本模块** | `/api/v1/workflow/*` | `engineFor` / `engineForRun` 路由到拥有方 Registry→RunStore |
+| Order Demo | `/api/v1/order/workflow/*` | `OrderWorkflowService`（definition 真源） |
+| Research Demo | `/api/v1/research/workflow/*` | `ResearchWorkflowService` |
+| Outdoor Demo | `/api/v1/outdoor/workflow/*` | `OutdoorWorkflowService` |
+| Rag Demo | `/api/v1/rag/*` | `RagWorkflowService` |
+
+约定：**谁启动谁查询**；同一 `WorkflowRegistry` 复用同一 RunStore（见 `WorkflowComponentFactory`）。
 
 默认 API 前缀：`/api`。下文假设服务监听 `http://127.0.0.1:9501`。
 
@@ -27,8 +30,9 @@ Run 持久化由 `Test/Config/workflow.php` 控制（`default_run_store` + `run_
 
 ```
 Workflow/
-├── Controller/WorkflowController.php   # 通用 HTTP API
-├── WorkflowService.php                 # 注册表 + RAG/MCP/Neuron 依赖装配
+├── Controller/WorkflowController.php   # 通用 HTTP API（联邦路由）
+├── WorkflowService.php                 # 联邦目录 + engineFor* + 枢纽自有工作流
+├── Tests/WorkflowFederationTest.php
 └── README.md
 ```
 

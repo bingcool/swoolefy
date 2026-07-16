@@ -18,9 +18,9 @@ use Test\Module\Order\Workflow\OrderSagaWorkflow;
  * 职责：
  *   1. 注册本模块 workflowId（order_processing、order_saga）到独立 Registry
  *   2. 惰性创建 NeuronFactory（供 AI 决策节点）
- *   3. 按 workflow.php 装配 Engine（跨 Worker status/resume）
+ *   3. Engine 与本 Registry 绑定同一 RunStore（谁启动谁查询）
  *
- * Demo 控制器与模块单测应通过本类启动 / 查询 / resume Run。
+ * Demo / status / resume 必须走本类；统一 API 经 WorkflowService::engineFor* 路由到此。
  *
  * @see OrderWorkflowDemoController
  * @see OrderProcessingWorkflow
@@ -73,5 +73,6 @@ final class OrderWorkflowService
     {
         self::$registry = null;
         self::$neuronFactory = null;
+        WorkflowComponentFactory::resetRunStores();
     }
 }

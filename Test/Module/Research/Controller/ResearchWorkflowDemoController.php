@@ -13,12 +13,15 @@ use Swoolefy\Support\Workflow\Engine\StreamWorkflowEventDispatcher;
 use Swoolefy\Support\Workflow\Engine\WorkflowRun;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\WorkflowComponentFactory;
+use Test\Module\Research\ResearchWorkflowService;
 use Test\Module\Research\Workflow\McpResearchWorkflow;
 use Test\Module\Research\Workflow\MultiAgentResearchWorkflow;
-use Test\Module\Workflow\WorkflowService;
 
 /**
  * Research 工作流演示控制器 —— 展示 multi_agent_research / mcp_research 用法。
+ *
+ * 本模块使用 {@see ResearchWorkflowService} 独立 Registry / Engine，
+ * 不依赖中央 WorkflowService Runtime（目录联邦除外）。
  *
  * 路由前缀（见 Test/Router/Common/Api.php）：
  *
@@ -65,7 +68,7 @@ final class ResearchWorkflowDemoController extends BController
         $useMock = $this->boolInput($requestInput, 'useMock', default: true);
 
         $definition = MultiAgentResearchWorkflow::definition(
-            WorkflowService::agentScheduler(),
+            ResearchWorkflowService::agentScheduler(),
             useMockAgents: $useMock,
         );
 
@@ -89,7 +92,7 @@ final class ResearchWorkflowDemoController extends BController
         $useRealResearchAgent = $this->boolInput($requestInput, 'useRealResearchAgent', default: false);
 
         $definition = McpResearchWorkflow::definition(
-            WorkflowService::neuronFactory(),
+            ResearchWorkflowService::neuronFactory(),
             mockSummary: $mockSummary,
             useRealResearchAgent: $useRealResearchAgent,
         );
@@ -110,7 +113,7 @@ final class ResearchWorkflowDemoController extends BController
         }
 
         try {
-            $run = WorkflowService::engine()->getRun($runId);
+            $run = ResearchWorkflowService::engine()->getRun($runId);
         } catch (WorkflowException $e) {
             throw new SystemException($e->getMessage(), 404, $e);
         }
@@ -130,7 +133,7 @@ final class ResearchWorkflowDemoController extends BController
     {
         try {
             $compiled = WorkflowComponentFactory::compiler()->compile($definition);
-            $engine = WorkflowService::engine(events: new StreamWorkflowEventDispatcher());
+            $engine = ResearchWorkflowService::engine(events: new StreamWorkflowEventDispatcher());
             $runId = $engine->start($compiled, $input);
             $run = $engine->getRun($runId);
         } catch (WorkflowException $e) {

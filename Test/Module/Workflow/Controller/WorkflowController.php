@@ -25,10 +25,11 @@ use Test\Module\Workflow\WorkflowService;
 /**
  * Workflow 通用 HTTP API —— 按 workflowId 启动 / 查询 / 恢复已注册工作流。
  *
- * 与 Order / Research 专用 Demo 控制器的区别：
- *   - 本控制器走 {@see WorkflowService::registry()} + {@see WorkflowService::engine()}
- *   - Engine 按 workflow.php 的 default_run_store 持久化（memory / redis / db），跨 Worker 可用
- *   - 专用 Demo 可注入 mock；status/resume 同样走生产级 RunStore
+ * 与 Order / Research / Outdoor / Rag 专用 Demo 的区别：
+ *   - 目录 / describe：联邦 {@see WorkflowService::registry()}
+ *   - 启动：{@see WorkflowService::engineFor()} → 拥有模块 Registry 绑定的 RunStore
+ *   - status/resume/cancel：{@see WorkflowService::engineForRun()} 按 runId 路由到拥有方
+ *   - 专用 Demo 可注入 mock，且必须用本模块 *WorkflowService（谁启动谁查询）
  *
  * 路由（见 Test/Router/Common/Api.php）：
  *
@@ -130,8 +131,10 @@ final class WorkflowController extends BController
                 );
             }
 
-            $compiled = $registry->compiled($workflowId);
-            $engine = WorkflowService::engine(events: new StreamWorkflowEventDispatcher());
+            // 编译与 Runtime 均走拥有方 Registry，保证 RunStore ↔ Registry 一致
+            $ownerRegistry = WorkflowService::registryFor($workflowId);
+            $compiled = $ownerRegistry->compiled($workflowId);
+            $engine = WorkflowService::engineFor($workflowId, events: new StreamWorkflowEventDispatcher());
 
             // SSE：边启动边推送事件（演示用；生产可接 StreamWorkflowEventDispatcher 实时边事件）
             if ($stream) {
@@ -166,7 +169,7 @@ final class WorkflowController extends BController
         try {
             $hitlAuth = new WorkflowHitlAuth(WorkflowConfig::load());
             $this->assertHitlAuthorized($hitlAuth, $requestInput);
-            $run = WorkflowService::engine()->getRun($runId);
+            $run = WorkflowService::engineForRun($runId)->getRun($runId);
 
             return $this->formatRun($run, $this->wantsRunDetail($requestInput, $hitlAuth));
         } catch (WorkflowPermissionException $e) {
@@ -202,7 +205,7 @@ final class WorkflowController extends BController
 
         try {
             $hitlAuth = new WorkflowHitlAuth(WorkflowConfig::load());
-            $engine = WorkflowService::engine(events: new StreamWorkflowEventDispatcher());
+            $engine = WorkflowService::engineForRun($runId, events: new StreamWorkflowEventDispatcher());
             $run = $engine->getRun($runId);
             $this->assertHitlAuthorized($hitlAuth, $requestInput);
             $hitlAuth->assertCanResume(
@@ -242,7 +245,7 @@ final class WorkflowController extends BController
         try {
             $hitlAuth = new WorkflowHitlAuth(WorkflowConfig::load());
             $this->assertHitlAuthorized($hitlAuth, $requestInput);
-            $engine = WorkflowService::engine();
+            $engine = WorkflowService::engineForRun($runId);
             $engine->cancel($runId);
             $run = $engine->getRun($runId);
 
@@ -285,10 +288,22 @@ final class WorkflowController extends BController
         }
 
         $listAssignee = $hitlAuth->resolveListAssigneeFilter($assignee, $actor, $role);
-        $engine = WorkflowService::engine();
+        // 聚合各拥有方 RunStore 上的 WAITING 任务（模块本地 + 枢纽）
+        $tasks = [];
+        foreach ([
+            WorkflowService::engineFor('order_processing'),
+            WorkflowService::engineFor('outdoor_cycling'),
+            WorkflowService::engineFor('multi_agent_research'),
+            WorkflowService::engineFor('rag_qa'),
+            WorkflowService::engine(),
+        ] as $engine) {
+            foreach ($engine->listPauseTasks($listAssignee) as $task) {
+                $tasks[] = $task;
+            }
+        }
 
         return [
-            'tasks' => $engine->listPauseTasks($listAssignee),
+            'tasks' => $tasks,
             'assignee' => $listAssignee,
         ];
     }
@@ -311,7 +326,7 @@ final class WorkflowController extends BController
 
             $hitlAuth = new WorkflowHitlAuth(WorkflowConfig::load());
             $this->assertHitlAuthorized($hitlAuth, $requestInput);
-            $run = WorkflowService::engine()->getRun($runId);
+            $run = WorkflowService::engineForRun($runId)->getRun($runId);
             $sink->publish('run.status', [
                 'runId' => $runId,
                 'status' => $run->status->value,
