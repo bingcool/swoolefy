@@ -2,57 +2,47 @@
 
 declare(strict_types=1);
 
-namespace Test\Module\Rag;
+namespace Test\Module\Contract;
 
 use Swoolefy\Support\Workflow\Engine\WorkflowEngine;
 use Swoolefy\Support\Workflow\Engine\WorkflowEventDispatcherInterface;
 use Swoolefy\Support\Workflow\WorkflowComponentFactory;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
-use Test\Module\Rag\Controller\RagController;
-use Test\Module\Rag\Workflow\RagQaWorkflow;
+use Test\Module\Contract\Workflow\ContractReviewWorkflow;
 
 /**
- * Rag 模块本地工作流装配 —— 与 Order/Outdoor 同一模式。
+ * Contract 模块本地工作流装配 —— 与 Order/Outdoor 同一模式。
  *
  * 职责：
- *   1. 注册本模块 workflowId（rag_qa）到独立 Registry
+ *   1. 注册本模块 workflowId（contract_review）到独立 Registry
  *   2. Engine 与本 Registry 绑定同一 RunStore（谁启动谁查询）
  *
- * Demo / status 必须走本类；统一 API 经 WorkflowService::engineFor* 路由到此。
+ * Demo / status / resume 必须走本类；统一 API 经 WorkflowService::engineFor* 路由到此。
  *
- * @see RagController
- * @see RagQaWorkflow
- * @see RagService
+ * @see ContractReviewWorkflow
  */
-final class RagWorkflowService
+final class ContractWorkflowService
 {
     private static ?WorkflowRegistry $registry = null;
 
-    /** 本模块工作流注册表（首次调用时注册 rag_qa）。 */
     public static function registry(): WorkflowRegistry
     {
         if (self::$registry === null) {
             self::$registry = new WorkflowRegistry();
             self::$registry->register(
-                'rag_qa',
-                static fn () => RagQaWorkflow::definition(
-                    RagService::instance()->retrievalService(),
-                ),
+                'contract_review',
+                static fn () => ContractReviewWorkflow::definition(),
             );
         }
 
         return self::$registry;
     }
 
-    /**
-     * 生产级 Engine：RunStore 与模块 Registry 绑定，供 status 水合。
-     */
     public static function engine(?WorkflowEventDispatcherInterface $events = null): WorkflowEngine
     {
         return WorkflowComponentFactory::engine(self::registry(), events: $events);
     }
 
-    /** 重置单例（单测隔离）。 */
     public static function reset(): void
     {
         self::$registry = null;

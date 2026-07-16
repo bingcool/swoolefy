@@ -29,7 +29,7 @@ declare(strict_types=1);
  * composer test:job
  * ```
  *
- * 说明：Redis 使用本文件 {@see FakeRedisList} 内存假实现；业务 Handler 来自 Test\Module\Job。
+ * 说明：Redis 使用本文件 {@see FakeRedisList} 内存假实现；Handler 来自 Support Job Fixtures。
  */
 
 use Swoolefy\Support\Job\JobComponentFactory;
@@ -43,8 +43,8 @@ use Swoolefy\Support\Job\JobRunner;
 use Swoolefy\Support\Job\RedisDeadLetter;
 use Swoolefy\Support\Job\Exception\JobException;
 use Swoolefy\Support\SupportLog;
-use Test\Module\Job\OrderExportHandler;
-use Test\Module\Job\OrderPaidNotifyHandler;
+use Swoolefy\Support\Job\Tests\Fixtures\OrderExportHandler;
+use Swoolefy\Support\Job\Tests\Fixtures\OrderPaidNotifyHandler;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 

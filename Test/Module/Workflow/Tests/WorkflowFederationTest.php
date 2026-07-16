@@ -15,10 +15,13 @@ use Swoolefy\Support\Workflow\Definition\WorkflowCompiler;
 use Swoolefy\Support\Workflow\Engine\RunStatus;
 use Swoolefy\Support\Workflow\WorkflowComponentFactory;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
+use Test\Module\Contract\ContractWorkflowService;
+use Test\Module\Knowledge\KnowledgeWorkflowService;
 use Test\Module\Order\Dto\OrderDecisionDto;
 use Test\Module\Order\OrderWorkflowService;
 use Test\Module\Order\Workflow\OrderProcessingWorkflow;
 use Test\Module\Outdoor\OutdoorWorkflowService;
+use Test\Module\Rag\RagWorkflowService;
 use Test\Module\Research\ResearchWorkflowService;
 use Test\Module\Workflow\WorkflowService;
 
@@ -62,8 +65,16 @@ function testFederatedCatalogDelegatesWithoutOwningRuntime(): void
         'multi_agent_research owned by Research registry',
     );
     assertTrue(
-        WorkflowService::registryFor('contract_review') === WorkflowService::registry(),
-        'contract_review owned by hub registry',
+        WorkflowService::registryFor('rag_qa') === RagWorkflowService::registry(),
+        'rag_qa owned by Rag registry',
+    );
+    assertTrue(
+        WorkflowService::registryFor('contract_review') === ContractWorkflowService::registry(),
+        'contract_review owned by Contract registry',
+    );
+    assertTrue(
+        WorkflowService::registryFor('knowledge_qa') === KnowledgeWorkflowService::registry(),
+        'knowledge_qa owned by Knowledge registry',
     );
 }
 

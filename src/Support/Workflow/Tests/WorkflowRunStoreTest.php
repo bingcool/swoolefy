@@ -48,8 +48,8 @@ use Swoolefy\Support\Workflow\WorkflowConfig;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
 use Swoolefy\Support\Workflow\WorkflowRunStoreName;
 use Swoolefy\Support\Workflow\Tests\WorkflowRunsSchemaInstaller;
-use Test\Module\Order\Dto\OrderDecisionDto;
-use Test\Module\Order\Workflow\OrderProcessingWorkflow;
+use Swoolefy\Support\Tests\Fixtures\DecisionDto;
+use Swoolefy\Support\Workflow\Tests\Fixtures\OrderProcessingFixtureWorkflow;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
@@ -107,10 +107,10 @@ function sampleRunStoresConfig(string $default = WorkflowRunStoreName::MEMORY): 
  */
 function registerOrderWorkflow(WorkflowRegistry $registry): void
 {
-    $registry->register('order_processing', static fn () => OrderProcessingWorkflow::definition(
+    $registry->register('order_processing', static fn () => OrderProcessingFixtureWorkflow::definition(
         new NeuronFactory(),
-        static function (): OrderDecisionDto {
-            $dto = new OrderDecisionDto();
+        static function (): DecisionDto {
+            $dto = new DecisionDto();
             $dto->approved = true;
             $dto->confidence = 0.95;
             $dto->reason = 'run store test';

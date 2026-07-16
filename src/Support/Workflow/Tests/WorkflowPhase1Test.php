@@ -42,8 +42,8 @@ use Swoolefy\Support\Workflow\Plugin\PluginManager;
 use Swoolefy\Support\Workflow\State\WorkflowState;
 use Swoolefy\Support\Workflow\Workflow;
 use Swoolefy\Support\Workflow\WorkflowBootstrap;
-use Test\Module\Order\Dto\OrderDecisionDto;
-use Test\Module\Order\Workflow\OrderProcessingWorkflow;
+use Swoolefy\Support\Tests\Fixtures\DecisionDto;
+use Swoolefy\Support\Workflow\Tests\Fixtures\OrderProcessingFixtureWorkflow;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
@@ -130,7 +130,7 @@ function testCompilerRejectsMultipleEntryNodes(): void
 }
 
 // ---------------------------------------------------------------------------
-// 订单处理条件路由（OrderProcessingWorkflow）
+// 订单处理条件路由（OrderProcessingFixtureWorkflow）
 // ---------------------------------------------------------------------------
 
 /**
@@ -146,8 +146,8 @@ function testConditionalRoutingHighConfidence(): void
         scheduler: new DagScheduler(new SymfonyExpressionLanguageEvaluator()),
     );
 
-    $definition = OrderProcessingWorkflow::definition(new NeuronFactory(), static function ($ctx, $state): OrderDecisionDto {
-        $dto = new OrderDecisionDto();
+    $definition = OrderProcessingFixtureWorkflow::definition(new NeuronFactory(), static function ($ctx, $state): DecisionDto {
+        $dto = new DecisionDto();
         $dto->approved = true;
         $dto->confidence = 0.95;
         $dto->reason = 'High confidence approve';
@@ -169,7 +169,7 @@ function testConditionalRoutingHighConfidence(): void
     assertTrue($run->state->get('paymentStatus') === 'captured', 'Should route to payment directly');
     assertTrue($run->state->get('manualReview') !== true, 'Should skip manual review');
 
-    $decision = $run->state->dto(OrderDecisionDto::class);
+    $decision = $run->state->dto(DecisionDto::class);
     assertTrue($decision->approved === true, 'Decision should be approved');
     assertTrue(count($tracing->spans()) >= 4, 'Tracing plugin should record spans');
 }
@@ -183,8 +183,8 @@ function testConditionalRoutingManualReview(): void
 {
     $engine = WorkflowBootstrap::engine();
 
-    $definition = OrderProcessingWorkflow::definition(new NeuronFactory(), static function ($ctx, $state): OrderDecisionDto {
-        $dto = new OrderDecisionDto();
+    $definition = OrderProcessingFixtureWorkflow::definition(new NeuronFactory(), static function ($ctx, $state): DecisionDto {
+        $dto = new DecisionDto();
         $dto->approved = true;
         $dto->confidence = 0.55;
         $dto->reason = 'Low confidence approve';
@@ -209,8 +209,8 @@ function testConditionalRoutingReject(): void
 {
     $engine = WorkflowBootstrap::engine();
 
-    $definition = OrderProcessingWorkflow::definition(new NeuronFactory(), static function ($ctx, $state): OrderDecisionDto {
-        $dto = new OrderDecisionDto();
+    $definition = OrderProcessingFixtureWorkflow::definition(new NeuronFactory(), static function ($ctx, $state): DecisionDto {
+        $dto = new DecisionDto();
         $dto->approved = false;
         $dto->confidence = 0.99;
         $dto->reason = 'Rejected by policy';
@@ -241,7 +241,7 @@ function testWorkflowFacade(): void
 
     $engine = WorkflowBootstrap::engine();
 
-    $runId = Workflow::fromDefinition(OrderProcessingWorkflow::definition(new NeuronFactory()))
+    $runId = Workflow::fromDefinition(OrderProcessingFixtureWorkflow::definition(new NeuronFactory()))
         ->compile()
         ->start([
             'orderId' => 10004,

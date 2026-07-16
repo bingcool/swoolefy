@@ -31,7 +31,7 @@ declare(strict_types=1);
  * composer test:ai
  * ```
  *
- * 说明：全部用 executor 闭包 mock，不打真实 LLM。OrderDecisionDto 来自 Test 应用模块。
+ * 说明：全部用 executor 闭包 mock，不打真实 LLM。DecisionDto 来自 Support Tests Fixtures。
  */
 
 use Swoolefy\Support\AI\Node\AINode;
@@ -42,7 +42,7 @@ use Swoolefy\Support\Workflow\Engine\RunContext;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\State\WorkflowState;
 use Swoolefy\Support\Workflow\WorkflowBootstrap;
-use Test\Module\Order\Dto\OrderDecisionDto;
+use Swoolefy\Support\Tests\Fixtures\DecisionDto;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
@@ -55,14 +55,14 @@ function assertTrue(bool $condition, string $message): void
 }
 
 /**
- * 构造测试用 OrderDecisionDto（executor mock 返回值）。
+ * 构造测试用 DecisionDto（executor mock 返回值）。
  *
  * @param bool $approved 是否批准
  * @param float $confidence 置信度
  */
-function makeDecisionDto(bool $approved = true, float $confidence = 0.9): OrderDecisionDto
+function makeDecisionDto(bool $approved = true, float $confidence = 0.9): DecisionDto
 {
-    $dto = new OrderDecisionDto();
+    $dto = new DecisionDto();
     $dto->approved = $approved;
     $dto->confidence = $confidence;
     $dto->reason = 'test decision';
@@ -78,7 +78,7 @@ function executeNode(AINode $node, WorkflowState $state): void
     $compiled = WorkflowBootstrap::compiler()->compile(
         WorkflowDefinition::create('ai_module_test')
             ->addNode($node->id(), $node)
-            ->registerSchema('decision', OrderDecisionDto::class),
+            ->registerSchema('decision', DecisionDto::class),
     );
     $ctx = new RunContext('run-ai-test', $compiled);
     $node->execute($ctx, $state);
@@ -94,8 +94,8 @@ function executeNode(AINode $node, WorkflowState $state): void
 function testBuilderStructuredConfig(): void
 {
     $node = AINode::make('ai_decision')
-        ->structured(OrderDecisionDto::class, outputKey: 'decision')
-        ->executor(static fn (): OrderDecisionDto => makeDecisionDto())
+        ->structured(DecisionDto::class, outputKey: 'decision')
+        ->executor(static fn (): DecisionDto => makeDecisionDto())
         ->timeout(30)
         ->build();
 
@@ -109,11 +109,11 @@ function testBuilderStructuredConfig(): void
 function testStructuredOutputWritesStateArray(): void
 {
     $node = AINode::make('ai_decision')
-        ->structured(OrderDecisionDto::class, outputKey: 'decision')
-        ->executor(static fn (): OrderDecisionDto => makeDecisionDto(true, 0.95))
+        ->structured(DecisionDto::class, outputKey: 'decision')
+        ->executor(static fn (): DecisionDto => makeDecisionDto(true, 0.95))
         ->build();
 
-    $state = WorkflowState::fromInput([], ['decision' => OrderDecisionDto::class]);
+    $state = WorkflowState::fromInput([], ['decision' => DecisionDto::class]);
     executeNode($node, $state);
 
     $decision = $state->get('decision');
@@ -123,7 +123,7 @@ function testStructuredOutputWritesStateArray(): void
 }
 
 /**
- * WorkflowState::dto() 按 schemas 把数组 hydrate 为 OrderDecisionDto。
+ * WorkflowState::dto() 按 schemas 把数组 hydrate 为 DecisionDto。
  */
 function testWorkflowStateDtoHydration(): void
 {
@@ -135,11 +135,11 @@ function testWorkflowStateDtoHydration(): void
                 'reason' => 'reject',
             ],
         ],
-        schemas: ['decision' => OrderDecisionDto::class],
+        schemas: ['decision' => DecisionDto::class],
     );
 
-    $dto = $state->dto(OrderDecisionDto::class);
-    assertTrue($dto instanceof OrderDecisionDto, 'dto type');
+    $dto = $state->dto(DecisionDto::class);
+    assertTrue($dto instanceof DecisionDto, 'dto type');
     assertTrue($dto->approved === false, 'dto approved');
     assertTrue($dto->confidence === 0.2, 'dto confidence');
     assertTrue($dto->reason === 'reject', 'dto reason');
@@ -151,7 +151,7 @@ function testWorkflowStateDtoHydration(): void
 function testStreamAndStructuredAreMutuallyExclusive(): void
 {
     $node = AINode::make('bad')
-        ->structured(OrderDecisionDto::class)
+        ->structured(DecisionDto::class)
         ->stream(true)
         ->executor(static fn (): string => 'x')
         ->build();
@@ -184,16 +184,16 @@ function testAiNodeRequiresConfiguration(): void
  */
 function testStructuredOutputNodeDelegate(): void
 {
-    $node = new StructuredOutputNode('so', OrderDecisionDto::class, [
+    $node = new StructuredOutputNode('so', DecisionDto::class, [
         'outputKey' => 'decision',
-        'executor' => static fn (): OrderDecisionDto => makeDecisionDto(false, 0.1),
+        'executor' => static fn (): DecisionDto => makeDecisionDto(false, 0.1),
     ]);
 
-    $state = WorkflowState::fromInput([], ['decision' => OrderDecisionDto::class]);
+    $state = WorkflowState::fromInput([], ['decision' => DecisionDto::class]);
     $compiled = WorkflowBootstrap::compiler()->compile(
         WorkflowDefinition::create('so_test')
             ->addNode('so', $node)
-            ->registerSchema('decision', OrderDecisionDto::class),
+            ->registerSchema('decision', DecisionDto::class),
     );
     $node->execute(new RunContext('run-so', $compiled), $state);
 

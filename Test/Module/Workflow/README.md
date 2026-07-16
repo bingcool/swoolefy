@@ -21,8 +21,11 @@ Run 持久化由 `Test/Config/workflow.php` 控制（`default_run_store` + `run_
 | Research Demo | `/api/v1/research/workflow/*` | `ResearchWorkflowService` |
 | Outdoor Demo | `/api/v1/outdoor/workflow/*` | `OutdoorWorkflowService` |
 | Rag Demo | `/api/v1/rag/*` | `RagWorkflowService` |
+| Contract | （统一 API / 无专用 Demo） | `ContractWorkflowService` |
+| Knowledge | （统一 API / 无专用 Demo） | `KnowledgeWorkflowService` |
 
 约定：**谁启动谁查询**；同一 `WorkflowRegistry` 复用同一 RunStore（见 `WorkflowComponentFactory`）。
+模块回归：`composer test:module-workflows`。
 
 默认 API 前缀：`/api`。下文假设服务监听 `http://127.0.0.1:9501`。
 
@@ -31,7 +34,7 @@ Run 持久化由 `Test/Config/workflow.php` 控制（`default_run_store` + `run_
 ```
 Workflow/
 ├── Controller/WorkflowController.php   # 通用 HTTP API（联邦路由）
-├── WorkflowService.php                 # 联邦目录 + engineFor* + 枢纽自有工作流
+├── WorkflowService.php                 # 联邦目录 + engineFor*（definition 全部委托各模块）
 ├── Tests/WorkflowFederationTest.php
 └── README.md
 ```

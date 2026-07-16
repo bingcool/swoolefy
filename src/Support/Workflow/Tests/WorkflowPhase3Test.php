@@ -17,9 +17,9 @@ declare(strict_types=1);
  * ## 覆盖范围
  * | 区域 | 要点 |
  * |------|------|
- * | HITL | ContractReviewWorkflow 批准路径与拒绝修订循环 |
- * | RAG | KnowledgeQaWorkflow 检索与回答 |
- * | MCP | McpResearchWorkflow 摘要与 notify/archive 路由 |
+ * | HITL | ContractReviewFixtureWorkflow 批准路径与拒绝修订循环 |
+ * | RAG | KnowledgeQaFixtureWorkflow 检索与回答 |
+ * | MCP | McpResearchFixtureWorkflow 摘要与 notify/archive 路由 |
  * | Agent 路由 | LLMRouter 启发式、WeightedRouter 权重选路 |
  * | 暂停任务 | listPauseTasks 按 legal-team assignee 列出 |
  *
@@ -44,11 +44,11 @@ use Swoolefy\Support\Workflow\Plugin\Builtin\RetryPlugin;
 use Swoolefy\Support\Workflow\Plugin\PluginManager;
 use Swoolefy\Support\Workflow\State\WorkflowState;
 use Swoolefy\Support\Workflow\WorkflowBootstrap;
-use Test\Module\Contract\Workflow\ContractReviewWorkflow;
-use Test\Module\Knowledge\Support\KnowledgeSeeder;
-use Test\Module\Knowledge\Workflow\KnowledgeQaWorkflow;
-use Test\Module\Research\Workflow\McpResearchWorkflow;
-use Test\Module\Workflow\WorkflowService;
+use Swoolefy\Support\Workflow\Tests\Fixtures\ContractReviewFixtureWorkflow;
+use Swoolefy\Support\Workflow\Tests\Fixtures\KnowledgeQaFixtureWorkflow;
+use Swoolefy\Support\Workflow\Tests\Fixtures\McpResearchFixtureWorkflow;
+use Swoolefy\Support\Workflow\Tests\Fixtures\ProductKbSeeder;
+use Swoolefy\Support\Workflow\Tests\Fixtures\WorkflowTestServices;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
@@ -88,14 +88,14 @@ function makeEngine(): WorkflowEngine
 // ---------------------------------------------------------------------------
 
 /**
- * 验证：ContractReviewWorkflow 在 legal_review 暂停，批准后完成并 published=true。
+ * 验证：ContractReviewFixtureWorkflow 在 legal_review 暂停，批准后完成并 published=true。
  *
  * 覆盖典型 HITL 批准单路径。
  */
 function testContractReviewHitlApprove(): void
 {
     $engine = makeEngine();
-    $compiled = WorkflowBootstrap::compiler()->compile(ContractReviewWorkflow::definition());
+    $compiled = WorkflowBootstrap::compiler()->compile(ContractReviewFixtureWorkflow::definition());
 
     $runId = $engine->start($compiled, ['contractBrief' => 'SaaS agreement']);
     $run = $engine->getRun($runId);
@@ -115,7 +115,7 @@ function testContractReviewHitlApprove(): void
 function testContractReviewHitlRejectLoop(): void
 {
     $engine = makeEngine();
-    $compiled = WorkflowBootstrap::compiler()->compile(ContractReviewWorkflow::definition());
+    $compiled = WorkflowBootstrap::compiler()->compile(ContractReviewFixtureWorkflow::definition());
 
     $runId = $engine->start($compiled, ['contractBrief' => 'NDA']);
     assertTrue($engine->getRun($runId)->status->value === 'waiting', 'Should wait');
@@ -134,18 +134,21 @@ function testContractReviewHitlRejectLoop(): void
 // ---------------------------------------------------------------------------
 
 /**
- * 验证：KnowledgeQaWorkflow 在种子知识库后能完成检索并生成 answer。
+ * 验证：KnowledgeQaFixtureWorkflow 在种子知识库后能完成检索并生成 answer。
  *
- * 依赖 KnowledgeSeeder 预置 product_kb 文档。
+ * 依赖 ProductKbSeeder 预置 product_kb 文档。
  */
 function testKnowledgeQaWorkflow(): void
 {
-    WorkflowService::reset();
-    (new KnowledgeSeeder(WorkflowService::ragFactory()))->seedProductKb();
+    $rag = WorkflowTestServices::makeRagFactory();
+    (new ProductKbSeeder($rag))->seedProductKb();
 
     $engine = makeEngine();
     $compiled = WorkflowBootstrap::compiler()->compile(
-        KnowledgeQaWorkflow::definition(WorkflowService::retrievalService(), WorkflowService::neuronFactory()),
+        KnowledgeQaFixtureWorkflow::definition(
+            WorkflowTestServices::makeRetrievalService($rag),
+            WorkflowTestServices::makeNeuronFactory(),
+        ),
     );
 
     $runId = $engine->start($compiled, [
@@ -160,16 +163,15 @@ function testKnowledgeQaWorkflow(): void
 }
 
 /**
- * 验证：McpResearchWorkflow 完成并产出 summary，路由至 notify 或 archive。
+ * 验证：McpResearchFixtureWorkflow 完成并产出 summary，路由至 notify 或 archive。
  *
  * 覆盖 MCP 工具集成与条件边归档路径。
  */
 function testMcpResearchWorkflow(): void
 {
-    WorkflowService::reset();
     $engine = makeEngine();
     $compiled = WorkflowBootstrap::compiler()->compile(
-        McpResearchWorkflow::definition(WorkflowService::neuronFactory()),
+        McpResearchFixtureWorkflow::definition(WorkflowTestServices::makeNeuronFactory()),
     );
 
     $runId = $engine->start($compiled, ['query' => 'urgent: analyze github issues']);
@@ -215,14 +217,14 @@ function testWeightedRouter(): void
 // ---------------------------------------------------------------------------
 
 /**
- * 验证：ContractReviewWorkflow 启动后 listPauseTasks('legal-team') 包含当前 runId。
+ * 验证：ContractReviewFixtureWorkflow 启动后 listPauseTasks('legal-team') 包含当前 runId。
  *
  * 操作员待办列表 API 的基础行为。
  */
 function testPauseTaskListing(): void
 {
     $engine = makeEngine();
-    $compiled = WorkflowBootstrap::compiler()->compile(ContractReviewWorkflow::definition());
+    $compiled = WorkflowBootstrap::compiler()->compile(ContractReviewFixtureWorkflow::definition());
     $runId = $engine->start($compiled, ['contractBrief' => 'Test']);
 
     $tasks = $engine->listPauseTasks('legal-team');

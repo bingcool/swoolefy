@@ -49,19 +49,18 @@ AI/
 
 ```php
 use Swoolefy\Support\AI\Node\AINode;
-use Test\Module\Order\Dto\OrderDecisionDto;
+use Swoolefy\Support\Tests\Fixtures\DecisionDto;
 
 $node = AINode::make('ai_decision')
-    ->agent(OrderDecisionAgent::class)
-    ->structured(OrderDecisionDto::class, outputKey: 'decision')
+    ->structured(DecisionDto::class, outputKey: 'decision')
     ->memory(threadIdKey: 'sessionId')
     ->build();
 
 // 单测注入 mock，无需 API Key：
 $node = AINode::make('ai_decision')
-    ->structured(OrderDecisionDto::class, outputKey: 'decision')
+    ->structured(DecisionDto::class, outputKey: 'decision')
     ->executor(function ($ctx, $state) {
-        $dto = new OrderDecisionDto();
+        $dto = new DecisionDto();
         $dto->approved = true;
         $dto->confidence = 0.95;
         $dto->reason = 'ok';
@@ -70,7 +69,7 @@ $node = AINode::make('ai_decision')
     ->build();
 ```
 
-等价写法：`new StructuredOutputNode('ai_decision', OrderDecisionDto::class, [...])`。
+等价写法：`new StructuredOutputNode('ai_decision', DecisionDto::class, [...])`。
 
 下游：
 
@@ -79,7 +78,7 @@ $node = AINode::make('ai_decision')
 EdgeCondition::when("data['decision'].approved == true")
 
 // 节点内
-$decision = $state->dto(OrderDecisionDto::class); // 需 registerSchema('decision', ...)
+$decision = $state->dto(DecisionDto::class); // 需 registerSchema('decision', ...)
 ```
 
 ### Builder 常用 API

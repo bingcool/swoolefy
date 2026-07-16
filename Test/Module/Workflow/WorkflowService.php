@@ -25,8 +25,8 @@ use Swoolefy\Support\Workflow\Engine\WorkflowEventDispatcherInterface;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\WorkflowComponentFactory;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
-use Test\Module\Contract\Workflow\ContractReviewWorkflow;
-use Test\Module\Knowledge\Workflow\KnowledgeQaWorkflow;
+use Test\Module\Contract\ContractWorkflowService;
+use Test\Module\Knowledge\KnowledgeWorkflowService;
 use Test\Module\Order\OrderWorkflowService;
 use Test\Module\Outdoor\OutdoorWorkflowService;
 use Test\Module\Rag\RagService;
@@ -34,21 +34,22 @@ use Test\Module\Rag\RagWorkflowService;
 use Test\Module\Research\ResearchWorkflowService;
 
 /**
- * Workflow 模块联邦门面（目录 + 路由），不是业务工作流的唯一 Runtime。
+ * Workflow 模块联邦门面（目录 + 路由），不是业务工作流的 Runtime 真源。
  *
- * ## 所有权模型（模块本地装配）
+ * ## 所有权模型（模块本地装配，与 Order/Outdoor 同一模式）
  * | workflowId | 拥有模块 | Runtime |
  * |------------|----------|---------|
  * | order_processing / order_saga | Order | {@see OrderWorkflowService} |
  * | outdoor_cycling | Outdoor | {@see OutdoorWorkflowService} |
  * | multi_agent_research / mcp_research | Research | {@see ResearchWorkflowService} |
  * | rag_qa | Rag | {@see RagWorkflowService} |
- * | contract_review / knowledge_qa | Workflow 枢纽 | 本类本地 Registry |
+ * | contract_review | Contract | {@see ContractWorkflowService} |
+ * | knowledge_qa | Knowledge | {@see KnowledgeWorkflowService} |
  *
  * ## RunStore ↔ Registry
  * - 业务 Demo：只使用拥有模块的 engine()（谁启动谁查询）
- * - 统一 API：{@see engineFor()} / {@see engineForRun()} 路由到拥有方 Registry 绑定的 RunStore
- * - 联邦 {@see registry()} 仅用于 catalog/describe，以及枢纽自有工作流的 Runtime
+ * - 统一 API：{@see engineFor()} / {@see engineForRun()} 路由到拥有方
+ * - 联邦 {@see registry()} 仅 catalog/describe（definition 全部委托模块）
  *
  * Agent / MCP Demo 仍可复用本类 neuronFactory() / mcpFactory()（与工作流 Runtime 无关）。
  *
@@ -88,9 +89,7 @@ final class WorkflowService
     }
 
     /**
-     * 枢纽自有工作流的 Engine（contract_review / knowledge_qa）。
-     *
-     * 业务模块工作流请用 {@see engineFor()}，勿用本方法跨模块查 Run。
+     * 联邦 Registry 绑定的 Engine（一般勿直接用于业务 start；请用 {@see engineFor()}）。
      */
     public static function engine(?WorkflowEventDispatcherInterface $events = null): WorkflowEngine
     {
@@ -109,6 +108,8 @@ final class WorkflowService
             'Outdoor' => OutdoorWorkflowService::engine($events),
             'Research' => ResearchWorkflowService::engine($events),
             'Rag' => RagWorkflowService::engine($events),
+            'Contract' => ContractWorkflowService::engine($events),
+            'Knowledge' => KnowledgeWorkflowService::engine($events),
             default => self::engine($events),
         };
     }
@@ -142,6 +143,8 @@ final class WorkflowService
             'Outdoor' => OutdoorWorkflowService::registry(),
             'Research' => ResearchWorkflowService::registry(),
             'Rag' => RagWorkflowService::registry(),
+            'Contract' => ContractWorkflowService::registry(),
+            'Knowledge' => KnowledgeWorkflowService::registry(),
             default => self::registry(),
         };
     }
@@ -156,13 +159,15 @@ final class WorkflowService
             OutdoorWorkflowService::registry(),
             ResearchWorkflowService::registry(),
             RagWorkflowService::registry(),
+            ContractWorkflowService::registry(),
+            KnowledgeWorkflowService::registry(),
             self::registry(),
         ];
     }
 
     private static function registerFederatedWorkflows(WorkflowRegistry $registry): void
     {
-        // 委托模块 Registry（单一 definition 真源，联邦仅作目录 / 枢纽兜底）
+        // 全部委托模块 Registry（单一 definition 真源；本类不再持有业务 DAG）
         $registry->register(
             'order_processing',
             static fn () => OrderWorkflowService::registry()->definition('order_processing'),
@@ -187,15 +192,13 @@ final class WorkflowService
             'rag_qa',
             static fn () => RagWorkflowService::registry()->definition('rag_qa'),
         );
-
-        // 枢纽自有（无独立 *WorkflowService）
-        $registry->register('contract_review', static fn () => ContractReviewWorkflow::definition());
+        $registry->register(
+            'contract_review',
+            static fn () => ContractWorkflowService::registry()->definition('contract_review'),
+        );
         $registry->register(
             'knowledge_qa',
-            static fn () => KnowledgeQaWorkflow::definition(
-                self::retrievalService(),
-                self::neuronFactory(),
-            ),
+            static fn () => KnowledgeWorkflowService::registry()->definition('knowledge_qa'),
         );
     }
 
@@ -427,6 +430,8 @@ final class WorkflowService
         OutdoorWorkflowService::reset();
         ResearchWorkflowService::reset();
         RagWorkflowService::reset();
+        ContractWorkflowService::reset();
+        KnowledgeWorkflowService::reset();
         WorkflowComponentFactory::resetRunStores();
         McpProcessRunner::reset();
     }

@@ -18,7 +18,7 @@ declare(strict_types=1);
  * | 区域 | 要点 |
  * |------|------|
  * | RAG | VectorStoreFactory 文件模式、RagIngestNode 入库与检索、RetrievalToolFactory |
- * | Saga | OrderSagaWorkflow 失败补偿与 COMPENSATED 状态 |
+ * | Saga | OrderSagaFixtureWorkflow 失败补偿与 COMPENSATED 状态 |
  * | 路由 | CostAwareRouter 预算内选低价 agent |
  * | 插件 | RateLimit 占位/释放、Permission 角色校验、限流+权限组合 |
  * | MCP | McpFactory 列表、McpProcessRunner 本地进程上限 |
@@ -53,9 +53,9 @@ use Swoolefy\Support\Workflow\Plugin\Builtin\RetryPlugin;
 use Swoolefy\Support\Workflow\Plugin\PluginManager;
 use Swoolefy\Support\Workflow\State\WorkflowState;
 use Swoolefy\Support\Workflow\WorkflowBootstrap;
-use Test\Module\Knowledge\Support\KnowledgeSeeder;
-use Test\Module\Order\Workflow\OrderSagaWorkflow;
-use Test\Module\Workflow\WorkflowService;
+use Swoolefy\Support\Workflow\Tests\Fixtures\OrderSagaFixtureWorkflow;
+use Swoolefy\Support\Workflow\Tests\Fixtures\ProductKbSeeder;
+use Swoolefy\Support\Workflow\Tests\Fixtures\WorkflowTestServices;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
@@ -120,8 +120,8 @@ function testVectorStoreFactoryFileMode(): void
  */
 function testRagIngestAndRetrieve(): void
 {
-    WorkflowService::reset();
-    $pipeline = WorkflowService::ingestionPipeline();
+    $rag = WorkflowTestServices::makeRagFactory();
+    $pipeline = WorkflowTestServices::makeIngestionPipeline($rag);
     $engine = makeEngine();
     $compiled = WorkflowBootstrap::compiler()->compile(
         WorkflowDefinition::create('ingest_demo')
@@ -138,7 +138,7 @@ function testRagIngestAndRetrieve(): void
     assertTrue($run->status === RunStatus::COMPLETED, 'ingest workflow should complete');
     assertTrue(($run->state->get('ingestedCount') ?? 0) === 2, 'should ingest 2 docs');
 
-    $docs = WorkflowService::retrievalService()->retrieve('ingest_kb', 'Phase 4 ingest', 3);
+    $docs = WorkflowTestServices::makeRetrievalService($rag)->retrieve('ingest_kb', 'Phase 4 ingest', 3);
     assertTrue(count($docs) >= 1, 'retrieval should find ingested content');
 }
 
@@ -149,9 +149,9 @@ function testRagIngestAndRetrieve(): void
  */
 function testRetrievalToolFactory(): void
 {
-    WorkflowService::reset();
-    (new KnowledgeSeeder(WorkflowService::ragFactory()))->seedProductKb();
-    $tool = WorkflowService::retrievalToolFactory()->make('product_kb');
+    $rag = WorkflowTestServices::makeRagFactory();
+    (new ProductKbSeeder($rag))->seedProductKb();
+    $tool = WorkflowTestServices::makeRetrievalToolFactory($rag)->make('product_kb');
     assertTrue($tool->getName() === 'context_retrieval', 'should create Neuron RetrievalTool');
 }
 
@@ -160,7 +160,7 @@ function testRetrievalToolFactory(): void
 // ---------------------------------------------------------------------------
 
 /**
- * 验证：OrderSagaWorkflow 在 notify 失败时抛异常，run 状态为 COMPENSATED 且支付/库存已回滚。
+ * 验证：OrderSagaFixtureWorkflow 在 notify 失败时抛异常，run 状态为 COMPENSATED 且支付/库存已回滚。
  *
  * 分布式 Saga 补偿路径的核心回归。
  */
@@ -168,7 +168,7 @@ function testOrderSagaCompensation(): void
 {
     $store = new InMemoryRunStore();
     $engine = makeEngine(store: $store);
-    $compiled = WorkflowBootstrap::compiler()->compile(OrderSagaWorkflow::definition());
+    $compiled = WorkflowBootstrap::compiler()->compile(OrderSagaFixtureWorkflow::definition());
 
     try {
         $engine->start($compiled, ['orderId' => 'ord-saga-1']);
@@ -308,14 +308,13 @@ function testRateLimitReleasedWhenPermissionDeniedAfterAcquire(): void
 // ---------------------------------------------------------------------------
 
 /**
- * 验证：WorkflowService::mcpFactory()->listServers() 至少返回一个已配置 server。
+ * 验证：WorkflowTestServices::makeMcpFactory()->listServers() 至少返回一个已配置 server。
  *
  * MCP 集成配置加载回归。
  */
 function testMcpFactoryListServers(): void
 {
-    WorkflowService::reset();
-    $servers = WorkflowService::mcpFactory()->listServers();
+    $servers = WorkflowTestServices::makeMcpFactory()->listServers();
     assertTrue(count($servers) >= 1, 'should list mcp servers');
 }
 

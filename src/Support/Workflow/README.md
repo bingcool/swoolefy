@@ -65,28 +65,38 @@ WorkflowDefinition  ──compile()──►  CompiledWorkflow  ──start()─
 ### Facade（脚本 / 单测）
 
 ```php
+use Swoolefy\Support\Neuron\NeuronFactory;
 use Swoolefy\Support\Workflow\Workflow;
 use Swoolefy\Support\Workflow\WorkflowBootstrap;
-use Test\Module\Order\Workflow\OrderProcessingWorkflow;
+use Swoolefy\Support\Workflow\Tests\Fixtures\OrderProcessingFixtureWorkflow;
 
 WorkflowBootstrap::reset();
 $engine = WorkflowBootstrap::engine();
 
-$runId = Workflow::fromDefinition(OrderProcessingWorkflow::definition())
+$runId = Workflow::fromDefinition(
+    OrderProcessingFixtureWorkflow::definition(new NeuronFactory()),
+)
     ->compile()
     ->start(['orderId' => 10001, 'sessionId' => 'sess-abc'], $engine);
 
 $run = $engine->getRun($runId);
 ```
 
+> 业务 Demo 工作流仍在 `Test/Module/*`；Support 单测夹具在 `src/Support/Workflow/Tests/Fixtures/`。
+
 ### 生产装配
 
 ```php
+use Swoolefy\Support\Neuron\NeuronFactory;
 use Swoolefy\Support\Workflow\WorkflowComponentFactory;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
+use Swoolefy\Support\Workflow\Tests\Fixtures\OrderProcessingFixtureWorkflow;
 
 $registry = new WorkflowRegistry();
-$registry->register('order_processing', fn () => OrderProcessingWorkflow::definition());
+$registry->register(
+    'order_processing',
+    fn () => OrderProcessingFixtureWorkflow::definition(new NeuronFactory()),
+);
 
 $engine   = WorkflowComponentFactory::engine($registry);
 $compiler = WorkflowComponentFactory::compiler();
@@ -181,8 +191,8 @@ HTTP 示例见 `Test/Module/Workflow/README.md`。实现：`WorkflowHitlAuth`、
 ## 多版本 Registry（Phase B）
 
 ```php
-$registry->register('order_processing', fn () => OrderProcessingWorkflow::definition()); // latest = 2.0.0
-$registry->registerVersion('order_processing', '1.0.0', fn () => OrderProcessingWorkflow::definitionV1());
+$registry->register('order_processing', fn () => OrderProcessingFixtureWorkflow::definition(new NeuronFactory())); // latest
+$registry->registerVersion('order_processing', '1.0.0', fn () => OrderProcessingFixtureWorkflow::definition(new NeuronFactory()));
 
 $compiled = $registry->compiled('order_processing');           // latest
 $compiled = $registry->compiled('order_processing', '1.0.0'); // 指定版本

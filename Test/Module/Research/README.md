@@ -1,11 +1,14 @@
 # Research 模块 — 工作流演示
 
-本模块演示两类研究工作流：
+本模块通过 `ResearchWorkflowService` 独立装配 Registry / AgentScheduler / Engine，
+与 Order/Outdoor **同一模式**，不依赖中央 `WorkflowService` Runtime。
+
+演示两类研究工作流：
 
 1. **multi_agent_research**：多 Agent 并行（编码 + 财务）后汇总
 2. **mcp_research**：声明 MCP 工具的研究节点 → 结构化摘要 → 按紧急度 notify / archive
 
-演示入口：`Controller/ResearchWorkflowDemoController.php`。
+演示入口：`Controller/ResearchWorkflowDemoController.php`。本地回归：`composer test:research-workflow`。
 
 默认 API 前缀：`/api`。下文假设服务监听 `http://127.0.0.1:9501`。
 
@@ -13,16 +16,18 @@
 
 ```
 Research/
+├── ResearchWorkflowService.php      # 本模块独立 Registry / Engine
 ├── Agent/
-│   ├── CodingResearchAgent.php      # 编码方向研究 Agent
-│   └── FinanceResearchAgent.php     # 财务方向研究 Agent
+│   ├── CodingResearchAgent.php
+│   └── FinanceResearchAgent.php
 ├── Controller/
 │   └── ResearchWorkflowDemoController.php
 ├── Dto/
-│   └── ResearchSummaryDto.php       # summary / urgent / source
+│   └── ResearchSummaryDto.php
+├── Tests/ResearchWorkflowModuleTest.php
 └── Workflow/
-    ├── MultiAgentResearchWorkflow.php   # multi_agent_research
-    └── McpResearchWorkflow.php          # mcp_research
+    ├── MultiAgentResearchWorkflow.php
+    └── McpResearchWorkflow.php
 ```
 
 ## API 一览

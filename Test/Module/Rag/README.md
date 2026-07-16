@@ -10,10 +10,12 @@
 
 ```
 Rag/
+├── RagWorkflowService.php       # 本模块独立 Registry / Engine（与 Order 同模式）
 ├── Agent/DemoKnowledgeRag.php   # RAG Agent（可选 LLM）
-├── Controller/RagController.php # HTTP 入口
+├── Controller/RagController.php # HTTP 入口（workflow 走 RagWorkflowService）
 ├── Workflow/RagQaWorkflow.php   # retrieve → answer
 ├── RagService.php               # 入库 / 检索 / 问答服务
+├── Tests/RagWorkflowModuleTest.php
 └── README.md
 ```
 

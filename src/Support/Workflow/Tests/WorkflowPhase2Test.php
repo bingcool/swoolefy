@@ -21,7 +21,7 @@ declare(strict_types=1);
  * | 流式事件 | StreamBridge 在协程内收集 token/edge 事件 |
  * | MetricsPlugin | 节点与 run 计数快照 |
  * | WorkflowRegistry | 注册、has、compiled 工作流 ID |
- * | 多 Agent | MultiAgentResearchWorkflow 端到端完成与输出 |
+ * | 多 Agent | MultiAgentResearchFixtureWorkflow 端到端完成与输出 |
  *
  * ## 运行
  * ```bash
@@ -48,8 +48,8 @@ use Swoolefy\Support\Workflow\Plugin\PluginManager;
 use Swoolefy\Support\Workflow\State\WorkflowState;
 use Swoolefy\Support\Workflow\WorkflowBootstrap;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
-use Test\Module\Order\Workflow\OrderProcessingWorkflow;
-use Test\Module\Research\Workflow\MultiAgentResearchWorkflow;
+use Swoolefy\Support\Workflow\Tests\Fixtures\OrderProcessingFixtureWorkflow;
+use Swoolefy\Support\Workflow\Tests\Fixtures\MultiAgentResearchFixtureWorkflow;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
@@ -136,7 +136,7 @@ function testStreamBridgeCollectsEvents(): void
 // ---------------------------------------------------------------------------
 
 /**
- * 验证：MetricsPlugin 在 OrderProcessingWorkflow 执行后 snapshot 中 runs/nodes 计数 ≥1。
+ * 验证：MetricsPlugin 在 OrderProcessingFixtureWorkflow 执行后 snapshot 中 runs/nodes 计数 ≥1。
  *
  * 确保指标插件正确挂钩引擎生命周期。
  */
@@ -149,7 +149,7 @@ function testMetricsPluginCountsNodes(): void
         events: new StreamWorkflowEventDispatcher(),
     );
 
-    $compiled = WorkflowBootstrap::compiler()->compile(OrderProcessingWorkflow::definition(new NeuronFactory()));
+    $compiled = WorkflowBootstrap::compiler()->compile(OrderProcessingFixtureWorkflow::definition(new NeuronFactory()));
     $engine->start($compiled, ['orderId' => 20001, 'sessionId' => 's-p2']);
 
     $snapshot = $metrics->snapshot();
@@ -165,7 +165,7 @@ function testMetricsPluginCountsNodes(): void
 function testWorkflowRegistry(): void
 {
     $registry = new WorkflowRegistry();
-    $registry->register('order_processing', static fn () => OrderProcessingWorkflow::definition(new NeuronFactory()));
+    $registry->register('order_processing', static fn () => OrderProcessingFixtureWorkflow::definition(new NeuronFactory()));
     assertTrue($registry->has('order_processing'), 'Registry should know order_processing');
     $compiled = $registry->compiled('order_processing');
     assertTrue($compiled->workflowId() === 'order_processing', 'Compiled workflow id should match');
@@ -176,14 +176,14 @@ function testWorkflowRegistry(): void
 // ---------------------------------------------------------------------------
 
 /**
- * 验证：MultiAgentResearchWorkflow 端到端完成，产出双 agent 输出与 summary。
+ * 验证：MultiAgentResearchFixtureWorkflow 端到端完成，产出双 agent 输出与 summary。
  *
  * 覆盖 AgentScheduler + 流式事件分发 + 多节点 DAG 集成。
  */
-function testMultiAgentResearchWorkflow(): void
+function testMultiAgentResearchFixtureWorkflow(): void
 {
     $scheduler = new AgentScheduler(new NeuronFactory());
-    $definition = MultiAgentResearchWorkflow::definition($scheduler);
+    $definition = MultiAgentResearchFixtureWorkflow::definition($scheduler);
     $compiled = WorkflowBootstrap::compiler()->compile($definition);
 
     $engine = new WorkflowEngine(
@@ -210,7 +210,7 @@ $tests = [
     'stream bridge' => 'testStreamBridgeCollectsEvents',
     'metrics plugin' => 'testMetricsPluginCountsNodes',
     'workflow registry' => 'testWorkflowRegistry',
-    'multi agent research' => 'testMultiAgentResearchWorkflow',
+    'multi agent research' => 'testMultiAgentResearchFixtureWorkflow',
 ];
 
 $passed = 0;

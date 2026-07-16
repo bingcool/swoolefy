@@ -55,7 +55,7 @@ use Swoolefy\Support\Workflow\Tests\WorkflowRunsSchemaInstaller;
 use NeuronAI\Providers\Anthropic\Anthropic;
 use Swoolefy\Support\Neuron\NeuronAiProviderName;
 use Swoolefy\Support\Neuron\NeuronProviderFactory;
-use Test\Module\Order\Agent\OrderDecisionAgent;
+use Swoolefy\Support\Workflow\Tests\Fixtures\CustomProviderAgent;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
@@ -331,10 +331,10 @@ function testWorkflowComponentFactory(): void
 function testDbRunStorePersistence(): void
 {
     $registry = new WorkflowRegistry();
-    $registry->register('order_processing', static fn () => \Test\Module\Order\Workflow\OrderProcessingWorkflow::definition(
+    $registry->register('order_processing', static fn () => \Swoolefy\Support\Workflow\Tests\Fixtures\OrderProcessingFixtureWorkflow::definition(
         new \Swoolefy\Support\Neuron\NeuronFactory(),
-        static function (): \Test\Module\Order\Dto\OrderDecisionDto {
-            $dto = new \Test\Module\Order\Dto\OrderDecisionDto();
+        static function (): \Swoolefy\Support\Tests\Fixtures\DecisionDto {
+            $dto = new \Swoolefy\Support\Tests\Fixtures\DecisionDto();
             $dto->approved = true;
             $dto->confidence = 0.95;
             $dto->reason = 'db store test';
@@ -424,8 +424,8 @@ function testNeuronProviderFactory(): void
     assertTrue($provider instanceof Anthropic, 'Should instantiate Anthropic provider');
 
     assertTrue(
-        NeuronProviderFactory::agentDeclaresCustomProvider(OrderDecisionAgent::class),
-        'OrderDecisionAgent overrides provider()',
+        NeuronProviderFactory::agentDeclaresCustomProvider(CustomProviderAgent::class),
+        'CustomProviderAgent overrides provider()',
     );
 
     $config = \Swoolefy\Support\Neuron\NeuronAiConfig::fromArray([

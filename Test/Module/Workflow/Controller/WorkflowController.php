@@ -295,7 +295,8 @@ final class WorkflowController extends BController
             WorkflowService::engineFor('outdoor_cycling'),
             WorkflowService::engineFor('multi_agent_research'),
             WorkflowService::engineFor('rag_qa'),
-            WorkflowService::engine(),
+            WorkflowService::engineFor('contract_review'),
+            WorkflowService::engineFor('knowledge_qa'),
         ] as $engine) {
             foreach ($engine->listPauseTasks($listAssignee) as $task) {
                 $tasks[] = $task;
