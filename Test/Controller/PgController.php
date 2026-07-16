@@ -14,10 +14,14 @@ use Test\Module\Order\OrderFormatter;
 class PgController extends BController
 {
     /**
-     * @Api("测试 PostgreSQL 插入订单并触发 CurlProxy 请求")
+     * 测试 PostgreSQL 插入订单并触发 CurlProxy 请求。
      *
-     * curl 测试：
-     * curl "http://127.0.0.1:9501/user/user-order/save-pg-order"
+     * Route: GET /user/user-order/save-pg-order
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/user/user-order/save-pg-order' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试 PostgreSQL 插入订单并触发 CurlProxy 请求')]
     public function savePgOrder(): array
@@ -68,10 +72,14 @@ class PgController extends BController
     }
 
     /**
-     * @Api("测试 OrderPgEntity 保存 PostgreSQL 订单")
+     * 测试 OrderPgEntity 保存 PostgreSQL 订单。
      *
-     * curl 测试：
-     * curl "http://127.0.0.1:9501/user/user-order/save-pg-order1"
+     * Route: GET /user/user-order/save-pg-order1
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/user/user-order/save-pg-order1' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试 OrderPgEntity 保存 PostgreSQL 订单')]
     public function savePgOrder1(): array
@@ -114,10 +122,14 @@ class PgController extends BController
     }
 
     /**
-     * @Api("测试按 uid 删除用户（打印入参）")
+     * 测试按 uid 删除用户（打印入参）。
      *
-     * curl 测试：
-     * curl -X DELETE "http://127.0.0.1:9501/user/remove-use?uid=1"
+     * Route: DELETE /user/remove-use
+     *
+     ```bash
+     curl -X DELETE 'http://127.0.0.1:9501/user/remove-use?uid=1' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试按 uid 删除用户（打印入参）')]
     public function removeUser(RequestInput $requestInput)
@@ -128,10 +140,14 @@ class PgController extends BController
     }
 
     /**
-     * @Api("测试长时间 sleep 的 Curl/阻塞场景")
+     * 测试长时间 sleep 的 Curl/阻塞场景。
      *
-     * curl 测试：
-     * curl "http://127.0.0.1:9501/test-curl"
+     * Route: GET /test-curl
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/test-curl' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试长时间 sleep 的 Curl/阻塞场景')]
     public function testCurl(RequestInput $requestInput): bool
@@ -141,10 +157,14 @@ class PgController extends BController
     }
 
     /**
-     * @Api("测试 PostgreSQL 子查询构建与用户列表 SQL")
+     * 测试 PostgreSQL 子查询构建与用户列表 SQL。
      *
-     * curl 测试：
-     * curl "http://127.0.0.1:9501/user/pg/user-list"
+     * Route: GET /user/pg/user-list
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/user/pg/user-list' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试 PostgreSQL 子查询构建与用户列表 SQL')]
     public function userList(RequestInput $requestInput)

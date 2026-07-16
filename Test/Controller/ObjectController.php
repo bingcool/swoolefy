@@ -11,11 +11,17 @@ use Test\Module\Order\OrderList;
 class ObjectController extends BController
 {
     /**
-     * @Api("测试 Entity 保存订单（含 AFTER_INSERT 事件）")
+     * 测试 Entity 保存订单（含 AFTER_INSERT 事件）。
      *
-     * curl 测试：
-     * curl "http://127.0.0.1:9501/user/user-order/save-order"
-     * curl "http://127.0.0.1:9501/user/order/add"
+     * Route: GET /user/user-order/save-order, GET /user/order/add
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/user/user-order/save-order' \
+       -H 'Accept: application/json'
+
+     curl -X GET 'http://127.0.0.1:9501/user/order/add' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试 Entity 保存订单（含 AFTER_INSERT 事件）')]
     public function saveOrder(): array
@@ -57,10 +63,14 @@ class ObjectController extends BController
     }
 
     /**
-     * @Api("测试 Entity 更新订单金额与字段")
+     * 测试 Entity 更新订单金额与字段。
      *
-     * curl 测试：
-     * curl "http://127.0.0.1:9501/user/user-order/update-order"
+     * Route: GET /user/user-order/update-order
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/user/user-order/update-order' \
+       -H 'Accept: application/json'
+     ```
      *
      * @throws \Exception
      */
@@ -91,10 +101,14 @@ class ObjectController extends BController
 
 
     /**
-     * @Api("测试 OrderList 分页查询订单列表")
+     * 测试 OrderList 分页查询订单列表。
      *
-     * curl 测试：
-     * curl "http://127.0.0.1:9501/user/order/list"
+     * Route: GET /user/order/list
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/user/order/list' \
+       -H 'Accept: application/json'
+     ```
      *
      * @throws \Exception
      */
@@ -115,10 +129,14 @@ class ObjectController extends BController
     }
 
     /**
-     * @Api("测试 ClientModel 写入银行表（含 JSON 字段）")
+     * 测试 ClientModel 写入银行表（含 JSON 字段）。
      *
-     * curl 测试：
-     * curl "http://127.0.0.1:9501/api/bank/addBank"
+     * Route: GET /api/bank/addBank
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/bank/addBank' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试 ClientModel 写入银行表（含 JSON 字段）')]
     public function addBank(): array

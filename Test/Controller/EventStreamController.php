@@ -11,9 +11,13 @@ use Swoolefy\Http\ResponseOutput;
 class EventStreamController extends BController
 {
     /**
-     * @Api 测试 SSE 按固定间隔推送 JSON 消息
+     * 测试 SSE 按固定间隔推送 JSON 消息。
      *
-     * curl -N 'http://127.0.0.1:9501/api/sse/stream?count=5&interval=0.5'
+     * Route: GET /api/sse/stream
+     *
+     ```bash
+     curl -N 'http://127.0.0.1:9501/api/sse/stream?count=5&interval=0.5'
+     ```
      */
     #[StreamResponse]
     public function stream(RequestInput $requestInput, ResponseOutput $responseOutput): void
@@ -55,9 +59,13 @@ class EventStreamController extends BController
     }
 
     /**
-     * @Api 测试 SSE 长连接心跳与 tick 事件保活
+     * 测试 SSE 长连接心跳与 tick 事件保活。
      *
-     * curl -N 'http://127.0.0.1:9501/api/sse/tick?seconds=10'
+     * Route: GET /api/sse/tick
+     *
+     ```bash
+     curl -N 'http://127.0.0.1:9501/api/sse/tick?seconds=10'
+     ```
      */
     #[StreamResponse]
     public function tick(RequestInput $requestInput, ResponseOutput $responseOutput): void

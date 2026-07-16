@@ -8,9 +8,14 @@ use Test\App;
 class TransactionController extends BController
 {
     /**
-     * @Api 测试数据库事务与协程隔离
+     * 测试数据库事务与协程隔离。
      *
-     * curl -X GET 'http://127.0.0.1:9501/api/transaction/test'
+     * Route: GET /api/transaction/test
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/transaction/test' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试数据库事务与协程隔离')]
     public function test(): bool

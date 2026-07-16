@@ -25,14 +25,15 @@ use Test\Module\Order\OrderList;
  * 2. Bootstrap / Event 已注册租户拦截器；请求上下文需有 tenant_id（本类 _beforeAction 会兜底设为 0）
  *
  * 调用示例：
- *   curl -X POST 'http://127.0.0.1:9501/user/user-order/userList' \
- *     -H 'Content-Type: application/json' \
- *     -d '{"name":"db-test","order_ids":[1,2,3]}'
- *   curl -X POST 'http://127.0.0.1:9501/user/user-order/userList1'   # 仅协程
- *   curl -X POST 'http://127.0.0.1:9501/user/user-order/userList2'   # 仅事务
- *   curl -X POST 'http://127.0.0.1:9501/user/user-order/userList3'   # goApp 多层嵌套 Db
- *   curl -X POST 'http://127.0.0.1:9501/user/user-order/userList4'   # newQuery 复杂 SQL
- *
+```bash
+    curl -X POST 'http://127.0.0.1:9501/user/user-order/userList' \
+        -H 'Content-Type: application/json' \
+        -d '{"name":"db-test","order_ids":[1,2,3]}'
+    curl -X POST 'http://127.0.0.1:9501/user/user-order/userList1'   # 仅协程
+    curl -X POST 'http://127.0.0.1:9501/user/user-order/userList2'   # 仅事务
+    curl -X POST 'http://127.0.0.1:9501/user/user-order/userList3'   # goApp 多层嵌套 Db
+    curl -X POST 'http://127.0.0.1:9501/user/user-order/userList4'   # newQuery 复杂 SQL
+```bash
  * 返回字段：
  * - ok：全部用例是否通过（任一 case 抛异常则为 false）
  * - cases.{name}.pass：该用例断言是否通过

@@ -9,9 +9,14 @@ use Test\App;
 class LockController extends BController
 {
     /**
-     * @Api 测试 Redis 分布式锁 synchronized 阻塞获取
+     * 测试 Redis 分布式锁 synchronized 阻塞获取。
      *
-     * curl -X GET 'http://127.0.0.1:9501/api/lock-test1'
+     * Route: GET /api/lock-test1
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/lock-test1' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试 Redis 分布式锁 synchronized 阻塞获取')]
     public function locktest1(): array
@@ -41,9 +46,14 @@ class LockController extends BController
     }
 
     /**
-     * @Api 测试 Redis 分布式锁 acquire/release 非阻塞获取
+     * 测试 Redis 分布式锁 acquire/release 非阻塞获取。
      *
-     * curl -X GET 'http://127.0.0.1:9501/api/lock-test2'
+     * Route: GET /api/lock-test2
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/lock-test2' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试 Redis 分布式锁 acquire/release 非阻塞获取')]
     public function locktest2(): array

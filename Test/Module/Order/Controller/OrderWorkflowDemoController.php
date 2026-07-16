@@ -23,32 +23,73 @@ use Test\Module\Order\Workflow\OrderSagaWorkflow;
  * 本模块使用 {@see OrderWorkflowService} 独立 Registry / Engine，
  * 不依赖 Test\Module\Workflow\WorkflowService。
  *
- * POST /api/v1/order/workflow/process
- *   启动订单处理（AI 风控三分支）。Body:
- *   {
- *     "orderId": "ORD-10001",
- *     "userId": "u1",
- *     "sessionId": "s1",
- *     "amount": 199.00,
- *     "currency": "CNY",
- *     "items": [{"sku":"SKU-1","qty":1}],
- *     "mockDecision": {"approved":true,"confidence":0.95,"reason":"..."},  // 可选，注入 mock AI
- *     "pauseForHumanReview": true  // 可选，低置信度时在 manual_review 暂停（WAITING），需 resume
- *   }
- *
- * POST /api/v1/order/workflow/saga
- *   启动 Saga 补偿演示（支付后通知失败 → 退款 + 释库存）。
- *
- * GET  /api/v1/order/workflow/status?runId=
- * POST /api/v1/order/workflow/resume  Body: { "runId", "feedback" }
- *   演示专用路径，不经 WorkflowController HITL 鉴权；生产请走 /api/v1/workflow/run/resume。
+ * 路由定义：`Test/Router/Module/OrderWorkflow.php`（前缀 `api`，默认端口 9501）。
+ * 各方法 PHPDoc 中 curl 代码块无行首 `*`，便于直接复制执行。
  */
 final class OrderWorkflowDemoController extends BController
 {
     /**
-     * 演示：订单处理主流程。
+     * 演示：订单处理主流程（AI 风控三分支）。
      *
-     * POST /api/v1/order/workflow/process
+     * Route: POST /api/v1/order/workflow/process
+     *
+     ```bash
+     # 高置信度批准 → payment → complete
+     curl -X POST 'http://127.0.0.1:9501/api/v1/order/workflow/process' \
+       -H 'Content-Type: application/json' \
+       -H 'Accept: application/json' \
+       -d '{
+         "orderId": "ORD-10001",
+         "userId": "u1",
+         "sessionId": "s1",
+         "amount": 199.00,
+         "currency": "CNY",
+         "items": [{"sku": "SKU-1", "qty": 1}],
+         "mockDecision": {
+           "approved": true,
+           "confidence": 0.95,
+           "reason": "high confidence approve"
+         }
+       }'
+
+     # 低置信度 → manual_review → payment（自动通过复核）
+     curl -X POST 'http://127.0.0.1:9501/api/v1/order/workflow/process' \
+       -H 'Content-Type: application/json' \
+       -d '{
+         "orderId": "ORD-10002",
+         "amount": 88.00,
+         "mockDecision": {
+           "approved": true,
+           "confidence": 0.55,
+           "reason": "low confidence"
+         }
+       }'
+
+     # 拒绝 → reject
+     curl -X POST 'http://127.0.0.1:9501/api/v1/order/workflow/process' \
+       -H 'Content-Type: application/json' \
+       -d '{
+         "orderId": "ORD-10003",
+         "mockDecision": {
+           "approved": false,
+           "confidence": 0.99,
+           "reason": "policy reject"
+         }
+       }'
+
+     # HITL：低置信度在 manual_review 暂停（WAITING），需再调 resume
+     curl -X POST 'http://127.0.0.1:9501/api/v1/order/workflow/process' \
+       -H 'Content-Type: application/json' \
+       -d '{
+         "orderId": "ORD-10004",
+         "pauseForHumanReview": true,
+         "mockDecision": {
+           "approved": true,
+           "confidence": 0.55,
+           "reason": "need human review"
+         }
+       }'
+     ```
      */
     public function process(RequestInput $requestInput): array
     {
@@ -73,9 +114,22 @@ final class OrderWorkflowDemoController extends BController
     }
 
     /**
-     * 演示：Saga 补偿（支付成功后通知失败）。
+     * 演示：Saga 补偿（支付成功后通知失败 → 退款 + 释库存）。
      *
-     * POST /api/v1/order/workflow/saga
+     * Route: POST /api/v1/order/workflow/saga
+     *
+     ```bash
+     curl -X POST 'http://127.0.0.1:9501/api/v1/order/workflow/saga' \
+       -H 'Content-Type: application/json' \
+       -H 'Accept: application/json' \
+       -d '{
+         "orderId": "ORD-SAGA-1",
+         "userId": "u1",
+         "amount": 50.00,
+         "currency": "CNY",
+         "items": [{"sku": "DEMO-SKU", "qty": 1}]
+       }'
+     ```
      */
     public function saga(RequestInput $requestInput): array
     {
@@ -88,7 +142,12 @@ final class OrderWorkflowDemoController extends BController
     /**
      * 查询 Run 状态。
      *
-     * GET /api/v1/order/workflow/status?runId=
+     * Route: GET /api/v1/order/workflow/status
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/v1/order/workflow/status?runId=run_xxxx' \
+       -H 'Accept: application/json'
+     ```
      */
     public function status(RequestInput $requestInput): array
     {
@@ -109,8 +168,22 @@ final class OrderWorkflowDemoController extends BController
     /**
      * HITL 恢复（manual_review pauseForHuman=true 时使用）。
      *
-     * POST /api/v1/order/workflow/resume
-     * Body: { "runId": "...", "feedback": { "approved": true, "reason": "ok" } }
+     * Route: POST /api/v1/order/workflow/resume
+     *
+     * 演示专用路径，不经 WorkflowController HITL 鉴权；生产请走 /api/v1/workflow/run/resume。
+     *
+     ```bash
+     curl -X POST 'http://127.0.0.1:9501/api/v1/order/workflow/resume' \
+       -H 'Content-Type: application/json' \
+       -H 'Accept: application/json' \
+       -d '{
+         "runId": "run_xxxx",
+         "feedback": {
+           "approved": true,
+           "reason": "ok"
+         }
+       }'
+     ```
      */
     public function resume(RequestInput $requestInput): array
     {

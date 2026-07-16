@@ -16,9 +16,8 @@ use Test\Module\Workflow\WorkflowService;
  *   - 列出已配置 MCP Server（凭证脱敏）
  *   - 按 Server 发现 tools/list（运维调试）
  *
- * 路由：
- *   GET /api/v1/mcp/servers?tenantId=
- *   GET /api/v1/mcp/servers/tools?server_id=&tenantId=
+ * 路由定义：`Test/Router/Module/Mcp.php`（前缀 `api`，默认端口 9501）。
+ * 各方法 PHPDoc 中 curl 代码块无行首 `*`，便于直接复制执行。
  *
  * MCP 配置为全局基础配置（mcp_server_configs.server_id 唯一）；
  * Query tenantId 仅回显请求上下文，不参与 MCP 配置解析。
@@ -34,7 +33,22 @@ final class McpController extends BController
     /**
      * 列出 MCP Server 公开信息。
      *
-     * GET /api/v1/mcp/servers?tenantId=
+     * Route: GET /api/v1/mcp/servers?tenantId=
+     *
+     ```bash
+     # 列出全部 Server（凭证脱敏）
+     curl -X GET 'http://127.0.0.1:9501/api/v1/mcp/servers' \
+       -H 'Accept: application/json'
+
+     # Query tenantId（仅回显，不参与配置解析）
+     curl -X GET 'http://127.0.0.1:9501/api/v1/mcp/servers?tenantId=tenant_demo' \
+       -H 'Accept: application/json'
+
+     # Header 透传租户（无 Query 时走 FrameworkContext）
+     curl -X GET 'http://127.0.0.1:9501/api/v1/mcp/servers' \
+       -H 'Accept: application/json' \
+       -H 'x-tenant-id: tenant_demo'
+     ```
      */
     public function servers(RequestInput $requestInput): array
     {
@@ -49,7 +63,28 @@ final class McpController extends BController
     /**
      * 发现指定 Server 的工具名列表。
      *
-     * GET /api/v1/mcp/servers/tools?server_id=&tenantId=
+     * Route: GET /api/v1/mcp/servers/tools?server_id=&tenantId=
+     *
+     * Demo server_id：`demo_http`（InMemory stub，tools 可能为空）。
+     *
+     ```bash
+     # 按 server_id 发现 tools
+     curl -X GET 'http://127.0.0.1:9501/api/v1/mcp/servers/tools?server_id=demo_http' \
+       -H 'Accept: application/json'
+
+     # 带 tenantId 回显
+     curl -X GET 'http://127.0.0.1:9501/api/v1/mcp/servers/tools?server_id=demo_http&tenantId=tenant_demo' \
+       -H 'Accept: application/json'
+
+     # Header 透传租户
+     curl -X GET 'http://127.0.0.1:9501/api/v1/mcp/servers/tools?server_id=demo_http' \
+       -H 'Accept: application/json' \
+       -H 'x-tenant-id: tenant_demo'
+
+     # 缺少 server_id → 400
+     curl -X GET 'http://127.0.0.1:9501/api/v1/mcp/servers/tools' \
+       -H 'Accept: application/json'
+     ```
      */
     public function tools(RequestInput $requestInput): array
     {

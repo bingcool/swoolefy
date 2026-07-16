@@ -7,9 +7,14 @@ use Swoolefy\Core\Controller\BController;
 class ExceptionController extends BController
 {
     /**
-     * @Api 测试触发错误与异常处理
+     * 测试触发错误与异常处理。
      *
-     * curl -X GET 'http://127.0.0.1:9501/api/exception/test'
+     * Route: GET /api/exception/test
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/exception/test' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试触发错误与异常处理')]
     public function test(): array

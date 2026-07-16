@@ -8,9 +8,14 @@ use Test\App;
 class QueueController extends BController
 {
     /**
-     * @Api 测试队列 push 入队
+     * 测试队列 push 入队。
      *
-     * curl -X GET 'http://127.0.0.1:9501/api/queue/push'
+     * Route: GET /api/queue/push (POST 亦可)
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/queue/push' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试队列 push 入队')]
     public function push(): array

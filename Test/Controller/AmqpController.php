@@ -12,9 +12,14 @@ use Swoolefy\Core\Controller\BController;
 class AmqpController extends BController
 {
     /**
-     * @Api 测试 AMQP Direct 队列发布消息
+     * 测试 AMQP Direct 队列发布消息。
      *
-     * curl -X GET 'http://127.0.0.1:9501/api/amqp/publish'
+     * Route: GET /api/amqp/publish
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/amqp/publish' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试 AMQP Direct 队列发布消息')]
     public function testPublish(): bool
@@ -30,9 +35,14 @@ class AmqpController extends BController
     }
 
     /**
-     * @Api 测试 AMQP Delay Topic 队列发布消息
+     * 测试 AMQP Delay Topic 队列发布消息。
      *
-     * curl -X GET 'http://127.0.0.1:9501/api/amqp/publish-delay-topic'
+     * Route: GET /api/amqp/publish-delay-topic
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/amqp/publish-delay-topic' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试 AMQP Delay Topic 队列发布消息')]
     public function testPublish1(): bool
@@ -56,9 +66,14 @@ class AmqpController extends BController
     }
 
     /**
-     * @Api 测试 AMQP Delay Direct 队列发布消息
+     * 测试 AMQP Delay Direct 队列发布消息。
      *
-     * curl -X GET 'http://127.0.0.1:9501/api/amqp/publish-delay-direct'
+     * Route: GET /api/amqp/publish-delay-direct
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/amqp/publish-delay-direct' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试 AMQP Delay Direct 队列发布消息')]
     public function testPublish2(): bool

@@ -10,9 +10,14 @@ class RedisController extends BController
 {
 
     /**
-     * @Api 测试 Redis 扩展读写
+     * 测试 Redis 扩展读写。
      *
-     * curl -X GET 'http://127.0.0.1:9501/api/redis/test'
+     * Route: GET /api/redis/test
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/redis/test' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试 Redis 扩展读写')]
     public function testRedis(): array
@@ -23,9 +28,14 @@ class RedisController extends BController
     }
 
     /**
-     * @Api 测试 Predis 客户端读写
+     * 测试 Predis 客户端读写。
      *
-     * curl -X GET 'http://127.0.0.1:9501/api/redis/predis'
+     * Route: GET /api/redis/predis
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/redis/predis' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试 Predis 客户端读写')]
     public function testPredis():  array

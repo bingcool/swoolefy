@@ -7,9 +7,13 @@ use Swoolefy\Core\Application;
 class WsController extends \Swoolefy\Core\Controller\BController
 {
     /**
-     * @Api 测试输出 WebSocket 客户端页面
+     * 测试输出 WebSocket 客户端页面。
      *
-     * curl -X GET 'http://127.0.0.1:9501/api/ws'
+     * Route: GET /api/ws
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/ws'
+     ```
      */
     #[ApiOperation(description: '测试输出 WebSocket 客户端页面')]
     public function test1(): void

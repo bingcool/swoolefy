@@ -11,9 +11,14 @@ use Swoolefy\Core\Controller\BController;
 class CacheController extends BController
 {
     /**
-     * @Api 测试 Redis Cache 读写与协程 Context 传递
+     * 测试 Redis Cache 读写与协程 Context 传递。
      *
-     * curl -X GET 'http://127.0.0.1:9501/api/cache/test'
+     * Route: GET /api/cache/test
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/cache/test' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试 Redis Cache 读写与协程 Context 传递')]
     public function test(): array
@@ -43,9 +48,20 @@ class CacheController extends BController
 
 
     /**
-     * @Api 测试 Cache setMultiple 批量写入
+     * 测试 Cache setMultiple 批量写入。
      *
-     * curl -X GET 'http://127.0.0.1:9501/api/cache/test1'
+     * Route: GET /api/cache/test1 (POST /api/cache/test1 亦可；别名 GET /cache/test1)
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/cache/test1' \
+       -H 'Accept: application/json'
+
+     curl -X POST 'http://127.0.0.1:9501/api/cache/test1' \
+       -H 'Accept: application/json'
+
+     curl -X GET 'http://127.0.0.1:9501/cache/test1' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试 Cache setMultiple 批量写入')]
     public function test1(): array

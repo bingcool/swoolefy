@@ -8,9 +8,14 @@ use Swoolefy\Core\Controller\BController;
 class RateLimitController extends BController
 {
     /**
-     * @Api 测试接口限流 RateLimit
+     * 测试接口限流 RateLimit。
      *
-     * curl -X GET 'http://127.0.0.1:9501/api/rate-test1'
+     * Route: GET /api/rate-test1
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/rate-test1' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试接口限流 RateLimit')]
     public function ratetest1(): array

@@ -8,9 +8,14 @@ use Swoolefy\Http\RequestInput;
 class ValidateController extends BController
 {
     /**
-     * @Api 测试请求参数校验 Validate
+     * 测试请求参数校验 Validate。
      *
-     * curl -X GET 'http://127.0.0.1:9501/api/validate-test1'
+     * Route: GET /api/validate-test1
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/validate-test1' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试请求参数校验 Validate')]
     public function test1(RequestInput $requestInput): array

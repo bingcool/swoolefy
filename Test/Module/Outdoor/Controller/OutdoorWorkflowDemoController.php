@@ -19,33 +19,40 @@ use Test\Module\Outdoor\Workflow\OutdoorCyclingWorkflow;
 /**
  * 户外骑行多 Agent 并行工作流演示（本模块独立 Registry / Engine）。
  *
- * POST /api/v1/outdoor/workflow/cycling
- *   AgentA 天气 + AgentB 路线 + AgentC 备车（并行）→ 天气好则骑自行车出发。
- *   Body:
- *   {
- *     "destination": "深圳湾公园",
- *     "weatherHint": "sunny",   // mock 下：sunny→出发；rainy→留家
- *     "useMock": true
- *   }
+ * AgentA 天气 + AgentB 路线 + AgentC 备车（并行）→ 天气好则骑自行车出发。
  *
- * GET /api/v1/outdoor/workflow/status?runId=
- *
- * curl 示例（好天气出发）：
- *   curl -X POST "http://localhost:9501/api/v1/outdoor/workflow/cycling" \
- *     -H "Content-Type: application/json" \
- *     -d '{"destination":"深圳湾公园","weatherHint":"sunny","useMock":true}'
- *
- * curl 示例（雨天取消）：
- *   curl -X POST "http://localhost:9501/api/v1/outdoor/workflow/cycling" \
- *     -H "Content-Type: application/json" \
- *     -d '{"destination":"深圳湾公园","weatherHint":"rainy","useMock":true}'
+ * 路由定义：`Test/Router/Module/Outdoor.php`（前缀 `api`，默认端口 9501）。
+ * 各方法 PHPDoc 中 curl 代码块无行首 `*`，便于直接复制执行。
  */
 final class OutdoorWorkflowDemoController extends BController
 {
     /**
      * 三 Agent 并行准备 → 按天气决定是否骑行出发。
      *
-     * POST /api/v1/outdoor/workflow/cycling
+     * Route: POST /api/v1/outdoor/workflow/cycling
+     *
+     * mock 下：`weatherHint=sunny` 出发；`rainy` 留家。`useMock` 默认 true。
+     *
+     ```bash
+     # 好天气出发
+     curl -X POST 'http://127.0.0.1:9501/api/v1/outdoor/workflow/cycling' \
+       -H 'Content-Type: application/json' \
+       -H 'Accept: application/json' \
+       -d '{
+         "destination": "深圳湾公园",
+         "weatherHint": "sunny",
+         "useMock": true
+       }'
+
+     # 雨天取消
+     curl -X POST 'http://127.0.0.1:9501/api/v1/outdoor/workflow/cycling' \
+       -H 'Content-Type: application/json' \
+       -d '{
+         "destination": "深圳湾公园",
+         "weatherHint": "rainy",
+         "useMock": true
+       }'
+     ```
      */
     public function cycling(RequestInput $requestInput): array
     {
@@ -74,7 +81,14 @@ final class OutdoorWorkflowDemoController extends BController
     }
 
     /**
-     * GET /api/v1/outdoor/workflow/status?runId=
+     * 查询 Run 状态。
+     *
+     * Route: GET /api/v1/outdoor/workflow/status
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/v1/outdoor/workflow/status?runId=run_xxxx' \
+       -H 'Accept: application/json'
+     ```
      */
     public function status(RequestInput $requestInput): array
     {

@@ -31,31 +31,10 @@ use Test\Module\Workflow\WorkflowService;
  *   - status/resume/cancel：{@see WorkflowService::engineForRun()} 按 runId 路由到拥有方
  *   - 专用 Demo 可注入 mock，且必须用本模块 *WorkflowService（谁启动谁查询）
  *
- * 路由（见 Test/Router/Common/Api.php）：
- *
- *   GET  /api/v1/workflow/list
- *        列出已注册工作流及 demoInput
- *
- *   GET  /api/v1/workflow/describe?workflowId=order_processing
- *        查看节点、边、条件表达式
- *
- *   POST /api/v1/workflow/run
- *        Body: { "workflowId": "...", "input": {...}, "stream": false }
- *        也支持顶层平铺 orderId / query 等字段（会合并进 input）
- *
-     *   GET  /api/v1/workflow/run/status?runId=
-     *        受 HITL 鉴权保护；默认返回脱敏摘要，admin + detail=true 才返回完整 state
- *   POST /api/v1/workflow/run/resume
- *        Body: { "runId": "...", "feedback": {...}, "actor": "legal-team" }
- *        HITL 鉴权（workflow.hitl.auth_enabled）：
- *          Header X-Workflow-Api-Key 或 Body apiKey
- *          Header X-Workflow-Role 或 Body role（allowed_roles）
- *          resume 时 actor/assignee 须匹配任务 assignee（admin 除外）
- *   POST /api/v1/workflow/run/cancel
- *        Body: { "runId": "..." } — 同样受 HITL 鉴权保护
- *   GET  /api/v1/workflow/pause/tasks?assignee=
- *        HITL 鉴权；非 admin 只能查本人 assignee
- *   GET  /api/v1/workflow/run/events?runId=   （SSE 重放当前状态）
+ * 路由定义：`Test/Router/Module/Workflow.php`（前缀 `api`，默认端口 9501）。
+ * 各方法 PHPDoc 中 curl 代码块无行首 `*`，便于直接复制执行。
+ * HITL 相关接口在 `workflow.hitl.auth_enabled=true` 时需 Header
+ * `X-Workflow-Api-Key` / `X-Workflow-Role`（Test 默认 key：`test-hitl-key`）。
  *
  * @see Test\Module\Workflow\README.md
  */
@@ -64,7 +43,12 @@ final class WorkflowController extends BController
     /**
      * 列出已注册工作流目录。
      *
-     * GET /api/v1/workflow/list
+     * Route: GET /api/v1/workflow/list
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/v1/workflow/list' \
+       -H 'Accept: application/json'
+     ```
      *
      * @return array<string, mixed>
      */
@@ -79,7 +63,12 @@ final class WorkflowController extends BController
     /**
      * 查看单个工作流的 DAG 详情（节点、固定边、条件边）。
      *
-     * GET /api/v1/workflow/describe?workflowId=order_processing
+     * Route: GET /api/v1/workflow/describe
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/v1/workflow/describe?workflowId=order_processing' \
+       -H 'Accept: application/json'
+     ```
      *
      * @return array<string, mixed>
      */
@@ -100,15 +89,44 @@ final class WorkflowController extends BController
     /**
      * 启动工作流运行。
      *
-     * POST /api/v1/workflow/run
-     * Body:
-     *   {
-     *     "workflowId": "order_processing",
-     *     "input": { "orderId": "ORD-1", "amount": 99 },
-     *     "stream": false
-     *   }
+     * Route: POST /api/v1/workflow/run
      *
+     * 也支持顶层平铺 orderId / query 等字段（会合并进 input）。
      * stream=true 或 Accept: text/event-stream 时以 SSE 推送 run.start / complete。
+     *
+     ```bash
+     # JSON：订单处理
+     curl -X POST 'http://127.0.0.1:9501/api/v1/workflow/run' \
+       -H 'Content-Type: application/json' \
+       -H 'Accept: application/json' \
+       -d '{
+         "workflowId": "order_processing",
+         "input": {
+           "orderId": "ORD-1",
+           "amount": 99
+         },
+         "stream": false
+       }'
+
+     # 顶层平铺快捷字段
+     curl -X POST 'http://127.0.0.1:9501/api/v1/workflow/run' \
+       -H 'Content-Type: application/json' \
+       -d '{
+         "workflowId": "order_processing",
+         "orderId": "ORD-2",
+         "amount": 88
+       }'
+
+     # SSE 流式启动
+     curl -N -X POST 'http://127.0.0.1:9501/api/v1/workflow/run' \
+       -H 'Content-Type: application/json' \
+       -H 'Accept: text/event-stream' \
+       -d '{
+         "workflowId": "order_processing",
+         "input": {"orderId": "ORD-SSE-1", "amount": 50},
+         "stream": true
+       }'
+     ```
      *
      * @return array<string, mixed>|null stream 模式返回 null（响应已由 SSE 写出）
      */
@@ -155,7 +173,22 @@ final class WorkflowController extends BController
     /**
      * 查询 Run 状态。
      *
-     * GET /api/v1/workflow/run/status?runId=
+     * Route: GET /api/v1/workflow/run/status
+     *
+     * 受 HITL 鉴权保护；默认返回脱敏摘要，admin + detail=true 才返回完整 state。
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/v1/workflow/run/status?runId=run_xxxx' \
+       -H 'Accept: application/json' \
+       -H 'X-Workflow-Api-Key: test-hitl-key' \
+       -H 'X-Workflow-Role: operator'
+
+     # admin 拉取完整 state
+     curl -X GET 'http://127.0.0.1:9501/api/v1/workflow/run/status?runId=run_xxxx&detail=true' \
+       -H 'Accept: application/json' \
+       -H 'X-Workflow-Api-Key: test-hitl-key' \
+       -H 'X-Workflow-Role: admin'
+     ```
      *
      * @return array<string, mixed>
      */
@@ -182,13 +215,27 @@ final class WorkflowController extends BController
     /**
      * HITL 恢复：对 WAITING 状态的 Run 提交 feedback 并继续执行。
      *
-     * POST /api/v1/workflow/run/resume
-     * Body: { "runId": "...", "feedback": { "approved": true }, "actor": "legal-team" }
+     * Route: POST /api/v1/workflow/run/resume
      *
      * 鉴权：Header X-Workflow-Api-Key / X-Workflow-Role（或 Body apiKey / role）。
      * require_assignee_match 时 actor 须与 PauseNode assignee 一致。
-     *
      * 典型场景：contract_review 的 legal_review 暂停节点。
+     *
+     ```bash
+     curl -X POST 'http://127.0.0.1:9501/api/v1/workflow/run/resume' \
+       -H 'Content-Type: application/json' \
+       -H 'Accept: application/json' \
+       -H 'X-Workflow-Api-Key: test-hitl-key' \
+       -H 'X-Workflow-Role: operator' \
+       -d '{
+         "runId": "run_xxxx",
+         "actor": "legal-team",
+         "feedback": {
+           "approved": true,
+           "reason": "ok"
+         }
+       }'
+     ```
      *
      * @return array<string, mixed>
      */
@@ -228,10 +275,20 @@ final class WorkflowController extends BController
     /**
      * 取消 Run（标记 CANCELLED，不触发 Saga 补偿）。
      *
-     * POST /api/v1/workflow/run/cancel
-     * Body: { "runId": "..." }
+     * Route: POST /api/v1/workflow/run/cancel
      *
      * 受 HITL 鉴权保护（auth_enabled 时须 API Key 或角色）。
+     *
+     ```bash
+     curl -X POST 'http://127.0.0.1:9501/api/v1/workflow/run/cancel' \
+       -H 'Content-Type: application/json' \
+       -H 'Accept: application/json' \
+       -H 'X-Workflow-Api-Key: test-hitl-key' \
+       -H 'X-Workflow-Role: admin' \
+       -d '{
+         "runId": "run_xxxx"
+       }'
+     ```
      *
      * @return array<string, mixed>
      */
@@ -260,9 +317,22 @@ final class WorkflowController extends BController
     /**
      * 列出 HITL 暂停任务（可选按 assignee 过滤）。
      *
-     * GET /api/v1/workflow/pause/tasks?assignee=legal-team
+     * Route: GET /api/v1/workflow/pause/tasks
      *
      * 受 HITL 鉴权保护；非 admin 只能列出 actor 对应 assignee 的任务。
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/v1/workflow/pause/tasks?assignee=legal-team' \
+       -H 'Accept: application/json' \
+       -H 'X-Workflow-Api-Key: test-hitl-key' \
+       -H 'X-Workflow-Role: operator'
+
+     # admin 查看全部
+     curl -X GET 'http://127.0.0.1:9501/api/v1/workflow/pause/tasks' \
+       -H 'Accept: application/json' \
+       -H 'X-Workflow-Api-Key: test-hitl-key' \
+       -H 'X-Workflow-Role: admin'
+     ```
      *
      * @return array<string, mixed>
      */
@@ -312,7 +382,16 @@ final class WorkflowController extends BController
     /**
      * 对已存在 Run 以 SSE 推送当前状态（演示用，非历史事件回放）。
      *
-     * GET /api/v1/workflow/run/events?runId=
+     * Route: GET /api/v1/workflow/run/events
+     *
+     * 受 HITL 鉴权保护。
+     *
+     ```bash
+     curl -N -X GET 'http://127.0.0.1:9501/api/v1/workflow/run/events?runId=run_xxxx' \
+       -H 'Accept: text/event-stream' \
+       -H 'X-Workflow-Api-Key: test-hitl-key' \
+       -H 'X-Workflow-Role: operator'
+     ```
      */
     #[StreamResponse]
     public function events(RequestInput $requestInput, ResponseOutput $responseOutput): void

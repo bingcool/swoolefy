@@ -27,11 +27,17 @@ class IndexController extends BController {
     protected $db;
 
     /**
-     * @Api("测试首页入口：协程写日志、环境变量与欢迎页")
+     * 测试首页入口：协程写日志、环境变量与欢迎页。
      *
-     * curl 测试：
-     * curl "http://127.0.0.1:9501/index/index"
-     * curl "http://127.0.0.1:9501/api/"
+     * Route: GET /index/index, GET /api/ (可选 GET /product/list/mylist)
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/index/index'
+
+     curl -X GET 'http://127.0.0.1:9501/api/'
+
+     curl -X GET 'http://127.0.0.1:9501/product/list/mylist'
+     ```
      */
     #[ApiOperation(description: '测试首页入口：协程写日志、环境变量与欢迎页')]
     public function index(RequestInput $request): string
@@ -171,10 +177,14 @@ class IndexController extends BController {
 
 
     /**
-     * @Api("测试日志组件写入与 afterRequest 回调注册")
+     * 测试日志组件写入与 afterRequest 回调注册。
      *
-     * curl 测试：
-     * curl "http://127.0.0.1:9501/api/index/testLog"
+     * Route: GET /api/index/testLog
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/index/testLog' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试日志组件写入与 afterRequest 回调注册')]
     public function testLog(RequestInput $requestInput): array
@@ -198,8 +208,8 @@ class IndexController extends BController {
         ];
     }
     /**
-     * @Api("请求结束后回调，供 afterRequest 内部调用")
-     * 无 HTTP 路由（回调/内部用）
+     * 请求结束后回调，供 afterRequest 内部调用。
+     * 无 HTTP 路由（回调/内部用）。
      */
     public function afterSave()
     {
@@ -207,8 +217,14 @@ class IndexController extends BController {
     }
 
     /**
-     * @Api("测试 RunLog 业务日志写入")
-     * 无 HTTP 路由
+     * 测试 RunLog 业务日志写入。
+     *
+     * Route: GET /api/index/testLog1
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/index/testLog1' \
+       -H 'Accept: application/json'
+     ```
      */
     public function testLog1(RequestInput $requestInput): array
     {
@@ -221,10 +237,14 @@ class IndexController extends BController {
 
 
     /**
-     * @Api("测试插入用户表（含协程内再次插入）")
+     * 测试插入用户表（含协程内再次插入）。
      *
-     * curl 测试：
-     * curl "http://127.0.0.1:9501/user/testAddUser"
+     * Route: GET /user/testAddUser
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/user/testAddUser' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试插入用户表（含协程内再次插入）')]
     public function testAddUser(): array
@@ -263,8 +283,14 @@ class IndexController extends BController {
     }
 
     /**
-     * @Api("测试查询用户列表与总数")
-     * 无 HTTP 路由
+     * 测试查询用户列表与总数。
+     *
+     * Route: GET /api/index/testUserList
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/index/testUserList' \
+       -H 'Accept: application/json'
+     ```
      */
     public function testUserList(): array
     {
@@ -280,8 +306,8 @@ class IndexController extends BController {
     }
 
     /**
-     * @Api("按用户分页查询订单列表（内部方法带参数）")
-     * 无 HTTP 路由（内部方法带参数）
+     * 按用户分页查询订单列表（内部方法带参数）。
+     * 无 HTTP 路由（内部方法带参数）。
      *
      * @param int $uid
      * @param int $page
@@ -310,10 +336,14 @@ class IndexController extends BController {
     }
 
     /**
-     * @Api("测试事务与协程场景下插入订单")
+     * 测试事务与协程场景下插入订单。
      *
-     * curl 测试：
-     * curl "http://127.0.0.1:9501/user/testTransactionAddOrder"
+     * Route: GET /user/testTransactionAddOrder
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/user/testTransactionAddOrder' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试事务与协程场景下插入订单')]
     public function testTransactionAddOrder(): array

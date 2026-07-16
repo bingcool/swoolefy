@@ -11,9 +11,14 @@ use Test\App;
 class UuidController extends BController
 {
     /**
-     * @Api 测试获取自增 UUID 列表
+     * 测试获取自增 UUID 列表。
      *
-     * curl -X GET 'http://127.0.0.1:9501/api/getUuid'
+     * Route: GET /api/getUuid
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/getUuid' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试获取自增 UUID 列表')]
     public function getUuid(RequestInput $requestInput): array

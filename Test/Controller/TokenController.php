@@ -20,9 +20,14 @@ use Swoolefy\Core\Controller\BController;
 class TokenController extends BController
 {
     /**
-     * @Api 测试 JWT 签发与校验
+     * 测试 JWT 签发与校验。
      *
-     * curl -X GET 'http://127.0.0.1:9501/api/token/jwt'
+     * Route: GET /api/token/jwt
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/token/jwt' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试 JWT 签发与校验')]
     public function jwt(): array

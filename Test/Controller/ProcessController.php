@@ -11,9 +11,14 @@ use Test\Logger\RunLog;
 class ProcessController extends BController
 {
     /**
-     * @Api 测试投递异步任务到 task 进程
+     * 测试投递异步任务到 task 进程。
      *
-     * curl -X GET 'http://127.0.0.1:9501/api/send-task-worker'
+     * Route: GET /api/send-task-worker
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/send-task-worker' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试投递异步任务到 task 进程')]
     public function sendTaskWorker(): array
@@ -29,9 +34,14 @@ class ProcessController extends BController
     }
 
     /**
-     * @Api 测试 worker 向自定义进程 IPC 通信
+     * 测试 worker 向自定义进程 IPC 通信。
      *
-     * curl -X GET 'http://127.0.0.1:9501/api/send-user-worker?name=xxx'
+     * Route: GET /api/send-user-worker
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/send-user-worker?name=xxx' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试 worker 向自定义进程 IPC 通信')]
     public function sendUserWorker($name = ''): array

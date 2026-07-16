@@ -9,9 +9,14 @@ use Swoolefy\Http\UploadException;
 class UploadController extends BController
 {
     /**
-     * @Api 测试单文件上传与校验保存
+     * 测试单文件上传与校验保存。
      *
-     * curl -X POST 'http://127.0.0.1:9501/api/upload/single' -F 'file=@/tmp/test.txt'
+     * Route: POST /api/upload/single
+     *
+     ```bash
+     curl -X POST 'http://127.0.0.1:9501/api/upload/single' \
+       -F 'file=@/tmp/test.txt'
+     ```
      */
     public function single(RequestInput $requestInput): array
     {
@@ -41,9 +46,15 @@ class UploadController extends BController
     }
 
     /**
-     * @Api 测试多文件上传（表单字段 files[]）
+     * 测试多文件上传（表单字段 files[]）。
      *
-     * curl -X POST 'http://127.0.0.1:9501/api/upload/multiple' -F 'files[]=@/tmp/a.txt' -F 'files[]=@/tmp/b.txt'
+     * Route: POST /api/upload/multiple
+     *
+     ```bash
+     curl -X POST 'http://127.0.0.1:9501/api/upload/multiple' \
+       -F 'files[]=@/tmp/a.txt' \
+       -F 'files[]=@/tmp/b.txt'
+     ```
      */
     public function multiple(RequestInput $requestInput): array
     {
