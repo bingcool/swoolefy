@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Module\Order\Dto;
 
+use Swoolefy\Core\Dto\ArrayDto;
+
 /**
  * 订单 AI 决策结构化输出 DTO。
  *
@@ -13,7 +15,7 @@ namespace Test\Module\Order\Dto;
  *
  * @see docs/SwoolefyAI.md §4.8
  */
-final class OrderDecisionDto
+final class OrderDecisionDto extends ArrayDto
 {
     /** 是否批准订单。 */
     public bool $approved;
