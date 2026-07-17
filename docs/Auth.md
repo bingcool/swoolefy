@@ -58,7 +58,7 @@ swoolefy 在 Swoole **常驻进程 + 协程** 下，HTTP / WebSocket / Workflow 
 
 | 模块 | 路径 | 在本方案中的角色 |
 |------|------|------------------|
-| 协程 Context | [`src/Core/Coroutine/Context.php`](../src/Core/Coroutine/Context.php) | 存放 `swoolefy_auth_user` array |
+| 协程 Context | [`src/Core/Coroutine/Context.php`](../src/Core/Coroutine/Context.php) | 存放 `__swoolefy_auth_user` array |
 | goApp 跳过 object | [`src/Core/Func/function.php`](../src/Core/Func/function.php)（`goApp`） | 透传时 `is_object` → `continue`，故必须用 array |
 | FrameworkContext | [`src/Support/FrameworkContext.php`](../src/Support/FrameworkContext.php) | **扩展为唯一身份门面** |
 | HeaderContext | [`src/Support/HeaderPropagation/HeaderContext.php`](../src/Support/HeaderPropagation/HeaderContext.php) | 服务间透传；`setUser` 回写白名单头 |
@@ -126,7 +126,7 @@ flowchart TB
   end
   Guard[AuthGuardInterface]
   FC[FrameworkContext.setUser]
-  Snap["Context swoolefy_auth_user array"]
+  Snap["Context __swoolefy_auth_user array"]
   HC[HeaderContext put x-user-id]
   Biz[业务 FrameworkContext.user / getUserId]
   SDK[HeaderPropagator.outgoingHeaders]
@@ -164,7 +164,7 @@ foreach ($contextData as $key => $value) {
 | 要隔离（禁止跨协程共享） | 要透传（身份 / 租户） |
 |--------------------------|----------------------|
 | Db / Redis / HTTP Client | `userId` / `roles` / `tenantId` |
-| Application 容器实例 | `swoolefy_auth_user` **array** |
+| Application 容器实例 | `__swoolefy_auth_user` **array** |
 | 有 socket 的连接对象 | HeaderContext 整包 array |
 
 闭包 `use ($user)` 仍可显式传入只读 `AuthUser`（PHP 引用），但 **主路径** 必须是 Context array，以便嵌套 `goApp` / `GoWaitGroup` / `Parallel` 无需层层 `use`。
@@ -274,7 +274,23 @@ interface AuthGuardInterface
      * @throws AuthException 凭证存在但非法 / 过期 / 签名错误
      */
     public function authenticate(array $credentials): ?AuthUser;
+
+    /**
+     * 签发与 authenticate 对称的凭证（同一密钥 / claim 映射）。
+     *
+     * @param int|null $ttlSeconds null 时用配置 jwt.ttl_seconds
+     * @throws AuthException 密钥未配置或签发失败
+     */
+    public function generateToken(AuthUser $user, ?int $ttlSeconds = null): string;
 }
+```
+
+登录成功后应通过同一 Guard 签发，例如：
+
+```php
+/** @var AuthGuardInterface $guard */
+$guard = Application::getApp()->get('auth.guard');
+$token = $guard->generateToken(new AuthUser(userId: '100', roles: ['operator']));
 ```
 
 `JwtAuthGuard` 约定：
@@ -333,7 +349,7 @@ use Swoolefy\Support\HeaderPropagation\HeaderPropagator;
 
 final class FrameworkContext
 {
-    private const AUTH_USER_KEY = 'swoolefy_auth_user'; // array，非 object
+    private const AUTH_USER_KEY = '__swoolefy_auth_user'; // array，非 object
 
     // ===== 原有：透传头 =====
     // get / getTraceId / getUserAgent / getUserId / getTenantId …
@@ -742,7 +758,7 @@ Guard **配置实例**可进程内复用；**禁止**在 Guard 上缓存「当�
 
 ```php
 // ❌
-Context::set('swoolefy_auth_user', $authUserObject);
+Context::set('__swoolefy_auth_user', $authUserObject);
 CurrentUser::$id = $user->userId;
 goApp(function () use ($db) { $db->query(...); });
 

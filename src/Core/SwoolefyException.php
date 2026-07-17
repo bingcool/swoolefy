@@ -128,7 +128,12 @@ class SwoolefyException
             $errorMsg = $exceptionMsg;
         }
 
-        (new ResponseOutput($app->swooleRequest, $app->swooleResponse))->returnJson($contextData ?? [], $code, $errorMsg);
+        $responseOutput = new ResponseOutput($app->swooleRequest, $app->swooleResponse);
+        // AuthException 等：code 为合法 HTTP 状态时同步写响应状态（避免 JSON code=401 但 HTTP 仍 200）
+        if ($code >= 400 && $code < 600) {
+            $responseOutput->withStatus($code);
+        }
+        $responseOutput->returnJson($contextData ?? [], $code, $errorMsg);
 
         $errorMsg .= ' ||| ' . $throwable->getTraceAsString();
 

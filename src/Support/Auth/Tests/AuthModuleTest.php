@@ -17,7 +17,7 @@ declare(strict_types=1);
  * ## 覆盖
  * | 用例 | 要点 |
  * |------|------|
- * | JwtAuthGuard | claim 映射、空 token→null、非法 token→401 |
+ * | JwtAuthGuard | claim 映射、空 token→null、非法 token→401、generateToken 往返 |
  * | FrameworkContext | Auth 优先 / Header 兜底、setUser 回写透传头 |
  * | goApp | Context 存 array，子协程可读 getUserId |
  * | Context 形态 | swoolefy_auth_user 必须是 array 非 object |
@@ -33,11 +33,6 @@ declare(strict_types=1);
  * ```
  */
 
-use Swoolefy\Library\Jwt\Encoding\ChainedFormatter;
-use Swoolefy\Library\Jwt\Encoding\JoseEncoder;
-use Swoolefy\Library\Jwt\Signer\Hmac\Sha256;
-use Swoolefy\Library\Jwt\Signer\Key\InMemory;
-use Swoolefy\Library\Jwt\Token\Builder;
 use Swoolefy\Support\Auth\AuthException;
 use Swoolefy\Support\Auth\AuthUser;
 use Swoolefy\Support\Auth\JwtAuthGuard;
@@ -101,31 +96,21 @@ function jwtTestConfig(): array
 }
 
 /**
- * 签发测试用 JWT（HS256），claim 形状贴近生产 JwtAuthGuard 映射约定。
+ * 经 JwtAuthGuard::generateToken 签发测试 JWT（与 authenticate 同一路径）。
  *
- * @param string        $uid      写入 claim `uid` → AuthUser.userId
- * @param list<string>  $roles    写入 claim `roles` → AuthUser.roles
- * @param string|null   $tenantId 非 null 时写入 `tenant_id` → AuthUser.tenantId
- * @param int           $ttl      过期秒数（ValidAt 依赖 exp）
+ * @param string        $uid      → AuthUser.userId / claim uid+sub
+ * @param list<string>  $roles    → AuthUser.roles
+ * @param string|null   $tenantId 非 null 时 → AuthUser.tenantId
+ * @param int           $ttl      过期秒数
  */
 function issueTestJwt(string $uid, array $roles = [], ?string $tenantId = null, int $ttl = 3600): string
 {
-    // 使用系统时区，与 JwtAuthGuard 内 SystemClock::fromSystemTimezone() 对齐
-    $now = new DateTimeImmutable('now', new DateTimeZone(date_default_timezone_get()));
-    $builder = (new Builder(new JoseEncoder(), ChainedFormatter::default()))
-        ->issuedAt($now)
-        ->expiresAt($now->modify('+' . $ttl . ' second'))
-        ->withClaim('uid', $uid)
-        ->withClaim('roles', $roles);
+    $guard = new JwtAuthGuard(jwtTestConfig());
 
-    if ($tenantId !== null) {
-        $builder = $builder->withClaim('tenant_id', $tenantId);
-    }
-
-    // 密钥必须与 jwtTestConfig()['secret'] 一致
-    return $builder
-        ->getToken(new Sha256(), InMemory::plainText(jwtTestConfig()['secret']))
-        ->toString();
+    return $guard->generateToken(
+        new AuthUser(userId: $uid, roles: $roles, tenantId: $tenantId),
+        $ttl,
+    );
 }
 
 /**
@@ -180,6 +165,54 @@ function testJwtAuthGuardRejectsBadToken(): void
     }
 
     pass('jwt rejects bad token');
+}
+
+/**
+ * 验证：已过期 JWT 抛 AuthException，文案为 Token expired，code=401。
+ */
+function testJwtAuthGuardRejectsExpiredToken(): void
+{
+    $guard = new JwtAuthGuard(jwtTestConfig());
+    // ttl=1 后 sleep，确保 isExpired 为 true
+    $token = $guard->generateToken(new AuthUser(userId: 'exp-user'), 1);
+    sleep(2);
+
+    try {
+        $guard->authenticate(['token' => $token]);
+        assertTrue(false, 'should throw');
+    } catch (AuthException $e) {
+        assertTrue($e->getCode() === 401, '401');
+        assertTrue($e->getMessage() === 'Token expired', 'expired message');
+    }
+
+    pass('jwt rejects expired token');
+}
+
+/**
+ * 验证：generateToken → authenticate 往返，字段与签发侧一致。
+ */
+function testJwtAuthGuardGenerateTokenRoundTrip(): void
+{
+    $guard = new JwtAuthGuard(jwtTestConfig());
+    $issued = new AuthUser(
+        userId: '42',
+        roles: ['operator', 'admin'],
+        tenantId: 'acme',
+        claims: ['dept' => 'ops'],
+    );
+
+    $token = $guard->generateToken($issued, 1800);
+    assertTrue($token !== '', 'token non-empty');
+
+    $user = $guard->authenticate(['token' => $token]);
+    assertTrue($user instanceof AuthUser, 'user');
+    assertTrue($user->userId === '42', 'userId');
+    assertTrue($user->hasRole('admin'), 'admin');
+    assertTrue($user->tenantId === 'acme', 'tenant');
+    assertTrue(($user->claims['dept'] ?? null) === 'ops', 'extra claim');
+    assertTrue($user->via === 'jwt', 'via');
+
+    pass('jwt generateToken round-trip');
 }
 
 /**
@@ -246,7 +279,7 @@ function testGoAppPropagatesAuthUserArray(): void
 /**
  * 验证：FrameworkContext::setUser 在协程 Context 中写入的是 array，不是 AuthUser 对象。
  *
- * 键名固定为 swoolefy_auth_user；结构须含 userId，与 AuthUser::toArray() 一致。
+ * 键名固定为 __swoolefy_auth_user；结构须含 userId，与 AuthUser::toArray() 一致。
  */
 function testAuthUserObjectNotStoredInContext(): void
 {
@@ -255,7 +288,7 @@ function testAuthUserObjectNotStoredInContext(): void
     FrameworkContext::setUser(new AuthUser(userId: 'arr-only'));
 
     // 直接读底层 Context，确认形态（而非只测 user() 能还原）
-    $raw = Swoolefy\Core\Coroutine\Context::get('swoolefy_auth_user');
+    $raw = Swoolefy\Core\Coroutine\Context::get('__swoolefy_auth_user');
     assertTrue(is_array($raw), 'context stores array');
     assertTrue(($raw['userId'] ?? '') === 'arr-only', 'userId in array');
 
@@ -270,6 +303,8 @@ $tests = [
     'jwt maps claims' => 'testJwtAuthGuardMapsClaims',
     'jwt empty null' => 'testJwtAuthGuardEmptyTokenReturnsNull',
     'jwt bad token' => 'testJwtAuthGuardRejectsBadToken',
+    'jwt expired token' => 'testJwtAuthGuardRejectsExpiredToken',
+    'jwt generateToken round-trip' => 'testJwtAuthGuardGenerateTokenRoundTrip',
     'framework context priority' => 'testFrameworkContextAuthPriorityAndHeaderFallback',
     'goApp propagate' => 'testGoAppPropagatesAuthUserArray',
     'context array only' => 'testAuthUserObjectNotStoredInContext',

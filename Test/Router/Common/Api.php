@@ -11,6 +11,7 @@ namespace Test\Router;
  *   - Index.php          IndexController
  *   - Cache.php          CacheController
  *   - Token.php          TokenController
+ *   - AuthUser.php       AuthUserController（AuthenticateMiddleware）
  *   - Uuid.php           UuidController
  *   - Lock.php           LockController
  *   - RateLimit.php      RateLimitController
