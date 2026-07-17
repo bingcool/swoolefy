@@ -24,6 +24,7 @@ return [
         'enable' => false,
         'require_user_id' => true,
         'tokens' => [],
+        // 静态方法 + JwtAuthGuard；必须返回 ['user_id'=>…]，禁止返回 true（会读 query uid）
         'callback' => [__APP_NAMESPACE__\Auth\WebsocketAuthCallback::class, 'authenticate'],
     ],
     /*

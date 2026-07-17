@@ -13,8 +13,6 @@ use Swoolefy\Worker\Dto\PipeMsgDtoWorker;
 )]
 class StopCmd extends BaseCmd
 {
-    protected static $defaultName = 'stop';
-    
     // 定义睡眠时间
     private const SLEEP_INTERVAL_SECOND = 1;
     // 定义超时（默认；WebSocket 优雅停机时按 Config 上调，见 resolveStopTimeouts）

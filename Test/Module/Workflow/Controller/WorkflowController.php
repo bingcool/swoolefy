@@ -18,6 +18,8 @@ use Swoolefy\Support\Workflow\Engine\WorkflowRun;
 use Swoolefy\Support\Workflow\Engine\WorkflowRunPresenter;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\Exception\WorkflowPermissionException;
+use Swoolefy\Support\Auth\AuthUser;
+use Swoolefy\Support\FrameworkContext;
 use Swoolefy\Support\Workflow\WorkflowConfig;
 use Swoolefy\Support\Workflow\WorkflowHitlAuth;
 use Test\Module\Workflow\WorkflowService;
@@ -33,10 +35,15 @@ use Test\Module\Workflow\WorkflowService;
  *
  * 路由定义：`Test/Router/Module/Workflow.php`（前缀 `api`，默认端口 9501）。
  * 各方法 PHPDoc 中 curl 代码块无行首 `*`，便于直接复制执行。
- * HITL 相关接口在 `workflow.hitl.auth_enabled=true` 时需 Header
- * `X-Workflow-Api-Key` / `X-Workflow-Role`（Test 默认 key：`test-hitl-key`）。
  *
- * @see Test\Module\Workflow\README.md
+ * HITL（auth_enabled=true）鉴权（见 docs/Auth.md）：
+ *   - 推荐：路由挂 AuthenticateMiddleware，用 `Authorization: Bearer <jwt>`；
+ *     角色来自 JWT claims，admin 可跨 assignee。
+ *   - 服务间：`X-Workflow-Api-Key`（Test 默认见 workflow.php hitl.api_key）。
+ *   - **不再信任**客户端自报 `X-Workflow-Role`。
+ *
+ * @see \Test\Module\Workflow\README.md
+ * @see docs/Auth.md
  */
 final class WorkflowController extends BController
 {
@@ -180,14 +187,12 @@ final class WorkflowController extends BController
      ```bash
      curl -X GET 'http://127.0.0.1:9501/api/v1/workflow/run/status?runId=run_xxxx' \
        -H 'Accept: application/json' \
-       -H 'X-Workflow-Api-Key: test-hitl-key' \
-       -H 'X-Workflow-Role: operator'
+       -H 'Authorization: Bearer <jwt>'
 
      # admin 拉取完整 state
      curl -X GET 'http://127.0.0.1:9501/api/v1/workflow/run/status?runId=run_xxxx&detail=true' \
        -H 'Accept: application/json' \
-       -H 'X-Workflow-Api-Key: test-hitl-key' \
-       -H 'X-Workflow-Role: admin'
+       -H 'Authorization: Bearer <admin-jwt>'
      ```
      *
      * @return array<string, mixed>
@@ -217,19 +222,17 @@ final class WorkflowController extends BController
      *
      * Route: POST /api/v1/workflow/run/resume
      *
-     * 鉴权：Header X-Workflow-Api-Key / X-Workflow-Role（或 Body apiKey / role）。
-     * require_assignee_match 时 actor 须与 PauseNode assignee 一致。
+     * 鉴权：Bearer JWT（AuthUser）或服务间 X-Workflow-Api-Key；不再信任 X-Workflow-Role。
+     * require_assignee_match 时以 JWT AuthUser.userId 匹配 PauseNode assignee（admin 可跨）。
      * 典型场景：contract_review 的 legal_review 暂停节点。
      *
      ```bash
      curl -X POST 'http://127.0.0.1:9501/api/v1/workflow/run/resume' \
        -H 'Content-Type: application/json' \
        -H 'Accept: application/json' \
-       -H 'X-Workflow-Api-Key: test-hitl-key' \
-       -H 'X-Workflow-Role: operator' \
+       -H 'Authorization: Bearer <jwt>' \
        -d '{
          "runId": "run_xxxx",
-         "actor": "legal-team",
          "feedback": {
            "approved": true,
            "reason": "ok"
@@ -254,13 +257,7 @@ final class WorkflowController extends BController
             $hitlAuth = new WorkflowHitlAuth(WorkflowConfig::load());
             $engine = WorkflowService::engineForRun($runId, events: new StreamWorkflowEventDispatcher());
             $run = $engine->getRun($runId);
-            $this->assertHitlAuthorized($hitlAuth, $requestInput);
-            $hitlAuth->assertCanResume(
-                $run,
-                $this->hitlApiKey($requestInput, $hitlAuth),
-                $this->hitlActor($requestInput),
-                $this->hitlRole($requestInput, $hitlAuth),
-            );
+            $this->assertHitlResume($hitlAuth, $requestInput, $run);
             $engine->resume($runId, $feedback);
             $run = $engine->getRun($runId);
 
@@ -277,14 +274,13 @@ final class WorkflowController extends BController
      *
      * Route: POST /api/v1/workflow/run/cancel
      *
-     * 受 HITL 鉴权保护（auth_enabled 时须 API Key 或角色）。
+     * 受 HITL 鉴权保护（auth_enabled 时须 JWT 或 API Key）。
      *
      ```bash
      curl -X POST 'http://127.0.0.1:9501/api/v1/workflow/run/cancel' \
        -H 'Content-Type: application/json' \
        -H 'Accept: application/json' \
-       -H 'X-Workflow-Api-Key: test-hitl-key' \
-       -H 'X-Workflow-Role: admin' \
+       -H 'Authorization: Bearer <jwt>' \
        -d '{
          "runId": "run_xxxx"
        }'
@@ -319,19 +315,17 @@ final class WorkflowController extends BController
      *
      * Route: GET /api/v1/workflow/pause/tasks
      *
-     * 受 HITL 鉴权保护；非 admin 只能列出 actor 对应 assignee 的任务。
+     * 受 HITL 鉴权保护；非 admin 只能列出本人（JWT AuthUser.userId）的任务。
      *
      ```bash
      curl -X GET 'http://127.0.0.1:9501/api/v1/workflow/pause/tasks?assignee=legal-team' \
        -H 'Accept: application/json' \
-       -H 'X-Workflow-Api-Key: test-hitl-key' \
-       -H 'X-Workflow-Role: operator'
+       -H 'Authorization: Bearer <jwt>'
 
      # admin 查看全部
      curl -X GET 'http://127.0.0.1:9501/api/v1/workflow/pause/tasks' \
        -H 'Accept: application/json' \
-       -H 'X-Workflow-Api-Key: test-hitl-key' \
-       -H 'X-Workflow-Role: admin'
+       -H 'Authorization: Bearer <admin-jwt>'
      ```
      *
      * @return array<string, mixed>
@@ -342,22 +336,13 @@ final class WorkflowController extends BController
         $assignee = is_string($assignee) && $assignee !== '' ? $assignee : null;
 
         $hitlAuth = new WorkflowHitlAuth(WorkflowConfig::load());
-        $actor = $this->hitlActor($requestInput);
-        $role = $this->hitlRole($requestInput, $hitlAuth);
 
         try {
-            $this->assertHitlAuthorized($hitlAuth, $requestInput);
-            $hitlAuth->assertCanListTasks(
-                $assignee,
-                $this->hitlApiKey($requestInput, $hitlAuth),
-                $actor,
-                $role,
-            );
+            $listAssignee = $this->assertHitlListTasks($hitlAuth, $requestInput, $assignee);
         } catch (WorkflowPermissionException $e) {
             throw new SystemException($e->getMessage(), 403, $e);
         }
 
-        $listAssignee = $hitlAuth->resolveListAssigneeFilter($assignee, $actor, $role);
         // 聚合各拥有方 RunStore 上的 WAITING 任务（模块本地 + 枢纽）
         $tasks = [];
         foreach ([
@@ -389,8 +374,7 @@ final class WorkflowController extends BController
      ```bash
      curl -N -X GET 'http://127.0.0.1:9501/api/v1/workflow/run/events?runId=run_xxxx' \
        -H 'Accept: text/event-stream' \
-       -H 'X-Workflow-Api-Key: test-hitl-key' \
-       -H 'X-Workflow-Role: operator'
+       -H 'Authorization: Bearer <jwt>'
      ```
      */
     #[StreamResponse]
@@ -514,10 +498,12 @@ final class WorkflowController extends BController
     }
 
     /**
-     * status 调试详情开关：仅 admin 且显式 detail/debug=true 时返回完整 state。
+     * status 调试详情开关：仅已验票 AuthUser 且 isAdmin，并显式 detail/debug=true。
+     * 不再看 X-Workflow-Role（可伪造）。
      */
     private function wantsRunDetail(RequestInput $requestInput, WorkflowHitlAuth $hitlAuth): bool
     {
+        unset($hitlAuth);
         $detail = filter_var(
             $requestInput->input('detail', $requestInput->input('debug', false)),
             FILTER_VALIDATE_BOOLEAN,
@@ -526,26 +512,79 @@ final class WorkflowController extends BController
             return false;
         }
 
-        return $this->hitlRole($requestInput, $hitlAuth) === WorkflowHitlAuth::ADMIN_ROLE;
+        return FrameworkContext::user()?->isAdmin() === true;
     }
 
     /**
-     * 第一层 HITL 鉴权：API Key 或角色（满足其一）。
+     * HITL 第一层：JWT（AuthenticateMiddleware setUser）或服务间 API Key。
+     * auth_enabled=false 时 ForUser 内部直接放行。
      *
-     * @throws SystemException 403 当 WorkflowPermissionException
+     * @throws WorkflowPermissionException
      */
     private function assertHitlAuthorized(WorkflowHitlAuth $hitlAuth, RequestInput $requestInput): void
     {
-        $hitlAuth->assertAuthorized(
-            $this->hitlApiKey($requestInput, $hitlAuth),
-            $this->hitlRole($requestInput, $hitlAuth),
+        $hitlAuth->assertAuthorizedForUser(
+            FrameworkContext::user(),
+            $this->hitlApiKey($requestInput),
         );
     }
 
     /**
-     * 解析 API Key：优先 Header X-Workflow-Api-Key，其次 Body apiKey。
+     * resume 鉴权：
+     * - 有 AuthUser → assertCanResumeForUser（assignee = user.userId，禁止 Body.actor 冒充）
+     * - 仅 API Key → 系统旁路，不做 assignee 限制
+     *
+     * @throws WorkflowPermissionException
      */
-    private function hitlApiKey(RequestInput $requestInput, WorkflowHitlAuth $hitlAuth): ?string
+    private function assertHitlResume(
+        WorkflowHitlAuth $hitlAuth,
+        RequestInput $requestInput,
+        \Swoolefy\Support\Workflow\Engine\WorkflowRun $run,
+    ): void {
+        $user = FrameworkContext::user();
+        $apiKey = $this->hitlApiKey($requestInput);
+        if ($user instanceof AuthUser) {
+            $hitlAuth->assertCanResumeForUser($run, $user);
+
+            return;
+        }
+
+        $hitlAuth->assertAuthorizedForUser(null, $apiKey);
+    }
+
+    /**
+     * listPauseTasks 鉴权并返回引擎侧 assignee 过滤值。
+     *
+     * - AuthUser：非 admin 默认只查本人；query assignee 不可指向他人
+     * - 仅 API Key：信任调用方传入的 filter（服务间）
+     *
+     * @return string|null null = 不按 assignee 过滤（全部）
+     *
+     * @throws WorkflowPermissionException
+     */
+    private function assertHitlListTasks(
+        WorkflowHitlAuth $hitlAuth,
+        RequestInput $requestInput,
+        ?string $filterAssignee,
+    ): ?string {
+        $user = FrameworkContext::user();
+        $apiKey = $this->hitlApiKey($requestInput);
+        if ($user instanceof AuthUser) {
+            $hitlAuth->assertCanListTasksForUser($filterAssignee, $user);
+
+            return $hitlAuth->resolveListAssigneeFilterForUser($filterAssignee, $user);
+        }
+
+        $hitlAuth->assertAuthorizedForUser(null, $apiKey);
+
+        return $filterAssignee;
+    }
+
+    /**
+     * 解析 HITL 服务间 API Key。
+     * 优先 Header {@see WorkflowHitlAuth::DEFAULT_API_KEY_HEADER}，其次 Body `apiKey`。
+     */
+    private function hitlApiKey(RequestInput $requestInput): ?string
     {
         $header = (string) $requestInput->getHeaderParams(WorkflowHitlAuth::DEFAULT_API_KEY_HEADER, '');
         if ($header !== '') {
@@ -555,44 +594,6 @@ final class WorkflowController extends BController
         $body = $requestInput->input('apiKey');
         if (is_string($body) && $body !== '') {
             return $body;
-        }
-
-        return null;
-    }
-
-    /**
-     * 解析角色：优先配置 role_header（默认 X-Workflow-Role），其次 Body role。
-     */
-    private function hitlRole(RequestInput $requestInput, WorkflowHitlAuth $hitlAuth): ?string
-    {
-        $header = (string) $requestInput->getHeaderParams($hitlAuth->roleHeader(), '');
-        if ($header !== '') {
-            return $header;
-        }
-
-        $body = $requestInput->input('role');
-        if (is_string($body) && $body !== '') {
-            return $body;
-        }
-
-        return null;
-    }
-
-    /**
-     * 解析操作人：Body actor 优先，其次 assignee。
-     *
-     * 用于 assertCanResume / assertCanListTasks 的 assignee 归属校验。
-     */
-    private function hitlActor(RequestInput $requestInput): ?string
-    {
-        $actor = $requestInput->input('actor');
-        if (is_string($actor) && $actor !== '') {
-            return $actor;
-        }
-
-        $assignee = $requestInput->input('assignee');
-        if (is_string($assignee) && $assignee !== '') {
-            return $assignee;
         }
 
         return null;

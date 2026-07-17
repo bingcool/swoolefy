@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Workflow;
 
+use Swoolefy\Support\Auth\AuthUser;
+use Swoolefy\Support\FrameworkContext;
 use Swoolefy\Support\Workflow\Engine\RunStatus;
 use Swoolefy\Support\Workflow\Engine\WorkflowRun;
 use Swoolefy\Support\Workflow\Exception\WorkflowPermissionException;
@@ -20,21 +22,29 @@ use Swoolefy\Support\Workflow\Exception\WorkflowPermissionException;
 /**
  * HITL（Human-in-the-Loop）HTTP API 鉴权器。
  *
- * 保护 resume / cancel / listPauseTasks 三类写/读敏感接口，防止未授权用户
- * 恢复他人任务、取消运行或窥探待办列表。
+ * 保护 resume / cancel / listPauseTasks / status / events 等敏感接口，
+ * 防止未授权恢复他人任务、取消运行或窥探待办。
  *
- * 配置来源：Config/workflow.php → workflow.hitl（模版见 Stubs/workflow.conf.stub.php）
+ * ## 与统一 Auth 的关系（docs/Auth.md Phase 3）
+ * | 推荐 API | 说明 |
+ * |----------|------|
+ * | assertAuthorizedForUser | 身份：JWT AuthUser 或服务间 API Key |
+ * | assertCanResumeForUser | resume：身份 + assignee=user.userId（admin 可跨） |
+ * | assertCanListTasksForUser | 列表：非 admin 不可查他人 assignee |
  *
- * | 配置项                   | 环境变量                          | 说明 |
- * |--------------------------|-----------------------------------|------|
- * | auth_enabled             | WORKFLOW_HITL_AUTH_ENABLED        | 总开关；false 时所有 assert* 直接放行 |
- * | api_key                  | WORKFLOW_HITL_API_KEY             | 共享密钥，经 Header 或 Body 传递 |
- * | role_header              | WORKFLOW_HITL_ROLE_HEADER         | 角色 Header 名，默认 X-Workflow-Role |
- * | allowed_roles            | —                                 | 允许的角色白名单 |
- * | require_assignee_match   | WORKFLOW_HITL_REQUIRE_ASSIGNEE_MATCH | resume 时 actor 须匹配任务 assignee |
+ * 角色只认 {@see AuthUser::roles}（JWT claim），**不再信任**客户端自报 `X-Workflow-Role`。
  *
- * HTTP 控制器参考：Test/Module/Workflow/Controller/WorkflowController
+ * ## 配置（Config/workflow.php → workflow.hitl）
+ * | 配置项 | 说明 |
+ * |--------|------|
+ * | auth_enabled | false 时所有 assert* 直接放行（开发/单测） |
+ * | api_key | 服务间旁路；Header X-Workflow-Api-Key 或 Body apiKey |
+ * | allowed_roles | 与 AuthUser.roles 求交 |
+ * | require_assignee_match | resume 时是否强制 user.userId = PauseNode.assignee |
  *
+ * 控制器参考：Test\Module\Workflow\Controller\WorkflowController
+ *
+ * @see docs/Auth.md
  * @see WorkflowConfig::hitlAuthEnabled()
  */
 final class WorkflowHitlAuth
@@ -42,7 +52,10 @@ final class WorkflowHitlAuth
     /** API Key 默认 Header 名（Body 字段 apiKey 为备选）。 */
     public const DEFAULT_API_KEY_HEADER = 'X-Workflow-Api-Key';
 
-    /** 角色默认 Header 名（Body 字段 role 为备选）。 */
+    /**
+     * 角色 Header 名（历史兼容；auth_enabled 下已不再单独据此放行）。
+     * 新代码请用 AuthUser::roles。
+     */
     public const DEFAULT_ROLE_HEADER = 'X-Workflow-Role';
 
     /** 管理员角色：可跨 assignee resume / 查看全部 pause tasks。 */
@@ -53,7 +66,7 @@ final class WorkflowHitlAuth
     ) {
     }
 
-    /** 是否启用 HITL 鉴权（读取 workflow.hitl.auth_enabled）。 */
+    /** 是否启用 HITL 鉴权（读取 workflow.hitl.auth_enabled / 环境变量）。 */
     public function isEnabled(): bool
     {
         return $this->config->hitlAuthEnabled();
@@ -66,58 +79,64 @@ final class WorkflowHitlAuth
     }
 
     /**
-     * 第一层鉴权：校验调用方是否持有有效 API Key 或允许的角色。
+     * 第一层鉴权（ForUser）：调用方是否允许访问 HITL API。
      *
-     * 规则（auth_enabled=true 时）：
-     *   1. apiKeyHeader 与配置的 api_key 完全一致（hash_equals 防时序攻击）→ 通过
-     *   2. role 非空且在 allowed_roles 内 → 通过
-     *   3. 否则 → WorkflowPermissionException(403)
+     * 规则（auth_enabled=true）：
+     *   1. apiKeyHeader 与配置 api_key 一致（hash_equals）→ 通过（服务间）
+     *   2. 否则必须提供 AuthUser，且 roles ∩ allowed_roles 非空（allowed_roles 空则放行有用户）
+     *   3. 仅 Header role、无 JWT、无 Key → 403
      *
-     * auth_enabled=false 时直接 return，便于开发 / 单测。
+     * auth_enabled=false 时直接 return。
      *
-     * @param string|null $apiKeyHeader 来自 X-Workflow-Api-Key 或 Body apiKey
-     * @param string|null $role         来自 role_header 或 Body role
+     * @param AuthUser|null $user          FrameworkContext::user()，可为 null
+     * @param string|null   $apiKeyHeader  X-Workflow-Api-Key 或 Body apiKey
      *
      * @throws WorkflowPermissionException
      */
-    public function assertAuthorized(?string $apiKeyHeader, ?string $role): void
+    public function assertAuthorizedForUser(?AuthUser $user, ?string $apiKeyHeader): void
     {
         if (!$this->isEnabled()) {
             return;
         }
 
-        // 路径 1：共享 API Key（适合服务间调用 / 运维脚本）
         $expectedKey = $this->config->hitlApiKey();
         if ($expectedKey !== '' && is_string($apiKeyHeader) && hash_equals($expectedKey, $apiKeyHeader)) {
             return;
         }
 
-        // 路径 2：基于角色的访问（适合前端按岗位传 X-Workflow-Role）
+        if ($user === null) {
+            throw new WorkflowPermissionException('Unauthorized workflow HITL request');
+        }
+
         $allowedRoles = $this->config->hitlAllowedRoles();
-        if ($allowedRoles !== [] && is_string($role) && $role !== '' && in_array($role, $allowedRoles, true)) {
+        if ($allowedRoles === []) {
             return;
+        }
+
+        foreach ($user->roles as $role) {
+            if (in_array($role, $allowedRoles, true)) {
+                return;
+            }
         }
 
         throw new WorkflowPermissionException('Unauthorized workflow HITL request');
     }
 
     /**
-     * resume 前的完整鉴权：身份 + assignee 归属。
+     * resume 前完整鉴权：身份 + assignee 归属。
      *
-     * 执行顺序：
-     *   1. assertAuthorized — 基础身份
-     *   2. require_assignee_match=false → 直接放行
-     *   3. Run 非 WAITING → 跳过 assignee 校验（Engine 会另行报错）
-     *   4. role=admin → 可处理任意 assignee 的任务
-     *   5. 从 PauseNode 输出读取 assignee，与 actor 精确匹配
-     *
-     * @param string|null $actor 实际操作人，来自 Body actor 或 assignee
+     * 顺序：
+     *   1. assertAuthorizedForUser（此处不传 API Key；服务间 Key 由控制器另路径处理）
+     *   2. require_assignee_match=false → 放行
+     *   3. Run 非 WAITING → 跳过 assignee（Engine 会另行报错）
+     *   4. user.isAdmin() → 可处理任意 assignee
+     *   5. PauseNode.assignee 与 user.userId 精确匹配（**禁止** Body.actor 冒充）
      *
      * @throws WorkflowPermissionException
      */
-    public function assertCanResume(WorkflowRun $run, ?string $apiKeyHeader, ?string $actor, ?string $role): void
+    public function assertCanResumeForUser(WorkflowRun $run, AuthUser $user): void
     {
-        $this->assertAuthorized($apiKeyHeader, $role);
+        $this->assertAuthorizedForUser($user, null);
 
         if (!$this->config->hitlRequireAssigneeMatch()) {
             return;
@@ -127,7 +146,7 @@ final class WorkflowHitlAuth
             return;
         }
 
-        if (is_string($role) && $role === self::ADMIN_ROLE) {
+        if ($user->isAdmin()) {
             return;
         }
 
@@ -137,6 +156,104 @@ final class WorkflowHitlAuth
             return;
         }
 
+        if ($user->userId !== $taskAssignee) {
+            throw new WorkflowPermissionException(
+                "Assignee mismatch: task is assigned to [{$taskAssignee}]",
+            );
+        }
+    }
+
+    /**
+     * listPauseTasks 前鉴权：防止横向越权查看他人队列。
+     *
+     * - admin：不限制 filter
+     * - 非 admin：若带了 assignee 过滤，必须等于 user.userId
+     * - 未带 filter：由 {@see resolveListAssigneeFilterForUser()} 默认收窄为 user.userId
+     *
+     * @throws WorkflowPermissionException
+     */
+    public function assertCanListTasksForUser(?string $filterAssignee, AuthUser $user): void
+    {
+        $this->assertAuthorizedForUser($user, null);
+
+        if (!$this->isEnabled()) {
+            return;
+        }
+
+        if ($user->isAdmin()) {
+            return;
+        }
+
+        if ($filterAssignee === null || $filterAssignee === '') {
+            return;
+        }
+
+        if ($user->userId !== $filterAssignee) {
+            throw new WorkflowPermissionException('Cannot list tasks for another assignee');
+        }
+    }
+
+    /**
+     * @deprecated 使用 {@see assertAuthorizedForUser()}。
+     *             auth_enabled 下：若已 setUser 则转 ForUser；否则 **仅** API Key，不再接受仅 Header role。
+     *
+     * @param string|null $role 已忽略（保留参数签名兼容旧调用）
+     *
+     * @throws WorkflowPermissionException
+     */
+    public function assertAuthorized(?string $apiKeyHeader, ?string $role): void
+    {
+        unset($role);
+
+        if (!$this->isEnabled()) {
+            return;
+        }
+
+        if (FrameworkContext::check()) {
+            $this->assertAuthorizedForUser(FrameworkContext::user(), $apiKeyHeader);
+
+            return;
+        }
+
+        $expectedKey = $this->config->hitlApiKey();
+        if ($expectedKey !== '' && is_string($apiKeyHeader) && hash_equals($expectedKey, $apiKeyHeader)) {
+            return;
+        }
+
+        throw new WorkflowPermissionException('Unauthorized workflow HITL request');
+    }
+
+    /**
+     * @deprecated 使用 {@see assertCanResumeForUser()}。
+     *             已 setUser → ForUser；auth 开启 → 仅 Key 身份后放行；auth 关闭 → 旧 actor 字符串比对（单测）。
+     *
+     * @throws WorkflowPermissionException
+     */
+    public function assertCanResume(WorkflowRun $run, ?string $apiKeyHeader, ?string $actor, ?string $role): void
+    {
+        if (FrameworkContext::check()) {
+            $this->assertCanResumeForUser($run, FrameworkContext::userOrFail());
+
+            return;
+        }
+
+        if ($this->isEnabled()) {
+            $this->assertAuthorized($apiKeyHeader, $role);
+
+            return;
+        }
+
+        // auth_enabled=false：仅保留 assignee 匹配（开发/单测夹具）
+        if (!$this->config->hitlRequireAssigneeMatch() || $run->status !== RunStatus::WAITING) {
+            return;
+        }
+        if (is_string($role) && $role === self::ADMIN_ROLE) {
+            return;
+        }
+        $taskAssignee = $this->resolveTaskAssignee($run);
+        if ($taskAssignee === null) {
+            return;
+        }
         if (!is_string($actor) || $actor === '' || $actor !== $taskAssignee) {
             throw new WorkflowPermissionException(
                 "Assignee mismatch: task is assigned to [{$taskAssignee}]",
@@ -145,52 +262,31 @@ final class WorkflowHitlAuth
     }
 
     /**
-     * listPauseTasks 前的鉴权：限制查询范围，防止横向越权。
-     *
-     * 规则（auth_enabled=true 且非 admin）：
-     *   - 带 assignee 过滤：actor 必须等于 filterAssignee
-     *   - 不带 assignee 过滤：必须提供 actor（只查自己的任务）
-     *
-     * admin 角色或 auth 未启用时不限制查询范围。
-     *
-     * @param string|null $filterAssignee Query assignee 参数
-     * @param string|null $actor          当前操作人
+     * @deprecated 使用 {@see assertCanListTasksForUser()}
      *
      * @throws WorkflowPermissionException
      */
     public function assertCanListTasks(?string $filterAssignee, ?string $apiKeyHeader, ?string $actor, ?string $role): void
     {
-        $this->assertAuthorized($apiKeyHeader, $role);
+        unset($actor, $role);
 
-        if (!$this->isEnabled()) {
-            return;
-        }
-
-        if (is_string($role) && $role === self::ADMIN_ROLE) {
-            return;
-        }
-
-        // 未指定 assignee 过滤：要求 actor 自证身份；控制器须用 {@see resolveListAssigneeFilter()} 传给引擎
-        if ($filterAssignee === null || $filterAssignee === '') {
-            if (!is_string($actor) || $actor === '') {
-                throw new WorkflowPermissionException('assignee filter or actor is required');
-            }
+        if (FrameworkContext::check()) {
+            $this->assertCanListTasksForUser($filterAssignee, FrameworkContext::userOrFail());
 
             return;
         }
 
-        // 指定了 assignee 过滤：actor 必须与之一致，禁止查他人队列
-        if (!is_string($actor) || $actor === '' || $actor !== $filterAssignee) {
-            throw new WorkflowPermissionException('Cannot list tasks for another assignee');
+        if ($this->isEnabled()) {
+            $this->assertAuthorized($apiKeyHeader, null);
         }
     }
 
     /**
-     * 计算传给 {@see \Swoolefy\Support\Workflow\Engine\WorkflowEngine::listPauseTasks()} 的 assignee 过滤值。
+     * 计算传给 Engine::listPauseTasks() 的 assignee 过滤值。
      *
-     * 须在 {@see assertCanListTasks()} 通过后调用：
+     * 须在列表鉴权通过后调用：
      *   - 有 query assignee → 原样使用
-     *   - auth 关闭或 admin → null（查全部）
+     *   - auth 关闭或 role=admin → null（查全部）
      *   - 否则 → actor（仅查本人待办）
      */
     public function resolveListAssigneeFilter(?string $queryAssignee, ?string $actor, ?string $role): ?string
@@ -211,10 +307,18 @@ final class WorkflowHitlAuth
     }
 
     /**
+     * ForUser 路径的列表过滤：admin 查全部，否则默认 actor = user.userId。
+     */
+    public function resolveListAssigneeFilterForUser(?string $queryAssignee, AuthUser $user): ?string
+    {
+        $role = $user->isAdmin() ? self::ADMIN_ROLE : null;
+
+        return $this->resolveListAssigneeFilter($queryAssignee, $user->userId, $role);
+    }
+
+    /**
      * 从 PauseNode 执行输出中提取任务处理人。
-     *
-     * PauseNode 成功时会写入 nodeOutputs[pauseNodeId].assignee，
-     * listPauseTasks / resume 鉴权均依赖此字段。
+     * PauseNode 成功时写入 nodeOutputs[pauseNodeId].assignee。
      */
     private function resolveTaskAssignee(WorkflowRun $run): ?string
     {

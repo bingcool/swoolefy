@@ -14,8 +14,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 )]
 class RestartCmd extends BaseCmd
 {
-    protected static $defaultName = 'restart';
-
     protected function configure()
     {
         parent::configure();

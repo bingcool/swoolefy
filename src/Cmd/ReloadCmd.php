@@ -11,8 +11,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 )]
 class ReloadCmd extends BaseCmd
 {
-    protected static $defaultName = 'reload';
-
     protected function configure()
     {
         parent::configure();

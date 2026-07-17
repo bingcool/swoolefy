@@ -12,8 +12,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 )]
 class StartCmd extends BaseCmd
 {
-    protected static $defaultName = 'start';
-
     protected function configure()
     {
         $this->addOption(self::START_MODEL, null,InputOption::VALUE_OPTIONAL, 'start model', '');

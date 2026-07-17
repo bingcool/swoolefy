@@ -10,8 +10,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 )]
 class CreateCmd extends BaseCmd
 {
-    protected static $defaultName = 'create';
-
     protected static $dirPermission = 0755;
 
     protected function configure()

@@ -29,6 +29,7 @@ declare(strict_types=1);
  * ```
  */
 
+use Swoolefy\Support\Auth\AuthUser;
 use Swoolefy\Support\Workflow\Definition\WorkflowDefinition;
 use Swoolefy\Support\Workflow\Engine\DbRunStore;
 use Swoolefy\Support\Workflow\Engine\InMemoryRunStore;
@@ -220,15 +221,21 @@ function testHitlAuthWithValidApiKey(): void
 }
 
 /**
- * 验证：提供 allowed_roles 内角色时 assertAuthorized 通过（无需 Key）。
- *
- * 支持基于角色的内部服务调用。
+ * 验证：AuthUser.roles 与 allowed_roles 求交时 ForUser 通过；仅 Header role 拒绝。
  */
 function testHitlAuthWithValidRole(): void
 {
     $auth = new WorkflowHitlAuth(hitlConfig());
-    $auth->assertAuthorized(null, 'admin');
-    pass('hitl auth valid role');
+    $user = new AuthUser(userId: 'u1', roles: ['admin']);
+    $auth->assertAuthorizedForUser($user, null);
+
+    try {
+        $auth->assertAuthorized(null, 'admin');
+        assertTrue(false, 'header-only role must be rejected');
+    } catch (WorkflowPermissionException) {
+    }
+
+    pass('hitl auth valid role via AuthUser');
 }
 
 /**
@@ -262,9 +269,7 @@ function testHitlAuthDisabledAllowsAll(): void
 }
 
 /**
- * 验证：require_assignee_match 时，resume 方 assignee 须与 PauseNode 配置一致。
- *
- * 基于真实 WAITING run（DbRunStore）验证 assertCanResume 行为与错误信息。
+ * 验证：require_assignee_match 时，resume 方 AuthUser.userId 须与 PauseNode assignee 一致。
  */
 function testHitlAssigneeMatch(): void
 {
@@ -290,18 +295,23 @@ function testHitlAssigneeMatch(): void
     $run = $engine->getRun($runId);
     assertTrue($run->status === RunStatus::WAITING, 'waiting');
 
-    withHitlEnv(['WORKFLOW_HITL_AUTH_ENABLED' => '0'], static function () use ($run): void {
-        $auth = new WorkflowHitlAuth(hitlConfig(['hitl' => ['auth_enabled' => false, 'require_assignee_match' => true]]));
+    $auth = new WorkflowHitlAuth(hitlConfig(['hitl' => [
+        'auth_enabled' => true,
+        'api_key' => 'secret-key',
+        'allowed_roles' => ['operator', 'admin'],
+        'require_assignee_match' => true,
+    ]]));
 
-        try {
-            $auth->assertCanResume($run, null, 'wrong-team', null);
-            assertTrue(false, 'should throw assignee mismatch');
-        } catch (WorkflowPermissionException $e) {
-            assertTrue(str_contains($e->getMessage(), 'legal-team'), 'assignee message');
-        }
+    try {
+        $auth->assertCanResumeForUser($run, new AuthUser(userId: 'wrong-team', roles: ['operator']));
+        assertTrue(false, 'should throw assignee mismatch');
+    } catch (WorkflowPermissionException $e) {
+        assertTrue(str_contains($e->getMessage(), 'legal-team'), 'assignee message');
+    }
 
-        $auth->assertCanResume($run, null, 'legal-team', null);
-    });
+    $auth->assertCanResumeForUser($run, new AuthUser(userId: 'legal-team', roles: ['operator']));
+    $auth->assertCanResumeForUser($run, new AuthUser(userId: 'anyone', roles: ['admin']));
+
     pass('hitl assignee match');
 }
 

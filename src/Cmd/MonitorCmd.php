@@ -12,8 +12,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 )]
 class MonitorCmd extends BaseCmd
 {
-    protected static $defaultName = 'monitor';
-
     protected function configure()
     {
         parent::configure();

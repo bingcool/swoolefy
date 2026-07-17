@@ -23,7 +23,7 @@ swoolefy 在 Swoole **常驻进程 + 协程** 下，HTTP / WebSocket / Workflow 
 |------|----------|
 | 面向浏览器 / App 的入口 API | JWT Guard + `AuthenticateMiddleware` → `FrameworkContext::setUser` |
 | 网关已验票的内部服务 | 可无本地 `AuthUser`，继续只读透传头 `x-user-id`（与今日行为兼容） |
-| WebSocket 握手 | 同一 Guard；**忽略** query `uid`，只用 JWT 解析出的 `user.id` |
+| WebSocket 握手 | 同一 Guard；**忽略** query `uid`，只用 JWT 解析出的 `user.userId` |
 | Workflow HITL 人机操作 | `FrameworkContext::userOrFail()`；admin 来自 `roles` claim，不信 `X-Workflow-Role` |
 | 服务间无用户脚本 | 仅允许配置的 HITL / 系统 API Key（`via=api_key` 系统身份） |
 
@@ -210,7 +210,7 @@ final readonly class AuthUser
      * @param array<string, mixed> $claims
      */
     public function __construct(
-        public string $id,
+        public string $userId,
         public array $roles = [],
         public ?string $tenantId = null,
         public array $claims = [],
@@ -221,13 +221,13 @@ final readonly class AuthUser
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
-        $id = (string) ($data['id'] ?? '');
-        if ($id === '') {
-            throw new AuthException('AuthUser id is required', 500);
+        $userId = (string) ($data['userId'] ?? '');
+        if ($userId === '') {
+            throw new AuthException('AuthUser userId is required', 500);
         }
 
         return new self(
-            id: $id,
+            userId: $userId,
             roles: array_values(array_map('strval', (array) ($data['roles'] ?? []))),
             tenantId: isset($data['tenantId']) && $data['tenantId'] !== ''
                 ? (string) $data['tenantId']
@@ -241,7 +241,7 @@ final readonly class AuthUser
     public function toArray(): array
     {
         return [
-            'id' => $this->id,
+            'userId' => $this->userId,
             'roles' => $this->roles,
             'tenantId' => $this->tenantId,
             'via' => $this->via,
@@ -281,7 +281,7 @@ interface AuthGuardInterface
 
 | Claim | 映射 |
 |-------|------|
-| `uid` 或 `sub` | `AuthUser.id`（优先 `uid`，其次 `sub`） |
+| `uid` 或 `sub` | `AuthUser.userId`（优先 `uid`，其次 `sub`） |
 | `roles`（数组或逗号分隔字符串） | `AuthUser.roles` |
 | `tenant_id` | `AuthUser.tenantId` |
 | 其余 | 进入 `claims` 只读副本 |
@@ -342,7 +342,7 @@ final class FrameworkContext
     {
         SwooleContext::set(self::AUTH_USER_KEY, $user->toArray());
 
-        HeaderContext::put(HeaderPropagator::HEADER_USER_ID, $user->id);
+        HeaderContext::put(HeaderPropagator::HEADER_USER_ID, $user->userId);
         if ($user->tenantId !== null && $user->tenantId !== '') {
             HeaderContext::put(HeaderPropagator::HEADER_TENANT_ID, $user->tenantId);
         }
@@ -351,7 +351,7 @@ final class FrameworkContext
     public static function user(): ?AuthUser
     {
         $data = SwooleContext::get(self::AUTH_USER_KEY);
-        if (!is_array($data) || ($data['id'] ?? '') === '') {
+        if (!is_array($data) || ($data['userId'] ?? '') === '') {
             return null;
         }
 
@@ -384,7 +384,7 @@ final class FrameworkContext
      */
     public static function getUserId(?string $default = null): ?string
     {
-        return self::user()?->id
+        return self::user()?->userId
             ?? self::get(HeaderPropagator::HEADER_USER_ID, $default);
     }
 
@@ -594,7 +594,7 @@ final class WebsocketAuthCallback
         // 握手协程内同步写入，便于后续 onOpen / 首条消息读 FrameworkContext
         FrameworkContext::setUser($user);
 
-        return ['user_id' => $user->id];
+        return ['user_id' => $user->userId];
     }
 }
 ```
@@ -636,7 +636,7 @@ public function assertCanListTasksForUser(
 
 | 调用方 | 鉴权 |
 |--------|------|
-| 已登录用户 | `FrameworkContext::userOrFail()`；`allowed_roles` 与 `$user->roles` 求交；`actor = $user->id`；admin = `$user->isAdmin()` |
+| 已登录用户 | `FrameworkContext::userOrFail()`；`allowed_roles` 与 `$user->roles` 求交；`actor = $user->userId`；admin = `$user->isAdmin()` |
 | 无用户 | 仅当配置的 `api_key` 与 Header/Body 一致时放行（系统旁路） |
 | 仅 `X-Workflow-Role: admin` 无 JWT | **拒绝（403）** |
 
@@ -743,7 +743,7 @@ Guard **配置实例**可进程内复用；**禁止**在 Guard 上缓存「当�
 ```php
 // ❌
 Context::set('swoolefy_auth_user', $authUserObject);
-CurrentUser::$id = $user->id;
+CurrentUser::$id = $user->userId;
 goApp(function () use ($db) { $db->query(...); });
 
 // ✅
@@ -776,7 +776,7 @@ use Swoolefy\Support\FrameworkContext;
 
 // 需要登录的接口
 $user = FrameworkContext::userOrFail();
-$userId = $user->id;
+$userId = $user->userId;
 
 // 允许匿名或内部透传
 $userId = FrameworkContext::getUserId();

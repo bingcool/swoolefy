@@ -10,8 +10,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 )]
 class SendCmd extends BaseCmd
 {
-    protected static $defaultName = 'send';
-
     protected function configure()
     {
         parent::configure();

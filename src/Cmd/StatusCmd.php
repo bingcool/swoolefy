@@ -11,8 +11,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 )]
 class StatusCmd extends BaseCmd
 {
-    protected static $defaultName = 'status';
-
     protected function configure()
     {
         parent::configure();
