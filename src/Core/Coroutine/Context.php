@@ -14,9 +14,12 @@ namespace Swoolefy\Core\Coroutine;
 use ArrayObject;
 use Swoolefy\Core\Application;
 
+/**
+ * 如果需要在父协程->子协程->子协程 直接透传业务的关键数据，请使用 @see \Swoolefy\Core\Coroutine\Context::set() 设置,
+ * 然后使用 @see \Swoolefy\Core\Coroutine\Context::get()
+ */
 class Context
 {
-
     /**
      * @return ArrayObject
      */

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support;
 
+use Swoole\Http\Status;
 use Swoolefy\Core\Coroutine\Context as SwooleContext;
 use Swoolefy\Support\Auth\AuthException;
 use Swoolefy\Support\Auth\AuthUser;
@@ -20,7 +21,11 @@ use Swoolefy\Support\HeaderPropagation\HeaderContext;
 use Swoolefy\Support\HeaderPropagation\HeaderPropagator;
 
 /**
- * 框架请求上下文门面：服务间透传头 + 本地验票身份（唯一身份入口，不另建 AuthContext）。
+ * 框架请求上下文门面：服务间透传头 + 本地验票身份（唯一身份入口）
+ * 注意！！！：这个类主要获取的是服务之间透传请求投的关键信息和登录认证信息。也不提供set，不要主动设置其他业务在协程直接的传递。
+ *
+ * 如果需要在父协程，子协程直接透传业务的关键数据，请使用 @see \Swoolefy\Core\Coroutine\Context::set() 设置,
+ * 然后使用 @see \Swoolefy\Core\Coroutine\Context::get()
  *
  * ## 两类数据
  * | 类型 | 存储 | 可信度 |
@@ -101,7 +106,7 @@ final class FrameworkContext
     {
         $user = self::user();
         if ($user === null) {
-            throw new AuthException('Unauthenticated', 401);
+            throw new AuthException('Unauthenticated', Status::UNAUTHORIZED);
         }
 
         return $user;
@@ -116,10 +121,20 @@ final class FrameworkContext
         SwooleContext::delete(self::AUTH_USER_KEY);
     }
 
-    /** 是否已 setUser（本地验票身份存在）。 */
+    /**
+     * 是否已 setUser（本地验票身份存在）
+     */
     public static function check(): bool
     {
         return self::user() !== null;
+    }
+
+    /**
+     * 服务之间请求的关键请求头
+     */
+    public static function headerContext(): array
+    {
+        return HeaderContext::all();
     }
 
     /**
