@@ -58,9 +58,11 @@ final class FrameworkContext
      * 协程 Context 中身份快照的键名。
      * 值必须是 AuthUser::toArray()，禁止放 AuthUser 对象。
      */
-    private const AUTH_USER_KEY = 'swoolefy_auth_user';
+    private const AUTH_USER_KEY = '__swoolefy_auth_user';
 
-    /** 读取透传头（小写规范化由 HeaderContext 处理）。 */
+    /**
+     * 读取透传头（小写规范化由 HeaderContext 处理）
+     */
     public static function get(string $name, ?string $default = null): ?string
     {
         return HeaderContext::get($name, $default);

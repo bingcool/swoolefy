@@ -45,8 +45,17 @@ use Swoolefy\Library\Jwt\Validation\Constraint\ValidAt;
  * | — | via = jwt |
  *
  * ## 配置来源
- * 构造参数为 `Config/auth.php` 的 `jwt` 段；密钥禁止硬编码在业务控制器。
- * 组件注册：`Test/Config/component/auth.php` → `auth.guard`。
+ * 构造参数为 `Config/auth.php` 的 `jwt` 段；密钥禁止硬编码在业务控制器
+ * 组件注册：`Test/Config/component/auth.php` → `auth.guard`
+ *
+ * 如果不满足，可以 implements AuthGuardInterface 实现重写新NewJwtAuthGuard类的，然后将NewJwtAuthGuard类组件再注册
+ * 到`Test/Config/component/auth.php`， 例如：
+ ```php
+    'auth.guard' => static function () use($authcConfig) {
+        // 使用重写新NewJwtAuthGuard类实例化
+        return new NewJwtAuthGuard($authcConfig['jwt'] ?? []);
+    },
+ ```php
  *
  * @see AuthGuardInterface
  * @see docs/Auth.md
