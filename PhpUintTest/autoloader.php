@@ -16,7 +16,7 @@ class autoloader
      * $directory
      * @var string
      */
-    private static $baseDirectory = START_DIR_ROOT;
+    private static $baseDirectory = __DIR__;
 
     /**
      * Root Namespace
@@ -39,6 +39,7 @@ class autoloader
         if (isset(self::$classMapNamespace[$className])) {
             return;
         }
+        self::$baseDirectory = dirname(__DIR__);
         foreach (self::$rootNamespace as $appDir => $namespace) {
             if (0 === strpos($className, $namespace)) {
                 $parts = explode('\\', $className);
@@ -72,6 +73,4 @@ class autoloader
 
 // include file
 autoloader::register();
-// include constants
-include APP_PATH . '/Config/constants.php';
 
