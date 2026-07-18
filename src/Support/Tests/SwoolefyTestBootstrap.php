@@ -32,16 +32,18 @@ declare(strict_types=1);
  *
  * 幂等：常量与函数均用 `defined` / `function_exists` 保护，可重复 require。
  */
-$testAppRoot = dirname(__DIR__, 3) . '/Test';
+// 与 cli.php 一致：START_DIR_ROOT=仓库根；APP_PATH=Test 应用根（供 Test/autoloader.php）
+$projectRoot = dirname(__DIR__, 3);
+$testAppRoot = $projectRoot . '/Test';
 
 if (!\defined('START_DIR_ROOT')) {
-    \define('START_DIR_ROOT', $testAppRoot);
+    \define('START_DIR_ROOT', $projectRoot);
 }
 if (!\defined('APP_PATH')) {
     \define('APP_PATH', $testAppRoot);
 }
 if (!\defined('APP_NAME')) {
-    \define('APP_NAME', 'swoolefy_test');
+    \define('APP_NAME', 'Test');
 }
 if (!\defined('LOG_PATH')) {
     \define('LOG_PATH', APP_PATH . '/Storage/Logs');

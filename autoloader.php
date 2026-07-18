@@ -9,67 +9,77 @@
  * +----------------------------------------------------------------------
  */
 
+/**
+ * Test\ Demo 应用 PSR-0 风格加载：{START_DIR_ROOT}/Test/...
+ *
+ * 由 cli.php → registerNamespace(APP_PATH) 或 PHPUnit bootstrap 引入。
+ * START_DIR_ROOT 须为仓库根（与 cli.php 一致），不是 Test/ 目录本身。
+ */
 class autoloader
 {
-    /**
-     * $directory
-     * @var string
-     */
-    private static $baseDirectory = START_DIR_ROOT;
+    /** @var string */
+    private static $baseDirectory = null;
 
-    /**
-     * Root Dir Map Namespace
-     * @var array
-     */
-    private static $rootNamespace = ["<{APP_NAME}>"];
+    /** @var list<string> */
+    private static $rootNamespace = ['Test'];
 
-    /**
-     * Class Map Namespace
-     * @var array
-     */
+    /** @var array<string, true> */
     private static $classMapNamespace = [];
 
     /**
      * @param string $className
-     * @return void
      */
-    public static function autoload($className)
+    public static function autoload($className): void
     {
         if (isset(self::$classMapNamespace[$className])) {
             return;
         }
-        foreach (self::$rootNamespace as $appDir => $namespace) {
-            if (0 === strpos($className, $namespace)) {
-                $parts = explode('\\', $className);
-                if (!is_numeric($appDir)) {
-                    $parts[0] = $appDir;
-                }
-                $filepath = self::$baseDirectory . DIRECTORY_SEPARATOR . implode(DIRECTORY_SEPARATOR, $parts) . '.php';
-                if (is_file($filepath)) {
-                    $res = require_once $filepath;
-                    if ($res) {
-                        self::$classMapNamespace[$className] = true;
-                    }
-                }
-                break;
+
+        if (self::$baseDirectory === null) {
+            self::$baseDirectory = defined('START_DIR_ROOT')
+                ? START_DIR_ROOT
+                : dirname(__DIR__);
+        }
+
+        foreach (self::$rootNamespace as $namespace) {
+            if (strpos($className, $namespace) !== 0) {
+                continue;
             }
+
+            $parts = explode('\\', $className);
+            $filepath = self::$baseDirectory
+                . DIRECTORY_SEPARATOR
+                . implode(DIRECTORY_SEPARATOR, $parts)
+                . '.php';
+
+            if (is_file($filepath)) {
+                require_once $filepath;
+                self::$classMapNamespace[$className] = true;
+            }
+
+            break;
         }
     }
 
-    /**
-     * register autoload
-     */
-    public static function register(bool $prepend = false)
+    public static function register($prepend = false): void
     {
         if (!function_exists('__autoload')) {
-            spl_autoload_register(['autoloader', 'autoload'], true, $prepend);
+            spl_autoload_register([self::class, 'autoload'], true, $prepend);
         } else {
-            trigger_error('spl_autoload_register() which will bypass your __autoload() and may break your autoloading', E_USER_WARNING);
+            trigger_error(
+                'spl_autoload_register() which will bypass your __autoload() and may break your autoloading',
+                E_USER_WARNING,
+            );
         }
     }
 }
 
-// include file
 autoloader::register();
-// include constants
-include APP_PATH.'/Config/constants.php';
+
+// PHPUnit bootstrap 只注册命名空间；cli.php start Test 仍加载业务常量
+if (!defined('SWOOLEFY_PHPUNIT_BOOTSTRAP')
+    && defined('APP_PATH')
+    && is_file(APP_PATH . '/Config/constants.php')
+) {
+    include APP_PATH . '/Config/constants.php';
+}

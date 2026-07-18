@@ -76,7 +76,7 @@ foreach ($tests as $name => $fn) {
 | `assertTrue($c, $msg)` | `$this->assertTrue($c, $msg)` 或更具体的 `assertSame` |
 | `pass($name)` | 删除（PHPUnit 报告替代） |
 | 文件尾 `foreach` | 删除（发现机制替代） |
-| 文件级 `require autoload` | `PhpUintTest/bootstrap.php` + composer `autoload.psr-4` |
+| 文件级 `require autoload` | `PhpUintTest/bootstrap.php`（composer 仅 Swoolefy；`Test\` / `PhpUintTest\` 各自 autoloader） |
 | 顶部业务注释「覆盖范围」 | 类 PHPDoc 保留 |
 
 ### 2.3 已有可复用基建
@@ -196,22 +196,23 @@ PhpUintTest/
 
 迁完一个模块再删旧路径；目标态仍以 `PhpUintTest/` 为唯一入口。
 
-composer `autoload`（放入主 psr-4，避免 IDE 忽略 `autoload-dev` 误报命名空间）：
+composer 仅映射框架本体；Demo / PHPUnit 命名空间各自注册：
 
 ```json
 {
   "autoload": {
     "psr-4": {
-      "Swoolefy\\": "src/",
-      "Test\\": "Test/",
-      "PhpUintTest\\": "PhpUintTest/"
+      "Swoolefy\\": "src/"
     }
-  },
-  "require-dev": {
-    "phpunit/phpunit": "^11.5"
   }
 }
 ```
+
+| 命名空间 | 注册入口 |
+|----------|----------|
+| `Swoolefy\` | `vendor/autoload.php`（composer） |
+| `Test\` | `Test/autoloader.php`（cli.php `registerNamespace` / PHPUnit bootstrap） |
+| `PhpUintTest\` | `PhpUintTest/Autoloader.php`（PHPUnit bootstrap） |
 
 ---
 

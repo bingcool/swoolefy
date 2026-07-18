@@ -1,76 +1,54 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PhpUintTest;
+
 /**
- * +----------------------------------------------------------------------
- * | swoolefy framework bases on swoole extension development, we can use it easily!
- * +----------------------------------------------------------------------
- * | Licensed ( https://opensource.org/licenses/MIT )
- * +----------------------------------------------------------------------
- * | @see https://github.com/bingcool/swoolefy
- * +----------------------------------------------------------------------
+ * PhpUintTest\ PSR-4 加载（不进 composer.json，由 bootstrap.php require 本文件注册）。
+ *
+ * 路径约定：PhpUintTest\{Sub}\Foo → PhpUintTest/{Sub}/Foo.php
  */
-class autoloader
+final class Autoloader
 {
-    /**
-     * $directory
-     * @var string
-     */
-    private static $baseDirectory = __DIR__;
+    private static string $baseDirectory = __DIR__;
 
-    /**
-     * Root Namespace
-     * @var array
-     */
-    private static $rootNamespace = ["PhpUintTest"];
+    /** @var array<string, true> */
+    private static array $loaded = [];
 
-    /**
-     * Class Map Namespace
-     * @var array
-     */
-    private static $classMapNamespace = [];
-
-    /**
-     * @param string $className
-     * @return void
-     */
-    public static function autoload($className)
+    public static function autoload(string $className): void
     {
-        if (isset(self::$classMapNamespace[$className])) {
+        if (isset(self::$loaded[$className])) {
             return;
         }
-        self::$baseDirectory = dirname(__DIR__);
-        foreach (self::$rootNamespace as $appDir => $namespace) {
-            if (0 === strpos($className, $namespace)) {
-                $parts = explode('\\', $className);
-                if (!is_numeric($appDir)) {
-                    $parts[0] = $appDir;
-                }
-                $filepath = self::$baseDirectory . DIRECTORY_SEPARATOR . implode(DIRECTORY_SEPARATOR, $parts) . '.php';
-                if (is_file($filepath)) {
-                    $res = require_once $filepath;
-                    if ($res) {
-                        self::$classMapNamespace[$className] = true;
-                    }
-                }
-                break;
-            }
+
+        $prefix = __NAMESPACE__ . '\\';
+        if (!str_starts_with($className, $prefix)) {
+            return;
         }
+
+        $relative = substr($className, strlen($prefix));
+        if ($relative === false || $relative === '') {
+            return;
+        }
+
+        $filepath = self::$baseDirectory
+            . DIRECTORY_SEPARATOR
+            . str_replace('\\', DIRECTORY_SEPARATOR, $relative)
+            . '.php';
+
+        if (!is_file($filepath)) {
+            return;
+        }
+
+        require_once $filepath;
+        self::$loaded[$className] = true;
     }
 
-    /**
-     * register autoload
-     */
-    public static function register($prepend = false)
+    public static function register(bool $prepend = false): void
     {
-        if (!function_exists('__autoload')) {
-            spl_autoload_register(['PhpUintTest\autoloader', 'autoload'], true, $prepend);
-        } else {
-            trigger_error('spl_autoload_register() which will bypass your __autoload() and may break your autoloading', E_USER_WARNING);
-        }
+        spl_autoload_register([self::class, 'autoload'], true, $prepend);
     }
 }
 
-// include file
-autoloader::register();
-
+Autoloader::register();
