@@ -36,6 +36,9 @@ class AuthUserController extends BController
        -H 'Accept: application/json' \
        -H 'Authorization: Bearer YOUR_JWT'
      ```
+     *
+     * PHPUnit：`composer test:http -- --filter AuthUserControllerTest`
+     * @see \PhpUintTest\Unit\Controller\AuthUserControllerTest
      */
     #[ApiOperation(description: '返回当前登录用户（须 Bearer JWT）')]
     public function me(): array

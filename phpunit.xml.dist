@@ -8,13 +8,17 @@
     <!-- 分层靠 suite；横切 redis/db/slow 用 group exclude。勿 exclude http/websocket。 -->
     <testsuites>
         <testsuite name="unit">
-            <directory>PhpUintTest/Unit</directory>
+            <!-- 不含 Unit/Controller：curl 黄金路径归 http suite -->
+            <directory>PhpUintTest/Unit/Support</directory>
+            <directory>PhpUintTest/Unit/Module</directory>
+            <directory>PhpUintTest/Unit/Mqtt</directory>
         </testsuite>
         <testsuite name="coroutine">
             <directory>PhpUintTest/Coroutine</directory>
         </testsuite>
         <testsuite name="http">
             <directory>PhpUintTest/Http</directory>
+            <directory>PhpUintTest/Unit/Controller</directory>
         </testsuite>
         <testsuite name="websocket">
             <directory>PhpUintTest/Websocket</directory>

@@ -57,6 +57,11 @@
             "Swoolefy\\": "src/"
         }
     },
+    "autoload-dev": {
+        "files": [
+            "PhpUintTest/register_dev_autoload.php"
+        ]
+    },
     "require-dev": {
         "kwn/php-rdkafka-stubs": "dev-master",
         "swoole/ide-helper": "dev-master",

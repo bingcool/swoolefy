@@ -1,0 +1,27 @@
+<?php
+
+declare(strict_types=1);
+
+namespace PhpUintTest\Unit\Controller;
+
+/**
+ * @see \Test\Controller\UploadController::single
+ *
+ * ```bash
+ * curl -X POST 'http://127.0.0.1:9501/api/upload/single'
+ * ```
+ */
+final class UploadControllerTest extends ControllerHttpTestCase
+{
+    public function testSingleWithoutFileReturns400Contract(): void
+    {
+        $res = $this->postMultipart('/api/upload/single');
+        $this->assertSame(200, $res['status']);
+        $body = $res['body'];
+        $this->assertIsArray($body);
+        // 控制器直接返回 {code,msg}；经信封时落在 data
+        $payload = isset($body['data']) && is_array($body['data']) ? $body['data'] : $body;
+        $this->assertSame(400, $payload['code'] ?? ($body['code'] ?? null));
+        $this->assertStringContainsString('required', strtolower((string) ($payload['msg'] ?? $body['msg'] ?? '')));
+    }
+}

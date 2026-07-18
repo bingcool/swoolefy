@@ -94,4 +94,53 @@ abstract class HttpIntegrationTestCase extends TestCase
 
         return $body;
     }
+
+    /**
+     * 非 JSON / HTML / 流式响应。
+     *
+     * @param array<string, string> $headers
+     * @return array{status: int, body: string, headers: array<string, list<string>>}
+     */
+    protected function getRaw(string $path, array $headers = []): array
+    {
+        $res = self::$http->get(ltrim($path, '/'), [
+            'headers' => $headers,
+        ]);
+
+        return [
+            'status' => $res->getStatusCode(),
+            'body' => (string) $res->getBody(),
+            'headers' => $res->getHeaders(),
+        ];
+    }
+
+    /**
+     * multipart / 空表单 POST（上传缺文件等）。
+     *
+     * @param array<string, mixed> $multipart Guzzle multipart 字段；空数组=不带 file
+     * @param array<string, string> $headers
+     * @return array{status: int, body: mixed, headers: array<string, list<string>>}
+     */
+    protected function postMultipart(string $path, array $multipart = [], array $headers = []): array
+    {
+        $options = [
+            'headers' => array_merge(['Accept' => 'application/json'], $headers),
+            'http_errors' => false,
+        ];
+        if ($multipart !== []) {
+            $options['multipart'] = $multipart;
+        } else {
+            $options['body'] = '';
+        }
+
+        $res = self::$http->post(ltrim($path, '/'), $options);
+        $raw = (string) $res->getBody();
+        $json = json_decode($raw, true);
+
+        return [
+            'status' => $res->getStatusCode(),
+            'body' => is_array($json) ? $json : $raw,
+            'headers' => $res->getHeaders(),
+        ];
+    }
 }

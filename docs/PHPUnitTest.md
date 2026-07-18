@@ -210,9 +210,11 @@ composer 仅映射框架本体；Demo / PHPUnit 命名空间各自注册：
 
 | 命名空间 | 注册入口 |
 |----------|----------|
-| `Swoolefy\` | `vendor/autoload.php`（composer） |
-| `Test\` | `Test/autoloader.php`（cli.php `registerNamespace` / PHPUnit bootstrap） |
-| `PhpUintTest\` | `PhpUintTest/Autoloader.php`（PHPUnit bootstrap） |
+| `Swoolefy\` | `vendor/autoload.php`（composer `autoload.psr-4`） |
+| `Test\` | `Test/autoloader.php`（cli.php `registerNamespace`；PHPUnit/PhpStorm 经 `autoload-dev.files`） |
+| `PhpUintTest\` | `PhpUintTest/Autoloader.php`（经 `PhpUintTest/register_dev_autoload.php` → `autoload-dev.files`） |
+
+PhpStorm 单独 Run method 时若只挂 `vendor/autoload.php`，依赖上述 `autoload-dev.files`；改完后执行一次 `composer dump-autoload`。也可在 PHPUnit 配置里指定 Default configuration file = `phpunit.xml.dist`。
 
 ---
 
@@ -433,7 +435,7 @@ $res = $this->postJson('/api/v1/...', $body, [
 |--------|------|------|
 | P0 | Outdoor | ✅ `OutdoorWorkflowHttpTest`：sunny / rainy / status 缺 runId / status by runId |
 | P0 | Workflow | ✅ `WorkflowHttpTest`：list；`contract_review` run+status；resume；status 缺 runId |
-| P0 | Auth | ✅ `AuthUserMeHttpTest`：无 Bearer / 非法 JWT → 401 |
+| P0 | Auth / Common Controller | ✅ `PhpUintTest/Unit/Controller/*`（suite=http）：Auth、Token、Validate、Captcha、Index、Upload、Ws、Chunked；Redis/Cache 标 `redis` |
 | P1 | HITL curl | resume 错 Key → 403（auth_enabled 开启时再补） |
 | P2 | Order saga demo | 1～2 条主路径（可选） |
 
