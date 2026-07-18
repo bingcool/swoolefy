@@ -70,8 +70,8 @@ class SocketIOPollingOutboundStore
             if (count(self::$memoryQueues[$sid]) > $maxLen) {
                 self::$memoryQueues[$sid] = array_slice(self::$memoryQueues[$sid], -$maxLen);
             }
-            // 唤醒正在 memoryWaitChannel 上 long-poll 的协程
-            self::memoryWaitChannel($sid)->push(true);
+            // 唤醒正在 memoryWaitChannel 上 long-poll 的协程（非阻塞：无 waiter 时丢弃多余信号）
+            self::memoryWaitChannel($sid)->push(true, 0.001);
 
             return true;
         }

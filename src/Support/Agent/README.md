@@ -97,5 +97,6 @@ new CostAwareRouter([
 ```bash
 composer test:agent
 # 或
-php src/Support/Agent/Tests/AgentModuleTest.php
+composer test:agent
+# 或 ./vendor/bin/phpunit --filter AgentModuleTest
 ```

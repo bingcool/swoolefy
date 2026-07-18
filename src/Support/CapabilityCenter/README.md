@@ -352,7 +352,8 @@ curl -X POST "http://localhost:9501/api/v1/agent/capability/chat" \
 ```bash
 composer test:capability
 # 或
-php src/Support/CapabilityCenter/Tests/CapabilityCenterTest.php
+composer test:capability
+# 或 ./vendor/bin/phpunit --filter CapabilityCenterTest
 ```
 
 覆盖：Policy 过滤、Top-K + pinned、MCP only/exclude、懒加载 materialize、配置注册。

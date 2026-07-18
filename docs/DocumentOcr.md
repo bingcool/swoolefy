@@ -367,7 +367,7 @@ $pipeline->ingest('product_kb', $docs);
 ```bash
 composer test:document-ocr
 # 或
-php src/Support/DocumentOcr/Tests/DocumentOcrTest.php
+./vendor/bin/phpunit --filter DocumentOcrTest
 ```
 
 Pandoc / OCR 均注入 mock，不依赖本机 pandoc 或 OCR 服务。

@@ -214,5 +214,5 @@ $runId = ResearchWorkflowService::engine()->start(
 
 - 订单工作流演示：`Test/Module/Order/README.md`
 - 通用工作流控制器：`Test/Module/Workflow/Controller/WorkflowController.php`
-- 单测：`src/Support/Workflow/Tests/WorkflowPhase2Test.php`（multi agent）
+- 单测：`composer test:workflow` 或 `./vendor/bin/phpunit --filter WorkflowPhase2Test`（multi agent）
 )

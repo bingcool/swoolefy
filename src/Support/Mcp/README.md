@@ -110,5 +110,6 @@ AINode::make('research')
 composer test:mcp
 composer test:phase-b
 # 或
-php src/Support/Mcp/Tests/McpModuleTest.php
+composer test:mcp
+# 或 ./vendor/bin/phpunit --filter McpModuleTest
 ```

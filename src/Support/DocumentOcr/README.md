@@ -73,7 +73,8 @@ try {
 ```bash
 composer test:document-ocr
 # 或
-php src/Support/DocumentOcr/Tests/DocumentOcrTest.php
+composer test:document-ocr
+# 或 ./vendor/bin/phpunit --filter DocumentOcrTest
 ```
 
 Pandoc / OCR 均通过注入 mock，不依赖本机 pandoc 或 OCR 服务。

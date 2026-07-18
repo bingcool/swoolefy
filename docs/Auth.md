@@ -143,7 +143,7 @@ src/Support/Auth/
   AuthException.php            # extends SystemException；code=401（等）
   AuthGuardInterface.php       # authenticate + generateToken
   JwtAuthGuard.php             # 默认 JWT 实现
-  Tests/AuthModuleTest.php     # 协程验收
+  Tests/                        # 已迁入 PhpUintTest/Unit/Support/Auth/
 
 src/Support/FrameworkContext.php
 src/Http/Middleware/AuthenticateMiddleware.php           # 强制 Bearer；零参
@@ -562,9 +562,9 @@ return [
 ## 测试
 
 ```bash
-php src/Support/Auth/Tests/AuthModuleTest.php
-# 或
 composer test:auth
+# 或
+./vendor/bin/phpunit --filter AuthModuleTest
 ```
 
 覆盖：claim 映射、空 token→null、非法/过期 token、`generateToken` 往返、Auth vs Header 优先级、goApp 透传、Context 仅 array。

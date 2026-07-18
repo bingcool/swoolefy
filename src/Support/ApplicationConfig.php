@@ -193,8 +193,15 @@ final class ApplicationConfig
             return (string) $env;
         }
 
-        if (array_key_exists($yamlKey, $yaml) && '' !== (string) $yaml[$yamlKey]) {
-            return (string) $yaml[$yamlKey];
+        if (array_key_exists($yamlKey, $yaml)) {
+            $value = $yaml[$yamlKey];
+            // bool false → '' under (string) cast; keep explicit false as "0" for FILTER_VALIDATE_BOOLEAN
+            if (is_bool($value)) {
+                return $value ? '1' : '0';
+            }
+            if ($value !== null && '' !== (string) $value) {
+                return (string) $value;
+            }
         }
 
         return $default;

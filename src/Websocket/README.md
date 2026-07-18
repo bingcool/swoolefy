@@ -86,13 +86,10 @@ SWOOLEFY_CLI_ENV=dev php cli.php start WebsocketService
 
 ```bash
 # 冒烟测试（需先启动服务）
-SWOOLEFY_CLI_ENV=dev php src/Websocket/Tests/WebsocketSmokeTest.php
+SWOOLEFY_CLI_ENV=dev composer test:websocket -- --group smoke
 
-# 分片帧单元测试
-php src/Websocket/Tests/WebsocketFrameAssemblerTest.php
-
-# 集群单元测试
-SWOOLEFY_CLI_ENV=dev php src/Websocket/Tests/WebsocketClusterTest.php
+# 分片帧 / 离线等单元测试
+./vendor/bin/phpunit --testsuite websocket --exclude-group smoke,redis
 
 # 浏览器测试 Socket.IO
 open src/Websocket/Tests/socketio-client.html
@@ -459,7 +456,7 @@ $this->pushToUser($toUserId, 'chat.private', [
 ExternalPushPublisher::pushToUser('user-b', 'chat.private', ['msg_id' => 'm-1001']);
 ```
 
-单测：`php src/Websocket/Tests/WebsocketPushEnricherTest.php`
+单测：`composer test:websocket` 或 `./vendor/bin/phpunit --testsuite websocket --filter WebsocketPushEnricherTest`
 
 ---
 
@@ -1141,9 +1138,9 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 | 创建应用模板 | `src/Cmd/CreateCmd.php` |
 | 配置模板 | `src/Stubs/websocket.conf.stub.php`、`socketio.conf.stub.php` |
 | 示例应用 | `WebsocketService/` |
-| 冒烟测试 | `src/Websocket/Tests/WebsocketSmokeTest.php` |
-| 分片帧测试 | `src/Websocket/Tests/WebsocketFrameAssemblerTest.php` |
-| 集群测试 | `src/Websocket/Tests/WebsocketClusterTest.php` |
+| 冒烟测试 | `PhpUintTest/Websocket/WebsocketSmokeTest.php`（`composer test:websocket -- --group smoke`） |
+| 分片帧测试 | `PhpUintTest/Websocket/WebsocketFrameAssemblerTest.php` |
+| 集群测试 | `PhpUintTest/Websocket/WebsocketClusterTest.php` |
 | 浏览器测试 | `src/Websocket/Tests/socketio-client.html` |
 | Chat 示例 | `src/Stubs/ChatService.stub.php` |
 

@@ -391,9 +391,7 @@ JobComponentFactory::registry(JobHandlerInterface ...$handlers): JobHandlerRegis
 
 ```bash
 composer test:job
-# 等价跑 Phase1 + Phase2：
-# php src/Support/Job/Tests/JobPhase1Test.php
-# php src/Support/Job/Tests/JobPhase2Test.php
+# 等价：./vendor/bin/phpunit --filter JobPhase1Test 与 JobPhase2Test
 ```
 
 覆盖：信封 / 策略 / Runner 映射 / Publisher / Registry / Config / RedisDeadLetter。

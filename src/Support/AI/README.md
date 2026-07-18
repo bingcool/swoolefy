@@ -120,5 +120,6 @@ StreamBridge::unbind();
 composer test:ai
 composer test:phase-b
 # 或
-php src/Support/AI/Tests/AIModuleTest.php
+composer test:ai
+# 或 ./vendor/bin/phpunit --filter AIModuleTest
 ```

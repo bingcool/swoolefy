@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="PhpUintTest/bootstrap.php"
+         colors="true"
+         cacheDirectory=".phpunit.cache"
+         failOnWarning="false">
+    <!-- 分层靠 suite；横切 redis/db/slow 用 group exclude。勿 exclude http/websocket。 -->
+    <testsuites>
+        <testsuite name="unit">
+            <directory>PhpUintTest/Unit</directory>
+        </testsuite>
+        <testsuite name="coroutine">
+            <directory>PhpUintTest/Coroutine</directory>
+        </testsuite>
+        <testsuite name="http">
+            <directory>PhpUintTest/Http</directory>
+        </testsuite>
+        <testsuite name="websocket">
+            <directory>PhpUintTest/Websocket</directory>
+        </testsuite>
+    </testsuites>
+    <groups>
+        <exclude>
+            <group>redis</group>
+            <group>db</group>
+            <group>slow</group>
+            <group>smoke</group>
+        </exclude>
+    </groups>
+    <php>
+        <env name="SWOOLEFY_CLI_ENV" value="dev"/>
+        <env name="SWOOLEFY_HTTP_SKIP_IF_DOWN" value="1"/>
+        <env name="WS_SMOKE_SKIP_IF_DOWN" value="1"/>
+    </php>
+    <source>
+        <include>
+            <directory suffix=".php">src/Support</directory>
+            <directory suffix=".php">src/Http</directory>
+            <directory suffix=".php">src/Core</directory>
+            <directory suffix=".php">src/Websocket</directory>
+        </include>
+    </source>
+</phpunit>

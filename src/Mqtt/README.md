@@ -18,9 +18,6 @@ Mqtt/
 ├── ProductionMqttEventV3.php   # 配置化鉴权 + 默认 bind/remove
 ├── ProductionMqttEventV5.php
 ├── conf.stub.php               # 应用配置模板
-├── Tests/
-│   ├── MqttModuleTest.php      # 综合单测入口
-│   └── Support/MqttTestBootstrap.php
 └── README.md
 ```
 
@@ -126,8 +123,9 @@ class DeviceMqttEvent extends ProductionMqttEventV3
 ### 单元测试（无需启动 Broker）
 
 ```bash
-php src/Mqtt/Tests/MqttModuleTest.php
-php src/Mqtt/Tests/MqttGracefulShutdownTest.php
+composer test:mqtt
+# 或
+./vendor/bin/phpunit --testsuite unit --filter Mqtt
 ```
 
 覆盖：
@@ -147,7 +145,7 @@ php src/Mqtt/Tests/MqttGracefulShutdownTest.php
 Broker 已启动且安装 simps/mqtt 时：
 
 ```bash
-MQTT_SMOKE_HOST=127.0.0.1 MQTT_SMOKE_PORT=1883 php src/Mqtt/Tests/MqttModuleTest.php
+MQTT_SMOKE_HOST=127.0.0.1 MQTT_SMOKE_PORT=1883 ./vendor/bin/phpunit --testsuite unit --filter MqttModuleTest --group smoke
 ```
 
 ## 依赖

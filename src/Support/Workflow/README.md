@@ -372,17 +372,17 @@ composer test:phase-a    # HITL 鉴权、resume CAS
 composer test:phase-b    # 多版本、超时、MCP 租户、健康检查
 ```
 
-或：
+或按类过滤：
 
 ```bash
-php src/Support/Workflow/Tests/WorkflowPhase1Test.php   # 7 项
-php src/Support/Workflow/Tests/WorkflowPhase2Test.php   # 6 项
-php src/Support/Workflow/Tests/WorkflowPhase3Test.php   # 7 项
-php src/Support/Workflow/Tests/WorkflowPhase4Test.php   # 10 项
-php src/Support/Workflow/Tests/WorkflowHitlAuthTest.php # HITL / CAS
-php src/Support/Workflow/Tests/WorkflowIntegrationTest.php  # SubWorkflow / JsonLogic / RoundRobin / CLI
-php src/Support/Tests/PhaseAProductionTest.php
-php src/Support/Tests/PhaseBProductionTest.php
+./vendor/bin/phpunit --filter WorkflowPhase1Test   # 7 项
+./vendor/bin/phpunit --filter WorkflowPhase2Test   # 6 项
+./vendor/bin/phpunit --filter WorkflowPhase3Test   # 7 项
+./vendor/bin/phpunit --filter WorkflowPhase4Test   # 10 项
+./vendor/bin/phpunit --filter WorkflowHitlAuthTest # HITL / CAS
+./vendor/bin/phpunit --filter WorkflowIntegrationTest  # SubWorkflow / JsonLogic / RoundRobin / CLI
+./vendor/bin/phpunit --filter PhaseAProductionTest
+./vendor/bin/phpunit --filter PhaseBProductionTest
 ```
 
 ---

@@ -20,13 +20,13 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "require": {
-        "php" : "^8.4",
-        "ext-swoole" : ">=6.1",
+        "php": "^8.4",
+        "ext-swoole": ">=6.1",
         "ext-json": "*",
-        "ext-curl":"*",
-        "psr/log" : "*",
-        "ext-pcntl" : "*",
-        "ext-posix" : "*",
+        "ext-curl": "*",
+        "psr/log": "*",
+        "ext-pcntl": "*",
+        "ext-posix": "*",
         "ext-pdo": "*",
         "ext-redis": "*",
         "ext-sockets": "*",
@@ -49,35 +49,43 @@
         "neuron-core/router": "^1.2"
     },
     "autoload": {
-        "files": ["src/Constants.php","src/Core/Func/function.php"],
+        "files": [
+            "src/Constants.php",
+            "src/Core/Func/function.php"
+        ],
         "psr-4": {
-            "Swoolefy\\": "src/",
-            "Test\\": "Test/"
+            "Swoolefy\\": "src/"
         }
     },
     "require-dev": {
         "kwn/php-rdkafka-stubs": "dev-master",
         "swoole/ide-helper": "dev-master",
-        "viest/php-ext-xlswriter-ide-helper": "dev-master"
+        "viest/php-ext-xlswriter-ide-helper": "dev-master",
+        "phpunit/phpunit": "^11.5"
     },
     "scripts": {
+        "test": "phpunit --testsuite unit,coroutine",
+        "test:unit": "phpunit --testsuite unit",
+        "test:coroutine": "phpunit --testsuite coroutine",
+        "test:http": "phpunit --testsuite http",
+        "test:websocket": "phpunit --testsuite websocket",
         "test:workflow": [
-            "@php src/Support/Workflow/Tests/WorkflowPhase1Test.php",
-            "@php src/Support/Workflow/Tests/WorkflowPhase2Test.php",
-            "@php src/Support/Workflow/Tests/WorkflowPhase3Test.php",
-            "@php src/Support/Workflow/Tests/WorkflowPhase4Test.php",
-            "@php src/Support/Workflow/Tests/WorkflowIntegrationTest.php",
-            "@php src/Support/Workflow/Tests/WorkflowRunStoreTest.php",
-            "@php src/Support/Workflow/Tests/WorkflowHitlAuthTest.php",
-            "@php src/Support/Workflow/Tests/WorkflowPluginMemoryTest.php"
+            "@php vendor/bin/phpunit --testsuite unit --filter WorkflowPhase1Test",
+            "@php vendor/bin/phpunit --testsuite unit --filter WorkflowPhase2Test",
+            "@php vendor/bin/phpunit --testsuite unit --filter WorkflowPhase3Test",
+            "@php vendor/bin/phpunit --testsuite unit --filter WorkflowPhase4Test",
+            "@php vendor/bin/phpunit --testsuite unit --filter WorkflowIntegrationTest",
+            "@php vendor/bin/phpunit --testsuite unit --filter WorkflowRunStoreTest",
+            "@php vendor/bin/phpunit --testsuite unit --filter WorkflowHitlAuthTest",
+            "@php vendor/bin/phpunit --testsuite unit --filter WorkflowPluginMemoryTest"
         ],
-        "test:outdoor-workflow": "@php Test/Module/Outdoor/Tests/OutdoorWorkflowModuleTest.php",
-        "test:order-workflow": "@php Test/Module/Order/Tests/OrderWorkflowModuleTest.php",
-        "test:research-workflow": "@php Test/Module/Research/Tests/ResearchWorkflowModuleTest.php",
-        "test:rag-workflow": "@php Test/Module/Rag/Tests/RagWorkflowModuleTest.php",
-        "test:contract-workflow": "@php Test/Module/Contract/Tests/ContractWorkflowModuleTest.php",
-        "test:knowledge-workflow": "@php Test/Module/Knowledge/Tests/KnowledgeWorkflowModuleTest.php",
-        "test:workflow-federation": "@php Test/Module/Workflow/Tests/WorkflowFederationTest.php",
+        "test:outdoor-workflow": "@php vendor/bin/phpunit --testsuite unit --filter OutdoorWorkflowModuleTest",
+        "test:order-workflow": "@php vendor/bin/phpunit --testsuite unit --filter OrderWorkflowModuleTest",
+        "test:research-workflow": "@php vendor/bin/phpunit --testsuite unit --filter ResearchWorkflowModuleTest",
+        "test:rag-workflow": "@php vendor/bin/phpunit --testsuite unit --filter RagWorkflowModuleTest",
+        "test:contract-workflow": "@php vendor/bin/phpunit --testsuite unit --filter ContractWorkflowModuleTest",
+        "test:knowledge-workflow": "@php vendor/bin/phpunit --testsuite unit --filter KnowledgeWorkflowModuleTest",
+        "test:workflow-federation": "@php vendor/bin/phpunit --testsuite unit --filter WorkflowFederationTest",
         "test:module-workflows": [
             "@test:order-workflow",
             "@test:outdoor-workflow",
@@ -87,24 +95,31 @@
             "@test:knowledge-workflow",
             "@test:workflow-federation"
         ],
-        "test:agent": "@php src/Support/Agent/Tests/AgentModuleTest.php",
-        "test:ai": "@php src/Support/AI/Tests/AIModuleTest.php",
-        "test:mcp": "@php src/Support/Mcp/Tests/McpModuleTest.php",
-        "test:capability": "@php src/Support/CapabilityCenter/Tests/CapabilityCenterTest.php",
+        "test:agent": "@php vendor/bin/phpunit --testsuite unit --filter AgentModuleTest",
+        "test:ai": "@php vendor/bin/phpunit --testsuite unit --filter AIModuleTest",
+        "test:mcp": "@php vendor/bin/phpunit --testsuite unit --filter McpModuleTest",
+        "test:capability": "@php vendor/bin/phpunit --testsuite unit --filter CapabilityCenterTest",
         "test:job": [
-            "@php src/Support/Job/Tests/JobPhase1Test.php",
-            "@php src/Support/Job/Tests/JobPhase2Test.php"
+            "@php vendor/bin/phpunit --testsuite unit --filter JobPhase1Test",
+            "@php vendor/bin/phpunit --testsuite unit --filter JobPhase2Test"
         ],
-        "test:document-ocr": "@php src/Support/DocumentOcr/Tests/DocumentOcrTest.php",
-        "test:neuron": "@php src/Support/Neuron/Tests/NeuronModuleTest.php",
-        "test:rag": "@php src/Support/Rag/Tests/RagModuleTest.php",
-        "test:phase-a": "@php src/Support/Tests/PhaseAProductionTest.php",
-        "test:auth": "@php src/Support/Auth/Tests/AuthModuleTest.php",
-        "test:application-config": "@php src/Support/Tests/ApplicationConfigTest.php",
-        "test:support-log": "@php src/Support/Tests/SupportLogIntegrationTest.php",
-        "test:phase-b": "@php src/Support/Tests/PhaseBProductionTest.php",
-        "test:phase-c": "@php src/Support/Tests/PhaseCProductionTest.php",
-        "test:phase-d": "@php src/Support/Tests/PhaseDTenantIsolationTest.php",
+        "test:mqtt": [
+            "@php vendor/bin/phpunit --testsuite unit --filter MqttModuleTest",
+            "@php vendor/bin/phpunit --testsuite unit --filter MqttGracefulShutdownTest"
+        ],
+        "test:document-ocr": "@php vendor/bin/phpunit --testsuite unit --filter DocumentOcrTest",
+        "test:neuron": "@php vendor/bin/phpunit --testsuite unit --filter NeuronModuleTest",
+        "test:rag": "@php vendor/bin/phpunit --testsuite unit --filter RagModuleTest",
+        "test:phase-a": "@php vendor/bin/phpunit --testsuite unit --filter PhaseAProductionTest",
+        "test:auth": [
+            "@php vendor/bin/phpunit --testsuite unit --filter AuthModuleTest",
+            "@php vendor/bin/phpunit --testsuite coroutine --filter AuthContextGoAppTest"
+        ],
+        "test:application-config": "@php vendor/bin/phpunit --testsuite unit --filter ApplicationConfigTest",
+        "test:support-log": "@php vendor/bin/phpunit --testsuite unit --filter SupportLogIntegrationTest",
+        "test:phase-b": "@php vendor/bin/phpunit --testsuite unit --filter PhaseBProductionTest",
+        "test:phase-c": "@php vendor/bin/phpunit --testsuite coroutine --filter PhaseCProductionTest",
+        "test:phase-d": "@php vendor/bin/phpunit --testsuite unit --filter PhaseDTenantIsolationTest",
         "test:support": [
             "@test:agent",
             "@test:ai",

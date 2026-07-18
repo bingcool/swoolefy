@@ -20,7 +20,7 @@ use Swoolefy\Exception\SystemException;
  *
  * ## 用途
  *
- * - 单测 / 冒烟测试（见 `src/Websocket/Tests/WebsocketSmokeTest.php`）
+ * - 单测 / 冒烟测试（见 `PhpUintTest/Websocket/WebsocketSmokeTest.php`）
  * - 脚本侧模拟浏览器 emit / 收包，无需启动 Node 或浏览器
  * - 与框架 `SocketIOHandler` + `SocketIOPacket` 编解码约定一致
  *

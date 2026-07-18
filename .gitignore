@@ -17,3 +17,6 @@ swag.php
 Test/.env
 Test/.env
 .DS_Store
+
+.phpunit.cache
+phpunit.xml

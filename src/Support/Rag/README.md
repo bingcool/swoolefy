@@ -357,5 +357,6 @@ RAG_REQUIRE_TENANT_ISOLATION=1
 composer test:rag
 composer test:phase-a
 # 或
-php src/Support/Rag/Tests/RagModuleTest.php
+composer test:rag
+# 或 ./vendor/bin/phpunit --filter RagModuleTest
 ```
