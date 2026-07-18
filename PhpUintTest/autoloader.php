@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace PhpUintTest;
 
 /**
- * PhpUintTest\ PSR-4 加载（不进 composer.json，由 bootstrap.php require 本文件注册）。
+ * PhpUintTest\ PSR-4 加载（不进 composer psr-4；由 register_dev_autoload / bootstrap 注册）。
  *
  * 路径约定：PhpUintTest\{Sub}\Foo → PhpUintTest/{Sub}/Foo.php
  */
@@ -15,6 +15,8 @@ final class Autoloader
 
     /** @var array<string, true> */
     private static array $loaded = [];
+
+    private static bool $registered = false;
 
     public static function autoload(string $className): void
     {
@@ -47,6 +49,10 @@ final class Autoloader
 
     public static function register(bool $prepend = false): void
     {
+        if (self::$registered) {
+            return;
+        }
+        self::$registered = true;
         spl_autoload_register([self::class, 'autoload'], true, $prepend);
     }
 }
