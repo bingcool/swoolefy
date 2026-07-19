@@ -92,6 +92,7 @@
 | **Mqtt** | MQTT 协议服务与优雅停机 | [src/Mqtt](src/Mqtt/README.md) |
 | **Websocket** | 推送、离线、Cluster、Socket.IO 等 | [架构/协议](#nav-arch) · 测试见 PhpUintTest |
 | **PhpUintTest** | PHPUnit 11 单轨；Unit / Coroutine / Http / Websocket | [PHPUnitTest](docs/PHPUnitTest.md) · [简介](#nav-phpunit) |
+| **Health** | K8s `/health`·`/ready` 探针（与 CLI `ProductionHealthCheck` 互补） | [Http/Health](src/Http/Health/README.md) · Config/health.php |
 | **library** | 协程组件库（DB / Redis / Queue / Jwt …） | [bingcool/library](https://github.com/bingcool/library) · [五](#nav-5-library) |
 
 ### 🎯 核心特性
@@ -560,7 +561,7 @@ ENV SWOOLEFY_CLI_ENV=dev
   "license": "proprietary",
   "require": {
     "bingcool/swoolefy": "~6.3",
-    "bingcool/library": "dev-library-6.x"
+    "bingcool/library": "^6.0"
   }
 }
   
@@ -2192,6 +2193,8 @@ composer test:capability
 ```
 
 生产启动前可用 `ProductionHealthCheck` 校验 Provider / Embedding / 出站 URL / HITL / RunStore 等（见 [二十一](#nav-21-ai-workflow) 与 `docs/AI-WORKFLOW.md`）。
+
+K8s 运行期探针：`GET /health`（liveness）、`GET /ready`（readiness，可配 Redis/DB）；路由 `HealthRoutes::register()`，配置 `Config/health.php`（见 `src/Http/Health/`）。
 
 ### 二十三、📬 Job 异步任务
 

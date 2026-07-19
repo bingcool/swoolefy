@@ -48,7 +48,18 @@ final class HttpServerManager
 
     public static function isReady(string $baseUrl): bool
     {
-        $url = rtrim($baseUrl, '/') . '/';
+        // 优先 K8s liveness 路径；失败再回退根路径（兼容旧应用未挂探针）
+        foreach (['/health', '/healthz', '/'] as $path) {
+            if (self::probeUrl(rtrim($baseUrl, '/') . $path)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static function probeUrl(string $url): bool
+    {
         $ctx = stream_context_create([
             'http' => [
                 'method' => 'GET',

@@ -138,6 +138,11 @@ class CreateCmd extends BaseCmd
                         @copy(SRC_DIR_ROOT . '/Stubs/rate_limit.conf.stub.php', $rateLimitFile);
                     }
 
+                    $healthFile = $appPathDir . '/' . $dir . '/health.php';
+                    if (!file_exists($healthFile)) {
+                        @copy(SRC_DIR_ROOT . '/Stubs/health.conf.stub.php', $healthFile);
+                    }
+
                     if ($protocol == self::WEBSOCKET_PROTOCOL) {
                         $socketioFile = $appPathDir . '/' . $dir . '/socketio.php';
                         if (!file_exists($socketioFile)) {
@@ -195,6 +200,14 @@ class CreateCmd extends BaseCmd
                                 $apiContent = (string) file_get_contents(SRC_DIR_ROOT . '/Stubs/api.stub.php');
                                 $apiContent = str_replace('\\App\\', "\\{$appName}\\", $apiContent);
                                 @file_put_contents($apiFile, $apiContent);
+                            }
+                            $healthRouterDir = $appPathDir . "/{$dir}/Common";
+                            if (!is_dir($healthRouterDir)) {
+                                @mkdir($healthRouterDir, 0777, true);
+                            }
+                            $healthRouterFile = $healthRouterDir . '/Health.php';
+                            if (!file_exists($healthRouterFile)) {
+                                @copy(SRC_DIR_ROOT . '/Stubs/health.router.stub.php', $healthRouterFile);
                             }
                             break;
                         case self::UDP_PROTOCOL:
