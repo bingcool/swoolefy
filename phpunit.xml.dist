@@ -12,6 +12,7 @@
             <directory>PhpUintTest/Unit/Support</directory>
             <directory>PhpUintTest/Unit/Module</directory>
             <directory>PhpUintTest/Unit/Mqtt</directory>
+            <directory>PhpUintTest/Unit/Http</directory>
         </testsuite>
         <testsuite name="coroutine">
             <directory>PhpUintTest/Coroutine</directory>

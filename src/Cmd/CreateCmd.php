@@ -133,6 +133,11 @@ class CreateCmd extends BaseCmd
                         @copy(SRC_DIR_ROOT . '/Stubs/job.conf.stub.php', $jobFile);
                     }
 
+                    $rateLimitFile = $appPathDir . '/' . $dir . '/rate_limit.php';
+                    if (!file_exists($rateLimitFile)) {
+                        @copy(SRC_DIR_ROOT . '/Stubs/rate_limit.conf.stub.php', $rateLimitFile);
+                    }
+
                     if ($protocol == self::WEBSOCKET_PROTOCOL) {
                         $socketioFile = $appPathDir . '/' . $dir . '/socketio.php';
                         if (!file_exists($socketioFile)) {

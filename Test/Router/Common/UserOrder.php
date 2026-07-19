@@ -7,7 +7,7 @@ use Swoolefy\Http\Middleware\CorsMiddleware;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\Route;
 use Test\Middleware\Group\GroupTestMiddleware;
-use Test\Middleware\Route\RateLimiterMiddleware;
+use Swoolefy\Http\Middleware\ApiRateLimiterMiddleware;
 use Test\Middleware\Route\SendMailMiddleware;
 use Test\Middleware\Route\ValidLoginMiddleware;
 
@@ -42,7 +42,7 @@ Route::group([
     ])
         ->enableDbDebug()
         ->enableCacheRouteMeta()
-        ->withRateLimiterMiddleware(RateLimiterMiddleware::class, 60, 60, GroupTestMiddleware::class);
+        ->withRateLimiterMiddleware(ApiRateLimiterMiddleware::class, 60, 60, GroupTestMiddleware::class);
 
     // ANY /user/user-order/userList1 — 协程专项
     Route::any('/user-order/userList1', [
