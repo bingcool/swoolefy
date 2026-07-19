@@ -89,7 +89,7 @@ class BaseRequest extends ArrayDto
      *
      * @return ($key is null ? array<string, mixed> : mixed)
      */
-    protected function validated(?string $key = null, mixed $default = null): mixed
+    public function validated(?string $key = null, mixed $default = null): mixed
     {
         $data = $this->validatedData();
         if ($key === null) {
