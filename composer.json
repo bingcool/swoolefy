@@ -73,7 +73,9 @@
         "test:unit": "phpunit --testsuite unit",
         "test:coroutine": "phpunit --testsuite coroutine",
         "test:http": "phpunit --testsuite http",
+        "test:http:ci": "SWOOLEFY_HTTP_AUTO_START=1 SWOOLEFY_HTTP_SKIP_IF_DOWN=0 phpunit --testsuite http",
         "test:websocket": "phpunit --testsuite websocket",
+        "test:coverage": "phpunit --testsuite unit,coroutine --coverage-text",
         "test:workflow": [
             "@php vendor/bin/phpunit --testsuite unit --filter WorkflowPhase1Test",
             "@php vendor/bin/phpunit --testsuite unit --filter WorkflowPhase2Test",

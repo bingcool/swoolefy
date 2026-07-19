@@ -2,16 +2,16 @@
 
 ## 1. 定位与目标
 
-### 1.1 现状问题
+### 1.1 改造前问题（已解决）
 
-| 问题 | 表现 |
-|------|------|
-| 无标准测试框架 | 无 `phpunit/phpunit`、无 `phpunit.xml`；全库无 `TestCase` |
-| 脚本式回归 | 历史 `src/**/Tests/*Test.php` 脚本已迁入 `PhpUintTest/`；新测一律 PHPUnit |
-| CI 难接入 | `composer test:*` 串联 `@php file.php`，无 JUnit / 覆盖率 / 失败聚合 |
-| 分层缺失 | Unit、协程、HTTP 全流程、Redis 依赖混在一起，默认跑不稳 |
-| HTTP「测试」靠人工 | README / Module 写 curl；需先 `php cli.php start Test`，无自动化断言 |
-| 协程/连接池难回归 | 仅个别 Demo（如 Order 协程单例）有手写检查，无统一基类与泄漏检测 |
+| 问题 | 改造前 | 现状 |
+|------|--------|------|
+| 无标准测试框架 | 无 PHPUnit / `TestCase` | PHPUnit 11 + `phpunit.xml.dist` |
+| 脚本式回归 | `src/**/Tests/*Test.php` 手写 assert | 已迁入 `PhpUintTest/`，单轨 PHPUnit |
+| CI 难接入 | `@php file.php` 串联 | `composer test` / suite / group；可选 `test:coverage` |
+| 分层缺失 | Unit/协程/HTTP/Redis 混跑 | suite 分层 + `@group` 横切 exclude |
+| HTTP 靠人工 curl | 先启服再手测 | `PhpUintTest/Http` + Controller curl 黄金路径 |
+| 协程难回归 | 无统一基类 | `CoroutineTestCase` + 可选泄漏断言 |
 
 ### 1.2 改造目标
 
@@ -25,30 +25,33 @@
 
 | 不做 | 原因 |
 |------|------|
-| 进程内伪造完整 `Swoole\Http\Request` 调 `onRequest` | 耦合底层，维护成本高；Phase 后期可选 |
+| 进程内伪造完整 `onRequest` 路由/中间件链 | 耦合底层；P6 仅提供 `HttpRequestHarness`（`RequestInput`），全链路仍靠 HttpIntegration |
 | 一次迁完所有 `Test/Scripts` CLI | 依赖 Script 进程，优先级低于 Support + Http |
-| 强制覆盖率门槛 | Phase 5 再定 |
+| 强制覆盖率百分比门槛 | 提供 `composer test:coverage` 报告，不设 min % 门禁 |
 | 改业务行为 | 测试基建不夹带功能变更 |
 
 ---
 
 ## 2. 现有资产盘点（改造输入）
 
-### 2.1 composer 脚本（全部为 PHP 直跑）
+### 2.1 composer 脚本（现状：PHPUnit filter / suite）
 
 见 [`composer.json`](../composer.json) `scripts`：
 
 | Script | 覆盖 |
 |--------|------|
+| `test` | `--testsuite unit,coroutine`（默认绿灯） |
+| `test:http` / `test:http:ci` | Http suite；CI 模式 B 用后者（AUTO_START + 不 skip） |
+| `test:websocket` | Offline + Cluster 等（默认排除 `redis`/`smoke`） |
+| `test:coverage` | unit+coroutine 文本覆盖率（需 pcov/xdebug；无百分比门禁） |
 | `test:workflow` | Phase1–4、Integration、RunStore、HitlAuth、PluginMemory |
 | `test:mqtt` | MqttModuleTest、MqttGracefulShutdownTest |
 | `test:job` / `test:agent` / `test:ai` / `test:mcp` / … | 各 Support 模块 |
 | `test:phase-a` … `test:phase-d` | 生产加固 |
-| `test:support` | 聚合上述 |
-| `test:module-workflows` / `test:outdoor-workflow` 等 | `PhpUintTest/Unit/Module/*` Demo 工作流独立性 |
-| `test:websocket` | Offline + Cluster（默认排除 `redis`/`smoke`） |
+| `test:support` | 聚合 Support 相关 filter |
+| `test:module-workflows` / `test:*-workflow` | `PhpUintTest/Unit/Module/*`（含 Contract） |
 
-**未进默认 `composer test`：** Http / Websocket suite；`@group redis|db|slow|smoke`（含 `RedisRunStoreCasTest`、MQTT 可选 smoke）。
+**未进默认 `composer test`：** Http / Websocket suite；`@group redis|db|slow|smoke`（含 `RedisRunStoreCasTest`、MQTT/WS 可选 smoke）。
 
 ### 2.2 脚本测试标准形态（迁移前）
 
@@ -112,13 +115,9 @@ flowchart TB
     H[testsuite http]
     W[testsuite websocket]
   end
-  subgraph dual [过渡双轨]
-    Old["src/Support/**/Tests 脚本"]
-    New["PhpUintTest/ Unit Coroutine Http"]
-  end
+  New["PhpUintTest/ 单轨入口"]
   runner --> New
-  Old -.->|"迁完删除"| New
-  H --> Srv["cli.php start Test :9501"]
+  H --> Srv["cli.php start Test :9501 或 AUTO_START"]
   W --> WsSrv["WebsocketService"]
 ```
 
@@ -155,46 +154,23 @@ PhpUintTest/
     Support/
       HttpServerManager.php
       HttpServerUnavailableException.php
-    OutdoorWorkflowHttpTest.php      # 首批样板
-    WorkflowHttpTest.php             # list/status/resume 黄金路径
+    OutdoorWorkflowHttpTest.php
+    WorkflowHttpTest.php             # list/run/resume + HITL 错 Key（gated）
+    OrderWorkflowHttpTest.php        # process mock + saga
+    Unit/Controller/                 # Common Controller curl（归 http suite）
+  Support/
+    HttpRequestHarness.php           # P6：进程内 RequestInput（非完整 onRequest）
   Unit/
-    Mqtt/
-      MqttModuleTest.php
-      MqttGracefulShutdownTest.php
-    Support/
-      Job/
-        JobPhase1Test.php
-      Workflow/
-        WorkflowHitlAuthTest.php
-        RedisRunStoreCasTest.php     # @group redis（默认 exclude）
-        …
-    Module/                          # Test/Module Demo 工作流
-      Outdoor|Order|Research|Rag|Contract|Knowledge|Workflow/
+    Mqtt/ …
+    Support/ …                       # Job/Workflow/Agent/… + HttpRequestHarnessTest
+    Module/                          # Outdoor|Order|Research|Rag|Contract|Knowledge|Workflow
   Coroutine/
-    Support/
-      PhaseCParallelTest.php
-      Auth/
-        AuthContextGoAppTest.php
-  Websocket/                         # suite websocket
-    WebsocketClusterTest.php
-    WebsocketSmokeTest.php           # @group smoke
+    Support/Auth/AuthContextGoAppTest.php
+    …                                # PhaseC 等
+  Websocket/                         # suite websocket；Smoke @group smoke
 
-# deprecate 转发已删除；目标态 PhpUintTest/ 为唯一入口
+# 单轨：PhpUintTest/ 为唯一测试入口；src/**/Tests 仅 Fixtures/Bootstrap
 ```
-
-**P1–P2 可选：就地发现（降低搬迁成本）**
-
-不必一上来把全部脚本搬进 `PhpUintTest/Unit/Support/...`。可在 `phpunit.xml.dist` 的 `unit` suite 中临时增加：
-
-```xml
-<testsuite name="unit">
-    <directory>PhpUintTest/Unit</directory>
-    <!-- 过渡：已改成 PHPUnit TestCase 的模块可先留在原目录 -->
-    <!-- <directory suffix="Test.php">src/Support/Job/Tests</directory> -->
-</testsuite>
-```
-
-迁完一个模块再删旧路径；目标态仍以 `PhpUintTest/` 为唯一入口。
 
 composer 仅映射框架本体；Demo / PHPUnit 命名空间各自注册：
 
@@ -211,7 +187,7 @@ composer 仅映射框架本体；Demo / PHPUnit 命名空间各自注册：
 | 命名空间 | 注册入口 |
 |----------|----------|
 | `Swoolefy\` | `vendor/autoload.php`（composer `autoload.psr-4`） |
-| `Test\` | `Test/autoloader.php`（cli.php `registerNamespace`；PHPUnit/PhpStorm 经 `autoload-dev.files`） |
+| `Test\` | `Test/Autoloader.php`（cli.php `registerNamespace`；PHPUnit/PhpStorm 经 `autoload-dev.files`） |
 | `PhpUintTest\` | `PhpUintTest/Autoloader.php`（经 `PhpUintTest/register_dev_autoload.php` → `autoload-dev.files`） |
 
 PhpStorm 单独 Run method 时若只挂 `vendor/autoload.php`，依赖上述 `autoload-dev.files`；改完后执行一次 `composer dump-autoload`。也可在 PHPUnit 配置里指定 Default configuration file = `phpunit.xml.dist`。
@@ -344,17 +320,19 @@ abstract class HttpIntegrationTestCase extends TestCase
 | `SWOOLEFY_HTTP_AUTO_START` | `0` | 是否自动 start/stop |
 | `SWOOLEFY_HTTP_SKIP_IF_DOWN` | `1`（本地 phpunit.xml） | 不可达则 skip；CI Http job 建议 `0` |
 | `SWOOLEFY_HTTP_READY_TIMEOUT` | `30` | 探活最长等待秒数 |
+| `SWOOLEFY_HTTP_HITL_AUTH` | `0` | PHPUnit 侧声明服务端已开 HITL（配合 `WORKFLOW_HITL_AUTH_ENABLED=1`） |
+| `SWOOLEFY_HTTP_SHARED_RUN_STORE` | `0` | 声明服务端为共享 RunStore，允许跨请求 status/resume |
 | `WS_HOST` / `WS_PORT` / `WS_SMOKE_SKIP_IF_DOWN` | 沿用现网 | Websocket suite |
 
 **模式 B 实现要点（贴合 swoolefy CLI）：**
 
-1. 启动：`php cli.php start Test --daemon=1`（或项目惯用的非交互启动参数）；避免交互式 `restart` 询问。
-2. 若需重启脏进程：优先 `php cli.php restart Test --force=1`（跳过 yes/no）。
-3. 探活：轮询 `GET {baseUrl}/` 或轻量健康路径，直到 2xx/4xx（非连接拒绝）或超时。
-4. 日志：stdout/stderr 落到 `Test/Storage/Logs/phpunit-http.log`，失败时打印尾部便于 CI。
-5. 收尾：`register_shutdown_function` / PHPUnit `tearDownAfterClass` 调 `php cli.php stop Test`（失败也尽量 stop，防僵尸 Worker）。
-6. 端口：固定 Test 应用 `9501`；CI runner 独占，避免并行 job 抢端口。
-7. 目标环境按 **macOS / Linux** 编写启停与探活即可，不单独适配 Windows。
+1. 实现：`HttpServerManager` 在 `SWOOLEFY_HTTP_AUTO_START=1` 时执行 `php cli.php restart Test --force=1 --daemon=1`。
+2. 探活：轮询 `GET {baseUrl}/`，直到可读或超时（`SWOOLEFY_HTTP_READY_TIMEOUT`）。
+3. 日志：stdout/stderr → `Test/Storage/Logs/phpunit-http.log`。
+4. 收尾：仅当我们拉起的进程才 `stop Test --force=1`（`register_shutdown_function`）。
+5. 入口：`composer test:http:ci`（已设 AUTO_START=1、SKIP_IF_DOWN=0）。
+6. 端口：固定 Test `9501`；CI runner 独占。
+7. 目标环境：**macOS / Linux**；不适配 Windows。
 
 ---
 
@@ -433,11 +411,11 @@ $res = $this->postJson('/api/v1/...', $body, [
 
 | 优先级 | 来源 | 用例 |
 |--------|------|------|
-| P0 | Outdoor | ✅ `OutdoorWorkflowHttpTest`：sunny / rainy / status 缺 runId / status by runId |
-| P0 | Workflow | ✅ `WorkflowHttpTest`：list；`contract_review` run+status；resume；status 缺 runId |
-| P0 | Auth / Common Controller | ✅ `PhpUintTest/Unit/Controller/*`（suite=http）：Auth、Token、Validate、Captcha、Index、Upload、Ws、Chunked；Redis/Cache 标 `redis` |
-| P1 | HITL curl | resume 错 Key → 403（auth_enabled 开启时再补） |
-| P2 | Order saga demo | 1～2 条主路径（可选） |
+| P0 | Outdoor | ✅ `OutdoorWorkflowHttpTest`：sunny / rainy / status 缺 runId |
+| P0 | Workflow | ✅ `WorkflowHttpTest`：list；`contract_review` run；resume（共享 Store）；status 缺 runId |
+| P0 | Auth / Common Controller | ✅ `PhpUintTest/Unit/Controller/*`（suite=http）；Redis/Cache 标 `redis` |
+| P1 | HITL curl | ✅ 错 Key → 403（`SWOOLEFY_HTTP_HITL_AUTH=1` + 服务端 `WORKFLOW_HITL_AUTH_ENABLED=1`；status 主路径；resume 另需共享 Store） |
+| P2 | Order saga demo | ✅ `OrderWorkflowHttpTest`：process mock 批准；saga → 400；status 缺 runId |
 
 引擎边角、HITL 纯逻辑仍留在 **Unit**（`WorkflowHitlAuthTest`），Http 只保契约。
 
@@ -544,7 +522,7 @@ Http:  /api/v1/outdoor/workflow/cycling         ← 少而稳（黄金路径）
 | `phpunit --testsuite http` | 全流程；不依赖 group exclude |
 | `phpunit --group redis` | 显式跑 Redis 横切用例（需去掉 exclude 或 `--group redis` 覆盖，按 PHPUnit 版本选用） |
 
-### 7.2 composer scripts（目标态）
+### 7.2 composer scripts（已落地）
 
 ```json
 {
@@ -552,12 +530,13 @@ Http:  /api/v1/outdoor/workflow/cycling         ← 少而稳（黄金路径）
   "test:unit": "phpunit --testsuite unit",
   "test:coroutine": "phpunit --testsuite coroutine",
   "test:http": "phpunit --testsuite http",
+  "test:http:ci": "SWOOLEFY_HTTP_AUTO_START=1 SWOOLEFY_HTTP_SKIP_IF_DOWN=0 phpunit --testsuite http",
   "test:websocket": "phpunit --testsuite websocket",
-  "test:support": "@test"
+  "test:coverage": "phpunit --testsuite unit,coroutine --coverage-text"
 }
 ```
 
-**过渡态：** 保留现有 `test:workflow` 等；每迁完一模块，将该 script 改为 phpunit filter，最后删除旧入口。
+模块级 filter（`test:workflow` / `test:mqtt` / `test:module-workflows` 等）保留，便于本地窄跑。
 
 ### 7.3 日常命令
 
@@ -570,7 +549,14 @@ php cli.php start Test
 composer test:http
 
 # HTTP 全流程（模式 B：CI 自动启停）
-SWOOLEFY_HTTP_AUTO_START=1 SWOOLEFY_HTTP_SKIP_IF_DOWN=0 composer test:http
+composer test:http:ci
+
+# HITL 错 Key 403（需服务端开启鉴权）
+WORKFLOW_HITL_AUTH_ENABLED=1 php cli.php start Test
+SWOOLEFY_HTTP_HITL_AUTH=1 composer test:http -- --filter testHitlWrongApiKey
+
+# 覆盖率文本报告（需启用 pcov 或 xdebug；无 min % 门禁）
+composer test:coverage
 ```
 
 ---
@@ -584,7 +570,7 @@ SWOOLEFY_HTTP_AUTO_START=1 SWOOLEFY_HTTP_SKIP_IF_DOWN=0 composer test:http
 | Db 协程单例隔离 | 父/子 `spl_object_id` 不同；同协程两次 get 相同 |
 | Context / Auth 不串 | 两并发写入不同 userId，互读隔离 |
 | goApp array 透传 | `FrameworkContext::setUser` 后子协程 `getUserId()` 非空（见 Auth） |
-| 协程泄漏（可选） | 用例前后 `Coroutine::stats()['coroutine_num']` 差值 ≤ 阈值 |
+| 协程泄漏（可选） | `CoroutineTestCase::assertCoroutineLeakWithin($fn, $maxDelta)` |
 
 禁止在测试里 `use ($db)` 把父协程连接带进 `goApp`（与生产禁忌一致）。
 
@@ -602,14 +588,17 @@ SWOOLEFY_HTTP_AUTO_START=1 SWOOLEFY_HTTP_SKIP_IF_DOWN=0 composer test:http
 | **P4+ Module + Redis CAS** | `Test/Module/*` → `PhpUintTest/Unit/Module`；`RedisRunStoreCas` + `#[Group('redis')]` | ✅ |
 | **P5 Websocket** | Offline + Smoke → `PhpUintTest/Websocket` | ✅ |
 | **P5 单轨** | 删除 deprecate wrapper；Mqtt → `PhpUintTest/Unit/Mqtt`；`composer test:mqtt` | ✅ |
-| **P6（可选）** | 进程内 Request harness；CI 固化模式 B；覆盖率门槛 | 待做 |
+| **P6** | `HttpRequestHarness`（RequestInput）；`composer test:http:ci`；`test:coverage`（无强制 min %） | ✅ |
+| **P6 非目标** | 完整伪造 `onRequest` 路由链；覆盖率百分比门禁 | 不做 |
 
 ```bash
-composer test                 # unit + coroutine（含 Module / Mqtt；排除 redis/db/slow/smoke）
-composer test:http            # 需先 php cli.php start Test，或 AUTO_START=1
+composer test                 # unit + coroutine（含 Module / Mqtt / Harness；排除 redis/db/slow/smoke）
+composer test:http            # 模式 A：先 php cli.php start Test
+composer test:http:ci         # 模式 B：AUTO_START + SKIP_IF_DOWN=0
 composer test:websocket       # Offline 等；--group redis / smoke 另开
 composer test:mqtt
 composer test:module-workflows
+composer test:coverage
 composer test:job
 ```
 
@@ -620,10 +609,11 @@ composer test:job
 1. 无 HTTP 服务时，`composer test`（`--testsuite unit,coroutine`）**全部通过**，且**不会**执行 `PhpUintTest/Http`。
 2. 服务未启 + `SWOOLEFY_HTTP_SKIP_IF_DOWN=1` → `composer test:http` **skip**，进程 exit 0。
 3. `start Test` 后 Outdoor sunny cycling：`status=200` 且存在 `runId`。
-4. `GET /api/auth-user/me` 无 Bearer → HTTP **401**；HITL 错误 API Key → 权限失败（与现网一致）。
-5. 样板模块（JobPhase1、HitlAuth）PHPUnit 与旧脚本失败用例一一对应。
-6. Coroutine：父子 Db `spl_object_id` 不同；Auth `setUser` 后 goApp 子协程可读 `getUserId()`。
-7. 本地模式 A、CI 模式 B（AUTO_START + stop）均有文档与可操作步骤。
+4. `GET /api/auth-user/me` 无 Bearer → HTTP **401**；HITL 错误 API Key → **403**（需 `WORKFLOW_HITL_AUTH_ENABLED=1` + `SWOOLEFY_HTTP_HITL_AUTH=1`）。
+5. 样板模块（JobPhase1、HitlAuth、Contract Module）PHPUnit 可独立 filter 跑通。
+6. Coroutine：Auth `setUser` 后 goApp 子协程可读 `getUserId()`；可选 `assertCoroutineLeakWithin`。
+7. 本地模式 A（`test:http`）、CI 模式 B（`test:http:ci` / AUTO_START + stop）均有文档与可操作步骤。
+8. `HttpRequestHarness` 可构造 `RequestInput`（见 `HttpRequestHarnessTest`）；不替代 HttpIntegration。
 
 ---
 
@@ -688,11 +678,11 @@ composer test:job
 | Http / Websocket 如何不进默认 CI | **suite 隔离**：`composer test` = `unit,coroutine`；不用 group exclude 挡 http |
 | `@group` 用途 | 仅横切：`redis` / `db` / `slow`；业务 filter 可用 `outdoor` / `workflow` |
 | Auth | **已落地**，P2/P3 直接写 goApp + `/api/auth-user/me` 用例 |
-| 启服 | 本地默认模式 A；CI 再上模式 B（`--daemon` / `--force` / 配对 stop）；不适配 Windows |
+| 启服 | 本地默认模式 A；CI 用 `composer test:http:ci`（restart `--force` + daemon + 配对 stop）；不适配 Windows |
 
-### 建议的第一步（不改业务）
+### 落地状态（P0–P6）
 
-1. `composer require --dev phpunit/phpunit:^11.5`
-2. 落地 `phpunit.xml.dist`（按上文 suite 隔离）+ `PhpUintTest/{bootstrap,TestCase,CoroutineTestCase}.php`
-3. 迁入 **JobPhase1** 一个类作为样板
-4. `composer test` → `phpunit --testsuite unit,coroutine`（可暂仍串联旧 workflow 脚本）
+1. ✅ PHPUnit 11 + suite 隔离 + 三基类 / Http 基类  
+2. ✅ Support / Module（含 Contract）/ Mqtt / Websocket 单轨 `PhpUintTest/`  
+3. ✅ Http 黄金路径（Outdoor / Workflow / Order / Controller）+ HITL 错 Key（gated）  
+4. ✅ P6：`HttpRequestHarness`、`test:http:ci`、`test:coverage`（无强制门槛）  

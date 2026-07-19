@@ -69,8 +69,9 @@ final class HttpServerManager
             @mkdir($logDir, 0777, true);
         }
         $log = $logDir . '/phpunit-http.log';
+        // CI 模式 B：restart --force 跳过交互确认，脏进程可复用同一端口
         $cmd = sprintf(
-            'cd %s && php cli.php start Test --daemon=1 >> %s 2>&1',
+            'cd %s && php cli.php restart Test --force=1 --daemon=1 >> %s 2>&1',
             escapeshellarg($root),
             escapeshellarg($log),
         );

@@ -609,7 +609,7 @@ myproject
 |     |—— Scripts
 |     |   |—— Kernel.php    // 计划任务定义
 |     |__ .env              // 自动生成环境变量文件
-|     │—— autoloader.php    // 自定义项目自动加载
+|     │—— Autoloader.php    // 自定义项目自动加载
 |     |—— Event.php         // 事件实现类
 |     |—— HttpServer.php    // http server
 |    

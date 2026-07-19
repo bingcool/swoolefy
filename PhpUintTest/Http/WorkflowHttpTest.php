@@ -105,11 +105,76 @@ final class WorkflowHttpTest extends HttpIntegrationTestCase
     }
 
     /**
+     * 验证：HITL auth_enabled 时错误 API Key 在 status（鉴权先于查 Run）返回 403。
+     *
+     * Test 默认 `workflow.hitl.auth_enabled=false`；需服务端：
+     * `WORKFLOW_HITL_AUTH_ENABLED=1 php cli.php start Test`
+     * 并声明 `SWOOLEFY_HTTP_HITL_AUTH=1`（PHPUnit 无法读取服务端配置）。
+     */
+    public function testHitlWrongApiKeyReturns403WhenAuthEnabled(): void
+    {
+        if (!$this->httpHitlAuthEnabled()) {
+            $this->markTestSkipped(
+                'HITL auth off on Test server. '
+                . 'Start with WORKFLOW_HITL_AUTH_ENABLED=1 and set SWOOLEFY_HTTP_HITL_AUTH=1.',
+            );
+        }
+
+        $res = $this->getJson('/api/v1/workflow/run/status?runId=run_hitl_probe', [
+            'X-Workflow-Api-Key' => 'definitely-wrong-hitl-key',
+        ]);
+        $this->assertSame(403, $res['status']);
+        $this->assertIsArray($res['body']);
+        $this->assertSame(403, $res['body']['code'] ?? null);
+    }
+
+    /**
+     * 验证：resume 路径在 HITL 开启且 Key 错误时同样 403（需共享 RunStore 先拿到真实 run）。
+     */
+    public function testResumeWrongApiKeyReturns403WhenAuthEnabledAndRunStoreShared(): void
+    {
+        if (!$this->httpHitlAuthEnabled()) {
+            $this->markTestSkipped(
+                'HITL auth off on Test server. '
+                . 'Start with WORKFLOW_HITL_AUTH_ENABLED=1 and set SWOOLEFY_HTTP_HITL_AUTH=1.',
+            );
+        }
+        if (!$this->httpSharedRunStoreEnabled()) {
+            $this->markTestSkipped(
+                'Cross-request resume needs shared RunStore. '
+                . 'Set SWOOLEFY_HTTP_SHARED_RUN_STORE=1 with WORKFLOW_RUN_STORE=redis|db.',
+            );
+        }
+
+        $start = $this->postJson('/api/v1/workflow/run', [
+            'workflowId' => 'contract_review',
+            'input' => ['contractBrief' => 'HITL wrong-key probe'],
+        ]);
+        $this->assertSame(200, $start['status']);
+        $runId = (string) ($this->responseData($start)['runId'] ?? '');
+        $this->assertNotSame('', $runId);
+
+        $resume = $this->postJson('/api/v1/workflow/run/resume', [
+            'runId' => $runId,
+            'feedback' => ['approved' => true],
+        ], [
+            'X-Workflow-Api-Key' => 'definitely-wrong-hitl-key',
+        ]);
+        $this->assertSame(403, $resume['status']);
+        $this->assertSame(403, $resume['body']['code'] ?? null);
+    }
+
+    /**
      * 须显式声明：PHPUnit 进程里的 WORKFLOW_RUN_STORE 不等于服务端配置，
      * 误开会再次打到 MEMORY Worker 打出 ERROR 栈。
      */
     private function httpSharedRunStoreEnabled(): bool
     {
         return filter_var(getenv('SWOOLEFY_HTTP_SHARED_RUN_STORE') ?: '0', FILTER_VALIDATE_BOOLEAN);
+    }
+
+    private function httpHitlAuthEnabled(): bool
+    {
+        return filter_var(getenv('SWOOLEFY_HTTP_HITL_AUTH') ?: '0', FILTER_VALIDATE_BOOLEAN);
     }
 }

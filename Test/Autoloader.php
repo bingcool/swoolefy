@@ -15,8 +15,8 @@
  * 可被多次 include（composer autoload-dev + cli.php registerNamespace）。
  * START_DIR_ROOT 须为仓库根（与 cli.php 一致）。
  */
-if (!class_exists('autoloader', false)) {
-    class autoloader
+if (!class_exists('Autoloader', false) && !class_exists('autoloader', false)) {
+    class Autoloader
     {
         /** @var string|null */
         private static $baseDirectory = null;
@@ -83,7 +83,7 @@ if (!class_exists('autoloader', false)) {
         }
     }
 
-    autoloader::register();
+    Autoloader::register();
 }
 
 // cli.php 定义 APP_PATH 后再 include 本文件时加载业务常量；PHPUnit/dev 未定义 APP_PATH 则跳过

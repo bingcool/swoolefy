@@ -32,7 +32,7 @@ declare(strict_types=1);
  *
  * 幂等：常量与函数均用 `defined` / `function_exists` 保护，可重复 require。
  */
-// 与 cli.php 一致：START_DIR_ROOT=仓库根；APP_PATH=Test 应用根（供 Test/autoloader.php）
+// 与 cli.php 一致：START_DIR_ROOT=仓库根；APP_PATH=Test 应用根（供 Test/Autoloader.php）
 $projectRoot = dirname(__DIR__, 3);
 $testAppRoot = $projectRoot . '/Test';
 

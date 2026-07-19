@@ -165,7 +165,11 @@ function env($key, $default = null)
  */
 function registerNamespace($appPath)
 {
-    $file = $appPath.'/autoloader.php';
+    $file = $appPath . '/Autoloader.php';
+    if (!file_exists($file)) {
+        // 兼容旧应用仍使用 autoloader.php
+        $file = $appPath . '/autoloader.php';
+    }
     if (file_exists($file)) {
         include $file;
     }

@@ -43,4 +43,21 @@ abstract class CoroutineTestCase extends TestCase
 
         return $result;
     }
+
+    /**
+     * 可选：用例前后 coroutine_num 差值不超过阈值（泄漏加分项）。
+     *
+     * @param callable(): void $fn
+     */
+    protected function assertCoroutineLeakWithin(callable $fn, int $maxDelta = 2): void
+    {
+        $before = (int) (Coroutine::stats()['coroutine_num'] ?? 0);
+        $this->runInCoroutine($fn);
+        $after = (int) (Coroutine::stats()['coroutine_num'] ?? 0);
+        $this->assertLessThanOrEqual(
+            $maxDelta,
+            $after - $before,
+            sprintf('coroutine_num leak: before=%d after=%d (maxDelta=%d)', $before, $after, $maxDelta),
+        );
+    }
 }

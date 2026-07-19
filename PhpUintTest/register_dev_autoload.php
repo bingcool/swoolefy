@@ -11,5 +11,5 @@ declare(strict_types=1);
 $projectRoot = dirname(__DIR__);
 defined('START_DIR_ROOT') or define('START_DIR_ROOT', $projectRoot);
 
-require_once $projectRoot . '/Test/autoloader.php';
+require_once $projectRoot . '/Test/Autoloader.php';
 require_once __DIR__ . '/Autoloader.php';

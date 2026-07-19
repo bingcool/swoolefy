@@ -10,13 +10,13 @@
  */
 
 /**
- * Test\ Demo 应用加载：{START_DIR_ROOT}/Test/...
+ * 应用命名空间自动加载模板（create 时复制到 APP_PATH/Autoloader.php，并替换 &lt;{APP_NAME}&gt;）。
  *
- * 可被多次 include（composer autoload-dev + cli.php registerNamespace）。
- * START_DIR_ROOT 须为仓库根（与 cli.php 一致）。
+ * 路径：{START_DIR_ROOT}/{AppName}/...
+ * 可被多次 include。
  */
-if (!class_exists('autoloader', false)) {
-    class autoloader
+if (!class_exists('Autoloader', false) && !class_exists('autoloader', false)) {
+    class Autoloader
     {
         /** @var string|null */
         private static $baseDirectory = null;
@@ -83,10 +83,10 @@ if (!class_exists('autoloader', false)) {
         }
     }
 
-    autoloader::register();
+    Autoloader::register();
 }
 
-// cli.php 定义 APP_PATH 后再 include 本文件时加载业务常量；PHPUnit/dev 未定义 APP_PATH 则跳过
+// cli.php 定义 APP_PATH 后再 include 本文件时加载业务常量
 if (defined('APP_PATH') && is_file(APP_PATH . '/Config/constants.php')) {
     include_once APP_PATH . '/Config/constants.php';
 }
