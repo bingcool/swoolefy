@@ -18,6 +18,9 @@ final class ApplicationConfigTest extends TestCase
         require_once dirname(__DIR__, 3) . '/src/Support/Tests/SwoolefyTestBootstrap.php';
     }
 
+    /**
+     * 验证：resolveConfigPath 基于 CONFIG_PATH 常量解析，且路径以 /Config 结尾。
+     */
     public function testResolveConfigPathUsesConfigConstant(): void
     {
         $path = ApplicationConfig::resolveConfigPath();
@@ -25,6 +28,9 @@ final class ApplicationConfigTest extends TestCase
         $this->assertTrue(str_ends_with($path, '/Config'));
     }
 
+    /**
+     * 验证：测试应用下可加载 workflow/neuron_ai/job 等 PHP 配置，缺失文件返回空数组。
+     */
     public function testLoadPhpConfigFromTestApp(): void
     {
         $workflow = ApplicationConfig::loadPhpConfig('workflow.php');
@@ -45,6 +51,9 @@ final class ApplicationConfigTest extends TestCase
         $this->assertSame([], ApplicationConfig::loadPhpConfig('definitely_missing_xyz.php'));
     }
 
+    /**
+     * 验证：无 application.yaml 时仍可加载 demo.php，且 hasApplicationYaml 为 false。
+     */
     public function testLoadPhpConfigWithoutApplicationYaml(): void
     {
         $autoload = dirname(__DIR__, 3) . '/vendor/autoload.php';
@@ -90,6 +99,9 @@ PHP;
         $this->assertSame(0, $exitCode, implode("\n", $output));
     }
 
+    /**
+     * 验证：规范配置目录名为大写 Config，而非小写 config。
+     */
     public function testCanonicalPathIsCapitalConfig(): void
     {
         $path = ApplicationConfig::resolveConfigPath();
@@ -97,6 +109,9 @@ PHP;
         $this->assertTrue(str_ends_with($path, '/Config'));
     }
 
+    /**
+     * 验证：pickStringEnvFirst 优先读取配置数组，布尔 false 被规范化为字符串 "0"。
+     */
     public function testPickStringEnvFirstPreservesBoolFalse(): void
     {
         $picked = ApplicationConfig::pickStringEnvFirst(
@@ -109,6 +124,9 @@ PHP;
         $this->assertFalse(filter_var($picked, FILTER_VALIDATE_BOOLEAN));
     }
 
+    /**
+     * 验证：无路径上下文时 loadPhpConfig 返回空数组，hasConfigPathContext 为 false。
+     */
     public function testLoadPhpConfigWithoutPathContextReturnsEmpty(): void
     {
         $autoload = dirname(__DIR__, 3) . '/vendor/autoload.php';

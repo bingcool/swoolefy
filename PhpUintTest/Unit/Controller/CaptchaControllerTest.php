@@ -13,6 +13,9 @@ namespace PhpUintTest\Unit\Controller;
  */
 final class CaptchaControllerTest extends ControllerHttpTestCase
 {
+    /**
+     * 验证：GET /api/captcha/image 返回 HTTP 200 且 url 为 data:image/ 开头的验证码图片。
+     */
     public function testImageReturnsDataUri(): void
     {
         $res = $this->getJson('/api/captcha/image');

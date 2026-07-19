@@ -15,6 +15,9 @@ use Test\Module\Workflow\WorkflowService;
  */
 final class KnowledgeWorkflowModuleTest extends TestCase
 {
+    /**
+     * 验证：Knowledge 注册表独立且联邦 registryFor('knowledge_qa') 路由至 Knowledge 模块。
+     */
     public function testKnowledgeRegistryIndependent(): void
     {
         KnowledgeWorkflowService::reset();
@@ -29,6 +32,9 @@ final class KnowledgeWorkflowModuleTest extends TestCase
         $this->assertSame($knowledge, WorkflowService::registryFor('knowledge_qa'), 'federation routes to Knowledge');
     }
 
+    /**
+     * 验证：种子产品知识库后 knowledge_qa 工作流完成检索并生成 answer。
+     */
     public function testKnowledgeQaViaModuleEngine(): void
     {
         KnowledgeWorkflowService::reset();

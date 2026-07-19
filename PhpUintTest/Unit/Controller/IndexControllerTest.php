@@ -13,6 +13,9 @@ namespace PhpUintTest\Unit\Controller;
  */
 final class IndexControllerTest extends ControllerHttpTestCase
 {
+    /**
+     * 验证：GET /api/index/testLog1 返回 Controller/Action 且 Action 为 testLog1。
+     */
     public function testLog1ReturnsControllerAction(): void
     {
         $res = $this->getJson('/api/index/testLog1');

@@ -21,6 +21,9 @@ use Test\Module\Workflow\WorkflowService;
  */
 final class OutdoorWorkflowModuleTest extends TestCase
 {
+    /**
+     * 验证：Outdoor 注册表独立于中心注册表，仅拥有 outdoor_cycling 工作流。
+     */
     public function testOutdoorRegistryIsIndependent(): void
     {
         OutdoorWorkflowService::reset();
@@ -35,6 +38,9 @@ final class OutdoorWorkflowModuleTest extends TestCase
         $this->assertTrue($central->has('outdoor_cycling'), 'Central catalog may still list outdoor for unified API');
     }
 
+    /**
+     * 验证：晴天天户外骑行工作流完成，决策为 go_cycling 且 weatherGood 为 true。
+     */
     public function testOutdoorCyclingSunnyMock(): void
     {
         OutdoorWorkflowService::reset();
@@ -57,6 +63,9 @@ final class OutdoorWorkflowModuleTest extends TestCase
         $this->assertCount(3, $run->state->agentOutputs, 'Should have weather/route/bike outputs');
     }
 
+    /**
+     * 验证：雨天户外骑行工作流完成，决策为 stay_home 且 weatherGood 为 false。
+     */
     public function testOutdoorCyclingRainyMock(): void
     {
         OutdoorWorkflowService::reset();
@@ -78,6 +87,9 @@ final class OutdoorWorkflowModuleTest extends TestCase
         $this->assertFalse((bool) $run->state->get('weatherGood'), 'weatherGood should be false');
     }
 
+    /**
+     * 验证：通过 Outdoor 模块 registry 与 engine 可启动并完成骑行工作流。
+     */
     public function testOutdoorModuleEngineViaRegistry(): void
     {
         OutdoorWorkflowService::reset();

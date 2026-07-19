@@ -51,6 +51,9 @@ final class AuthModuleTest extends TestCase
         );
     }
 
+    /**
+     * 验证：JwtAuthGuard 解析有效 JWT 后正确映射 userId、角色、租户及 via 来源标识。
+     */
     public function testJwtAuthGuardMapsClaims(): void
     {
         $guard = new JwtAuthGuard($this->jwtTestConfig());
@@ -63,12 +66,18 @@ final class AuthModuleTest extends TestCase
         $this->assertSame('jwt', $user->via);
     }
 
+    /**
+     * 验证：空 token 传入 authenticate 时返回 null，不抛异常。
+     */
     public function testJwtAuthGuardEmptyTokenReturnsNull(): void
     {
         $guard = new JwtAuthGuard($this->jwtTestConfig());
         $this->assertNull($guard->authenticate(['token' => '']));
     }
 
+    /**
+     * 验证：非法 JWT 字符串被拒绝并抛出 HTTP 401 的 AuthException。
+     */
     public function testJwtAuthGuardRejectsBadToken(): void
     {
         $guard = new JwtAuthGuard($this->jwtTestConfig());
@@ -80,6 +89,9 @@ final class AuthModuleTest extends TestCase
         }
     }
 
+    /**
+     * 验证：超过 TTL 的过期 token 被拒绝，返回 401 及 "Token expired" 消息。
+     */
     public function testJwtAuthGuardRejectsExpiredToken(): void
     {
         $guard = new JwtAuthGuard($this->jwtTestConfig());
@@ -95,6 +107,9 @@ final class AuthModuleTest extends TestCase
         }
     }
 
+    /**
+     * 验证：generateToken 签发的 JWT 可往返认证，自定义 claims 与角色完整保留。
+     */
     public function testJwtAuthGuardGenerateTokenRoundTrip(): void
     {
         $guard = new JwtAuthGuard($this->jwtTestConfig());

@@ -13,6 +13,9 @@ namespace PhpUintTest\Unit\Controller;
  */
 final class ValidateControllerTest extends ControllerHttpTestCase
 {
+    /**
+     * 验证：GET /api/validate-test1 缺嵌套字段时校验失败且 msg 含 require。
+     */
     public function testValidateMissingNestedFieldFails(): void
     {
         $res = $this->getJson('/api/validate-test1');

@@ -13,6 +13,9 @@ namespace PhpUintTest\Unit\Controller;
  */
 final class WsControllerTest extends ControllerHttpTestCase
 {
+    /**
+     * 验证：GET /api/ws 返回 HTTP 200 且页面 HTML 含 WebSocket 脚本。
+     */
     public function testWsPageContainsWebSocketScript(): void
     {
         $res = $this->getRaw('/api/ws');

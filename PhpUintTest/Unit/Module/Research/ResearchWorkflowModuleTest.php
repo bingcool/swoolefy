@@ -17,6 +17,9 @@ use Test\Module\Workflow\WorkflowService;
  */
 final class ResearchWorkflowModuleTest extends TestCase
 {
+    /**
+     * 验证：Research 注册表独立，仅拥有 multi_agent_research 与 mcp_research。
+     */
     public function testResearchRegistryIndependent(): void
     {
         ResearchWorkflowService::reset();
@@ -33,6 +36,9 @@ final class ResearchWorkflowModuleTest extends TestCase
         $this->assertSame(['mcp_research', 'multi_agent_research'], $ids, 'only research workflows');
     }
 
+    /**
+     * 验证：多智能体研究工作流经模块 engine 在 mock 模式下完成并产出 summary。
+     */
     public function testMultiAgentMockViaModuleEngine(): void
     {
         ResearchWorkflowService::reset();
@@ -51,6 +57,9 @@ final class ResearchWorkflowModuleTest extends TestCase
         $this->assertArrayHasKey('summary', $run->state->data, 'summary present');
     }
 
+    /**
+     * 验证：Research 模块启动的 run 可通过联邦 engineForRun 路由并读取。
+     */
     public function testEngineForRunRoutesToResearch(): void
     {
         ResearchWorkflowService::reset();

@@ -13,6 +13,9 @@ namespace PhpUintTest\Unit\Controller;
  */
 final class AuthUserControllerTest extends ControllerHttpTestCase
 {
+    /**
+     * 验证：GET /api/auth-user/me 无 Bearer 时返回 HTTP 401 及业务 code=401。
+     */
     public function testMeWithoutBearerReturns401(): void
     {
         $res = $this->getJson('/api/auth-user/me');
@@ -21,6 +24,9 @@ final class AuthUserControllerTest extends ControllerHttpTestCase
         $this->assertSame(401, $res['body']['code'] ?? null);
     }
 
+    /**
+     * 验证：GET /api/auth-user/me 携带无效 JWT 时返回 HTTP 401。
+     */
     public function testMeWithInvalidBearerReturns401(): void
     {
         $res = $this->getJson('/api/auth-user/me', [

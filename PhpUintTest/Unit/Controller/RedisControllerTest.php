@@ -15,6 +15,9 @@ namespace PhpUintTest\Unit\Controller;
 #[\PHPUnit\Framework\Attributes\Group('redis')]
 final class RedisControllerTest extends ControllerHttpTestCase
 {
+    /**
+     * 验证：GET /api/redis/test Redis 读写往返成功且 value 非空。
+     */
     public function testRedisRoundTrip(): void
     {
         $res = $this->getJson('/api/redis/test');
@@ -24,6 +27,9 @@ final class RedisControllerTest extends ControllerHttpTestCase
         $this->assertNotSame('', (string) $data['value']);
     }
 
+    /**
+     * 验证：GET /api/redis/predis Predis 读写往返成功且 value 非空。
+     */
     public function testPredisRoundTrip(): void
     {
         $res = $this->getJson('/api/redis/predis');

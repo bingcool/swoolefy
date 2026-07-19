@@ -25,6 +25,9 @@ use Test\Module\Workflow\WorkflowService;
  */
 final class WorkflowFederationTest extends TestCase
 {
+    /**
+     * 验证：联邦目录列出各模块工作流，且 registryFor 委托至对应模块注册表。
+     */
     public function testFederatedCatalogDelegatesWithoutOwningRuntime(): void
     {
         WorkflowService::reset();
@@ -75,6 +78,9 @@ final class WorkflowFederationTest extends TestCase
         );
     }
 
+    /**
+     * 验证：同一 WorkflowRegistry 复用 RunStore 绑定，不同注册表获得独立实例。
+     */
     public function testSameRegistryReusesRunStore(): void
     {
         WorkflowComponentFactory::resetRunStores();
@@ -88,6 +94,9 @@ final class WorkflowFederationTest extends TestCase
         $this->assertNotSame($c, $a, 'different registry must get distinct RunStore');
     }
 
+    /**
+     * 验证：模块 engine 启动的 run 可通过 engineForRun 读取，且 hub RunStore 不持有该 run。
+     */
     public function testModuleStartVisibleViaEngineForRun(): void
     {
         WorkflowService::reset();
@@ -118,6 +127,9 @@ final class WorkflowFederationTest extends TestCase
         $this->assertNull($hubStore->find($runId), 'hub RunStore must not hold Order module memory run');
     }
 
+    /**
+     * 验证：engineFor(workflowId) 与模块 engine 共享同一 RunStore 绑定。
+     */
     public function testEngineForUsesOwnerRegistryBinding(): void
     {
         WorkflowService::reset();

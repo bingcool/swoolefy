@@ -13,6 +13,9 @@ namespace PhpUintTest\Unit\Controller;
  */
 final class TokenControllerTest extends ControllerHttpTestCase
 {
+    /**
+     * 验证：GET /api/token/jwt 返回 HTTP 200 且 token 为三段式 JWT。
+     */
     public function testJwtReturnsThreePartToken(): void
     {
         $res = $this->getJson('/api/token/jwt');

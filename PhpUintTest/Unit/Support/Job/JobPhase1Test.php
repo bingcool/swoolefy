@@ -34,6 +34,9 @@ final class JobPhase1Test extends TestCase
         parent::tearDown();
     }
 
+    /**
+     * 验证：JobEnvelope 序列化往返后 jobId、类型、载荷、元数据与重试次数保持一致。
+     */
     public function testEnvelopeRoundTrip(): void
     {
         $job = JobEnvelope::make('order.paid.notify', ['orderId' => 1], [
@@ -50,6 +53,9 @@ final class JobPhase1Test extends TestCase
         $this->assertSame(2, $again->withAttempt(2)->attempt);
     }
 
+    /**
+     * 验证：fromArray 缺少 jobType 时抛出 JobException。
+     */
     public function testEnvelopeRequiresJobType(): void
     {
         $this->expectException(JobException::class);
@@ -57,6 +63,9 @@ final class JobPhase1Test extends TestCase
         JobEnvelope::fromArray(['payload' => []]);
     }
 
+    /**
+     * 验证：wrapLegacy 将旧格式数组包装为信封，已序列化的信封则保留原 jobType。
+     */
     public function testWrapLegacy(): void
     {
         $job = JobEnvelope::wrapLegacy(['name' => 'legacy'], 'demo.legacy');
@@ -67,6 +76,9 @@ final class JobPhase1Test extends TestCase
         $this->assertSame('x.y', $nested->jobType);
     }
 
+    /**
+     * 验证：JobRetryPolicy 按指数退避计算各次延迟，并在达到 maxAttempts 后停止重试。
+     */
     public function testRetryBackoffIncreases(): void
     {
         $policy = new JobRetryPolicy(
@@ -84,6 +96,9 @@ final class JobPhase1Test extends TestCase
         $this->assertFalse($policy->shouldRetry(5));
     }
 
+    /**
+     * 验证：Handler 返回 success 时 Runner 产出 SUCCESS，不触发重入队或死信。
+     */
     public function testRunnerSuccessNoRequeue(): void
     {
         $requeued = 0;
@@ -105,6 +120,9 @@ final class JobPhase1Test extends TestCase
         $this->assertSame(0, $dead);
     }
 
+    /**
+     * 验证：Handler 请求重试时 Runner 返回 REQUEUED，attempt 递增且携带退避延迟。
+     */
     public function testRunnerRequeueIncrementsAttempt(): void
     {
         $captured = null;
@@ -128,6 +146,9 @@ final class JobPhase1Test extends TestCase
         $this->assertSame(100, $delay);
     }
 
+    /**
+     * 验证：重试次数耗尽后 Runner 返回 DEAD 并将错误信息传给死信回调。
+     */
     public function testRunnerExhaustedGoesDead(): void
     {
         $deadError = null;
@@ -149,6 +170,9 @@ final class JobPhase1Test extends TestCase
         $this->assertSame('always', $deadError);
     }
 
+    /**
+     * 验证：Handler 显式 fail 时 Runner 直接产出 DEAD，不重入队。
+     */
     public function testRunnerFailGoesDead(): void
     {
         $outcome = (new JobRunner())->run(
@@ -163,6 +187,9 @@ final class JobPhase1Test extends TestCase
         $this->assertSame(JobRunOutcome::DEAD, $outcome);
     }
 
+    /**
+     * 验证：Handler 抛出未捕获异常时按可重试处理，Runner 返回 REQUEUED。
+     */
     public function testRunnerExceptionTreatedAsRetry(): void
     {
         $outcome = (new JobRunner(new JobRetryPolicy(maxAttempts: 3, jitterRatio: 0.0)))->run(
@@ -177,6 +204,9 @@ final class JobPhase1Test extends TestCase
         $this->assertSame(JobRunOutcome::REQUEUED, $outcome);
     }
 
+    /**
+     * 验证：JobPublisher dispatch 将完整信封（含 jobType、载荷、maxAttempts）交给发布回调。
+     */
     public function testPublisherDispatch(): void
     {
         $published = null;

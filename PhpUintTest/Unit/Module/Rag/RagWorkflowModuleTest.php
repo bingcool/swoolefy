@@ -20,6 +20,9 @@ use Test\Module\Workflow\WorkflowService;
  */
 final class RagWorkflowModuleTest extends TestCase
 {
+    /**
+     * 验证：Rag 注册表独立且联邦 registryFor('rag_qa') 路由至 Rag 模块。
+     */
     public function testRagRegistryIndependent(): void
     {
         RagWorkflowService::reset();
@@ -34,6 +37,9 @@ final class RagWorkflowModuleTest extends TestCase
         $this->assertSame($rag, WorkflowService::registryFor('rag_qa'), 'federation routes to Rag');
     }
 
+    /**
+     * 验证：种子知识库后 rag_qa 工作流经模块 engine 完成问答。
+     */
     public function testRagQaViaModuleEngine(): void
     {
         RagWorkflowService::reset();

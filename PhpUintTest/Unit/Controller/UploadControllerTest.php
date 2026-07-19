@@ -13,6 +13,9 @@ namespace PhpUintTest\Unit\Controller;
  */
 final class UploadControllerTest extends ControllerHttpTestCase
 {
+    /**
+     * 验证：POST /api/upload/single 无文件时返回 code=400 且提示 required。
+     */
     public function testSingleWithoutFileReturns400Contract(): void
     {
         $res = $this->postMultipart('/api/upload/single');

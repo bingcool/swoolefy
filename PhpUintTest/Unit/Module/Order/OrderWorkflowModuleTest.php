@@ -26,6 +26,9 @@ use Test\Module\Workflow\WorkflowService;
  */
 final class OrderWorkflowModuleTest extends TestCase
 {
+    /**
+     * 验证：Order 模块 WorkflowRegistry 与中心注册表独立，仅注册 order_processing、order_saga。
+     */
     public function testOrderRegistryIsIndependent(): void
     {
         OrderWorkflowService::reset();
@@ -42,6 +45,9 @@ final class OrderWorkflowModuleTest extends TestCase
         $this->assertSame(['order_processing', 'order_saga'], $ids, 'Order registry should only own order workflows');
     }
 
+    /**
+     * 验证：订单处理工作流在 mock 批准决策下完成，orderStatus 为 completed 且支付已捕获。
+     */
     public function testOrderProcessingApprovedMock(): void
     {
         OrderWorkflowService::reset();
@@ -73,6 +79,9 @@ final class OrderWorkflowModuleTest extends TestCase
         $this->assertSame('captured', $run->state->get('paymentStatus'), 'Should capture payment');
     }
 
+    /**
+     * 验证：订单处理工作流在 mock 拒绝决策下路由至 reject，且不执行支付捕获。
+     */
     public function testOrderProcessingRejectedMock(): void
     {
         OrderWorkflowService::reset();
@@ -101,6 +110,9 @@ final class OrderWorkflowModuleTest extends TestCase
         $this->assertNull($run->state->get('paymentStatus'), 'Should not capture payment');
     }
 
+    /**
+     * 验证：Order Saga 在 notify_fail 时触发补偿，状态为 COMPENSATED 并退款、释放库存。
+     */
     public function testOrderSagaCompensation(): void
     {
         OrderWorkflowService::reset();

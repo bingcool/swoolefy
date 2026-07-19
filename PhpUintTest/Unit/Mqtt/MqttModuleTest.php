@@ -34,6 +34,9 @@ final class MqttModuleTest extends TestCase
         parent::tearDown();
     }
 
+    /**
+     * 验证：MqttTopicMatcher 对精确主题、单级通配符 + 与多级通配符 # 的匹配规则。
+     */
     public function testTopicMatcherExactAndWildcards(): void
     {
         $this->assertTrue(MqttTopicMatcher::matches('sensor/1/temp', 'sensor/1/temp'), 'exact');
@@ -45,6 +48,9 @@ final class MqttModuleTest extends TestCase
         $this->assertFalse(MqttTopicMatcher::matches('home/+/state', 'home/state'), 'plus requires one level');
     }
 
+    /**
+     * 验证：$SYS 系统主题、+/# 组合及 # 必须位于过滤器末尾等边界场景。
+     */
     public function testTopicMatcherEdgeCases(): void
     {
         $this->assertTrue(MqttTopicMatcher::matches('$SYS/broker/uptime', '$SYS/broker/uptime'), 'sys topic exact');
@@ -52,6 +58,9 @@ final class MqttModuleTest extends TestCase
         $this->assertFalse(MqttTopicMatcher::matches('a/#/b', 'a/x/b'), 'hash must be last segment per MQTT spec');
     }
 
+    /**
+     * 验证：相同 client_id 重连时，旧 fd 会话被踢出，新 fd 独占该 client_id。
+     */
     public function testSessionBindAndClientIdKick(): void
     {
         $mgr = MqttSessionManager::getInstance();
@@ -63,6 +72,9 @@ final class MqttModuleTest extends TestCase
         $this->assertSame('device-a', $mgr->get(2)?->clientId, 'new fd owns client_id');
     }
 
+    /**
+     * 验证：clean session 为 true 时，重新绑定会清空该客户端已有订阅。
+     */
     public function testSessionCleanSessionFlag(): void
     {
         $mgr = MqttSessionManager::getInstance();
@@ -75,6 +87,9 @@ final class MqttModuleTest extends TestCase
         $this->assertCount(0, $mgr->get(10)?->subscriptions ?? [], 'clean session clears subs on re-bind');
     }
 
+    /**
+     * 验证：未绑定会话的 fd 执行订阅时抛出 MqttProtocolException 并携带 fd。
+     */
     public function testSessionRequireConnectedThrows(): void
     {
         $mgr = MqttSessionManager::getInstance();
@@ -87,6 +102,9 @@ final class MqttModuleTest extends TestCase
         }
     }
 
+    /**
+     * 验证：MQTT v3 订阅返回正确 SUBACK 码，且按主题过滤器匹配目标订阅者 fd。
+     */
     public function testSubscribeAndMatchSubscribersV3(): void
     {
         $mgr = MqttSessionManager::getInstance();
@@ -107,6 +125,9 @@ final class MqttModuleTest extends TestCase
         $this->assertSame([3], array_column($pubOther, 'fd'), 'hash subscriber only');
     }
 
+    /**
+     * 验证：MQTT v5 no_local 选项使发布者自身 fd 收不到自己发布的消息。
+     */
     public function testSubscribeV5NoLocal(): void
     {
         $mgr = MqttSessionManager::getInstance();
@@ -123,6 +144,9 @@ final class MqttModuleTest extends TestCase
         $this->assertSame(5, $matchesOther[0]['fd'] ?? 0, 'other publisher still delivers');
     }
 
+    /**
+     * 验证：取消订阅后会话内订阅计数归零。
+     */
     public function testUnsubscribe(): void
     {
         $mgr = MqttSessionManager::getInstance();
@@ -134,6 +158,9 @@ final class MqttModuleTest extends TestCase
         $this->assertSame(0, $mgr->stats()['subscriptions'], 'all unsubscribed');
     }
 
+    /**
+     * 验证：非法 QoS 等级订阅时返回 0x80 失败码。
+     */
     public function testSubscribeInvalidQos(): void
     {
         $mgr = MqttSessionManager::getInstance();
@@ -143,6 +170,9 @@ final class MqttModuleTest extends TestCase
         $this->assertSame(0x80, $codes[0], 'invalid qos returns failure code');
     }
 
+    /**
+     * 验证：retain=false 清除保留消息，retain=true 时订阅过滤器可检索到保留载荷。
+     */
     public function testRetainedMessages(): void
     {
         $mgr = MqttSessionManager::getInstance();
@@ -158,6 +188,9 @@ final class MqttModuleTest extends TestCase
         $this->assertSame('22.5', $retained['home/living/temp']['message'], 'retained payload');
     }
 
+    /**
+     * 验证：CONNECT 遗嘱消息在绑定时以 retain 形式存入保留消息存储。
+     */
     public function testWillMessageStoredAsRetain(): void
     {
         $mgr = MqttSessionManager::getInstance();
@@ -173,6 +206,9 @@ final class MqttModuleTest extends TestCase
         $this->assertSame('offline', $payload['message'] ?? null, 'will stored as retain');
     }
 
+    /**
+     * 验证：入站 QoS2 消息暂存后首次 release 返回载荷，重复 release 幂等返回 null。
+     */
     public function testInboundQos2Staging(): void
     {
         $mgr = MqttSessionManager::getInstance();
@@ -184,6 +220,9 @@ final class MqttModuleTest extends TestCase
         $this->assertNull($mgr->releaseInboundQoS2(30, 42), 'second release is idempotent null');
     }
 
+    /**
+     * 验证：stats 正确统计连接数与订阅数，remove 后对应会话被清除。
+     */
     public function testSessionRemoveAndStats(): void
     {
         $mgr = MqttSessionManager::getInstance();
@@ -201,6 +240,9 @@ final class MqttModuleTest extends TestCase
         $this->assertSame(1, $mgr->stats()['connected'], 'one remains');
     }
 
+    /**
+     * 验证：生产环境用户名/密码校验逻辑——空配置放行、凭据匹配与 hash_equals 防时序攻击。
+     */
     public function testProductionVerifyLogic(): void
     {
         $verify = static function (string $expectedUser, string $expectedPass, string $user, string $pass): bool {
@@ -217,6 +259,9 @@ final class MqttModuleTest extends TestCase
         $this->assertFalse($verify('dev', 'secret', 'evil', 'secret'), 'wrong user');
     }
 
+    /**
+     * 验证：设置 MQTT_SMOKE_HOST/PORT 且安装 simps/mqtt 时可执行端到端冒烟（否则跳过）。
+     */
     #[Group('smoke')]
     public function testOptionalMqttSmoke(): void
     {

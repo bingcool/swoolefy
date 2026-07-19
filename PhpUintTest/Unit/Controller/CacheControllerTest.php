@@ -14,6 +14,9 @@ namespace PhpUintTest\Unit\Controller;
 #[\PHPUnit\Framework\Attributes\Group('redis')]
 final class CacheControllerTest extends ControllerHttpTestCase
 {
+    /**
+     * 验证：GET /api/cache/test 缓存读写返回 name=bingcool。
+     */
     public function testCacheSetGetName(): void
     {
         $res = $this->getJson('/api/cache/test');
