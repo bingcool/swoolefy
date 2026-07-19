@@ -1,5 +1,4 @@
 # swoolefy
-
 ```
   ______                                _           _ _ _ _
  /  ____|                              | |         |  _ _ _|  _   _
@@ -10,12 +9,12 @@
                                                    |_|           | |
                                                               __ / |
                                                              |_ _ /
-```
+```  
 
-[License](https://packagist.org/packages/bingcool/swoolefy)
-[Latest Stable Version](https://packagist.org/packages/bingcool/swoolefy)
-[PHP Version Require](https://packagist.org/packages/bingcool/swoolefy)
-[Total Downloads](https://packagist.org/packages/bingcool/swoolefy)
+[![License](https://img.shields.io/packagist/l/bingcool/swoolefy.svg)](https://packagist.org/packages/bingcool/swoolefy)
+[![Latest Stable Version](https://img.shields.io/packagist/v/bingcool/swoolefy.svg)](https://packagist.org/packages/bingcool/swoolefy)
+[![PHP Version Require](https://img.shields.io/packagist/php-v/bingcool/swoolefy.svg)](https://packagist.org/packages/bingcool/swoolefy)
+[![Total Downloads](https://img.shields.io/packagist/dt/bingcool/swoolefy.svg)](https://packagist.org/packages/bingcool/swoolefy)
 
 ---
 
