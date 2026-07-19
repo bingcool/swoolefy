@@ -1,7 +1,6 @@
 <?php
 namespace Test\Module\Order\Request;
 use Doctrine\Common\Collections\ArrayCollection;
-use OpenApi\Attributes\Property;
 use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Annotation\Validation\ValidationRule;
 use Swoolefy\Http\BaseRequest;

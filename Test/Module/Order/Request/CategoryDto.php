@@ -1,7 +1,6 @@
 <?php
 namespace Test\Module\Order\Request;
 
-use OpenApi\Attributes\RequestBody;
 use Swoolefy\Annotation\ArrayList;
 use Swoolefy\Annotation\Validation\ValidationRule;
 use Swoolefy\Core\Dto\AbstractDto;

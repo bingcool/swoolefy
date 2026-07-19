@@ -1,0 +1,59 @@
+openapi: 3.0.3
+info:
+  title: 用户产品中心
+  description: 用户产品模块
+  version: 1.0.0
+paths:
+  /product/list/mylist:
+    get:
+      tags:
+        - list
+      summary: 测试首页入口：协程写日志、环境变量与欢迎页
+      operationId: getIndexControllerIndex
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data

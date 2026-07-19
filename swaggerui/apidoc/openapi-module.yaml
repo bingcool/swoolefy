@@ -1,0 +1,3303 @@
+openapi: 3.0.3
+info:
+  title: 业务模块
+  description: 'Rag/Agent/Workflow/Order/Research/Outdoor/Mcp 模块路由'
+  version: 1.0.0
+paths:
+  /api/v1/agent/capability/chat:
+    post:
+      tags:
+        - Agent
+      summary: !!binary 5a6M5pW05rWL6K+V77yaQ2FwYWJpbGl0eSDop6PmnpDlkI7ms6jl
+      operationId: postAgentCapabilityControllerChat
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/agent/capability/resolve:
+    post:
+      tags:
+        - Agent
+      summary: !!binary 5Ls=
+      operationId: postAgentCapabilityControllerResolve
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/agent/chat:
+    post:
+      tags:
+        - Agent
+      summary: 'curl -X POST http://localhost:9501/api/v1/agent/chat -H "Content-Type: application/json" -d ''{"message":"你好","sessionId":"s1","userId":"u1","provider":"deepseek"}'''
+      operationId: postAgentChatControllerChat
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/agent/chat-persist:
+    post:
+      tags:
+        - Agent
+      summary: !!binary U1FMIOaMgeS5
+      operationId: postAgentChatControllerChatPersist
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/agent/chat-thinking:
+    post:
+      tags:
+        - Agent
+      summary: 'DeepSeek 思考模式对话。'
+      operationId: postAgentChatControllerChatThinking
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/agent/chat1:
+    post:
+      tags:
+        - Agent
+      summary: !!binary 5oyH5a6a5qih5Z6L5o+Q5L6b6IA=
+      operationId: postAgentChatControllerChat1
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/agent/heartbeat:
+    post:
+      tags:
+        - CronManager
+      summary: 'Agent 心跳上报'
+      operationId: postCronTaskManagerControllerAgentHeartbeat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nodeId:
+                  type: integer
+                  description: '节点 ID'
+              required:
+                - nodeId
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      nodeId: { type: integer, description: '节点 ID' }
+                      alive: { type: boolean, description: 是否存活 }
+                      serverTime: { type: string, description: 服务端当前时间 }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/agent/middleware/chat:
+    post:
+      tags:
+        - Agent
+      summary: '挂载 Middleware 后执行对话，返回 recorder 调用统计。'
+      operationId: postAgentMiddlewareControllerChat
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/agent/polish/recommendation:
+    post:
+      tags:
+        - Agent
+      summary: '根据 JSON 履历生成推荐信。'
+      operationId: postAgentPolishControllerRecommendation
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/agent/report:
+    post:
+      tags:
+        - CronManager
+      summary: 'Agent 上报任务执行结果'
+      operationId: postCronTaskManagerControllerAgentReport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cronId:
+                  type: integer
+                  description: 'Cron 任务 ID'
+                message:
+                  type: string
+                  description: 运行日志消息
+                taskItem:
+                  nullable: true
+                  description: 任务项快照（任意结构）
+                execBatchId:
+                  type: string
+                  nullable: true
+                  description: '执行批次 ID'
+                pid:
+                  type: integer
+                  nullable: true
+                  description: '进程 PID'
+              required:
+                - cronId
+                - message
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      saved: { type: boolean, description: 是否已保存 }
+                      cronId: { type: integer, description: 'Cron 任务 ID' }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/agent/stream/chat:
+    post:
+      tags:
+        - Agent
+      summary: 'SSE 流式对话（ChatAgent + SQL 记忆）。'
+      operationId: postAgentStreamControllerChat
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/agent/tasks:
+    get:
+      tags:
+        - CronManager
+      summary: 'Agent 拉取待执行的定时任务'
+      operationId: getCronTaskManagerControllerAgentTasks
+      parameters:
+        -
+          name: nodeId
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: '节点 ID'
+        -
+          name: execType
+          in: query
+          required: false
+          schema:
+            type: integer
+            nullable: true
+          description: '执行类型：1 shell，2 http；省略则返回全部'
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      nodeId: { type: integer, description: '节点 ID' }
+                      total: { type: integer, description: 任务条数 }
+                      execType: { type: integer, nullable: true, description: 执行类型（单类型查询时返回） }
+                      list: { type: array, items: { nullable: true }, nullable: true, description: '任务列表（指定 execType 时）' }
+                      shellTasks: { type: array, items: { nullable: true }, nullable: true, description: 'Shell 任务列表' }
+                      httpTasks: { type: array, items: { nullable: true }, nullable: true, description: 'HTTP 任务列表' }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/agent/tool/weather:
+    post:
+      tags:
+        - Agent
+      summary: '同步 Tool 对话（天气）。'
+      operationId: postAgentToolControllerWeather
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/agent/tool/weather/stream:
+    post:
+      tags:
+        - Agent
+      summary: 'SSE 流式 Tool 对话（天气）。'
+      operationId: postAgentToolControllerWeatherStream
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/agent/vision/chat:
+    post:
+      tags:
+        - Agent
+      summary: '上传图片 + 文本对话。'
+      operationId: postAgentVisionControllerChat
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/agent/weather:
+    post:
+      tags:
+        - Agent
+      summary: 查询城市天气（结构化输出）。
+      operationId: postAgentStructuredControllerWeather
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/mcp/servers:
+    get:
+      tags:
+        - Mcp
+      summary: !!binary 5YiX5Ye6IE1DUCBTZXJ2ZXIg5Q==
+      operationId: getMcpControllerServers
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/mcp/servers/tools:
+    get:
+      tags:
+        - Mcp
+      summary: !!binary 5Y+R546w5oyH5a6aIFNlcnZlciDnmoTlt6Xl
+      operationId: getMcpControllerTools
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/nodes:
+    delete:
+      tags:
+        - CronManager
+      summary: '删除 Cron Agent 节点'
+      operationId: deleteCronTaskManagerControllerDeleteNode
+      parameters:
+        -
+          name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: '节点 ID'
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      id: { type: integer, description: '记录 ID' }
+                      deleted: { type: boolean, description: 是否已删除 }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    get:
+      tags:
+        - CronManager
+      summary: '查询 Cron Agent 节点列表'
+      operationId: getCronTaskManagerControllerListNodes
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      list: { type: array, items: { type: object, properties: { id: { type: integer, description: '节点 ID' }, nodeName: { type: string, description: 节点名称 }, nodeIp: { type: string, description: '节点 IP' }, remark: { type: string, description: 备注 }, createdAt: { type: string, description: 创建时间 }, updatedAt: { type: string, description: 更新时间 } } }, description: 节点列表 }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    post:
+      tags:
+        - CronManager
+      summary: '创建 Cron Agent 节点'
+      operationId: postCronTaskManagerControllerCreateNode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nodeName:
+                  type: string
+                  description: 节点名称
+                nodeIp:
+                  type: string
+                  description: '节点 IP'
+                remark:
+                  type: string
+                  nullable: true
+                  description: 备注
+              required:
+                - nodeName
+                - nodeIp
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      id: { type: integer, description: '节点 ID' }
+                      nodeName: { type: string, description: 节点名称 }
+                      nodeIp: { type: string, description: '节点 IP' }
+                      remark: { type: string, description: 备注 }
+                      createdAt: { type: string, description: 创建时间 }
+                      updatedAt: { type: string, description: 更新时间 }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/order/workflow/process:
+    post:
+      tags:
+        - OrderWorkflow
+      summary: '演示：订单处理主流程（AI 风控三分支）。'
+      operationId: postOrderWorkflowDemoControllerProcess
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/order/workflow/resume:
+    post:
+      tags:
+        - OrderWorkflow
+      summary: 'HITL 恢复（manual_review pauseForHuman=true 时使用）。'
+      operationId: postOrderWorkflowDemoControllerResume
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/order/workflow/saga:
+    post:
+      tags:
+        - OrderWorkflow
+      summary: '演示：Saga 补偿（支付成功后通知失败 → 退款 + 释库存）。'
+      operationId: postOrderWorkflowDemoControllerSaga
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/order/workflow/status:
+    get:
+      tags:
+        - OrderWorkflow
+      summary: '查询 Run 状态。'
+      operationId: getOrderWorkflowDemoControllerStatus
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/outdoor/workflow/cycling:
+    post:
+      tags:
+        - Outdoor
+      summary: '三 Agent 并行准备 → 按天气决定是否骑行出发。'
+      operationId: postOutdoorWorkflowDemoControllerCycling
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/outdoor/workflow/status:
+    get:
+      tags:
+        - Outdoor
+      summary: '查询 Run 状态。'
+      operationId: getOutdoorWorkflowDemoControllerStatus
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/rag/ask:
+    post:
+      tags:
+        - Rag
+      summary: '检索增强问答（抽取式或 Agent）。'
+      operationId: postRagControllerAsk
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/rag/config:
+    get:
+      tags:
+        - Rag
+      summary: !!binary 5b2T5YmNIFJBRyDp
+      operationId: getRagControllerConfig
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/rag/ingest:
+    post:
+      tags:
+        - Rag
+      summary: !!binary 6Ieq5a6a5LmJ5paH5pys5Q==
+      operationId: postRagControllerIngest
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/rag/retrieve:
+    post:
+      tags:
+        - Rag
+      summary: 相似度检索。
+      operationId: postRagControllerRetrieve
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/rag/seed:
+    post:
+      tags:
+        - Rag
+      summary: !!binary 5YaZ5Q==
+      operationId: postRagControllerSeed
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/rag/stores:
+    get:
+      tags:
+        - Rag
+      summary: 已声明向量库别名。
+      operationId: getRagControllerStores
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/rag/workflow/qa:
+    post:
+      tags:
+        - Rag
+      summary: '工作流问答：RagRetrieveNode → 抽取式 answer。'
+      operationId: postRagControllerWorkflowQa
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/research/workflow/mcp:
+    post:
+      tags:
+        - Research
+      summary: '演示：MCP 研究 + 紧急度分支。'
+      operationId: postResearchWorkflowDemoControllerMcp
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/research/workflow/multi-agent:
+    post:
+      tags:
+        - Research
+      summary: '演示：多 Agent 并行研究。'
+      operationId: postResearchWorkflowDemoControllerMultiAgent
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/research/workflow/status:
+    get:
+      tags:
+        - Research
+      summary: '查询 Run 状态。'
+      operationId: getResearchWorkflowDemoControllerStatus
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/tasks:
+    delete:
+      tags:
+        - CronManager
+      summary: 删除定时任务
+      operationId: deleteCronTaskManagerControllerDeleteTask
+      parameters:
+        -
+          name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: '任务 ID'
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      id: { type: integer, description: '记录 ID' }
+                      deleted: { type: boolean, description: 是否已删除 }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    get:
+      tags:
+        - CronManager
+      summary: 分页查询定时任务列表
+      operationId: getCronTaskManagerControllerListTasks
+      parameters:
+        -
+          name: keyword
+          in: query
+          required: false
+          schema:
+            type: string
+            nullable: true
+          description: 名称关键词
+        -
+          name: status
+          in: query
+          required: false
+          schema:
+            type: integer
+            nullable: true
+          description: '任务状态：0=禁用, 1=启用'
+        -
+          name: nodeId
+          in: query
+          required: false
+          schema:
+            type: integer
+            nullable: true
+          description: '节点 ID'
+        -
+          name: execType
+          in: query
+          required: false
+          schema:
+            type: integer
+            nullable: true
+          description: '执行类型：1=shell, 2=http'
+        -
+          name: page
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: page页码
+        -
+          name: pageSize
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: pageSize每页数量
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      list: { type: array, items: { type: object, properties: { id: { type: integer, description: '任务 ID' }, nodeId: { type: integer, description: '节点 ID' }, name: { type: string, description: 任务名称 }, expression: { type: string, description: 'Cron 表达式' }, command: { type: string, description: '执行命令或 URL' }, execType: { type: integer, description: '执行类型：1=shell, 2=http' }, status: { type: integer, description: '任务状态：0=禁用, 1=启用' }, withBlockLapping: { type: integer, description: '是否阻塞重叠执行：0=否, 1=是' }, description: { type: string, description: 任务描述 }, cronBetween: { type: array, items: { type: string }, description: 允许执行时间段列表 }, cronSkip: { type: array, items: { type: string }, description: 跳过执行时间段列表 }, httpMethod: { type: string, description: 'HTTP 请求方法' }, httpBody: { type: array, items: { nullable: true }, nullable: true, description: 'HTTP 请求体' }, httpHeaders: { type: array, items: { nullable: true }, nullable: true, description: 'HTTP 请求头' }, httpRequestTimeOut: { type: integer, description: 'HTTP 请求超时时间（秒）' }, createdAt: { type: string, description: 创建时间 }, updatedAt: { type: string, description: 更新时间 } } } }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    post:
+      tags:
+        - CronManager
+      summary: 创建定时任务
+      operationId: postCronTaskManagerControllerCreateTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: 任务名称
+                expression:
+                  type: string
+                  description: 'Cron 表达式'
+                command:
+                  type: string
+                  description: '执行命令或 URL'
+                execType:
+                  type: integer
+                  description: '执行类型：1 shell，2 http'
+                nodeId:
+                  type: integer
+                  description: '节点 ID'
+                description:
+                  type: string
+                  nullable: true
+                  description: 描述
+                status:
+                  type: integer
+                  nullable: true
+                  description: '状态：0 禁用，1 启用'
+                withBlockLapping:
+                  type: integer
+                  nullable: true
+                  description: '是否阻塞重叠执行：0 否，1 是'
+                httpMethod:
+                  type: string
+                  nullable: true
+                  description: 'HTTP 方法'
+                httpRequestTimeOut:
+                  type: integer
+                  nullable: true
+                  description: 'HTTP 超时（秒）'
+                cronBetween:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      start: { type: string, description: 时间段开始 }
+                      end: { type: string, description: 时间段结束 }
+                    required:
+                      - start
+                      - end
+                  description: 允许执行时间段列表
+                cronSkip:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      start: { type: string, description: 时间段开始 }
+                      end: { type: string, description: 时间段结束 }
+                    required:
+                      - start
+                      - end
+                  description: 需跳过的时间段列表
+                httpBody:
+                  type: array
+                  items:
+                    nullable: true
+                  nullable: true
+                  description: 'HTTP 请求体（JSON 对象）'
+                httpHeaders:
+                  type: array
+                  items:
+                    nullable: true
+                  nullable: true
+                  description: 'HTTP 请求头（JSON 对象）'
+              required:
+                - name
+                - expression
+                - command
+                - execType
+                - nodeId
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      row: { type: object, properties: { id: { type: integer, description: '任务 ID' }, nodeId: { type: integer, description: '节点 ID' }, name: { type: string, description: 任务名称 }, expression: { type: string, description: 'Cron 表达式' }, command: { type: string, description: '执行命令或 URL' }, execType: { type: integer, description: '执行类型：1=shell, 2=http' }, status: { type: integer, description: '任务状态：0=禁用, 1=启用' }, withBlockLapping: { type: integer, description: '是否阻塞重叠执行：0=否, 1=是' }, description: { type: string, description: 任务描述 }, cronBetween: { type: array, items: { type: string }, description: 允许执行时间段列表 }, cronSkip: { type: array, items: { type: string }, description: 跳过执行时间段列表 }, httpMethod: { type: string, description: 'HTTP 请求方法' }, httpBody: { type: array, items: { nullable: true }, nullable: true, description: 'HTTP 请求体' }, httpHeaders: { type: array, items: { nullable: true }, nullable: true, description: 'HTTP 请求头' }, httpRequestTimeOut: { type: integer, description: 'HTTP 请求超时时间（秒）' }, createdAt: { type: string, description: 创建时间 }, updatedAt: { type: string, description: 更新时间 } } }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    put:
+      tags:
+        - CronManager
+      summary: 更新定时任务
+      operationId: putCronTaskManagerControllerUpdateTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  description: '任务 ID'
+                name:
+                  type: string
+                  nullable: true
+                  description: 任务名称
+                expression:
+                  type: string
+                  nullable: true
+                  description: 'Cron 表达式'
+                command:
+                  type: string
+                  nullable: true
+                  description: '执行命令或 URL'
+                description:
+                  type: string
+                  nullable: true
+                  description: 描述
+                nodeId:
+                  type: integer
+                  description: '节点 ID'
+                execType:
+                  type: integer
+                  nullable: true
+                  description: '执行类型：1 shell，2 http'
+                status:
+                  type: integer
+                  nullable: true
+                  description: '状态：0 禁用，1 启用'
+                withBlockLapping:
+                  type: integer
+                  nullable: true
+                  description: 是否阻塞重叠执行
+                httpMethod:
+                  type: string
+                  nullable: true
+                  description: 'HTTP 方法'
+                httpRequestTimeOut:
+                  type: integer
+                  nullable: true
+                  description: 'HTTP 超时（秒）'
+                cronBetween:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      start: { type: string, description: 时间段开始 }
+                      end: { type: string, description: 时间段结束 }
+                    required:
+                      - start
+                      - end
+                  description: 允许执行时间段列表
+                cronSkip:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      start: { type: string, description: 时间段开始 }
+                      end: { type: string, description: 时间段结束 }
+                    required:
+                      - start
+                      - end
+                  description: 需跳过的时间段列表
+                httpBody:
+                  type: array
+                  items:
+                    nullable: true
+                  nullable: true
+                  description: 'HTTP 请求体'
+                httpHeaders:
+                  type: array
+                  items:
+                    nullable: true
+                  nullable: true
+                  description: 'HTTP 请求头'
+              required:
+                - id
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      row: { type: object, properties: { id: { type: integer, description: '任务 ID' }, nodeId: { type: integer, description: '节点 ID' }, name: { type: string, description: 任务名称 }, expression: { type: string, description: 'Cron 表达式' }, command: { type: string, description: '执行命令或 URL' }, execType: { type: integer, description: '执行类型：1=shell, 2=http' }, status: { type: integer, description: '任务状态：0=禁用, 1=启用' }, withBlockLapping: { type: integer, description: '是否阻塞重叠执行：0=否, 1=是' }, description: { type: string, description: 任务描述 }, cronBetween: { type: array, items: { type: string }, description: 允许执行时间段列表 }, cronSkip: { type: array, items: { type: string }, description: 跳过执行时间段列表 }, httpMethod: { type: string, description: 'HTTP 请求方法' }, httpBody: { type: array, items: { nullable: true }, nullable: true, description: 'HTTP 请求体' }, httpHeaders: { type: array, items: { nullable: true }, nullable: true, description: 'HTTP 请求头' }, httpRequestTimeOut: { type: integer, description: 'HTTP 请求超时时间（秒）' }, createdAt: { type: string, description: 创建时间 }, updatedAt: { type: string, description: 更新时间 } } }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/tasks/logs:
+    get:
+      tags:
+        - CronManager
+      summary: 分页查询任务执行日志
+      operationId: getCronTaskManagerControllerTaskLogs
+      parameters:
+        -
+          name: taskId
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: '任务 ID（cron 任务主键）'
+        -
+          name: page
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: page页码
+        -
+          name: pageSize
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: pageSize每页数量
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      list: { type: array, items: { type: object, properties: { id: { type: integer, description: '日志 ID' }, cronId: { type: integer, description: '关联任务 ID' }, execBatchId: { type: string, description: '执行批次 ID' }, taskItem: { type: array, items: { nullable: true }, nullable: true, description: 任务项快照 }, message: { type: string, description: 运行消息 }, createdAt: { type: string, description: 创建时间 }, updatedAt: { type: string, description: 更新时间 } } } }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/tasks/stats:
+    get:
+      tags:
+        - CronManager
+      summary: 查询任务执行统计
+      operationId: getCronTaskManagerControllerTaskStats
+      parameters:
+        -
+          name: taskId
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: '任务 ID（cron 任务主键）'
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      taskId: { type: integer, description: '任务 ID' }
+                      total: { type: integer, description: 样本总数 }
+                      success: { type: integer, description: 判定为成功的次数 }
+                      failed: { type: integer, description: 判定为失败的次数 }
+                      skipped: { type: integer, description: 判定为跳过的次数 }
+                      successRate: { type: number, description: 成功率（百分比） }
+                      avgDurationMs: { type: number, description: 平均耗时（毫秒） }
+                      samples: { type: integer, description: 参与耗时统计的样本数 }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/tasks/status:
+    post:
+      tags:
+        - CronManager
+      summary: 切换定时任务启用状态
+      operationId: postCronTaskManagerControllerSwitchTaskStatus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  description: '任务 ID'
+                status:
+                  type: integer
+                  description: '状态：0 禁用，1 启用'
+              required:
+                - id
+                - status
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      id: { type: integer, description: '任务 ID' }
+                      status: { type: integer, description: '状态：0 禁用，1 启用' }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    put:
+      tags:
+        - CronManager
+      summary: 切换定时任务启用状态
+      operationId: putCronTaskManagerControllerSwitchTaskStatus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  description: '任务 ID'
+                status:
+                  type: integer
+                  description: '状态：0 禁用，1 启用'
+              required:
+                - id
+                - status
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      id: { type: integer, description: '任务 ID' }
+                      status: { type: integer, description: '状态：0 禁用，1 启用' }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/workflow/describe:
+    get:
+      tags:
+        - Workflow
+      summary: !!binary 5p+l55yL5Y2V5Liq5bel5L2c5rWB55qEIERBRyDor6bmgw==
+      operationId: getWorkflowControllerDescribe
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/workflow/list:
+    get:
+      tags:
+        - Workflow
+      summary: 列出已注册工作流目录。
+      operationId: getWorkflowControllerList
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/workflow/pause/tasks:
+    get:
+      tags:
+        - Workflow
+      summary: '列出 HITL 暂停任务（可选按 assignee 过滤）。'
+      operationId: getWorkflowControllerPauseTasks
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/workflow/run:
+    post:
+      tags:
+        - Workflow
+      summary: 启动工作流运行。
+      operationId: postWorkflowControllerRun
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/workflow/run/cancel:
+    post:
+      tags:
+        - Workflow
+      summary: '取消 Run（标记 CANCELLED，不触发 Saga 补偿）。'
+      operationId: postWorkflowControllerCancel
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/workflow/run/events:
+    get:
+      tags:
+        - Workflow
+      summary: '对已存在 Run 以 SSE 推送当前状态（演示用，非历史事件回放）。'
+      operationId: getWorkflowControllerEvents
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/workflow/run/resume:
+    post:
+      tags:
+        - Workflow
+      summary: 'HITL 恢复：对 WAITING 状态的 Run 提交 feedback 并继续执行。'
+      operationId: postWorkflowControllerResume
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/workflow/run/status:
+    get:
+      tags:
+        - Workflow
+      summary: '查询 Run 状态。'
+      operationId: getWorkflowControllerStatus
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data

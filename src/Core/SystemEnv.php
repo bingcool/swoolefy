@@ -479,7 +479,8 @@ class SystemEnv
                 return $value;
             })
             ->getOrCall(function () use ($default) {
-                return value($default);
+                // 与 bingcool/library Helper::value() 语义一致；内联避免命名空间解析到 Swoolefy\Core\value
+                return $default instanceof \Closure ? $default() : $default;
             });
     }
 

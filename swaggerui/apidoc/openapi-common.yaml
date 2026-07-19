@@ -1,0 +1,6111 @@
+openapi: 3.0.3
+info:
+  title: 公共/框架演示
+  description: 'Test\Controller 对应路由，按控制器拆分在 Router/Common/'
+  version: 1.0.0
+paths:
+  /api:
+    get:
+      tags:
+        - Index
+      summary: 测试首页入口：协程写日志、环境变量与欢迎页
+      operationId: getIndexControllerIndex
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/amqp/publish:
+    get:
+      tags:
+        - Amqp
+      summary: '测试 AMQP Direct 队列发布消息'
+      operationId: getAmqpControllerTestPublish
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: boolean
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/amqp/publish-delay-direct:
+    get:
+      tags:
+        - Amqp
+      summary: '测试 AMQP Delay Direct 队列发布消息'
+      operationId: getAmqpControllerTestPublish2
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: boolean
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/amqp/publish-delay-topic:
+    get:
+      tags:
+        - Amqp
+      summary: '测试 AMQP Delay Topic 队列发布消息'
+      operationId: getAmqpControllerTestPublish1
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: boolean
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/auth-user/me:
+    get:
+      tags:
+        - AuthUser
+      summary: '返回当前登录用户（须 Bearer JWT）'
+      operationId: getAuthUserControllerMe
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        401:
+          description: unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 401
+                  msg:
+                    type: string
+                    example: Unauthenticated
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/bank/addBank:
+    get:
+      tags:
+        - Object
+      summary: '测试 ClientModel 写入银行表（含 JSON 字段）'
+      operationId: getObjectControllerAddBank
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/cache/test:
+    get:
+      tags:
+        - Cache
+      summary: '测试 Redis Cache 读写与协程 Context 传递'
+      operationId: getCacheControllerTest
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/cache/test1:
+    get:
+      tags:
+        - Cache
+      summary: '测试 Cache setMultiple 批量写入'
+      operationId: getCacheControllerTest1
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    post:
+      tags:
+        - Cache
+      summary: '测试 Cache setMultiple 批量写入'
+      operationId: postCacheControllerTest1
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/captcha/image:
+    get:
+      tags:
+        - Captcha
+      summary: '测试生成验证码图片 base64'
+      operationId: getCaptchaControllerTest
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    post:
+      tags:
+        - Captcha
+      summary: '测试生成验证码图片 base64'
+      operationId: postCaptchaControllerTest
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/chunked/ndjson:
+    get:
+      tags:
+        - Chunked
+      summary: '测试 NDJSON 分块流（每行一个 JSON）。'
+      operationId: getChunkedControllerNdjson
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/chunked/text:
+    get:
+      tags:
+        - Chunked
+      summary: 测试纯文本分块流逐行推送。
+      operationId: getChunkedControllerText
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/download/file:
+    get:
+      tags:
+        - Download
+      summary: '测试 sendfile 附件下载。'
+      operationId: getDownloadControllerFile
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/download/inline:
+    get:
+      tags:
+        - Download
+      summary: !!binary 5rWL6K+V5rWP6KeI5Zmo5YY=
+      operationId: getDownloadControllerInline
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/exception/test:
+    get:
+      tags:
+        - Exception
+      summary: 测试触发错误与异常处理
+      operationId: getExceptionControllerTest
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/getUuid:
+    get:
+      tags:
+        - Uuid
+      summary: '测试获取自增 UUID 列表'
+      operationId: getUuidControllerGetUuid
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/index/testLog:
+    get:
+      tags:
+        - Index
+      summary: '测试日志组件写入与 afterRequest 回调注册'
+      operationId: getIndexControllerTestLog
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/index/testLog1:
+    get:
+      tags:
+        - Index
+      summary: !!binary 5rWL6K+VIFJ1bkxvZyDkuJrliqHml6Xlv5flhpnl
+      operationId: getIndexControllerTestLog1
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/index/testUserList:
+    get:
+      tags:
+        - Index
+      summary: 测试查询用户列表与总数。
+      operationId: getIndexControllerTestUserList
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/lock-test1:
+    get:
+      tags:
+        - Lock
+      summary: '测试 Redis 分布式锁 synchronized 阻塞获取'
+      operationId: getLockControllerLocktest1
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/lock-test2:
+    get:
+      tags:
+        - Lock
+      summary: '测试 Redis 分布式锁 acquire/release 非阻塞获取'
+      operationId: getLockControllerLocktest2
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/queue/push:
+    get:
+      tags:
+        - Queue
+      summary: '测试队列 push 入队'
+      operationId: getQueueControllerPush
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    post:
+      tags:
+        - Queue
+      summary: '测试队列 push 入队'
+      operationId: postQueueControllerPush
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/rate-test-api:
+    get:
+      tags:
+        - RateLimit
+      summary: 'ApiRateLimiterMiddleware 演示'
+      operationId: getRateLimitControllerRateTestApi
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        429:
+          description: 'too many requests'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 429
+                  msg:
+                    type: string
+                    example: 'Too Many Requests'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/rate-test-user:
+    get:
+      tags:
+        - RateLimit
+      summary: 'ApiUserRateLimiterMiddleware 演示'
+      operationId: getRateLimitControllerRateTestUser
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        401:
+          description: unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 401
+                  msg:
+                    type: string
+                    example: Unauthenticated
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        429:
+          description: 'too many requests'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 429
+                  msg:
+                    type: string
+                    example: 'Too Many Requests'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/rate-test1:
+    get:
+      tags:
+        - RateLimit
+      summary: '测试接口限流 RateLimit（Controller）'
+      operationId: getRateLimitControllerRatetest1
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/redis/predis:
+    get:
+      tags:
+        - Redis
+      summary: '测试 Predis 客户端读写'
+      operationId: getRedisControllerTestPredis
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/redis/test:
+    get:
+      tags:
+        - Redis
+      summary: '测试 Redis 扩展读写'
+      operationId: getRedisControllerTestRedis
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/send-task-worker:
+    get:
+      tags:
+        - Process
+      summary: '测试投递异步任务到 task 进程'
+      operationId: getProcessControllerSendTaskWorker
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/send-user-worker:
+    get:
+      tags:
+        - Process
+      summary: '测试 worker 向自定义进程 IPC 通信'
+      operationId: getProcessControllerSendUserWorker
+      parameters:
+        -
+          name: name
+          in: query
+          required: false
+          schema:
+            nullable: true
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/sse/stream:
+    get:
+      tags:
+        - EventStream
+      summary: '测试 SSE 按固定间隔推送 JSON 消息。'
+      operationId: getEventStreamControllerStream
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/sse/tick:
+    get:
+      tags:
+        - EventStream
+      summary: '测试 SSE 长连接心跳与 tick 事件保活。'
+      operationId: getEventStreamControllerTick
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/token/jwt:
+    get:
+      tags:
+        - Token
+      summary: '测试 JWT 签发与校验'
+      operationId: getTokenControllerJwt
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/transaction/test:
+    get:
+      tags:
+        - Transaction
+      summary: 测试数据库事务与协程隔离
+      operationId: getTransactionControllerTest
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: boolean
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/upload/multiple:
+    post:
+      tags:
+        - Upload
+      summary: '测试多文件上传（表单字段 files[]）。'
+      operationId: postUploadControllerMultiple
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/upload/single:
+    post:
+      tags:
+        - Upload
+      summary: 测试单文件上传与校验保存。
+      operationId: postUploadControllerSingle
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/validate-test1:
+    get:
+      tags:
+        - Validate
+      summary: '测试请求参数校验 Validate'
+      operationId: getValidateControllerTest1
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/ws:
+    get:
+      tags:
+        - Websocket
+      summary: '测试输出 WebSocket 客户端页面'
+      operationId: getWsControllerTest1
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /cache/test1:
+    get:
+      tags:
+        - Cache
+      summary: '测试 Cache setMultiple 批量写入'
+      operationId: getCacheControllerTest1
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /index/index:
+    get:
+      tags:
+        - Index
+      summary: 测试首页入口：协程写日志、环境变量与欢迎页
+      operationId: getIndexControllerIndex
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /test-curl:
+    get:
+      tags:
+        - Pg
+      summary: '测试长时间 sleep 的 Curl/阻塞场景'
+      operationId: getPgControllerTestCurl
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: boolean
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /user/order/add:
+    get:
+      tags:
+        - Object
+      summary: '测试 Entity 保存订单（含 AFTER_INSERT 事件）'
+      operationId: getObjectControllerSaveOrder
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /user/order/list:
+    get:
+      tags:
+        - Object
+      summary: '测试 OrderList 分页查询订单列表'
+      operationId: getObjectControllerList
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /user/pg/user-list:
+    get:
+      tags:
+        - Pg
+      summary: '测试 PostgreSQL 子查询构建与用户列表 SQL'
+      operationId: getPgControllerUserList
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /user/remove-use:
+    delete:
+      tags:
+        - Pg
+      summary: '测试按 uid 删除用户（打印入参）'
+      operationId: deletePgControllerRemoveUser
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /user/testAddUser:
+    get:
+      tags:
+        - Index
+      summary: 测试插入用户表（含协程内再次插入）
+      operationId: getIndexControllerTestAddUser
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /user/testTransactionAddOrder:
+    get:
+      tags:
+        - Index
+      summary: 测试事务与协程场景下插入订单
+      operationId: getIndexControllerTestTransactionAddOrder
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /user/user-order/logOrder:
+    get:
+      tags:
+        - OrderLog
+      summary: 测试日志
+      operationId: getLogOrderControllerTestLog
+      parameters:
+        -
+          name: logIds
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: integer
+        -
+          name: logContents
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                name:
+                  type: string
+                value:
+                  type: string
+                categories:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      cateId: { type: integer }
+                      cateName: { type: string }
+                      subCategories: { type: array, items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string } }, required: [subCateId, subCateName] } }
+                    required:
+                      - cateId
+                      - cateName
+                      - subCategories
+                userIds:
+                  type: array
+                  items:
+                    type: integer
+                  nullable: true
+              required:
+                - name
+                - value
+        -
+          name: logContentDto
+          in: query
+          required: false
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+              value:
+                type: string
+              categories:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    cateId:
+                      type: integer
+                    cateName:
+                      type: string
+                    subCategories:
+                      type: array
+                      items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string } }, required: [subCateId, subCateName] }
+                  required:
+                    - cateId
+                    - cateName
+                    - subCategories
+              userIds:
+                type: array
+                items:
+                  type: integer
+                nullable: true
+            required:
+              - name
+              - value
+          description: 日志内容Dto
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties: { name: { type: string }, value: { type: string }, categories: { type: array, items: { type: object, properties: { cateId: { type: integer }, cateName: { type: string }, subCategories: { type: array, items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string }, smallCategories: { type: array, items: { type: object, properties: { smallCategoryId: { nullable: true }, smallCategoryName: { nullable: true } } } } } } } } } } }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    post:
+      tags:
+        - OrderLog
+      summary: 测试日志
+      operationId: postLogOrderControllerTestLog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                logIds:
+                  type: array
+                  items:
+                    type: integer
+                logContents:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name: { type: string }
+                      value: { type: string }
+                      categories: { type: array, items: { type: object, properties: { cateId: { type: integer }, cateName: { type: string }, subCategories: { type: array, items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string } }, required: [subCateId, subCateName] } } }, required: [cateId, cateName, subCategories] } }
+                      userIds: { type: array, items: { type: integer }, nullable: true }
+                    required:
+                      - name
+                      - value
+                logContentDto:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    value:
+                      type: string
+                    categories:
+                      type: array
+                      items: { type: object, properties: { cateId: { type: integer }, cateName: { type: string }, subCategories: { type: array, items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string } }, required: [subCateId, subCateName] } } }, required: [cateId, cateName, subCategories] }
+                    userIds:
+                      type: array
+                      items: { type: integer }
+                      nullable: true
+                  required:
+                    - name
+                    - value
+                  description: 日志内容Dto
+              required:
+                - logIds
+                - logContents
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties: { name: { type: string }, value: { type: string }, categories: { type: array, items: { type: object, properties: { cateId: { type: integer }, cateName: { type: string }, subCategories: { type: array, items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string }, smallCategories: { type: array, items: { type: object, properties: { smallCategoryId: { nullable: true }, smallCategoryName: { nullable: true } } } } } } } } } } }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    put:
+      tags:
+        - OrderLog
+      summary: 测试日志
+      operationId: putLogOrderControllerTestLog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                logIds:
+                  type: array
+                  items:
+                    type: integer
+                logContents:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name: { type: string }
+                      value: { type: string }
+                      categories: { type: array, items: { type: object, properties: { cateId: { type: integer }, cateName: { type: string }, subCategories: { type: array, items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string } }, required: [subCateId, subCateName] } } }, required: [cateId, cateName, subCategories] } }
+                      userIds: { type: array, items: { type: integer }, nullable: true }
+                    required:
+                      - name
+                      - value
+                logContentDto:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    value:
+                      type: string
+                    categories:
+                      type: array
+                      items: { type: object, properties: { cateId: { type: integer }, cateName: { type: string }, subCategories: { type: array, items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string } }, required: [subCateId, subCateName] } } }, required: [cateId, cateName, subCategories] }
+                    userIds:
+                      type: array
+                      items: { type: integer }
+                      nullable: true
+                  required:
+                    - name
+                    - value
+                  description: 日志内容Dto
+              required:
+                - logIds
+                - logContents
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties: { name: { type: string }, value: { type: string }, categories: { type: array, items: { type: object, properties: { cateId: { type: integer }, cateName: { type: string }, subCategories: { type: array, items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string }, smallCategories: { type: array, items: { type: object, properties: { smallCategoryId: { nullable: true }, smallCategoryName: { nullable: true } } } } } } } } } } }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    patch:
+      tags:
+        - OrderLog
+      summary: 测试日志
+      operationId: patchLogOrderControllerTestLog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                logIds:
+                  type: array
+                  items:
+                    type: integer
+                logContents:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name: { type: string }
+                      value: { type: string }
+                      categories: { type: array, items: { type: object, properties: { cateId: { type: integer }, cateName: { type: string }, subCategories: { type: array, items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string } }, required: [subCateId, subCateName] } } }, required: [cateId, cateName, subCategories] } }
+                      userIds: { type: array, items: { type: integer }, nullable: true }
+                    required:
+                      - name
+                      - value
+                logContentDto:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    value:
+                      type: string
+                    categories:
+                      type: array
+                      items: { type: object, properties: { cateId: { type: integer }, cateName: { type: string }, subCategories: { type: array, items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string } }, required: [subCateId, subCateName] } } }, required: [cateId, cateName, subCategories] }
+                    userIds:
+                      type: array
+                      items: { type: integer }
+                      nullable: true
+                  required:
+                    - name
+                    - value
+                  description: 日志内容Dto
+              required:
+                - logIds
+                - logContents
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties: { name: { type: string }, value: { type: string }, categories: { type: array, items: { type: object, properties: { cateId: { type: integer }, cateName: { type: string }, subCategories: { type: array, items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string }, smallCategories: { type: array, items: { type: object, properties: { smallCategoryId: { nullable: true }, smallCategoryName: { nullable: true } } } } } } } } } } }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    delete:
+      tags:
+        - OrderLog
+      summary: 测试日志
+      operationId: deleteLogOrderControllerTestLog
+      parameters:
+        -
+          name: logIds
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: integer
+        -
+          name: logContents
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                name:
+                  type: string
+                value:
+                  type: string
+                categories:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      cateId: { type: integer }
+                      cateName: { type: string }
+                      subCategories: { type: array, items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string } }, required: [subCateId, subCateName] } }
+                    required:
+                      - cateId
+                      - cateName
+                      - subCategories
+                userIds:
+                  type: array
+                  items:
+                    type: integer
+                  nullable: true
+              required:
+                - name
+                - value
+        -
+          name: logContentDto
+          in: query
+          required: false
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+              value:
+                type: string
+              categories:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    cateId:
+                      type: integer
+                    cateName:
+                      type: string
+                    subCategories:
+                      type: array
+                      items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string } }, required: [subCateId, subCateName] }
+                  required:
+                    - cateId
+                    - cateName
+                    - subCategories
+              userIds:
+                type: array
+                items:
+                  type: integer
+                nullable: true
+            required:
+              - name
+              - value
+          description: 日志内容Dto
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties: { name: { type: string }, value: { type: string }, categories: { type: array, items: { type: object, properties: { cateId: { type: integer }, cateName: { type: string }, subCategories: { type: array, items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string }, smallCategories: { type: array, items: { type: object, properties: { smallCategoryId: { nullable: true }, smallCategoryName: { nullable: true } } } } } } } } } } }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    head:
+      tags:
+        - OrderLog
+      summary: 测试日志
+      operationId: headLogOrderControllerTestLog
+      parameters:
+        -
+          name: logIds
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: integer
+        -
+          name: logContents
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                name:
+                  type: string
+                value:
+                  type: string
+                categories:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      cateId: { type: integer }
+                      cateName: { type: string }
+                      subCategories: { type: array, items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string } }, required: [subCateId, subCateName] } }
+                    required:
+                      - cateId
+                      - cateName
+                      - subCategories
+                userIds:
+                  type: array
+                  items:
+                    type: integer
+                  nullable: true
+              required:
+                - name
+                - value
+        -
+          name: logContentDto
+          in: query
+          required: false
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+              value:
+                type: string
+              categories:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    cateId:
+                      type: integer
+                    cateName:
+                      type: string
+                    subCategories:
+                      type: array
+                      items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string } }, required: [subCateId, subCateName] }
+                  required:
+                    - cateId
+                    - cateName
+                    - subCategories
+              userIds:
+                type: array
+                items:
+                  type: integer
+                nullable: true
+            required:
+              - name
+              - value
+          description: 日志内容Dto
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties: { name: { type: string }, value: { type: string }, categories: { type: array, items: { type: object, properties: { cateId: { type: integer }, cateName: { type: string }, subCategories: { type: array, items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string }, smallCategories: { type: array, items: { type: object, properties: { smallCategoryId: { nullable: true }, smallCategoryName: { nullable: true } } } } } } } } } } }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    options:
+      tags:
+        - OrderLog
+      summary: 测试日志
+      operationId: optionsLogOrderControllerTestLog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                logIds:
+                  type: array
+                  items:
+                    type: integer
+                logContents:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name: { type: string }
+                      value: { type: string }
+                      categories: { type: array, items: { type: object, properties: { cateId: { type: integer }, cateName: { type: string }, subCategories: { type: array, items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string } }, required: [subCateId, subCateName] } } }, required: [cateId, cateName, subCategories] } }
+                      userIds: { type: array, items: { type: integer }, nullable: true }
+                    required:
+                      - name
+                      - value
+                logContentDto:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    value:
+                      type: string
+                    categories:
+                      type: array
+                      items: { type: object, properties: { cateId: { type: integer }, cateName: { type: string }, subCategories: { type: array, items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string } }, required: [subCateId, subCateName] } } }, required: [cateId, cateName, subCategories] }
+                    userIds:
+                      type: array
+                      items: { type: integer }
+                      nullable: true
+                  required:
+                    - name
+                    - value
+                  description: 日志内容Dto
+              required:
+                - logIds
+                - logContents
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties: { name: { type: string }, value: { type: string }, categories: { type: array, items: { type: object, properties: { cateId: { type: integer }, cateName: { type: string }, subCategories: { type: array, items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string }, smallCategories: { type: array, items: { type: object, properties: { smallCategoryId: { nullable: true }, smallCategoryName: { nullable: true } } } } } } } } } } }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /user/user-order/save-order:
+    get:
+      tags:
+        - Object
+      summary: '测试 Entity 保存订单（含 AFTER_INSERT 事件）'
+      operationId: getObjectControllerSaveOrder
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /user/user-order/save-pg-order:
+    get:
+      tags:
+        - Pg
+      summary: '测试 PostgreSQL 插入订单并触发 CurlProxy 请求'
+      operationId: getPgControllerSavePgOrder
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /user/user-order/save-pg-order1:
+    get:
+      tags:
+        - Pg
+      summary: '测试 OrderPgEntity 保存 PostgreSQL 订单'
+      operationId: getPgControllerSavePgOrder1
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /user/user-order/test-request:
+    get:
+      tags:
+        - OrderLog
+      summary: 'GET /user/user-order/test-request'
+      operationId: getLogOrderControllerTestRequest
+      parameters:
+        -
+          name: logIds
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: integer
+        -
+          name: logContents
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                name:
+                  type: string
+                value:
+                  type: string
+                categories:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      cateId: { type: integer }
+                      cateName: { type: string }
+                      subCategories: { type: array, items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string } }, required: [subCateId, subCateName] } }
+                    required:
+                      - cateId
+                      - cateName
+                      - subCategories
+                userIds:
+                  type: array
+                  items:
+                    type: integer
+                  nullable: true
+              required:
+                - name
+                - value
+        -
+          name: logContentDto
+          in: query
+          required: false
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+              value:
+                type: string
+              categories:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    cateId:
+                      type: integer
+                    cateName:
+                      type: string
+                    subCategories:
+                      type: array
+                      items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string } }, required: [subCateId, subCateName] }
+                  required:
+                    - cateId
+                    - cateName
+                    - subCategories
+              userIds:
+                type: array
+                items:
+                  type: integer
+                nullable: true
+            required:
+              - name
+              - value
+          description: 日志内容Dto
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties: { name: { type: string }, value: { type: string }, categories: { type: array, items: { type: object, properties: { cateId: { type: integer }, cateName: { type: string }, subCategories: { type: array, items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string }, smallCategories: { type: array, items: { type: object, properties: { smallCategoryId: { nullable: true }, smallCategoryName: { nullable: true } } } } } } } } } } }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /user/user-order/test-request1:
+    put:
+      tags:
+        - OrderLog
+      summary: 'PUT /user/user-order/test-request1'
+      operationId: putLogOrderControllerTestRequest1
+      parameters:
+        -
+          name: name
+          in: query
+          required: false
+          schema:
+            type: string
+            nullable: true
+        -
+          name: userIds
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties: { name: { type: string }, value: { type: string }, categories: { type: array, items: { type: object, properties: { cateId: { type: integer }, cateName: { type: string }, subCategories: { type: array, items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string }, smallCategories: { type: array, items: { type: object, properties: { smallCategoryId: { nullable: true }, smallCategoryName: { nullable: true } } } } } } } } } } }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /user/user-order/testPageRequest:
+    get:
+      tags:
+        - OrderLog
+      summary: 'GET /user/user-order/testPageRequest'
+      operationId: getLogOrderControllerTestPageRequest
+      parameters:
+        -
+          name: logName
+          in: query
+          required: true
+          schema:
+            type: string
+          description: 日志名称
+        -
+          name: userIds
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: integer
+          description: 用户id列表
+        -
+          name: city
+          in: query
+          required: false
+          schema:
+            type: object
+            properties:
+              province:
+                type: string
+                description: 省份
+              city:
+                type: string
+                description: 城市
+              address:
+                type: string
+                description: address
+          description: 城市信息
+        -
+          name: cityList
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                province:
+                  type: string
+                  description: 省份
+                city:
+                  type: string
+                  description: 城市
+                address:
+                  type: string
+                  description: address
+          description: 城市列表
+        -
+          name: page
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: page页码
+        -
+          name: pageSize
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: pageSize每页数量
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      list: { type: array, items: { type: object, properties: { name: { type: string }, value: { type: string }, categories: { type: array, items: { type: object, properties: { cateId: { type: integer }, cateName: { type: string }, subCategories: { type: array, items: { type: object, properties: { subCateId: { type: integer }, subCateName: { type: string } }, required: [subCateId, subCateName] } } }, required: [cateId, cateName, subCategories] } }, userIds: { type: array, items: { type: integer }, nullable: true } }, required: [name, value] } }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /user/user-order/update-order:
+    get:
+      tags:
+        - Object
+      summary: '测试 Entity 更新订单金额与字段'
+      operationId: getObjectControllerUpdateOrder
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /user/user-order/userList:
+    get:
+      tags:
+        - UserOrder
+      summary: !!binary RGIg5Q==
+      operationId: getUserOrderControllerUserList
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        429:
+          description: 'too many requests'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 429
+                  msg:
+                    type: string
+                    example: 'Too Many Requests'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    post:
+      tags:
+        - UserOrder
+      summary: !!binary RGIg5Q==
+      operationId: postUserOrderControllerUserList
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        429:
+          description: 'too many requests'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 429
+                  msg:
+                    type: string
+                    example: 'Too Many Requests'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    put:
+      tags:
+        - UserOrder
+      summary: !!binary RGIg5Q==
+      operationId: putUserOrderControllerUserList
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        429:
+          description: 'too many requests'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 429
+                  msg:
+                    type: string
+                    example: 'Too Many Requests'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    patch:
+      tags:
+        - UserOrder
+      summary: !!binary RGIg5Q==
+      operationId: patchUserOrderControllerUserList
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        429:
+          description: 'too many requests'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 429
+                  msg:
+                    type: string
+                    example: 'Too Many Requests'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    delete:
+      tags:
+        - UserOrder
+      summary: !!binary RGIg5Q==
+      operationId: deleteUserOrderControllerUserList
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        429:
+          description: 'too many requests'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 429
+                  msg:
+                    type: string
+                    example: 'Too Many Requests'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    head:
+      tags:
+        - UserOrder
+      summary: !!binary RGIg5Q==
+      operationId: headUserOrderControllerUserList
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        429:
+          description: 'too many requests'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 429
+                  msg:
+                    type: string
+                    example: 'Too Many Requests'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    options:
+      tags:
+        - UserOrder
+      summary: !!binary RGIg5Q==
+      operationId: optionsUserOrderControllerUserList
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        429:
+          description: 'too many requests'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 429
+                  msg:
+                    type: string
+                    example: 'Too Many Requests'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /user/user-order/userList1:
+    get:
+      tags:
+        - UserOrder
+      summary: !!binary 5Y2P56iL55u45Q==
+      operationId: getUserOrderControllerUserList1
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    post:
+      tags:
+        - UserOrder
+      summary: !!binary 5Y2P56iL55u45Q==
+      operationId: postUserOrderControllerUserList1
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    put:
+      tags:
+        - UserOrder
+      summary: !!binary 5Y2P56iL55u45Q==
+      operationId: putUserOrderControllerUserList1
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    patch:
+      tags:
+        - UserOrder
+      summary: !!binary 5Y2P56iL55u45Q==
+      operationId: patchUserOrderControllerUserList1
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    delete:
+      tags:
+        - UserOrder
+      summary: !!binary 5Y2P56iL55u45Q==
+      operationId: deleteUserOrderControllerUserList1
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    head:
+      tags:
+        - UserOrder
+      summary: !!binary 5Y2P56iL55u45Q==
+      operationId: headUserOrderControllerUserList1
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    options:
+      tags:
+        - UserOrder
+      summary: !!binary 5Y2P56iL55u45Q==
+      operationId: optionsUserOrderControllerUserList1
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /user/user-order/userList2:
+    get:
+      tags:
+        - UserOrder
+      summary: 事务专项测试。
+      operationId: getUserOrderControllerUserList2
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    post:
+      tags:
+        - UserOrder
+      summary: 事务专项测试。
+      operationId: postUserOrderControllerUserList2
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    put:
+      tags:
+        - UserOrder
+      summary: 事务专项测试。
+      operationId: putUserOrderControllerUserList2
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    patch:
+      tags:
+        - UserOrder
+      summary: 事务专项测试。
+      operationId: patchUserOrderControllerUserList2
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    delete:
+      tags:
+        - UserOrder
+      summary: 事务专项测试。
+      operationId: deleteUserOrderControllerUserList2
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    head:
+      tags:
+        - UserOrder
+      summary: 事务专项测试。
+      operationId: headUserOrderControllerUserList2
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    options:
+      tags:
+        - UserOrder
+      summary: 事务专项测试。
+      operationId: optionsUserOrderControllerUserList2
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /user/user-order/userList3:
+    get:
+      tags:
+        - UserOrder
+      summary: 'goApp 多层嵌套 Db 专项测试。'
+      operationId: getUserOrderControllerUserList3
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    post:
+      tags:
+        - UserOrder
+      summary: 'goApp 多层嵌套 Db 专项测试。'
+      operationId: postUserOrderControllerUserList3
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    put:
+      tags:
+        - UserOrder
+      summary: 'goApp 多层嵌套 Db 专项测试。'
+      operationId: putUserOrderControllerUserList3
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    patch:
+      tags:
+        - UserOrder
+      summary: 'goApp 多层嵌套 Db 专项测试。'
+      operationId: patchUserOrderControllerUserList3
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    delete:
+      tags:
+        - UserOrder
+      summary: 'goApp 多层嵌套 Db 专项测试。'
+      operationId: deleteUserOrderControllerUserList3
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    head:
+      tags:
+        - UserOrder
+      summary: 'goApp 多层嵌套 Db 专项测试。'
+      operationId: headUserOrderControllerUserList3
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    options:
+      tags:
+        - UserOrder
+      summary: 'goApp 多层嵌套 Db 专项测试。'
+      operationId: optionsUserOrderControllerUserList3
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /user/user-order/userList4:
+    get:
+      tags:
+        - UserOrder
+      summary: 'newQuery 复杂 SQL 专项测试。'
+      operationId: getUserOrderControllerUserList4
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    post:
+      tags:
+        - UserOrder
+      summary: 'newQuery 复杂 SQL 专项测试。'
+      operationId: postUserOrderControllerUserList4
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    put:
+      tags:
+        - UserOrder
+      summary: 'newQuery 复杂 SQL 专项测试。'
+      operationId: putUserOrderControllerUserList4
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    patch:
+      tags:
+        - UserOrder
+      summary: 'newQuery 复杂 SQL 专项测试。'
+      operationId: patchUserOrderControllerUserList4
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    delete:
+      tags:
+        - UserOrder
+      summary: 'newQuery 复杂 SQL 专项测试。'
+      operationId: deleteUserOrderControllerUserList4
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    head:
+      tags:
+        - UserOrder
+      summary: 'newQuery 复杂 SQL 专项测试。'
+      operationId: headUserOrderControllerUserList4
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    options:
+      tags:
+        - UserOrder
+      summary: 'newQuery 复杂 SQL 专项测试。'
+      operationId: optionsUserOrderControllerUserList4
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data

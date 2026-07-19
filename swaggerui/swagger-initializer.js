@@ -3,7 +3,8 @@ window.onload = function() {
 
   // the following lines will be replaced by docker/configurator, when it runs in a docker-container
   window.ui = SwaggerUIBundle({
-    url: "http://127.0.0.1/openapi-test.yaml",
+    // gen:apidoc 输出目录；按模块切换 yaml，例如 openapi-module.yaml
+    url: "./apidoc/openapi-common.yaml",
     dom_id: '#swagger-ui',
     deepLinking: true,
     presets: [

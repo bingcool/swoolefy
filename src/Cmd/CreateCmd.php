@@ -56,11 +56,6 @@ class CreateCmd extends BaseCmd
             @copy(SRC_DIR_ROOT.'/Stubs/script.stub.php', $scriptFile);
         }
 
-        $swagFile = START_DIR_ROOT . '/swag.php';
-        if (!file_exists($swagFile)) {
-            @copy(SRC_DIR_ROOT.'/Stubs/swag.stub.php', $swagFile);
-        }
-
         @mkdir($appPathDir, self::$dirPermission, true);
 
         $envFile = $appPathDir.'/.env';
@@ -141,6 +136,11 @@ class CreateCmd extends BaseCmd
                     $healthFile = $appPathDir . '/' . $dir . '/health.php';
                     if (!file_exists($healthFile)) {
                         @copy(SRC_DIR_ROOT . '/Stubs/health.conf.stub.php', $healthFile);
+                    }
+
+                    $apidocFile = $appPathDir . '/' . $dir . '/apidoc.php';
+                    if (!file_exists($apidocFile)) {
+                        @copy(SRC_DIR_ROOT . '/Stubs/apidoc.conf.stub.php', $apidocFile);
                     }
 
                     if ($protocol == self::WEBSOCKET_PROTOCOL) {
