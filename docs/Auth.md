@@ -1,7 +1,8 @@
 # Auth：统一身份门面（AuthUser + FrameworkContext）
 
 > **状态**：Phase 1–3 已落地（HTTP / WS / HITL）。本文描述**当前代码行为**，非设计草案。  
-> Gate / Policy / 完整 RBAC 仍属后续扩展（见文末「后续」）。
+> Gate / Policy / 完整 RBAC 仍属后续扩展（见文末「后续」）。  
+> 模块速览：[src/Support/Auth/README.md](../src/Support/Auth/README.md)
 
 ## 定位
 

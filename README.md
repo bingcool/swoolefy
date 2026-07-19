@@ -50,6 +50,8 @@
 - [二十一、🤖 AI / Workflow 工作流](#nav-21-ai-workflow)
 - [二十二、🧠 AI Agent / RAG / MCP / OCR 大模型能力](#nav-22-ai-capabilities)
 - [二十三、📬 Job 异步任务](#nav-23-job)
+- [🔐 Auth 统一身份](#nav-auth)
+- [🧪 PHPUnit / PhpUintTest](#nav-phpunit)
 
 ---
 
@@ -57,13 +59,40 @@
 
 ### 一、📖 简介
 
-swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协程级应用服务框架，
-高度支持httpApi，websocket，udp服务器，以及基于tcp实现可扩展的rpc服务，worker多进程消费模型, 支持composer包方式安装部署项目。     
-基于实用主义设计出发，swoolefy抽象Event事件处理类, 实现与底层的回调的解耦，支持协程单例调度，同步|异步调用，全局事件注册，心跳检查，异步任务，多进程(池)，连接池等，
-内置`log、session、mysql、pgsql、redis、mongodb、kafka、amqp、uuid、route midelware、cache、queue、rateLimit、traceId`等常用组件等。  
-在人工智能 AI 时代潮流下，swoolefy 基于 Neuron AI 与协程运行时，内聚 LLM，**Workflow DAG 工作流编排**、**AINode（对话 / Structured Output / SSE·WebSocket 流式）**    
-**六种 Agent 路由与协程并行调度**、**RAG 向量入库/检索（租户隔离）**、**MCP 工具调用**、**DocumentOcr 文档解析（DOCX/图片/PDF → Markdown）** 等一体化大模型能力，    
-支持条件边 AI 决策、人机协同 HITL、节点超时 / Saga / 快照恢复与 Provider Fallback 等生产级特性。
+**swoolefy** 是基于 [Swoole](https://www.swoole.com/) 的轻量级、高性能、常驻内存协程应用框架，面向 HTTP / WebSocket / UDP / TCP-RPC 与 Worker 多进程消费等场景，支持 Composer 安装与部署。
+
+| 维度 | 能力 |
+|------|------|
+| **协议与进程** | HTTP API、WebSocket、UDP、可扩展 TCP RPC；Worker 多进程消费模型 |
+| **运行时** | Event 事件抽象（与底层回调解耦）、协程单例、同步/异步调用、全局事件、心跳、异步任务、进程池与连接池 |
+| **内置组件** | `log` · `session` · `mysql` · `pgsql` · `redis` · `mongodb` · `kafka` · `amqp` · `uuid` · `route` / `middleware` · `cache` · `queue` · `rateLimit` · `traceId` |
+| **Auth** | JWT Guard + `FrameworkContext` 协程身份；HTTP / WS / Workflow HITL 共用；`goApp` 可透传（array 快照） |
+| **Job** | 统一信封 / Handler / Registry / 重试退避 / Redis 死信；对接现有 Redis·AMQP·Kafka 自定义进程（零建表） |
+| **AI 一体化** | Neuron LLM、Workflow DAG、AINode 流式、六种 Agent 路由、RAG（租户隔离）、MCP、**DocumentOcr**（DOCX / 图片 / PDF → Markdown → RAG） |
+| **生产级工作流** | 条件边 AI 决策、人机协同 HITL、节点超时、Saga、快照恢复、Provider Fallback |
+| **测试** | PHPUnit 11 单轨：`PhpUintTest/`（Unit / Coroutine / Http / Websocket）；`composer test` 默认绿灯 |
+
+实用主义优先：高频能力收敛进框架，编排交给 Workflow / Agent，身份走 Auth，异步走 Job，回归走 PhpUintTest。
+
+#### 模块速览
+
+| 模块 | 一句话 | 文档 |
+|------|--------|------|
+| **Workflow** | DAG 工作流：条件边、HITL、Saga、RunStore、Plugin | [AI-WORKFLOW](docs/AI-WORKFLOW.md) · [Support/Workflow](src/Support/Workflow/README.md) · [二十一](#nav-21-ai-workflow) |
+| **Neuron** | LLM Provider / Fallback / Embedding / ChatHistory / 出站守卫 | [Support/Neuron](src/Support/Neuron/README.md) · [二十二](#nav-22-ai-capabilities) |
+| **AI** | `AINode`、Structured Output、SSE·WS 流式、多 Agent 并行节点 | [Support/AI](src/Support/AI/README.md) · [二十二](#nav-22-ai-capabilities) |
+| **Agent** | 六种路由 + 协程并行调度 | [Support/Agent](src/Support/Agent/README.md) · [二十二](#nav-22-ai-capabilities) |
+| **RAG** | 向量入库/检索、租户隔离、sync·queue Dispatcher | [Support/Rag](src/Support/Rag/README.md) · [二十二](#nav-22-ai-capabilities) |
+| **MCP** | HTTP/SSE Tools、多租户配置、stdio 生产禁用 | [Support/Mcp](src/Support/Mcp/README.md) · [二十二](#nav-22-ai-capabilities) |
+| **DocumentOcr** | DOCX / 图片 / PDF → Markdown，可接入 RAG | [DocumentOcr](docs/DocumentOcr.md) · [Support/DocumentOcr](src/Support/DocumentOcr/README.md) · [二十二](#nav-22-ai-capabilities) |
+| **CapabilityCenter** | 能力/工具注册与发现（Agent / MCP 共用） | [CapabilityTool](docs/CapabilityTool.md) · [Support/CapabilityCenter](src/Support/CapabilityCenter/README.md) |
+| **Job** | 轻量异步任务信封与 Runner，不替换进程模型 | [Job](docs/Job.md) · [Support/Job](src/Support/Job/README.md) · [二十三](#nav-23-job) |
+| **Auth** | `AuthUser` + JWT Guard；HTTP / WS / HITL 同门面 | [Auth](docs/Auth.md) · [Support/Auth](src/Support/Auth/README.md) · [简介](#nav-auth) |
+| **Nacos** | 配置监听、服务注册/发现、SDK `base_uri` 解析 | [Support/Nacos](src/Support/Nacos/README.md) · [二十](#nav-20-nacos) |
+| **Mqtt** | MQTT 协议服务与优雅停机 | [src/Mqtt](src/Mqtt/README.md) |
+| **Websocket** | 推送、离线、Cluster、Socket.IO 等 | [架构/协议](#nav-arch) · 测试见 PhpUintTest |
+| **PhpUintTest** | PHPUnit 11 单轨；Unit / Coroutine / Http / Websocket | [PHPUnitTest](docs/PHPUnitTest.md) · [简介](#nav-phpunit) |
+| **library** | 协程组件库（DB / Redis / Queue / Jwt …） | [bingcool/library](https://github.com/bingcool/library) · [五](#nav-5-library) |
 
 ### 🎯 核心特性
 
@@ -86,17 +115,53 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
   - **服务注册**: 应用实例注册到 Nacos 注册中心，支持心跳保活（`application.yaml` → `nacos.service_register`）
   - **服务发现**: `DiscoveryClient` 拉取健康实例，内置 `random` / `round_robin` / `weight` 负载均衡
   - **SDK 服务发现**: `gen:sdk` 生成的 API 客户端在未传入 Guzzle Client 时，自动通过 Nacos 解析目标服务 `base_uri`（`serviceName` 在生成时从 `application.yaml` 注入）
+- 🔐 **Auth 统一身份**（`src/Support/Auth/`）:
+  - **AuthUser + JwtAuthGuard**: 签发 / 验票同一 Guard；组件名 `auth.guard`
+  - **FrameworkContext**: 协程 Context 存 array 快照，`goApp` 可透传；禁止进程级「当前用户」
+  - **三通道**: `AuthenticateMiddleware`（HTTP）/ WS 握手 / Workflow HITL `*ForUser`（详见 [docs/Auth.md](docs/Auth.md)）
 - 🤖 **AI / LLM / RAG / Agent / OCR**:
   - **LLM（Neuron）**: Provider 工厂、Fallback、Middleware、Embedding、ChatHistory（Redis/SQL）、出站 URL 守卫（`src/Support/Neuron/`）
   - **AI 节点**: `AINode`、Structured Output、SSE/WebSocket 流式输出、多 Agent 并行节点（`src/Support/AI/`）
   - **Agent**: Static / Rule / Weighted / CostAware / RoundRobin / LLM 六种路由 + 协程并行调度（`src/Support/Agent/`）
   - **RAG**: 多向量库入库/检索、租户隔离、sync·queue Dispatcher（`src/Support/Rag/`）
   - **MCP**: HTTP/SSE Tools、DB 多租户配置、stdio 生产禁用（`src/Support/Mcp/`）
-  - **DocumentOcr**: Pandoc（DOCX/HTML/MD）+ DeepSeek OCR（图片/PDF）→ Markdown → RAG（`src/Support/DocumentOcr/`）
+  - **DocumentOcr**: Pandoc（DOCX/HTML/MD）+ DeepSeek OCR（图片/PDF）→ Markdown → RAG（`src/Support/DocumentOcr/`，详见 [docs/DocumentOcr.md](docs/DocumentOcr.md)）
   - **Workflow**: DAG 工作流引擎，支持 AI 决策分支、多 Agent 并行、RAG/MCP 节点与人机协同 HITL（详见 [二十一](#nav-21-ai-workflow)、[二十二](#nav-22-ai-capabilities)）
-- 📬 **Job 异步任务**: 统一信封 + Handler + Registry + 重试/退避，对接现有 Redis/AMQP/Kafka 自定义进程（详见 [二十三](#nav-23-job)、[docs/Job.md](docs/Job.md)）
+- 📬 **Job 异步任务**（`src/Support/Job/`）:
+  - 统一信封 + Handler + Registry + 重试/退避 + Redis 死信重放
+  - 对接现有 Redis / AMQP / Kafka 自定义进程，**不新建 SQL 表**、不替换 `ProcessManager`（详见 [二十三](#nav-23-job)、[docs/Job.md](docs/Job.md)）
+- 🧪 **PHPUnit / PhpUintTest**:
+  - 唯一推荐运行器：PHPUnit 11；用例目录 `PhpUintTest/`（Unit · Coroutine · Http · Websocket）
+  - 默认 `composer test` = unit + coroutine；Http / Websocket / Redis 等独立 suite 或 `@group`
+  - 方案与命令：[docs/PHPUnitTest.md](docs/PHPUnitTest.md)
 
+<a id="nav-auth"></a>
 
+### 🔐 Auth 统一身份（简介）
+
+HTTP Bearer、WebSocket 握手与 Workflow HITL 共用 `AuthGuardInterface`（默认 `JwtAuthGuard`），身份经 `FrameworkContext::setUser` 写入当前协程（array 快照，可随 `goApp` 透传）。业务只读 `FrameworkContext::user()` / `getUserId()`，禁止把 Body/Query 的 `uid` 当鉴权身份。
+
+| 入口 | 说明 |
+|------|------|
+| 模块 README | [src/Support/Auth/README.md](src/Support/Auth/README.md) |
+| 完整文档 | [docs/Auth.md](docs/Auth.md) |
+| 联调 | `GET /api/auth-user/me`（`Test/Controller/AuthUserController`） |
+| 测试 | `composer test:auth` |
+
+<a id="nav-phpunit"></a>
+
+### 🧪 PHPUnit / PhpUintTest（简介）
+
+测试已单轨迁入 **`PhpUintTest/`**（命名空间 `PhpUintTest\`），由 `phpunit.xml.dist` 按 suite 分层；旧 `src/**/Tests` 脚本式回归已删除。
+
+| 命令 | 说明 |
+|------|------|
+| `composer test` | unit + coroutine（默认 CI 绿灯） |
+| `composer test:http` / `test:http:ci` | 真服务 Guzzle 黄金路径（模式 A / B） |
+| `composer test:websocket` / `test:mqtt` / `test:support` | 协议与 Support 模块 |
+| `composer test:coverage` | 文本覆盖率（无强制门槛） |
+
+详见 [docs/PHPUnitTest.md](docs/PHPUnitTest.md)。
 
 ### 🏛️ 架构设计
 
@@ -1993,7 +2058,7 @@ composer test:workflow
 | [docs/AI-WORKFLOW.md](docs/AI-WORKFLOW.md)       | 生产接入快速指南                                                                       |
 | [docs/DocumentOcr.md](docs/DocumentOcr.md)       | DocumentOcr 技术方案                                                               |
 | [docs/CapabilityTool.md](docs/CapabilityTool.md) | CapabilityCenter 设计                                                            |
-| 各模块 README                                       | `src/Support/{Neuron,AI,Agent,Rag,Mcp,DocumentOcr,CapabilityCenter}/README.md` |
+| 各模块 README                                       | `src/Support/{Neuron,AI,Agent,Rag,Mcp,DocumentOcr,CapabilityCenter,Auth,Job}/README.md` |
 
 
 

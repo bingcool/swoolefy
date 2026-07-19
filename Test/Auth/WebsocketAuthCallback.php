@@ -9,6 +9,7 @@ use Swoolefy\Core\Application;
 use Swoolefy\Support\Auth\AuthException;
 use Swoolefy\Support\Auth\AuthGuardInterface;
 use Swoolefy\Support\FrameworkContext;
+use Test\App;
 
 /**
  * WebSocket 握手鉴权回调（与 HTTP 共用 JwtAuthGuard）。
@@ -57,7 +58,7 @@ final class WebsocketAuthCallback
         unset($request);
 
         /** @var AuthGuardInterface $guard */
-        $guard = Application::getApp()->get('auth.guard');
+        $guard = App::getAuthGuard();
 
         try {
             $user = $guard->authenticate(['token' => $token]);

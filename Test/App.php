@@ -19,6 +19,7 @@ use Swoolefy\Library\Lock\PHPRedisMutex;
 use Swoolefy\Library\PubSub\RedisPubSub;
 use Swoolefy\Library\Uuid\UuidManager;
 use Swoolefy\Core\Dto\ContainerObjectDto;
+use Swoolefy\Support\Auth\JwtAuthGuard;
 use Symfony\Component\Translation\Translator;
 
 class App
@@ -122,5 +123,13 @@ class App
     public static function getTranslator()
     {
         return \Swoolefy\Core\Application::getApp()->get('translator');
+    }
+
+    /**
+     * @return JwtAuthGuard|ContainerObjectDto
+     */
+    public static function getAuthGuard()
+    {
+        return \Swoolefy\Core\Application::getApp()->get('auth.guard');
     }
 }
