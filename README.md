@@ -559,7 +559,8 @@ ENV SWOOLEFY_CLI_ENV=dev
   "prefer-stable": true,
   "license": "proprietary",
   "require": {
-    "bingcool/swoolefy": "~6.3"
+    "bingcool/swoolefy": "~6.3",
+    "bingcool/library": "dev-library-6.x"
   }
 }
   
