@@ -1658,6 +1658,7 @@ class UserController extends BController
 ```php
 use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Annotation\Validation\ValidationRule;
+use Swoolefy\Http\BaseRequest;
 
 class UserCreateRequest extends BaseRequest
 {
@@ -1669,11 +1670,13 @@ class UserCreateRequest extends BaseRequest
     #[ValidationRule(rule: "required|array", itemClass: RoleDto::class)]
     protected array $roles = [];
 }
+
+// Controller 内可读：$request->validated() / only() / getUsername()
 ```
 
 #### 注意事项
 
-- action 建议显式声明 Request / Response 类型
+- action 建议显式声明 Request / Response 类型；入参继承 `BaseRequest`（自带 `validated()` / `only()` 等助手）
 - 字段建议加 `#[ApiProperty]`；数组对象用 `ValidationRule(itemClass: ...)` 或 `#[ArrayList]`
 - GET 查询复杂嵌套对象时，query 表达能力有限，宜拆标量或改用 POST body
 - 每次生成会清理输出目录下旧的 `openapi-*.yaml`

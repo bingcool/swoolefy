@@ -14,6 +14,9 @@ namespace Swoolefy\Http;
 use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Annotation\Validation\ValidationRule;
 
+/**
+ * 分页入参基类（page / pageSize）。
+ */
 class BasePageRequest extends BaseRequest
 {
     /**

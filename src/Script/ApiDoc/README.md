@@ -85,3 +85,4 @@ php script.php start App --c=gen:apidoc --router=App/Router --out=swaggerui/apid
 - 命令：`Swoolefy\Script\GenerateApiDoc`
 - 配置模版：`src/Stubs/apidoc.conf.stub.php` → 应用 `Config/apidoc.php`
 - 主文档：仓库根 `README.md` §十九
+- 入参基类：`Swoolefy\Http\BaseRequest`（含 `validated()` 等读参助手）
