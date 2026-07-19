@@ -22,7 +22,7 @@ if (!class_exists('autoloader', false)) {
         private static $baseDirectory = null;
 
         /** @var list<string> */
-        private static $rootNamespace = ['Test'];
+        private static $rootNamespace = ["<{APP_NAME}>"];
 
         /** @var array<string, true> */
         private static $classMapNamespace = [];
