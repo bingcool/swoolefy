@@ -26,6 +26,7 @@ namespace Test\Router;
  *   - Chunked.php        ChunkedController
  *   - Download.php       DownloadController
  *   - Upload.php         UploadController
+ *   - FileStorage.php    FileStorageController（本地 FileStorageSystem）
  *   - Object.php         ObjectController
  *   - Pg.php             PgController
  *   - Amqp.php           AmqpController
