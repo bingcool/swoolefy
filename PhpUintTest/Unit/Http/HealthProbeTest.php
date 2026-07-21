@@ -103,4 +103,25 @@ final class HealthProbeTest extends TestCase
         $this->assertSame('process', $checks[0]->name());
         $this->assertSame('cache-redis', $checks[1]->name());
     }
+
+    /**
+     * 验证：file_storage type 可构造，并解析 disk / probe_path。
+     */
+    public function testCheckFactoryBuildsFileStorageDef(): void
+    {
+        $checks = CheckFactory::fromDefs([
+            [
+                'type' => 'file_storage',
+                'component' => 'file_storage',
+                'disk' => 'aliyun_oss',
+                'probe_path' => '.health/probe',
+                'name' => 'storage-oss',
+            ],
+            ['type' => 'storage', 'disk' => 'local'],
+        ]);
+
+        $this->assertCount(2, $checks);
+        $this->assertSame('storage-oss', $checks[0]->name());
+        $this->assertSame('file_storage', $checks[1]->name());
+    }
 }

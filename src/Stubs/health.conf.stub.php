@@ -40,6 +40,12 @@ return [
         'readiness_checks' => [
             ['type' => 'redis', 'component' => 'redis', 'name' => 'redis'],
             // ['type' => 'database', 'component' => 'db', 'name' => 'database'],
+            // FileStorageSystem：local / aws_s3 / aliyun_oss / tengxun_cos（及 fake）
+            // disk = Config/file_storage_system.php 中的 provider 键；省略则用 default_provider
+            // ['type' => 'file_storage', 'component' => 'file_storage', 'disk' => 'local', 'name' => 'storage-local'],
+            // ['type' => 'file_storage', 'component' => 'file_storage', 'disk' => 'aws_s3', 'name' => 'storage-s3'],
+            // ['type' => 'file_storage', 'component' => 'file_storage', 'disk' => 'aliyun_oss', 'name' => 'storage-oss'],
+            // ['type' => 'file_storage', 'component' => 'file_storage', 'disk' => 'tengxun_cos', 'name' => 'storage-cos'],
             // ['type' => 'class', 'class' => \App\Health\CustomCheck::class],
         ],
     ],

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Swoolefy\Http\Health;
 
 use Swoolefy\Http\Health\Check\DatabaseHealthCheck;
+use Swoolefy\Http\Health\Check\FileStorageHealthCheck;
 use Swoolefy\Http\Health\Check\ProcessHealthCheck;
 use Swoolefy\Http\Health\Check\RedisHealthCheck;
 
@@ -26,6 +27,7 @@ use Swoolefy\Http\Health\Check\RedisHealthCheck;
  * | process | {@see ProcessHealthCheck} | — |
  * | redis | {@see RedisHealthCheck} | component（默认 redis）、name |
  * | database / db | {@see DatabaseHealthCheck} | component（默认 db）、name |
+ * | file_storage / storage / filestorage | {@see FileStorageHealthCheck} | component、disk、probe_path、name |
  * | class | 用户 FQCN | class（须实现接口，零参构造） |
  *
  * 未知 type 被忽略（返回 null），避免拼写错误直接打挂探针注册。
@@ -71,9 +73,34 @@ final class CheckFactory
             'process' => new ProcessHealthCheck(),
             'redis' => new RedisHealthCheck($component ?? 'redis', $name !== '' ? $name : 'redis'),
             'database', 'db' => new DatabaseHealthCheck($component ?? 'db', $name !== '' ? $name : 'database'),
+            'file_storage', 'storage', 'filestorage' => self::makeFileStorage($def, $component, $name),
             'class' => self::makeClass($def),
             default => null,
         };
+    }
+
+    /**
+     * FileStorageSystem：local / aws_s3 / aliyun_oss / tengxun_cos（及 fake）。
+     *
+     * @param array<string, mixed> $def
+     */
+    private static function makeFileStorage(array $def, ?string $component, string $name): FileStorageHealthCheck
+    {
+        $disk = isset($def['disk']) && is_string($def['disk']) && $def['disk'] !== ''
+            ? $def['disk']
+            : (isset($def['provider']) && is_string($def['provider']) && $def['provider'] !== ''
+                ? $def['provider']
+                : null);
+        $probePath = isset($def['probe_path']) && is_string($def['probe_path']) && $def['probe_path'] !== ''
+            ? $def['probe_path']
+            : '.swoolefy/health-probe';
+
+        return new FileStorageHealthCheck(
+            component: $component ?? 'file_storage',
+            name: $name !== '' && $name !== 'storage' && $name !== 'filestorage' ? $name : 'file_storage',
+            disk: $disk,
+            probePath: $probePath,
+        );
     }
 
     /**

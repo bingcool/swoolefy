@@ -23,6 +23,7 @@ namespace Swoolefy\Http\Health;
  *
  * @see Check\RedisHealthCheck
  * @see Check\DatabaseHealthCheck
+ * @see Check\FileStorageHealthCheck
  * @see Check\ProcessHealthCheck
  * @see CheckFactory
  */

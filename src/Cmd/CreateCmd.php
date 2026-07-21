@@ -96,6 +96,7 @@ class CreateCmd extends BaseCmd
                         @copy(SRC_DIR_ROOT.'/Stubs/log.stub.php', $componentDir.'/log.php');
                         @copy(SRC_DIR_ROOT.'/Stubs/cache.stub.php', $componentDir.'/cache.php');
                         @copy(SRC_DIR_ROOT.'/Stubs/document_parser.component.stub.php', $componentDir.'/document_parser.php');
+                        @copy(SRC_DIR_ROOT.'/Stubs/file_storage.component.stub.php', $componentDir.'/file_storage.php');
                     }
 
                     $confFile = $appPathDir . '/' . $dir . '/app.php';
@@ -141,6 +142,11 @@ class CreateCmd extends BaseCmd
                     $apidocFile = $appPathDir . '/' . $dir . '/apidoc.php';
                     if (!file_exists($apidocFile)) {
                         @copy(SRC_DIR_ROOT . '/Stubs/apidoc.conf.stub.php', $apidocFile);
+                    }
+
+                    $fileStorageFile = $appPathDir . '/' . $dir . '/file_storage_system.php';
+                    if (!file_exists($fileStorageFile)) {
+                        @copy(SRC_DIR_ROOT . '/Stubs/file_storage_system.conf.stub.php', $fileStorageFile);
                     }
 
                     if ($protocol == self::WEBSOCKET_PROTOCOL) {
