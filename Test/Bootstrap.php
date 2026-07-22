@@ -11,12 +11,11 @@
 
 namespace Test;
 
-use Swoolefy\Library\Db\Facade\Db;
 use Swoolefy\Core\BootstrapInterface;
-use Swoolefy\Exception\SystemException;
+use Swoolefy\Http\Middleware\LocaleMiddleware;
+use Swoolefy\Http\Middleware\SecurityHeadersMiddleware;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\ResponseOutput;
-use Swoolefy\Http\Middleware\SecurityHeadersMiddleware;
 use Test\Logger\RequestLog;
 
 class Bootstrap implements BootstrapInterface
@@ -24,9 +23,10 @@ class Bootstrap implements BootstrapInterface
     public static function handle(RequestInput $requestInput, ResponseOutput $responseOutput)
     {
         \Swoolefy\Core\Coroutine\Context::set('tenant_id', 0);
-          SecurityHeadersMiddleware::apply($requestInput, $responseOutput);
-          \Swoolefy\Core\Coroutine\Context::set('lang_locale', 'zh_CN');
-          $requestInput->setValue('name', 'boostrap');
-          RequestLog::info('RequestLog RequestLog');
+        SecurityHeadersMiddleware::apply($requestInput, $responseOutput);
+        // 语言协商 → Context lang_locale（供 translator 组件）
+        LocaleMiddleware::apply($requestInput);
+        $requestInput->setValue('name', 'boostrap');
+        RequestLog::info('RequestLog RequestLog');
     }
 }

@@ -97,6 +97,8 @@ class CreateCmd extends BaseCmd
                         @copy(SRC_DIR_ROOT.'/Stubs/cache.stub.php', $componentDir.'/cache.php');
                         @copy(SRC_DIR_ROOT.'/Stubs/document_parser.component.stub.php', $componentDir.'/document_parser.php');
                         @copy(SRC_DIR_ROOT.'/Stubs/file_storage.component.stub.php', $componentDir.'/file_storage.php');
+                        @copy(SRC_DIR_ROOT.'/Stubs/auth.component.stub.php', $componentDir.'/auth.php');
+                        @copy(SRC_DIR_ROOT.'/Stubs/translator.component.stub.php', $componentDir.'/translator.php');
                     }
 
                     $confFile = $appPathDir . '/' . $dir . '/app.php';
@@ -147,6 +149,16 @@ class CreateCmd extends BaseCmd
                     $fileStorageFile = $appPathDir . '/' . $dir . '/file_storage_system.php';
                     if (!file_exists($fileStorageFile)) {
                         @copy(SRC_DIR_ROOT . '/Stubs/file_storage_system.conf.stub.php', $fileStorageFile);
+                    }
+
+                    $authFile = $appPathDir . '/' . $dir . '/auth.php';
+                    if (!file_exists($authFile)) {
+                        @copy(SRC_DIR_ROOT . '/Stubs/auth.conf.stub.php', $authFile);
+                    }
+
+                    $i18nFile = $appPathDir . '/' . $dir . '/i18n.php';
+                    if (!file_exists($i18nFile)) {
+                        @copy(SRC_DIR_ROOT . '/Stubs/i18n.conf.stub.php', $i18nFile);
                     }
 
                     if ($protocol == self::WEBSOCKET_PROTOCOL) {
@@ -238,6 +250,16 @@ class CreateCmd extends BaseCmd
                         switch ($protocol) {
                             case self::HTTP_PROTOCOL:
                                 @copy(SRC_DIR_ROOT . '/Http/conf.stub.php', $confFile);
+                                // 挂上应用 Bootstrap（Locale + SecurityHeaders）
+                                if (is_file($confFile)) {
+                                    $confContent = (string) file_get_contents($confFile);
+                                    $confContent = str_replace(
+                                        "'application_bootstrap'    => '',",
+                                        "'application_bootstrap'    => \\{$appName}\\Bootstrap::class,",
+                                        $confContent
+                                    );
+                                    @file_put_contents($confFile, $confContent);
+                                }
                                 break;
                             case self::RPC_PROTOCOL:
                                 @copy(SRC_DIR_ROOT . '/Rpc/conf.stub.php', $confFile);
@@ -268,13 +290,7 @@ class CreateCmd extends BaseCmd
                             if (!is_dir($routeDir)) {
                                 @mkdir($routeDir, self::$dirPermission, true);
                             }
-
-                            $middlewareFile = $routeDir . '/ValidLoginMiddleware.php';
-                            if (!file_exists($middlewareFile)) {
-                                $middlewareContent = (string) file_get_contents(SRC_DIR_ROOT . '/Stubs/ValidLoginMiddleware.stub.php');
-                                $middlewareContent = str_replace('MY_APP_NAME', $appName, $middlewareContent);
-                                @file_put_contents($middlewareFile, $middlewareContent);
-                            }
+                            // 鉴权请用框架 AuthenticateMiddleware（见 Router/api.php 示例），不再生成 ValidLoginMiddleware 空 stub
                             break;
                         case self::UDP_PROTOCOL:
                         case self::WEBSOCKET_PROTOCOL:
@@ -358,6 +374,9 @@ class CreateCmd extends BaseCmd
             }
         }
         $this->copyServerFile($appName, $protocol);
+        if ($protocol == self::HTTP_PROTOCOL) {
+            $this->copyHttpI18nAndBootstrap($appName, $appPathDir);
+        }
         if ($protocol == self::WEBSOCKET_PROTOCOL) {
             @mkdir($appPathDir . '/Tests', self::$dirPermission, true);
             @copy(SRC_DIR_ROOT . '/Stubs/socketio.client.stub.html', $appPathDir . '/Storage/socketio-client.html');
@@ -366,6 +385,30 @@ class CreateCmd extends BaseCmd
         }
         fmtPrintInfo("应用创建成功啦，应用名称为：【{$appName}】，你现在可以使用命令 php cli.php start {$appName} 来启动应用");
         return 0;
+    }
+
+    /**
+     * HTTP：Bootstrap（LocaleMiddleware）+ 默认语言包。
+     */
+    protected function copyHttpI18nAndBootstrap(string $appName, string $appPathDir): void
+    {
+        $bootstrapFile = $appPathDir . '/Bootstrap.php';
+        if (!file_exists($bootstrapFile)) {
+            $content = (string) file_get_contents(SRC_DIR_ROOT . '/Stubs/Bootstrap.stub.php');
+            $content = str_replace('MY_APP_NAME', $appName, $content);
+            @file_put_contents($bootstrapFile, $content);
+        }
+
+        foreach (['zh_CN' => 'translations.zh_CN.messages.stub.php', 'en' => 'translations.en.messages.stub.php'] as $locale => $stub) {
+            $dir = $appPathDir . '/Resource/Translations/' . $locale;
+            if (!is_dir($dir)) {
+                @mkdir($dir, self::$dirPermission, true);
+            }
+            $messagesFile = $dir . '/messages.php';
+            if (!file_exists($messagesFile)) {
+                @copy(SRC_DIR_ROOT . '/Stubs/' . $stub, $messagesFile);
+            }
+        }
     }
 
     /**

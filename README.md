@@ -50,6 +50,7 @@
 - [二十二、🧠 AI Agent / RAG / MCP / OCR 大模型能力](#nav-22-ai-capabilities)
 - [二十三、📬 Job 异步任务](#nav-23-job)
 - [🔐 Auth 统一身份](#nav-auth)
+- [🌐 I18n 国际化](#nav-i18n)
 - [🧪 PHPUnit / PhpUintTest](#nav-phpunit)
 
 ---
@@ -87,6 +88,7 @@
 | **CapabilityCenter** | 能力/工具注册与发现（Agent / MCP 共用） | [CapabilityTool](docs/CapabilityTool.md) · [Support/CapabilityCenter](src/Support/CapabilityCenter/README.md) |
 | **Job** | 轻量异步任务信封与 Runner，不替换进程模型 | [Job](docs/Job.md) · [Support/Job](src/Support/Job/README.md) · [二十三](#nav-23-job) |
 | **Auth** | `AuthUser` + JWT Guard；HTTP / WS / HITL 同门面 | [Auth](docs/Auth.md) · [Support/Auth](src/Support/Auth/README.md) · [简介](#nav-auth) |
+| **I18n** | `LocaleMiddleware` 协商 locale + Symfony `translator` 组件 | [I18n](docs/I18n.md) |
 | **Nacos** | 配置监听、服务注册/发现、SDK `base_uri` 解析 | [Support/Nacos](src/Support/Nacos/README.md) · [二十](#nav-20-nacos) |
 | **Mqtt** | MQTT 协议服务与优雅停机 | [src/Mqtt](src/Mqtt/README.md) |
 | **Websocket** | 推送、离线、Cluster、Socket.IO 等 | [架构/协议](#nav-arch) · 测试见 PhpUintTest |
@@ -147,6 +149,20 @@ HTTP Bearer、WebSocket 握手与 Workflow HITL 共用 `AuthGuardInterface`（�
 | 完整文档 | [docs/Auth.md](docs/Auth.md) |
 | 联调 | `GET /api/auth-user/me`（`Test/Controller/AuthUserController`） |
 | 测试 | `composer test:auth` |
+
+<a id="nav-i18n"></a>
+
+### 🌐 I18n 国际化（简介）
+
+请求语言由 `LocaleMiddleware` 协商（Query / Header / Accept-Language），写入协程 `lang_locale`；`translator` 组件按该 locale 加载 `Resource/Translations/{locale}/messages.php`。
+
+```php
+LocaleMiddleware::apply($requestInput);
+$t = Application::getApp()->get('translator');
+echo $t->trans('hello');
+```
+
+完整说明：[docs/I18n.md](docs/I18n.md)。
 
 <a id="nav-phpunit"></a>
 
@@ -506,13 +522,14 @@ docker run -d -it --security-opt seccomp=unconfined -p 9501:9501 -p 9502:9502 -v
 - [x] Db、Redis、 Curl协程连接池组件
 - [x] UUid 分布式自增id组件  
 - [x] OpenTelemetry 链路追踪组件      
-- [x] nacos 服务注册、服务发现、服务配置组件
+- [x] nacos 服务注册、服务发现、服务配置 SDK（底层 Client；应用集成见 Support/Nacos）
 - [x] Curl基础组件    
 - [x] Jwt 组件   
 - [x] Validate 组件    
 - [x] Encrypt 加密解密组件   
 - [x] Captcha 验证码组件    
-- [x] Translation 国际化（I18N）    
+
+> I18n（请求语言 + Symfony Translation）在 **swoolefy 应用层**：`LocaleMiddleware` + `translator` 组件，见 [docs/I18n.md](docs/I18n.md)。library 不含独立 Translation 组件。
 
 github: [https://github.com/bingcool/library](https://github.com/bingcool/library)    
 
@@ -1154,43 +1171,20 @@ Route::get('/index/index', [
 Route::group([
     // 路由前缀
     'prefix' => 'api',
-    // 路由中间件,多个按顺序执行
-    'middleware' => [
-        \Test\Middleware\Route\ValidLoginMiddleware::class,
-    ]
 ], function () {
 
-    Route::get('/', [
-        // 前置路由,闭包函数形式
+    // 公开接口：不要整组挂鉴权，否则健康检查 / 登录也会 401
+    Route::get('/index/index', [
         'beforeHandle' => function(RequestInput $requestInput) {
             var_dump('beforeHandle');
         },
-
-        // 前置路由,中间件类形式(推荐)
-        'beforeHandle2' => \Test\Middleware\Route\ValidLoginMiddleware::class,
-
-        // 前置路由,中间件数组类形式(推荐)
-        'beforeHandle3' => [
-            \Test\Middleware\Route\ValidLoginMiddleware::class,
-            \Test\Middleware\Route\ValidLoginMiddleware::class,
-        ],
-
-        // 控制器action
         'dispatch_route' => [\Test\Controller\IndexController::class, 'index'],
+    ]);
 
-        // 后置路由
-        'afterHandle1' => function(RequestInput $requestInput) {
-            var_dump('afterHandle');
-        },
-
-        // 前置路由,中间件类形式(推荐)
-        'afterHandle2' => \Test\Middleware\Route\ValidLoginMiddleware::class,
-
-        // 前置路由,中间件数组类形式(推荐)
-        'afterHandle3' => [
-            \Test\Middleware\Route\ValidLoginMiddleware::class,
-            \Test\Middleware\Route\ValidLoginMiddleware::class
-        ],
+    // 需登录：挂框架 AuthenticateMiddleware（需 Config/auth.php + component/auth.php）
+    Route::get('/me', [
+        'beforeHandle' => \Swoolefy\Http\Middleware\AuthenticateMiddleware::class,
+        'dispatch_route' => [\Test\Controller\IndexController::class, 'index'],
     ]);
 });
 

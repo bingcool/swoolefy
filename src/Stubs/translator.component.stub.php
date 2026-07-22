@@ -6,7 +6,16 @@ use Symfony\Component\Translation\Loader\PhpFileLoader;
 use Symfony\Component\Translation\Translator;
 
 /**
- * Translator 组件：按 Context lang_locale 加载语言包。
+ * Translator 组件（create 时复制到 Config/component/translator.php）
+ *
+ * 依赖 LocaleMiddleware（或 Bootstrap）已写入 Context `lang_locale`。
+ * 语言包目录：APP_PATH/Resource/Translations/{locale}/messages.php
+ *
+ * 用法：
+ * ```php
+ * $t = Application::getApp()->get('translator');
+ * $t->trans('hello');
+ * ```
  *
  * @see docs/I18n.md
  * @see Config/i18n.php

@@ -1,40 +1,31 @@
 <?php
 
-use Swoolefy\Http\Route;
+use Swoolefy\Http\Middleware\AuthenticateMiddleware;
 use Swoolefy\Http\RequestInput;
+use Swoolefy\Http\Route;
 
 /**
  * @api api公共路由
+ *
+ * 鉴权：请对需要登录的路由挂 {@see AuthenticateMiddleware}（需 Config/auth.php + component/auth.php）。
+ * 勿在整组 api 上强制鉴权，否则健康检查 / 公开接口也会 401。
  */
 
-// 分组路由
 Route::group([
-    // 路由前缀
     'prefix' => 'api',
-    // 路由中间件,多个按顺序执行
-    'middleware' => [
-        \App\Middleware\Route\ValidLoginMiddleware::class,
-    ]
 ], function () {
 
+    // 公开示例
     Route::get('/index/index', [
-        // 前置路由处理
         'before_handle' => function (RequestInput $requestInput) {
             $requestInput->setValue('name', 'swoolefy');
         },
-        // 前置路由,中间件数组类形式(推荐)
-        'before_middleware' => [
-            \App\Middleware\Route\ValidLoginMiddleware::class,
-            \App\Middleware\Route\ValidLoginMiddleware::class,
-        ],
-
-        // 控制器action
         'dispatch_route' => [\App\Controller\IndexController::class, 'index'],
+    ]);
 
-        // 后置路由中间件数组类形式(推荐)
-        'after_middleware' => [
-            \App\Middleware\Route\ValidLoginMiddleware::class,
-            \App\Middleware\Route\ValidLoginMiddleware::class
-        ],
+    // 需登录示例：Authorization: Bearer <jwt>
+    Route::get('/me', [
+        'beforeHandle' => AuthenticateMiddleware::class,
+        'dispatch_route' => [\App\Controller\IndexController::class, 'index'],
     ]);
 });
