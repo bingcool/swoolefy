@@ -97,6 +97,7 @@ class CreateCmd extends BaseCmd
                         @copy(SRC_DIR_ROOT.'/Stubs/cache.stub.php', $componentDir.'/cache.php');
                         @copy(SRC_DIR_ROOT.'/Stubs/document_parser.component.stub.php', $componentDir.'/document_parser.php');
                         @copy(SRC_DIR_ROOT.'/Stubs/file_storage.component.stub.php', $componentDir.'/file_storage.php');
+                        @copy(SRC_DIR_ROOT.'/Stubs/oauth.component.stub.php', $componentDir.'/oauth.php');
                         @copy(SRC_DIR_ROOT.'/Stubs/auth.component.stub.php', $componentDir.'/auth.php');
                         @copy(SRC_DIR_ROOT.'/Stubs/translator.component.stub.php', $componentDir.'/translator.php');
                     }
@@ -149,6 +150,11 @@ class CreateCmd extends BaseCmd
                     $fileStorageFile = $appPathDir . '/' . $dir . '/file_storage_system.php';
                     if (!file_exists($fileStorageFile)) {
                         @copy(SRC_DIR_ROOT . '/Stubs/file_storage_system.conf.stub.php', $fileStorageFile);
+                    }
+
+                    $oauthFile = $appPathDir . '/' . $dir . '/oauth.php';
+                    if (!file_exists($oauthFile)) {
+                        @copy(SRC_DIR_ROOT . '/Stubs/oauth.conf.stub.php', $oauthFile);
                     }
 
                     $authFile = $appPathDir . '/' . $dir . '/auth.php';

@@ -88,6 +88,7 @@
 | **CapabilityCenter** | 能力/工具注册与发现（Agent / MCP 共用） | [CapabilityTool](docs/CapabilityTool.md) · [Support/CapabilityCenter](src/Support/CapabilityCenter/README.md) |
 | **Job** | 轻量异步任务信封与 Runner，不替换进程模型 | [Job](docs/Job.md) · [Support/Job](src/Support/Job/README.md) · [二十三](#nav-23-job) |
 | **Auth** | `AuthUser` + JWT Guard；HTTP / WS / HITL 同门面 | [Auth](docs/Auth.md) · [Support/Auth](src/Support/Auth/README.md) · [简介](#nav-auth) |
+| **Oauth** | QQ / 微信扫码·公众号·小程序 / 支付宝 / 飞书 / 钉钉 / 企微；DI `oauth` | [Oauth](docs/Oauth.md) · library `Oauth` |
 | **I18n** | `LocaleMiddleware` 协商 locale + Symfony `translator` 组件 | [I18n](docs/I18n.md) |
 | **Nacos** | 配置监听、服务注册/发现、SDK `base_uri` 解析 | [Support/Nacos](src/Support/Nacos/README.md) · [二十](#nav-20-nacos) |
 | **Mqtt** | MQTT 协议服务与优雅停机 | [src/Mqtt](src/Mqtt/README.md) |
