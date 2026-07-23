@@ -53,8 +53,8 @@ use Swoolefy\Support\Tests\Fixtures\DecisionDto;
 
 $node = AINode::make('ai_decision')
     ->structured(DecisionDto::class, outputKey: 'decision')
-    ->memory(threadIdKey: 'sessionId')
     ->build();
+// 会话记忆请在 Agent::chatHistory() 中声明（ChatHistoryFactory），勿在 Builder 配置
 
 // 单测注入 mock，无需 API Key：
 $node = AINode::make('ai_decision')
@@ -88,7 +88,6 @@ $decision = $state->dto(DecisionDto::class); // 需 registerSchema('decision', .
 | `agent($class)` | Neuron Agent FQCN |
 | `structured($dto, $outputKey)` | 结构化输出 |
 | `stream(true)` | 流式（与 structured 互斥） |
-| `memory($threadIdKey)` | 会话记忆 |
 | `provider($alias)` | `neuron_ai.php` 中 Provider 别名 |
 | `mcp($servers, $only, $exclude)` | 挂载 MCP Tools |
 | `executor($fn)` | 跳过 LLM |

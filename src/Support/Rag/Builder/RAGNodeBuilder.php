@@ -57,15 +57,6 @@ final class RAGNodeBuilder
         return $this;
     }
 
-    public function memory(?string $threadIdKey = 'sessionId', int $contextWindow = 50000): self
-    {
-        $this->config['memory'] = true;
-        $this->config['threadIdKey'] = $threadIdKey;
-        $this->config['contextWindow'] = $contextWindow;
-
-        return $this;
-    }
-
     public function stream(bool $enabled = true): self
     {
         $this->config['stream'] = $enabled;

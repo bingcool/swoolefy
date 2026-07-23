@@ -115,19 +115,19 @@ final class WorkflowHitlAuthTest extends TestCase
     }
 
     /**
-     * 验证：提供正确 API Key 时 assertAuthorized 通过。
+     * 验证：提供正确 API Key 时 assertAuthorizedForUser 通过（无 AuthUser 亦可）。
      *
      * 生产 API 网关常用 Key 鉴权，须支持无角色仅 Key 的场景。
      */
     public function testHitlAuthWithValidApiKey(): void
     {
         $auth = new WorkflowHitlAuth($this->hitlConfig());
-        $auth->assertAuthorized('secret-key', null);
+        $auth->assertAuthorizedForUser(null, 'secret-key');
         $this->addToAssertionCount(1);
     }
 
     /**
-     * 验证：AuthUser.roles 与 allowed_roles 求交时 ForUser 通过；仅 Header role 拒绝。
+     * 验证：AuthUser.roles 与 allowed_roles 求交时 ForUser 通过；无用户且无 Key 拒绝。
      */
     public function testHitlAuthWithValidRole(): void
     {
@@ -136,11 +136,11 @@ final class WorkflowHitlAuthTest extends TestCase
         $auth->assertAuthorizedForUser($user, null);
 
         $this->expectException(WorkflowPermissionException::class);
-        $auth->assertAuthorized(null, 'admin');
+        $auth->assertAuthorizedForUser(null, null);
     }
 
     /**
-     * 验证：鉴权开启且 Key 与角色均缺失时抛出 WorkflowPermissionException。
+     * 验证：鉴权开启且 Key 与用户均缺失时抛出 WorkflowPermissionException。
      *
      * 防止匿名 resume/list 操作。
      */
@@ -148,7 +148,7 @@ final class WorkflowHitlAuthTest extends TestCase
     {
         $auth = new WorkflowHitlAuth($this->hitlConfig());
         $this->expectException(WorkflowPermissionException::class);
-        $auth->assertAuthorized(null, null);
+        $auth->assertAuthorizedForUser(null, null);
     }
 
     /**
@@ -160,7 +160,7 @@ final class WorkflowHitlAuthTest extends TestCase
     {
         $this->withHitlEnv(['WORKFLOW_HITL_AUTH_ENABLED' => '0'], function (): void {
             $auth = new WorkflowHitlAuth($this->hitlConfig(['hitl' => ['auth_enabled' => false]]));
-            $auth->assertAuthorized(null, null);
+            $auth->assertAuthorizedForUser(null, null);
             $this->addToAssertionCount(1);
         });
     }
@@ -173,7 +173,7 @@ final class WorkflowHitlAuthTest extends TestCase
         $this->withHitlEnv(['WORKFLOW_HITL_AUTH_ENABLED' => null], function (): void {
             $auth = new WorkflowHitlAuth($this->hitlConfig(['hitl' => ['auth_enabled' => false]]));
             $this->assertFalse($auth->isEnabled());
-            $auth->assertAuthorized(null, null);
+            $auth->assertAuthorizedForUser(null, null);
             $this->addToAssertionCount(1);
         });
     }

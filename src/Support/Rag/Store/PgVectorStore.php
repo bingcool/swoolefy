@@ -223,14 +223,6 @@ final class PgVectorStore implements VectorStoreInterface
     }
 
     /**
-     * @deprecated 请使用 deleteBy()
-     */
-    public function deleteBySource(string $sourceType, string $sourceName): VectorStoreInterface
-    {
-        return $this->deleteBy($sourceType, $sourceName);
-    }
-
-    /**
      * 按 Document 来源删除。
      *
      * sourceName 为 null 时删除该 sourceType 的所有文档；不为 null 时精确匹配来源名称。

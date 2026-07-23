@@ -133,14 +133,6 @@ class WebsocketShutdownCoordinator
     }
 
     /**
-     * @deprecated 使用 registerServerShutdownHook + installForegroundSignalHandler
-     */
-    public static function installMasterSignalHandler(\Swoole\Server $server): void
-    {
-        self::installForegroundSignalHandler($server);
-    }
-
-    /**
      * 主动触发停机（SIGINT / 程序内调用）：标记 → shutdown → drain PEL。
      */
     public static function beginShutdown(\Swoole\Server $server): void

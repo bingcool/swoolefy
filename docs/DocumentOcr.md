@@ -65,8 +65,6 @@ src/Support/DocumentOcr/
     DocumentException.php
     ParserException.php
     UnsupportedDocumentException.php
-    DocumentParseException.php              # @deprecated → ParserException
-    UnsupportedDocumentTypeException.php    # @deprecated → UnsupportedDocumentException
   Tests/DocumentOcrTest.php
   README.md
 
@@ -233,8 +231,6 @@ DocumentException extends RuntimeException
 | 无可用 Driver / 强制 parser 不支持 | `UnsupportedDocumentException` |
 | Pandoc/OCR 执行或 HTTP 失败 | `ParserException` |
 | OCR 超时参数非法 | `ParserException`（构造期） |
-
-已弃用别名：`DocumentParseException`、`UnsupportedDocumentTypeException`。
 
 ---
 

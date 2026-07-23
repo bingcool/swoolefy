@@ -191,14 +191,6 @@ class MilvusVectorStore implements VectorStoreInterface
     }
 
     /**
-     * @deprecated 请使用 deleteBy()
-     */
-    public function deleteBySource(string $sourceType, string $sourceName): VectorStoreInterface
-    {
-        return $this->deleteBy($sourceType, $sourceName);
-    }
-
-    /**
      * 按 metadata 中的来源信息删除实体（Milvus JSON 字段布尔表达式）。
      *
      * 过滤语法示例：

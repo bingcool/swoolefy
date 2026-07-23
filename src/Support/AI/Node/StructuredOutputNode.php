@@ -43,10 +43,9 @@ use Swoolefy\Support\Workflow\State\WorkflowState;
  *
  *   - outputKey    string     写入 state 的键，默认 'output'
  *   - agent        class-string  Neuron Agent 子类（structured 路径仍需要）
- *   - memory       bool       true 时 Builder::memory(threadIdKey)
- *   - threadIdKey  string     memory 开启时读 state 的会话键，默认 'sessionId'
  *   - executor     callable   mock 覆盖（签名同 AINode executor）
  *
+ * 会话记忆请在业务 Agent::chatHistory() 中声明（见 ChatHistoryFactory）。
  * 其它 AINode 配置若需要，可直接用 AINodeBuilder，不必经本类。
  *
  * ---------------------------------------------------------------------------
@@ -88,11 +87,6 @@ final class StructuredOutputNode extends AbstractNode
         // Agent 类：structured 仍依赖具体 Agent（instructions / tools / provider）。
         if (isset($extra['agent']) && is_string($extra['agent'])) {
             $builder->agent($extra['agent']);
-        }
-
-        // memory=true：按 threadIdKey 从 state 取会话 id，交给 Builder 配置 ChatHistory 相关选项。
-        if (($extra['memory'] ?? false) === true) {
-            $builder->memory(threadIdKey: (string) ($extra['threadIdKey'] ?? 'sessionId'));
         }
 
         // 单测 / 演示：跳过 LLM，直接返回 DTO 或兼容结构。

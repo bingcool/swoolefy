@@ -23,9 +23,9 @@ use Swoolefy\Support\Neuron\NeuronFactory;
  *   AINode::make('ai_decision')
  *       ->agent(OrderDecisionAgent::class)
  *       ->structured(OrderDecisionDto::class, outputKey: 'decision')
- *       ->memory(threadIdKey: 'sessionId')
  *       ->build();
  *
+ * 会话记忆请在业务 Agent::chatHistory() 中声明（见 ChatHistoryFactory），勿在 Builder 配置。
  * Phase 1 测试可用 ->executor(callable) 注入 mock，无需 LLM API Key。
  *
  * @see docs/SwoolefyAI.md §4.3
@@ -66,19 +66,6 @@ final class AINodeBuilder
     {
         $this->config['structured'] = $dtoClass;
         $this->config['outputKey'] = $outputKey;
-
-        return $this;
-    }
-
-    /**
-     * @deprecated 会话记忆请在业务 Agent::chatHistory() 中声明（见 ChatHistoryFactory）。
-     * 保留配置项仅作文档兼容，工厂不再据此注入 Memory。
-     */
-    public function memory(?string $threadIdKey = 'sessionId', int $contextWindow = 50000): self
-    {
-        $this->config['memory'] = true;
-        $this->config['threadIdKey'] = $threadIdKey;
-        $this->config['contextWindow'] = $contextWindow;
 
         return $this;
     }

@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Swoolefy\Support\Workflow;
 
 use Swoolefy\Support\Auth\AuthUser;
-use Swoolefy\Support\FrameworkContext;
 use Swoolefy\Support\Workflow\Engine\RunStatus;
 use Swoolefy\Support\Workflow\Engine\WorkflowRun;
 use Swoolefy\Support\Workflow\Exception\WorkflowPermissionException;
@@ -190,94 +189,6 @@ final class WorkflowHitlAuth
 
         if ($user->userId !== $filterAssignee) {
             throw new WorkflowPermissionException('Cannot list tasks for another assignee');
-        }
-    }
-
-    /**
-     * @deprecated 使用 {@see assertAuthorizedForUser()}。
-     *             auth_enabled 下：若已 setUser 则转 ForUser；否则 **仅** API Key，不再接受仅 Header role。
-     *
-     * @param string|null $role 已忽略（保留参数签名兼容旧调用）
-     *
-     * @throws WorkflowPermissionException
-     */
-    public function assertAuthorized(?string $apiKeyHeader, ?string $role): void
-    {
-        unset($role);
-
-        if (!$this->isEnabled()) {
-            return;
-        }
-
-        if (FrameworkContext::check()) {
-            $this->assertAuthorizedForUser(FrameworkContext::user(), $apiKeyHeader);
-
-            return;
-        }
-
-        $expectedKey = $this->config->hitlApiKey();
-        if ($expectedKey !== '' && is_string($apiKeyHeader) && hash_equals($expectedKey, $apiKeyHeader)) {
-            return;
-        }
-
-        throw new WorkflowPermissionException('Unauthorized workflow HITL request');
-    }
-
-    /**
-     * @deprecated 使用 {@see assertCanResumeForUser()}。
-     *             已 setUser → ForUser；auth 开启 → 仅 Key 身份后放行；auth 关闭 → 旧 actor 字符串比对（单测）。
-     *
-     * @throws WorkflowPermissionException
-     */
-    public function assertCanResume(WorkflowRun $run, ?string $apiKeyHeader, ?string $actor, ?string $role): void
-    {
-        if (FrameworkContext::check()) {
-            $this->assertCanResumeForUser($run, FrameworkContext::userOrFail());
-
-            return;
-        }
-
-        if ($this->isEnabled()) {
-            $this->assertAuthorized($apiKeyHeader, $role);
-
-            return;
-        }
-
-        // auth_enabled=false：仅保留 assignee 匹配（开发/单测夹具）
-        if (!$this->config->hitlRequireAssigneeMatch() || $run->status !== RunStatus::WAITING) {
-            return;
-        }
-        if (is_string($role) && $role === self::ADMIN_ROLE) {
-            return;
-        }
-        $taskAssignee = $this->resolveTaskAssignee($run);
-        if ($taskAssignee === null) {
-            return;
-        }
-        if (!is_string($actor) || $actor === '' || $actor !== $taskAssignee) {
-            throw new WorkflowPermissionException(
-                "Assignee mismatch: task is assigned to [{$taskAssignee}]",
-            );
-        }
-    }
-
-    /**
-     * @deprecated 使用 {@see assertCanListTasksForUser()}
-     *
-     * @throws WorkflowPermissionException
-     */
-    public function assertCanListTasks(?string $filterAssignee, ?string $apiKeyHeader, ?string $actor, ?string $role): void
-    {
-        unset($actor, $role);
-
-        if (FrameworkContext::check()) {
-            $this->assertCanListTasksForUser($filterAssignee, FrameworkContext::userOrFail());
-
-            return;
-        }
-
-        if ($this->isEnabled()) {
-            $this->assertAuthorized($apiKeyHeader, null);
         }
     }
 

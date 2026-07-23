@@ -466,7 +466,7 @@ public static function authenticate(Request $request, string $token): array|fals
 
 权限不足抛 **`WorkflowPermissionException`**（不是 `AuthException` 403）。
 
-旧方法 `assertAuthorized` / `assertCanResume` / `assertCanListTasks` 已 **@deprecated**：`FrameworkContext::check()` 时转 ForUser；auth 开启时**不再**接受仅 Header role。
+旧 Header-only 方法（`assertAuthorized` / `assertCanResume` / `assertCanListTasks`）已删除，请一律使用上述 ForUser API。
 
 ---
 

@@ -28,7 +28,6 @@ final class KnowledgeQaWorkflow
             ->addNode('answer', RAGNode::make('answer')
                 ->ragAgent(ProductKnowledgeRag::class)
                 ->promptKey('question')
-                ->memory()
                 ->executor(static function ($ctx, $state) use ($neuronFactory): string {
                     unset($ctx);
                     $docs = $state->get('retrievedDocs', []);

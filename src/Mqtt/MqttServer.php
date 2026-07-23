@@ -332,22 +332,6 @@ abstract class MqttServer extends BaseServer
     }
 
     /**
-     * @deprecated Use {@see MqttReceiveDispatcher::dispatch()} internally.
-     */
-    public function handleV3(Server $server, int $fd, &$data)
-    {
-        return MqttReceiveDispatcher::dispatch($server, $fd, (string) $data, MQTT_PROTOCOL_LEVEL3);
-    }
-
-    /**
-     * @deprecated Use {@see MqttReceiveDispatcher::dispatch()} internally.
-     */
-    public function handleV5(Server $server, int $fd, &$data)
-    {
-        return MqttReceiveDispatcher::dispatch($server, $fd, (string) $data, MQTT_PROTOCOL_LEVEL5);
-    }
-
-    /**
      * onTask
      * @param Server $server
      * @param int $task_id

@@ -270,11 +270,11 @@ $engine->start($definition->compile(), $input);
 AINode::make('research')
     ->agent(ResearchAgent::class)
     ->provider('deepseek')
-    ->memory(/* 可选覆盖 */)
     ->mcp(['github'])           // → agentOptions.mcpServers
     ->structured(ReportDto::class)  // 与 stream 互斥
     ->timeout(120)
     ->build();
+// 会话记忆：在 Agent::chatHistory() 声明，勿使用已删除的 Builder::memory()
 ```
 
 流式：`Support/AI/Stream`（SSE / WebSocket）；演示见 `AgentStreamController`、`AgentToolController::weatherStream`。
