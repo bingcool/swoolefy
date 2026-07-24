@@ -354,4 +354,12 @@ final class PgVectorStore implements VectorStoreInterface
             default => VectorSimilarity::similarityFromDistance($distance),
         };
     }
+
+    /**
+     * @deprecated Use deleteBy() instead.
+     */
+    public function deleteBySource(string $sourceType, string $sourceName): VectorStoreInterface
+    {
+        return $this->deleteBy($sourceType, $sourceName);
+    }
 }

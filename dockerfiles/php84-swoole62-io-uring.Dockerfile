@@ -1,66 +1,87 @@
 #依赖扩展阶段：构建扩展阶段
-FROM alpine:3.22.2 as ext-build
+FROM alpine:3.22.5 AS ext-build
 LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 
 #swoole6.2.x最高只支持到php84、php85.
 #根据实际构建来设置环境变量
-ENV MY_SWOOLE_VERSION=6.2.1 \
+ENV MY_SWOOLE_VERSION=6.2.2 \
 MY_PHP_VERSION=84 \
 SWOOLEFY_CLI_ENV=dev
 
 # docker的宿主机必须要支持io_uring
-# swoole6+支持io_uring且依赖liburing-dev
+# swoole6+支持io_uring且依赖liburing-dev（>=2.8）
 
 ENV TZ=Asia/Shanghai
 # build-base: gcc, g++, make, etc. — required to compile Swoole in this stage.
 # Swoole io_uring on Alpine needs linux-headers and liburing (dev headers for build).
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories \
-&& /bin/sh -c set -ex \
-&& apk update \
-&& apk add --no-cache --virtual .build-deps \
-build-base \
-linux-headers liburing liburing-dev \
-curl make wget tar xz pkgconfig \
-curl-dev \
-c-ares-dev \
-librdkafka-dev \
-openssl-dev \
-postgresql-dev \
-sqlite-dev \
-libpq-dev \
-php${MY_PHP_VERSION}-dev \
-php${MY_PHP_VERSION} \
-php${MY_PHP_VERSION}-openssl \
-php${MY_PHP_VERSION}-sockets \
-php${MY_PHP_VERSION}-pdo \
-php${MY_PHP_VERSION}-pdo_pgsql \
-php${MY_PHP_VERSION}-pgsql \
-php${MY_PHP_VERSION}-pdo_sqlite \
-php${MY_PHP_VERSION}-sqlite3 \
-php${MY_PHP_VERSION}-mysqlnd \
-&& wget https://github.com/swoole/swoole-src/archive/refs/tags/v${MY_SWOOLE_VERSION}.tar.gz -O - -q | tar -xz \
-&& cd swoole-src-${MY_SWOOLE_VERSION} && /usr/bin/phpize${MY_PHP_VERSION} && ./configure --with-php-config=/usr/bin/php-config${MY_PHP_VERSION} \
---enable-mysqlnd \
---enable-openssl \
---enable-sockets \
---enable-swoole_curl \
---enable-cares \
---enable-swoole-pgsql \
---enable-swoole-sqlite \
---enable-swoole-stdext \
---enable-iouring \
-&& make && make install \
-&& apk del --purge *-dev \
-&& apk del .build-deps \
-&& rm -rf /var/cache/apk/* /tmp/* /usr/share/man /usr/share/doc /usr/share/php${MY_PHP_VERSION}
+# 注意：不要用 `wget -q -O - | tar`，GitHub 下载失败时 tar 会以 exit code 2 失败且难排查。
+RUN set -eux; \
+  setup_apk_repos() { \
+    printf '%s\n' \
+      "https://${1}/alpine/v3.24/main" \
+      "https://${1}/alpine/v3.24/community" > /etc/apk/repositories; \
+  }; \
+  setup_apk_repos mirrors.aliyun.com; \
+  if ! apk update; then \
+    echo "WARN: aliyun apk index failed, fallback to dl-cdn.alpinelinux.org"; \
+    setup_apk_repos dl-cdn.alpinelinux.org; \
+    apk update; \
+  fi; \
+  apk add --no-cache --virtual .build-deps \
+    build-base \
+    linux-headers liburing liburing-dev \
+    ca-certificates \
+    curl make wget tar xz pkgconfig \
+    curl-dev \
+    c-ares-dev \
+    librdkafka-dev \
+    openssl-dev \
+    postgresql-dev \
+    sqlite-dev \
+    libpq-dev \
+    php${MY_PHP_VERSION}-dev \
+    php${MY_PHP_VERSION} \
+    php${MY_PHP_VERSION}-openssl \
+    php${MY_PHP_VERSION}-sockets \
+    php${MY_PHP_VERSION}-pdo \
+    php${MY_PHP_VERSION}-pdo_pgsql \
+    php${MY_PHP_VERSION}-pgsql \
+    php${MY_PHP_VERSION}-pdo_sqlite \
+    php${MY_PHP_VERSION}-sqlite3 \
+    php${MY_PHP_VERSION}-mysqlnd; \
+  SWOOLE_TGZ="swoole-src-${MY_SWOOLE_VERSION}.tar.gz"; \
+  SWOOLE_URL="https://github.com/swoole/swoole-src/archive/refs/tags/v${MY_SWOOLE_VERSION}.tar.gz"; \
+  wget -O "${SWOOLE_TGZ}" "https://ghfast.top/${SWOOLE_URL}" \
+    || wget -O "${SWOOLE_TGZ}" "https://gitclone.com/github.com/swoole/swoole-src/archive/refs/tags/v${MY_SWOOLE_VERSION}.tar.gz" \
+    || wget -O "${SWOOLE_TGZ}" "${SWOOLE_URL}"; \
+  tar -tzf "${SWOOLE_TGZ}" >/dev/null; \
+  tar -xzf "${SWOOLE_TGZ}"; \
+  rm -f "${SWOOLE_TGZ}"; \
+  cd "swoole-src-${MY_SWOOLE_VERSION}"; \
+  /usr/bin/phpize${MY_PHP_VERSION}; \
+  ./configure --with-php-config=/usr/bin/php-config${MY_PHP_VERSION} \
+    --enable-mysqlnd \
+    --enable-openssl \
+    --enable-sockets \
+    --enable-swoole_curl \
+    --enable-cares \
+    --enable-swoole-pgsql \
+    --enable-swoole-sqlite \
+    --enable-swoole-stdext \
+    --enable-iouring; \
+  make -j"$(nproc)"; \
+  make install; \
+  apk del --purge *-dev; \
+  apk del .build-deps; \
+  rm -rf /var/cache/apk/* /tmp/* /usr/share/man /usr/share/doc /usr/share/php${MY_PHP_VERSION}
 
 
 #运行时目标阶段：创建目标镜像
-FROM alpine:3.22.2
+FROM alpine:3.22.5
 LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 
 #根据实际构建来设置环境变量
-ENV MY_SWOOLE_VERSION=6.2.1 \
+ENV MY_SWOOLE_VERSION=6.2.2 \
 MY_PHP_VERSION=84 \
 SWOOLEFY_CLI_ENV=dev
 
@@ -68,72 +89,81 @@ SWOOLEFY_CLI_ENV=dev
 ENV TZ=Asia/Shanghai
 # Runtime image: no build-base; only runtime deps and PHP extensions.
 # After apk del *-dev, reinstall linux-headers and liburing-dev for Swoole 6+ io_uring.
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories \
-&& /bin/sh -c set -ex \
-&& apk update \
-&& apk add --no-cache \
-bash curl git wget tar xz tzdata pcre ca-certificates \
-inotify-tools jq libstdc++ openssl procps tini \
-php${MY_PHP_VERSION}-dev \
-php${MY_PHP_VERSION} \
-php${MY_PHP_VERSION}-opcache \
-php${MY_PHP_VERSION}-openssl \
-php${MY_PHP_VERSION}-curl \
-php${MY_PHP_VERSION}-zip \
-php${MY_PHP_VERSION}-mbstring \
-php${MY_PHP_VERSION}-gd \
-php${MY_PHP_VERSION}-intl \
-php${MY_PHP_VERSION}-pdo \
-php${MY_PHP_VERSION}-pdo_mysql \
-php${MY_PHP_VERSION}-pdo_pgsql \
-php${MY_PHP_VERSION}-mysqli \
-php${MY_PHP_VERSION}-pgsql \
-php${MY_PHP_VERSION}-pdo_sqlite \
-php${MY_PHP_VERSION}-sqlite3 \
-php${MY_PHP_VERSION}-mysqlnd \
-php${MY_PHP_VERSION}-bcmath \
-php${MY_PHP_VERSION}-ctype \
-php${MY_PHP_VERSION}-dom \
-php${MY_PHP_VERSION}-fileinfo \
-php${MY_PHP_VERSION}-json \
-php${MY_PHP_VERSION}-simplexml \
-php${MY_PHP_VERSION}-xmlreader \
-php${MY_PHP_VERSION}-xmlwriter \
-php${MY_PHP_VERSION}-tokenizer \
-php${MY_PHP_VERSION}-xml \
-php${MY_PHP_VERSION}-phar \
-php${MY_PHP_VERSION}-session \
-php${MY_PHP_VERSION}-ftp \
-php${MY_PHP_VERSION}-gettext \
-php${MY_PHP_VERSION}-iconv \
-php${MY_PHP_VERSION}-imap \
-php${MY_PHP_VERSION}-sodium \
-php${MY_PHP_VERSION}-sysvshm \
-php${MY_PHP_VERSION}-sysvmsg \
-php${MY_PHP_VERSION}-sysvsem \
-php${MY_PHP_VERSION}-pear \
-php${MY_PHP_VERSION}-posix \
-php${MY_PHP_VERSION}-sockets \
-php${MY_PHP_VERSION}-pcntl \
-php${MY_PHP_VERSION}-pecl-redis \
-php${MY_PHP_VERSION}-pecl-imagick \
-php${MY_PHP_VERSION}-pecl-xlswriter \
-php${MY_PHP_VERSION}-pecl-amqp \
-php${MY_PHP_VERSION}-pecl-rdkafka \
-php${MY_PHP_VERSION}-pecl-mongodb \
-&& echo "opcache.enable_cli='Off'" >> /etc/php${MY_PHP_VERSION}/conf.d/00_opcache.ini \
-&& echo "extension=swoole" >> /etc/php${MY_PHP_VERSION}/conf.d/99_swoole.ini \
-&& ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
-&& ln -sf /usr/bin/php${MY_PHP_VERSION} /usr/bin/php \
-&& ln -sf /usr/bin/php-config${MY_PHP_VERSION} /usr/bin/php-config \
-&& ln -sf /usr/bin/phpize${MY_PHP_VERSION} /usr/bin/phpize \
-&& apk del --purge *-dev \
-&& apk add linux-headers liburing-dev \
-&& rm -rf /var/cache/apk/* /tmp/* /usr/share/man /usr/share/doc /usr/share/php${MY_PHP_VERSION} \
-&& curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
-&& composer config -g repo.packagist composer https://mirrors.tencent.com/composer/ \
-&& php -v && php -m \
-&& echo -e "\033[42;37m Build Completed :).\033[0m\n"
+RUN set -eux; \
+  setup_apk_repos() { \
+    printf '%s\n' \
+      "https://${1}/alpine/v3.24/main" \
+      "https://${1}/alpine/v3.24/community" > /etc/apk/repositories; \
+  }; \
+  setup_apk_repos mirrors.aliyun.com; \
+  if ! apk update; then \
+    echo "WARN: aliyun apk index failed, fallback to dl-cdn.alpinelinux.org"; \
+    setup_apk_repos dl-cdn.alpinelinux.org; \
+    apk update; \
+  fi; \
+  apk add --no-cache \
+    bash curl git wget tar xz tzdata pcre ca-certificates \
+    inotify-tools jq libstdc++ openssl procps tini \
+    php${MY_PHP_VERSION}-dev \
+    php${MY_PHP_VERSION} \
+    php${MY_PHP_VERSION}-opcache \
+    php${MY_PHP_VERSION}-openssl \
+    php${MY_PHP_VERSION}-curl \
+    php${MY_PHP_VERSION}-zip \
+    php${MY_PHP_VERSION}-mbstring \
+    php${MY_PHP_VERSION}-gd \
+    php${MY_PHP_VERSION}-intl \
+    php${MY_PHP_VERSION}-pdo \
+    php${MY_PHP_VERSION}-pdo_mysql \
+    php${MY_PHP_VERSION}-pdo_pgsql \
+    php${MY_PHP_VERSION}-mysqli \
+    php${MY_PHP_VERSION}-pgsql \
+    php${MY_PHP_VERSION}-pdo_sqlite \
+    php${MY_PHP_VERSION}-sqlite3 \
+    php${MY_PHP_VERSION}-mysqlnd \
+    php${MY_PHP_VERSION}-bcmath \
+    php${MY_PHP_VERSION}-ctype \
+    php${MY_PHP_VERSION}-dom \
+    php${MY_PHP_VERSION}-fileinfo \
+    php${MY_PHP_VERSION}-json \
+    php${MY_PHP_VERSION}-simplexml \
+    php${MY_PHP_VERSION}-xmlreader \
+    php${MY_PHP_VERSION}-xmlwriter \
+    php${MY_PHP_VERSION}-tokenizer \
+    php${MY_PHP_VERSION}-xml \
+    php${MY_PHP_VERSION}-phar \
+    php${MY_PHP_VERSION}-session \
+    php${MY_PHP_VERSION}-ftp \
+    php${MY_PHP_VERSION}-gettext \
+    php${MY_PHP_VERSION}-iconv \
+    php${MY_PHP_VERSION}-imap \
+    php${MY_PHP_VERSION}-sodium \
+    php${MY_PHP_VERSION}-sysvshm \
+    php${MY_PHP_VERSION}-sysvmsg \
+    php${MY_PHP_VERSION}-sysvsem \
+    php${MY_PHP_VERSION}-pear \
+    php${MY_PHP_VERSION}-posix \
+    php${MY_PHP_VERSION}-sockets \
+    php${MY_PHP_VERSION}-pcntl \
+    php${MY_PHP_VERSION}-pecl-redis \
+    php${MY_PHP_VERSION}-pecl-imagick \
+    php${MY_PHP_VERSION}-pecl-xlswriter \
+    php${MY_PHP_VERSION}-pecl-amqp \
+    php${MY_PHP_VERSION}-pecl-rdkafka \
+    php${MY_PHP_VERSION}-pecl-mongodb; \
+    && echo "opcache.enable_cli='Off'" >> /etc/php${MY_PHP_VERSION}/conf.d/00_opcache.ini \
+    && echo "extension=swoole" >> /etc/php${MY_PHP_VERSION}/conf.d/99_swoole.ini \
+    && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
+    && ln -sf /usr/bin/php${MY_PHP_VERSION} /usr/bin/php \
+    && ln -sf /usr/bin/php-config${MY_PHP_VERSION} /usr/bin/php-config \
+    && ln -sf /usr/bin/phpize${MY_PHP_VERSION} /usr/bin/phpize \
+    && apk del --purge *-dev \
+    && apk add linux-headers liburing-dev \
+    && rm -rf /var/cache/apk/* /tmp/* /usr/share/man /usr/share/doc /usr/share/php${MY_PHP_VERSION} \
+    && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
+    && composer config -g repo.packagist composer https://mirrors.tencent.com/composer/ \
+    && php -v && php -m \
+    && echo -e "\033[42;37m Build Completed :).\033[0m\n"
 
 #copy编译好的swoole扩展
 COPY --from=ext-build /usr/lib/php${MY_PHP_VERSION}/modules/swoole.so /usr/lib/php${MY_PHP_VERSION}/modules/swoole.so

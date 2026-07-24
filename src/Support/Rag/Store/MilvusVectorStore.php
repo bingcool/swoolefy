@@ -319,4 +319,12 @@ class MilvusVectorStore implements VectorStoreInterface
 
         $this->initialized = true;
     }
+
+    /**
+     * @deprecated Use deleteBy() instead.
+     */
+    public function deleteBySource(string $sourceType, string $sourceName): VectorStoreInterface
+    {
+        return $this->deleteBy($sourceType, $sourceName);
+    }
 }

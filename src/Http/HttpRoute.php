@@ -878,6 +878,13 @@ class HttpRoute extends AppDispatch
     /**
      * 解析 dispatch route controller 部分，包含格式校验和按路由开关缓存
      *
+     * Parse controller class to [module|null, controllerName].
+     *
+     * Supported shapes:
+     * - App\Controller\{Controller} (3 segments)
+     * - App\Module\{Module}\Controller\{Controller} (5 segments)
+     * - Other frameworks namespaces (e.g. Swoolefy\Http\Health\HealthController)
+     *
      * @param mixed $controllerNamespace
      * @param bool $enableCacheRouteMeta
      * @return array [module|null, controller]
@@ -896,9 +903,22 @@ class HttpRoute extends AppDispatch
         $dispatchRouteItem = explode("\\", $controllerNamespace);
         $count = count($dispatchRouteItem);
         if ($count === static::ITEM_NUM_3) {
+            // App\Controller\{Controller}
             $dispatchControllerMeta = [null, $dispatchRouteItem[2]];
         } else if ($count === static::ITEM_NUM_5) {
+            // App\Module\{Module}\Controller\{Controller}
             $dispatchControllerMeta = [$dispatchRouteItem[2], $dispatchRouteItem[4]];
+        } else if ($count >= 2) {
+            // Framework / non-standard namespaces, e.g. Swoolefy\Http\Health\HealthController
+            $module = null;
+            if (
+                $count >= 5
+                && ($dispatchRouteItem[$count - 2] ?? '') === 'Controller'
+                && ($dispatchRouteItem[$count - 4] ?? '') === 'Module'
+            ) {
+                $module = $dispatchRouteItem[$count - 3];
+            }
+            $dispatchControllerMeta = [$module, $dispatchRouteItem[$count - 1]];
         } else {
             throw new DispatchException("Dispatch Route Class Error");
         }
