@@ -21,11 +21,13 @@ use Swoolefy\Core\Swfy;
  * - MqttEventV3/V5：业务钩子 verify/connect + 默认 subscribe/publish 路由
  *
  * ## QoS 处理
- * | QoS | 行为 |
- * |-----|------|
- * | 0   | 直接 dispatchPublish |
- * | 1   | dispatch + PUBACK |
- * | 2   | 暂存 → PUBREC；PUBREL 后 dispatch → PUBCOMP |
+ * | 方向 | QoS | 行为 |
+ * |------|-----|------|
+ * | 入站 | 0   | 直接 dispatchPublish |
+ * | 入站 | 1   | dispatch + PUBACK |
+ * | 入站 | 2   | 暂存 → PUBREC；PUBREL 后 dispatch → PUBCOMP |
+ * | 出站 | 1   | PUBLISH → 等 PUBACK |
+ * | 出站 | 2   | PUBLISH → 等 PUBREC → 发 PUBREL → 等 PUBCOMP |
  *
  * ## 优雅停机
  * - CONNECT：CONNACK 拒绝并关连接
@@ -139,13 +141,13 @@ final class MqttReceiveDispatcher
 
                 case Types::PUBACK:
                 case Types::PUBCOMP:
-                    // 客户端确认 Broker 出站 QoS1/2
+                    // 客户端最终确认 Broker 出站：QoS1→PUBACK；QoS2→PUBCOMP
                     MqttSessionManager::getInstance()->ackOutbound($fd, $data['message_id'] ?? 0);
                     break;
 
                 case Types::PUBREC:
-                    // QoS2 简化：收到 PUBREC 即清除出站 pending（完整 PUBREL 握手可后续增强）
-                    MqttSessionManager::getInstance()->ackOutbound($fd, $data['message_id'] ?? 0);
+                    // 出站 QoS2：PUBREC → PUBREL，pending 保留到 PUBCOMP
+                    self::handleOutboundPubRec($mqttEvent, $fd, $data['message_id'] ?? 0);
                     break;
 
                 default:
@@ -235,7 +237,7 @@ final class MqttReceiveDispatcher
                     break;
 
                 case Types::PUBREC:
-                    MqttSessionManager::getInstance()->ackOutbound($fd, $data['message_id'] ?? 0);
+                    self::handleOutboundPubRec($mqttEvent, $fd, $data['message_id'] ?? 0);
                     break;
 
                 default:
@@ -247,6 +249,19 @@ final class MqttReceiveDispatcher
         }
 
         return true;
+    }
+
+    /**
+     * Broker→Client QoS2：客户端 PUBREC 后回 PUBREL，pending 等到 PUBCOMP 再清。
+     */
+    private static function handleOutboundPubRec(
+        MqttEventV3|MqttEventV5 $mqttEvent,
+        int $fd,
+        int|string $messageId,
+    ): void {
+        if (MqttSessionManager::getInstance()->markOutboundPubRec($fd, $messageId)) {
+            $mqttEvent->publishRel($messageId);
+        }
     }
 
     /**

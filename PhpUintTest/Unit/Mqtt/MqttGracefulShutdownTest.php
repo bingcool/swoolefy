@@ -74,6 +74,41 @@ final class MqttGracefulShutdownTest extends TestCase
     }
 
     /**
+     * 验证：出站 QoS2 完整握手 PUBREC→PUBREL→PUBCOMP，PUBREC 不清 pending。
+     */
+    public function testOutboundQos2HandshakePhases(): void
+    {
+        $mgr = MqttSessionManager::getInstance();
+        $mgr->bind(1, 'c1', '', 60, MQTT_PROTOCOL_LEVEL3, true);
+        $mgr->rememberOutbound(1, 42, 2);
+
+        $this->assertSame(MqttSessionManager::OUTBOUND_PHASE_PUBREC, $mgr->getOutboundPhase(1, 42));
+        $this->assertTrue($mgr->markOutboundPubRec(1, 42), 'first PUBREC should send PUBREL');
+        $this->assertSame(MqttSessionManager::OUTBOUND_PHASE_PUBCOMP, $mgr->getOutboundPhase(1, 42));
+        $this->assertSame(1, $mgr->pendingWorkCount(), 'still pending until PUBCOMP');
+
+        $this->assertTrue($mgr->markOutboundPubRec(1, 42), 'duplicate PUBREC re-sends PUBREL');
+        $this->assertSame(1, $mgr->pendingWorkCount(), 'duplicate PUBREC still pending');
+
+        $mgr->ackOutbound(1, 42);
+        $this->assertNull($mgr->getOutboundPhase(1, 42));
+        $this->assertSame(0, $mgr->pendingWorkCount(), 'PUBCOMP clears pending');
+    }
+
+    /**
+     * 验证：对 QoS1 出站误发 PUBREC 不应推进状态。
+     */
+    public function testOutboundPubRecIgnoredForQos1(): void
+    {
+        $mgr = MqttSessionManager::getInstance();
+        $mgr->bind(1, 'c1', '', 60, MQTT_PROTOCOL_LEVEL3, true);
+        $mgr->rememberOutbound(1, 7, 1);
+
+        $this->assertFalse($mgr->markOutboundPubRec(1, 7), 'qos1 has no PUBREC step');
+        $this->assertSame(MqttSessionManager::OUTBOUND_PHASE_PUBACK, $mgr->getOutboundPhase(1, 7));
+    }
+
+    /**
      * 验证：入站 QoS2 暂存消息计入待处理工作，release 后 pending 计数归零。
      */
     public function testInboundQos2CountsAsPending(): void

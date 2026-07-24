@@ -174,11 +174,12 @@ abstract class HttpAppServer extends HttpServer
      */
     public function onTask(Server $server, int $task_id, int $from_worker_id, $data, $task = null)
     {
+        /** @var TaskController|null $taskInstance */
+        $taskInstance = null;
         try {
             list($callable, $taskData, $contextData, $fd) = $data;
             list($className, $action) = $callable;
 
-            /**@var TaskController $taskInstance */
             $taskInstance = new $className;
             $taskInstance->setTaskId((int)$task_id);
             $taskInstance->setFromWorkerId((int)$from_worker_id);
@@ -192,7 +193,7 @@ abstract class HttpAppServer extends HttpServer
             unset($callable, $extendData, $fd);
 
         } catch (\Throwable $throwable) {
-            if(!$taskInstance->isDefer()) {
+            if ($taskInstance !== null && !$taskInstance->isDefer()) {
                 $taskInstance->end();
             }
             throw $throwable;

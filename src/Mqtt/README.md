@@ -136,7 +136,7 @@ composer test:mqtt
 | session bind | client_id 踢旧连接、Clean Session |
 | subscribe/match | V3 路由、V5 no_local |
 | retain / will | Retain 存储与订阅下发 |
-| QoS2 staging | PUBREC/PUBREL 暂存释放 |
+| QoS2 staging | 入站 PUBREC/PUBREL/PUBCOMP；出站 PUBREC→PUBREL→PUBCOMP |
 | verify logic | 鉴权 hash_equals 行为 |
 | graceful shutdown | 拒接标志、pending drain、重连踢旧 |
 

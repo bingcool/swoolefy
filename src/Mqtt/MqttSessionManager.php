@@ -14,7 +14,7 @@ use Swoole\Server;
  * - 记录每个 fd 的 topic filter 订阅（供 publish 路由）
  * - 内存 Retain 消息表（生产环境大量 retain 建议换 Redis/DB）
  * - QoS2 入站报文暂存（PUBLISH → PUBREC，待 PUBREL 释放后 dispatch）
- * - Broker→Client 出站 QoS1/2 待确认（优雅停机 drain 用）
+ * - Broker→Client 出站 QoS1/2 待确认（QoS2：PUBREC→PUBREL→PUBCOMP；优雅停机 drain 用）
  *
  * ## 会话 / 重连语义（当前实现）
  * - 状态均为 **Worker 内存**，断连即 `remove()`，**无跨断连持久会话**
@@ -42,10 +42,19 @@ final class MqttSessionManager
     /** @var array<string, array{message:string,qos:int,retain:bool,timestamp:int}> */
     private array $retainedMessages = [];
 
+    /** QoS1：等待客户端 PUBACK */
+    public const OUTBOUND_PHASE_PUBACK = 'puback';
+
+    /** QoS2：等待客户端 PUBREC */
+    public const OUTBOUND_PHASE_PUBREC = 'pubrec';
+
+    /** QoS2：已发 PUBREL，等待客户端 PUBCOMP */
+    public const OUTBOUND_PHASE_PUBCOMP = 'pubcomp';
+
     /**
-     * Broker→Client 出站待确认：fd => [message_id => qos]
+     * Broker→Client 出站待确认：fd => [message_id => {qos, phase}]
      *
-     * @var array<int, array<int, int>>
+     * @var array<int, array<int, array{qos:int, phase:string}>>
      */
     private array $outboundPending = [];
 
@@ -323,7 +332,10 @@ final class MqttSessionManager
     }
 
     /**
-     * 记录 Broker→Client 出站 QoS1/2，待客户端 PUBACK/PUBCOMP 清除。
+     * 记录 Broker→Client 出站 QoS1/2。
+     *
+     * - QoS1：phase=puback，待客户端 PUBACK
+     * - QoS2：phase=pubrec，待客户端 PUBREC → 再发 PUBREL → 待 PUBCOMP
      */
     public function rememberOutbound(int $fd, int $messageId, int $qos): void
     {
@@ -334,11 +346,43 @@ final class MqttSessionManager
             return;
         }
 
-        $this->outboundPending[$fd][$messageId] = min(2, max(1, $qos));
+        $qos = min(2, max(1, $qos));
+        $this->outboundPending[$fd][$messageId] = [
+            'qos' => $qos,
+            'phase' => $qos === 2 ? self::OUTBOUND_PHASE_PUBREC : self::OUTBOUND_PHASE_PUBACK,
+        ];
     }
 
     /**
-     * 客户端确认出站报文：QoS1→PUBACK；QoS2→PUBCOMP（或简化为 PUBREC 即清）。
+     * 出站 QoS2：收到客户端 PUBREC。
+     *
+     * 将 phase 推进到 pubcomp，并返回 true 表示应发送（或重发）PUBREL。
+     * 重复 PUBREC（已处于 pubcomp）也返回 true，便于丢包重试。
+     */
+    public function markOutboundPubRec(int $fd, int|string $messageId): bool
+    {
+        $id = (int) $messageId;
+        if ($id <= 0 || !isset($this->outboundPending[$fd][$id])) {
+            return false;
+        }
+
+        $entry = $this->outboundPending[$fd][$id];
+        if (($entry['qos'] ?? 0) !== 2) {
+            return false;
+        }
+
+        $phase = (string) ($entry['phase'] ?? '');
+        if ($phase === self::OUTBOUND_PHASE_PUBREC || $phase === self::OUTBOUND_PHASE_PUBCOMP) {
+            $this->outboundPending[$fd][$id]['phase'] = self::OUTBOUND_PHASE_PUBCOMP;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * 客户端最终确认出站报文：QoS1→PUBACK；QoS2→PUBCOMP。
      */
     public function ackOutbound(int $fd, int|string $messageId): void
     {
@@ -350,6 +394,19 @@ final class MqttSessionManager
         if (($this->outboundPending[$fd] ?? []) === []) {
             unset($this->outboundPending[$fd]);
         }
+    }
+
+    /**
+     * 读取出站 pending 阶段（测试 / 观测用）。
+     */
+    public function getOutboundPhase(int $fd, int|string $messageId): ?string
+    {
+        $id = (int) $messageId;
+        if ($id <= 0 || !isset($this->outboundPending[$fd][$id]['phase'])) {
+            return null;
+        }
+
+        return (string) $this->outboundPending[$fd][$id]['phase'];
     }
 
     /** 本 Worker 在途 QoS 数量（入站 QoS2 暂存 + 出站待确认）。 */

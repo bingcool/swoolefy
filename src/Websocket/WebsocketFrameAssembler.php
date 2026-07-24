@@ -11,6 +11,8 @@ use Swoolefy\Core\Swfy;
  * - 首帧：TEXT/BINARY + finish=false → 缓存
  * - 续帧：CONTINUATION(0) → 追加 data
  * - 末帧：finish=true → 返回完整 Frame 再进入业务解析
+ * - 控制帧（PING/PONG/CLOSE）可插在分片中间（RFC 6455 §5.4），不得清掉半包缓冲；
+ *   连接关闭时由 WebsocketServer::on('close') 调用 clear($fd)
  */
 class WebsocketFrameAssembler
 {
@@ -30,7 +32,7 @@ class WebsocketFrameAssembler
         $data = (string) $frame->data;
 
         if (self::isControlOpcode($opcode)) {
-            self::clear($fd);
+            // Keep fragment buffer intact while control frames are interleaved.
             return $frame;
         }
 

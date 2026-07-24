@@ -79,6 +79,18 @@ class Session
     public $cookie_path = '/';
 
     /**
+     * Cookie HttpOnly flag. Default true to mitigate XSS session theft.
+     * @var bool
+     */
+    public $cookie_httponly = true;
+
+    /**
+     * Cookie Secure flag. null = auto (true when current request is HTTPS).
+     * @var bool|null
+     */
+    public $cookie_secure = null;
+
+    /**
      * __construct
      * @param array $config
      */
@@ -114,6 +126,13 @@ class Session
             $this->cookie_domain = $config['cookie_domain'];
         }
 
+        if (array_key_exists('cookie_httponly', $config)) {
+            $this->cookie_httponly = (bool) $config['cookie_httponly'];
+        }
+
+        if (array_key_exists('cookie_secure', $config)) {
+            $this->cookie_secure = (bool) $config['cookie_secure'];
+        }
     }
 
     /**
@@ -139,7 +158,7 @@ class Session
         $this->session_id = $cookieSessionId;
         if (empty($cookieSessionId)) {
             $sessId = Helper::randMd5(40);
-            Application::getApp()->swooleResponse->cookie($this->cookie_key, $sessId, time() + $this->cookie_lifetime, $this->cookie_path, $this->cookie_domain, false, false);
+            $this->writeSessionCookie($sessId, time() + $this->cookie_lifetime);
             $this->session_id = $sessId;
         }
         $this->_SESSION = $this->load($this->session_id);
@@ -158,11 +177,77 @@ class Session
         }
         $data = $this->driver->get($sess_id);
         //先读数据，如果没有，就初始化一个
-        if (!empty($data)) {
-            return unserialize($data);
-        } else {
+        if (empty($data) || !is_string($data)) {
             return [];
         }
+
+        // Disable object instantiation to mitigate PHP object injection via poisoned session storage.
+        $decoded = unserialize($data, ['allowed_classes' => false]);
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * Write or expire the session cookie with secure defaults.
+     */
+    protected function writeSessionCookie(string $sessionId, int $expire): void
+    {
+        $secure = $this->resolveCookieSecure();
+        $httponly = (bool) $this->cookie_httponly;
+        $app = Application::getApp();
+        if ($app !== null && isset($app->swooleResponse) && is_object($app->swooleResponse)) {
+            $app->swooleResponse->cookie(
+                $this->cookie_key,
+                $sessionId,
+                $expire,
+                $this->cookie_path,
+                $this->cookie_domain,
+                $secure,
+                $httponly
+            );
+            return;
+        }
+
+        setcookie(
+            $this->cookie_key,
+            $sessionId,
+            $expire,
+            $this->cookie_path,
+            $this->cookie_domain,
+            $secure,
+            $httponly
+        );
+    }
+
+    /**
+     * Resolve Secure flag: explicit config wins; otherwise auto-detect HTTPS.
+     */
+    protected function resolveCookieSecure(): bool
+    {
+        if (is_bool($this->cookie_secure)) {
+            return $this->cookie_secure;
+        }
+
+        $app = Application::getApp();
+        $server = $app?->swooleRequest?->server ?? [];
+        if (!is_array($server) || $server === []) {
+            return false;
+        }
+
+        $https = strtolower((string) ($server['HTTPS'] ?? ''));
+        if ($https !== '' && $https !== 'off' && $https !== '0') {
+            return true;
+        }
+
+        if (strtolower((string) ($server['REQUEST_SCHEME'] ?? '')) === 'https') {
+            return true;
+        }
+
+        if ((int) ($server['SERVER_PORT'] ?? 0) === 443) {
+            return true;
+        }
+
+        $forwardedProto = strtolower((string) ($server['HTTP_X_FORWARDED_PROTO'] ?? ''));
+        return $forwardedProto === 'https';
     }
 
     /**
@@ -336,7 +421,7 @@ class Session
         if (!empty($this->_SESSION)) {
             $this->_SESSION = [];
             // 使cookie失效
-            setcookie($this->cookie_key, $this->session_id, time() - 600, $this->cookie_path, $this->cookie_domain);
+            $this->writeSessionCookie((string) $this->session_id, time() - 600);
             // redis中完全删除session_key
             return $this->driver->del($this->session_id);
         }
@@ -360,7 +445,7 @@ class Session
     {
         $sessionData = $this->_SESSION;
         // 先cookie的session_id失效
-        setcookie($this->cookie_key, $this->session_id, time() - 600, $this->cookie_path, $this->cookie_domain);
+        $this->writeSessionCookie((string) $this->session_id, time() - 600);
         // 设置session_id=null
         $this->session_id = null;
         // 产生新的session_id和返回空的$_SESSION数组

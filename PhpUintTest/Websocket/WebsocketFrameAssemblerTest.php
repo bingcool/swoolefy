@@ -83,4 +83,20 @@ final class WebsocketFrameAssemblerTest extends TestCase
         $afterClear = WebsocketFrameAssembler::feed($this->makeFrame(5, WEBSOCKET_OPCODE_TEXT, 'ok', true));
         $this->assertSame('ok', $afterClear->data);
     }
+
+    public function testControlFrameDoesNotClearFragmentBuffer(): void
+    {
+        $part1 = WebsocketFrameAssembler::feed($this->makeFrame(6, WEBSOCKET_OPCODE_TEXT, '{"msg":', false));
+        $this->assertNull($part1);
+
+        $ping = WebsocketFrameAssembler::feed($this->makeFrame(6, WEBSOCKET_OPCODE_PING, 'hb', true));
+        $this->assertInstanceOf(Frame::class, $ping);
+        $this->assertSame(WEBSOCKET_OPCODE_PING, $ping->opcode);
+
+        $part2 = WebsocketFrameAssembler::feed(
+            $this->makeFrame(6, WebsocketFrameAssembler::OPCODE_CONTINUE, '"hi"}', true)
+        );
+        $this->assertInstanceOf(Frame::class, $part2);
+        $this->assertSame('{"msg":"hi"}', $part2->data);
+    }
 }
