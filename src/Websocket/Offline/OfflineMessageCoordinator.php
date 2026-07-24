@@ -6,64 +6,109 @@ use Swoole\WebSocket\Server;
 use Swoolefy\Websocket\Cluster\ClusterConfig;
 use Swoolefy\Websocket\Cluster\PushDeliveryResult;
 use Swoolefy\Websocket\Cluster\PushFanoutResult;
-use Swoolefy\Websocket\Cluster\PushMessage;
 use Swoolefy\Websocket\Cluster\RedisConnectionRegistry;
 use Swoolefy\Websocket\Metrics\WebsocketTraceContext;
 use Swoolefy\Websocket\WebsocketConnectionManager;
 
 /**
- * 离线消息协调器（框架核心，业务一般无需继承）。
+ * 离线消息协调器（框架核心，业务一般无需继承或直接改本类）。
+ *
+ * ## 职责边界
+ *
+ * | 角色 | 负责 |
+ * |------|------|
+ * | 本类 | 判断「何时落库 / 何时补推 / 何时 ACK」，调度 Store 与钩子 |
+ * | {@see OfflineMessageStoreInterface} | 真正的持久化（MySQL / Redis 等由业务实现） |
+ * | {@see OfflineReconnectHookInterface} | 上线补推后的业务回调（可选） |
+ *
+ * 框架**不内置** MySQL 实现；通过 `Config/websocket.php → offline.store` 注入业务 Store。
  *
  * ## 完整链路
  *
  * ```
  * [发送] pushToUser / pushToGroup / broadcast
- *          ↓ targetCount=0（索引无连接/无在线节点）
- *        maybeStoreOfflineAfter*Push() → 读 data.offline_user_ids 落库
- *          ↓ 有连接但 Redis 索引过期（僵尸 conn）
- *        maybeStoreOfflineAfterDelivery() → 按 user_id 聚合 gone 落库
- *        store() → OfflineMessageStoreInterface
+ *          ↓ 扇出阶段：索引无任何可路由连接（targetCount=0）
+ *        maybeStoreOfflineAfter*Push()
+ *          · pushToUser → 直接按 userId 落库
+ *          · group/broadcast → 读 data.offline_user_ids 批量落库
+ *          ↓ 投递阶段：索引命中但 fd 已断（僵尸 conn → outcome=gone）
+ *        maybeStoreOfflineAfterDelivery() → 按 user_id 聚合后落库
+ *        store() → OfflineMessageStoreInterface::store()
  *
  * [上线] WebsocketConnectionManager::open() / bindUser()
- *          ↓ user_id 非空
+ *          ↓ user_id 非空且 offline.enable + store 可解析
  *        onUserOnline()
- *          ├─ replay_on_reconnect ? replayToFd() → deliverEventToFdLocally + markDelivered
- *          └─ offline.on_reconnect 钩子
+ *          ├─ replay_on_reconnect=true → replayToFd()
+ *          │     deliverEventToFdLocallyDetailed + markDelivered
+ *          └─ offline.on_reconnect 钩子（始终在补推之后）
  *
- * [拉取] pullOfflineMessages / HTTP pullPending
- *          ↓ 客户端展示后
+ * [拉取] HTTP / WS 主动拉
+ *        pullPending() → 客户端展示
  *        ackDelivered() → markDelivered
  * ```
  *
- * ## 群/广播离线要点
+ * ## 两阶段落库（为何分「推送」和「投递」）
  *
- * - Redis 只维护**在线** conn 索引，完整群成员由业务在 `data.offline_user_ids` 中传入
- * - 推送阶段：`PushFanoutResult::targetCount === 0` 才落库（有在线连接则等投递结果）
- * - 投递阶段：同一 user 多 fd 时，任一 fd `delivered` 即视为已送达，不再落库
- * - `failed` / `serverUnavailable` 时不落库：前者可能临时故障需 PEL 重试，后者消费进程未就绪
+ * 1. **推送阶段（Fanout）**  
+ *    Redis 只知道「当前在线 conn」。若 `targetCount=0`，说明此刻没有任何可路由连接，
+ *    对单用户可直接落库；对群/广播则必须由业务在 `data.offline_user_ids` 给出离线成员列表
+ *    （框架没有完整群成员表）。
+ *
+ * 2. **投递阶段（Delivery）**  
+ *    索引里有 conn，但真正 `server->push` 时 fd 已断开（僵尸索引）→ outcome=`gone`。
+ *    此时再按 **user_id** 聚合：同一用户多端任一 `delivered` 即视为已送达，不再落库；
+ *    全部为 `gone` 才写离线表。
+ *
+ * ## 不落库的情况（刻意跳过）
+ *
+ * | 结果 | 原因 |
+ * |------|------|
+ * | `failed` | fd 仍在，push 临时失败；交给 Streams PEL 重试，避免与重投重复落库 |
+ * | `serverUnavailable` | 消费 Worker 未就绪，留 PEL 重投后再判 |
+ * | `duplicateSkipped` / `invalidPayload` | 无效或重复消息，不写离线 |
+ * | 事件不在 `offline.events` 白名单 | 业务只想对部分事件做离线必达 |
  *
  * ## 配置项（Config/websocket.php → offline）
  *
- * | 键 | 说明 |
- * |----|------|
- * | enable | 总开关，且 store 必须可解析 |
- * | store | OfflineMessageStoreInterface 实现 |
- * | events | 允许落库的事件白名单；`[]` 或 `*` = 全部 pushToUser |
- * | replay_on_reconnect | 上线是否自动补推（默认 true） |
- * | on_reconnect | 补推完成后的业务钩子 |
- * | replay_limit | 单次补推/拉取上限（默认 100，最大 500） |
+ * ```php
+ * 'offline' => [
+ *     'enable' => true,
+ *     // 类名 / [Class::class] / [Factory::class, 'make'] / 闭包
+ *     'store' => [\App\Offline\MysqlOfflineMessageStore::class],
+ *     'events' => ['chat.private', 'notify.message'], // [] 或含 '*' = 全部事件
+ *     'replay_on_reconnect' => true,  // 上线自动补推；false 则仅走钩子/拉取
+ *     'on_reconnect' => [\App\Offline\OfflineReconnectCallback::class, 'onReconnect'],
+ *     'replay_limit' => 100,          // 单次补推/拉取上限，最大 500
+ * ],
+ * ```
+ *
+ * ## 业务接入要点
+ *
+ * - 群/广播必达：推送时带上 `'offline_user_ids' => ['u1', 'u2']`
+ * - Store 必须实现 store / fetchPending / markDelivered / countPending
+ * - `enable=true` 但 store 解析失败时 {@see isEnabled()} 为 false（防止空转）
  *
  * @see OfflineMessageStoreInterface
+ * @see OfflineMessageStoreFactory
  * @see OfflineReconnectHookInterface
+ * @see InMemoryOfflineMessageStore 单测 / 本地开发用内存实现
  */
 class OfflineMessageCoordinator
 {
     /**
-     * pushToUser 投递后的离线落库判断（兼容旧调用：仅 deliveredCount=0）。
+     * pushToUser 投递后的离线落库（兼容旧签名：仅看 deliveredCount）。
      *
-     * 集群模式请优先使用 {@see maybeStoreOfflineAfterPush()}。
+     * - `$deliveredCount > 0`：至少有一个 fd 收到，不落库
+     * - `$deliveredCount === 0`：视为全离线，走 {@see storeOfflineMessage()}
      *
-     * @return string|null 离线消息 id；未存储时 null
+     * 集群模式请优先使用 {@see maybeStoreOfflineAfterPush()}（能区分「无索引」与「投递 gone」）。
+     *
+     * @param string $userId         目标用户
+     * @param string $event          推送事件名（受 events 白名单约束）
+     * @param mixed  $data           推送载荷；非数组会被包成 `['value' => $data]`
+     * @param int    $deliveredCount 本机/旧路径统计的成功投递数
+     *
+     * @return string|null 离线消息主键；未存储时 null
      */
     public static function maybeStoreOffline(string $userId, string $event, $data, int $deliveredCount): ?string
     {
@@ -75,7 +120,13 @@ class OfflineMessageCoordinator
     }
 
     /**
-     * 扇出后离线落库：仅当 Redis 索引中无任何可路由连接时写入。
+     * 单用户扇出后的离线落库（推送阶段）。
+     *
+     * 仅当 {@see PushFanoutResult::shouldStoreOfflineAtPush()} 为 true
+     * （通常即 targetCount=0：Redis 索引中无任何可路由连接）时写入。
+     * 有在线连接时不在此落库，改由投递阶段 {@see maybeStoreOfflineAfterDelivery()} 处理僵尸 conn。
+     *
+     * @return string|null 离线消息 id；未存储时 null
      */
     public static function maybeStoreOfflineAfterPush(
         string $userId,
@@ -91,11 +142,15 @@ class OfflineMessageCoordinator
     }
 
     /**
-     * pushToGroup 扇出后离线落库（小组内无在线连接时）。
+     * 群推送扇出后的离线落库（推送阶段：组内无在线连接）。
      *
-     * 业务可在 $data['offline_user_ids'] 中传入离线成员 user_id 列表。
+     * 框架 Redis **不维护**完整群成员，只能依赖业务在 `$data['offline_user_ids']` 传入离线成员。
+     * 若未传列表，本方法写入条数为 0（不会猜测群成员）。
      *
-     * @return int 写入条数
+     * @param string           $group  群名（当前仅占位，解析用户列表不依赖它）
+     * @param PushFanoutResult $result 扇出结果；targetCount>0 时直接返回 0
+     *
+     * @return int 成功写入的离线条数（按 user 计）
      */
     public static function maybeStoreOfflineAfterGroupPush(
         string $group,
@@ -116,11 +171,11 @@ class OfflineMessageCoordinator
     }
 
     /**
-     * broadcast 扇出后离线落库（集群无在线节点时）。
+     * 广播扇出后的离线落库（推送阶段：集群无任何在线节点可路由）。
      *
-     * 业务可在 $data['offline_user_ids'] 中传入需必达的用户列表。
+     * 与群推送相同：必须由业务提供 `$data['offline_user_ids']` 表示「需要必达」的用户。
      *
-     * @return int 写入条数
+     * @return int 成功写入的离线条数
      */
     public static function maybeStoreOfflineAfterBroadcastPush(string $event, $data, PushFanoutResult $result): int
     {
@@ -137,9 +192,12 @@ class OfflineMessageCoordinator
     }
 
     /**
-     * 单机 pushToGroup / broadcast 按 user 聚合投递结果后落库。
+     * 单机 pushToGroup / broadcast：按 user 聚合本机投递结果后落库。
      *
-     * @param array<string, string[]> $userOutcomes user_id => outcome 列表
+     * 用于非集群或本机 fanout 路径；语义同 {@see storeOfflineForUserOutcomes()}。
+     *
+     * @param array<string, string[]> $userOutcomes user_id => outcome 列表（delivered/gone/failed…）
+     * @param string                  $source       写入 meta.source，便于排查来源
      *
      * @return int 写入条数
      */
@@ -149,10 +207,19 @@ class OfflineMessageCoordinator
     }
 
     /**
-     * Stream/本机投递后离线回补：按 user_id 聚合，未送达且 gone 的用户写入离线表。
+     * Stream / 本机投递完成后的离线回补（投递阶段）。
      *
-     * 与推送阶段互补：索引命中但 fd 已断开（僵尸 conn）时在此落库。
-     * failed/serverUnavailable 跳过：与 Streams PEL 重试策略一致，避免重复落库。
+     * 与推送阶段互补：索引命中但 fd 已断开（僵尸 conn，outcome=gone）时在此落库。
+     *
+     * 以下情况直接返回 0，不写离线表：
+     * - failed：fd 在线但 push 失败 → PEL 会重试，避免重复落库
+     * - serverUnavailable：Worker 未就绪 → 留 PEL 重投后再判
+     * - duplicateSkipped / invalidPayload：无效消息
+     *
+     * @param array              $message 集群推送消息体（含 event、data、trace_id、targets 等）
+     * @param PushDeliveryResult $result  本节点投递统计与 targetDetails
+     *
+     * @return int 写入条数
      */
     public static function maybeStoreOfflineAfterDelivery(array $message, PushDeliveryResult $result): int
     {
@@ -170,6 +237,7 @@ class OfflineMessageCoordinator
         $data = $message['data'] ?? [];
         $traceId = trim((string) ($message['trace_id'] ?? ''));
         if ($traceId !== '') {
+            // 恢复推送时的 trace，保证落库 meta 与日志链路一致
             WebsocketTraceContext::apply($traceId);
         }
 
@@ -181,6 +249,16 @@ class OfflineMessageCoordinator
         );
     }
 
+    /**
+     * 真正调用 Store 写入单条离线消息。
+     *
+     * 前置条件：isEnabled、事件白名单、userId 非空、Store 可解析。
+     * meta 固定带上 trace_id / source / created_at，供补推恢复链路与排查。
+     *
+     * @param string $source 来源标记：pushToUser | pushToGroup | broadcast | deliveryGone 等
+     *
+     * @return string|null Store 返回的消息主键；未写入时 null
+     */
     private static function storeOfflineMessage(string $userId, string $event, $data, string $source): ?string
     {
         if (!self::isEnabled() || !self::shouldStoreEvent($event)) {
@@ -209,7 +287,11 @@ class OfflineMessageCoordinator
     }
 
     /**
-     * @param string[] $userIds
+     * 按用户列表批量落库（群/广播推送阶段）。
+     *
+     * @param string[] $userIds 已去重、去空的用户 id
+     *
+     * @return int 成功写入条数（store 返回非 null 计 1）
      */
     private static function storeOfflineForUserIds(array $userIds, string $event, $data, string $source): int
     {
@@ -224,7 +306,11 @@ class OfflineMessageCoordinator
     }
 
     /**
+     * 按「用户 → 多端 outcome 列表」决定是否落库并写入。
+     *
      * @param array<string, string[]> $userOutcomes
+     *
+     * @return int 写入条数
      */
     private static function storeOfflineForUserOutcomes(string $event, $data, array $userOutcomes, string $source): int
     {
@@ -249,7 +335,11 @@ class OfflineMessageCoordinator
     /**
      * 多 fd / 多 outcome 聚合后的落库判定。
      *
-     * 规则：有 delivered → 已送达；有 failed → 等 PEL 重试；仅 gone → 写离线表。
+     * 规则（同一 user）：
+     * - 含 `delivered` → 已有端收到，不落库
+     * - 含 `failed` → 等 PEL 重试，不落库
+     * - 仅含（或包含）`gone` 且无上述两种 → 写离线表
+     * - 空列表 → 不落库
      *
      * @param string[] $outcomes
      */
@@ -273,7 +363,7 @@ class OfflineMessageCoordinator
     /**
      * 推送阶段解析离线用户列表。
      *
-     * 框架 Redis 无群成员表，targetCount=0 时只能依赖业务传入 offline_user_ids。
+     * 当前实现只认 `$data['offline_user_ids']`；`$group` 预留扩展（例如将来查群成员服务）。
      *
      * @return string[]
      */
@@ -291,6 +381,8 @@ class OfflineMessageCoordinator
 
     /**
      * 从 push data 解析业务传入的离线用户列表。
+     *
+     * 支持标量 id 混排；自动 trim、去重、去空字符串。
      *
      * @return string[]
      */
@@ -312,12 +404,12 @@ class OfflineMessageCoordinator
     }
 
     /**
-     * 将 PushDeliveryResult.targetDetails 按 user_id 分组。
+     * 将 {@see PushDeliveryResult::$targetDetails} 按 user_id 分组。
      *
      * group/broadcast 一次推送含多个 fd，必须按用户聚合后再判是否落库。
-     * 无 targetDetails 时回退 recipient_user_id（pushToUser 单用户场景）。
+     * 无 targetDetails 时回退 {@see resolveRecipientUserId()}（典型 pushToUser 单用户）。
      *
-     * @return array<string, string[]>
+     * @return array<string, string[]> user_id => [outcome, ...]
      */
     private static function aggregateOutcomesByUser(array $message, PushDeliveryResult $result): array
     {
@@ -335,6 +427,7 @@ class OfflineMessageCoordinator
             return $userOutcomes;
         }
 
+        // 无明细时：仅「全部 gone」才回退成单用户 gone；有 delivered/failed 则不再猜用户
         if ($result->delivered > 0 || $result->failed > 0 || $result->gone === 0) {
             return [];
         }
@@ -347,6 +440,14 @@ class OfflineMessageCoordinator
         return [];
     }
 
+    /**
+     * 从消息体推断单用户收件人（投递明细缺失时的回退）。
+     *
+     * 优先级：
+     * 1. message.recipient_user_id
+     * 2. message.data.to_user_id
+     * 3. message.targets[].conn_id → Redis 连接元数据中的 user_id
+     */
     private static function resolveRecipientUserId(array $message): string
     {
         $userId = trim((string) ($message['recipient_user_id'] ?? ''));
@@ -386,13 +487,16 @@ class OfflineMessageCoordinator
     }
 
     /**
-     * 用户上线（重连）入口：补推 + on_reconnect 钩子。
+     * 用户上线（重连）入口：可选自动补推 + on_reconnect 钩子。
      *
-     * 触发时机（WebsocketConnectionManager）：
+     * 触发时机（{@see WebsocketConnectionManager}）：
      * - open 完成且握手已绑定 user_id
      * - bindUser 换绑到新 user（含匿名 → 登录）
      *
-     * @return int 框架默认补推成功条数
+     * 顺序固定：先 replay（若开启）→ 再调钩子；钩子异常被吞掉，不影响连接建立。
+     * 若业务想完全自管补推：配 `replay_on_reconnect=false`，在钩子里自行 pullPending。
+     *
+     * @return int 框架默认补推并成功 mark 的条数（钩子可据此做增量）
      */
     public static function onUserOnline(Server $server, int $fd, string $userId): int
     {
@@ -422,7 +526,10 @@ class OfflineMessageCoordinator
     /**
      * 拉取待投递离线消息（HTTP / WS 拉取模式）。
      *
-     * 与补推模式二选一或并存：客户端可拒绝自动 push，改为主动 pull + ack。
+     * 可与自动补推并存：客户端也可拒绝自动 push，改为主动 pull + {@see ackDelivered()}。
+     * `limit` 会被钳制到 `[1, replay_limit]`。
+     *
+     * @param string|null $afterId 上一页最后一条消息 id；首页传 null
      *
      * @return array{messages: array<int, array>, next_after_id: string, pending_total: int}
      */
@@ -450,7 +557,13 @@ class OfflineMessageCoordinator
         ];
     }
 
-    /** 拉取模式 ACK：客户端确认已展示/处理的消息 id 列表 */
+    /**
+     * 拉取模式 ACK：客户端确认已展示/处理的消息 id 列表。
+     *
+     * @param array $messageIds Store 主键列表（与 fetchPending 返回的 id 对应）
+     *
+     * @return int Store::markDelivered 影响行数
+     */
     public static function ackDelivered(string $userId, array $messageIds): int
     {
         $userId = trim($userId);
@@ -466,6 +579,9 @@ class OfflineMessageCoordinator
         return $store->markDelivered($userId, $messageIds);
     }
 
+    /**
+     * 待投递条数（角标、监控、pullPending.pending_total）。
+     */
     public static function countPending(string $userId): int
     {
         if (!self::isEnabled()) {
@@ -477,7 +593,12 @@ class OfflineMessageCoordinator
         return $store instanceof OfflineMessageStoreInterface ? $store->countPending(trim($userId)) : 0;
     }
 
-    /** enable=true 且 store 可解析时才视为开启（防止只开开关未实现存储） */
+    /**
+     * 离线能力是否真正可用。
+     *
+     * 条件：`offline.enable=true` **且** {@see OfflineMessageStoreFactory::get()} 能解析出 Store。
+     * 只开开关、未配好 store 时返回 false，避免空转误以为已落库。
+     */
     public static function isEnabled(): bool
     {
         $offline = ClusterConfig::offlineSettings();
@@ -486,9 +607,13 @@ class OfflineMessageCoordinator
     }
 
     /**
-     * 事件白名单：offline.events 为空数组时允许所有 pushToUser 落库。
+     * 事件是否允许落库。
      *
-     * @internal
+     * - `events` 未配 / 空数组 → 全部允许
+     * - 含 `'*'` → 全部允许
+     * - 否则仅白名单内事件
+     *
+     * @internal 投递路径与单测也会调用
      */
     public static function shouldStoreEvent(string $event): bool
     {
@@ -504,6 +629,11 @@ class OfflineMessageCoordinator
         return in_array($event, $events, true);
     }
 
+    /**
+     * 是否在上线时自动补推。
+     *
+     * 未配置时默认 true；显式 `replay_on_reconnect=false` 则只走钩子/拉取。
+     */
     private static function replayOnReconnect(): bool
     {
         $offline = ClusterConfig::offlineSettings();
@@ -514,17 +644,26 @@ class OfflineMessageCoordinator
         return true;
     }
 
+    /**
+     * 单次补推 / 拉取上限，钳制在 1～500。
+     */
     private static function replayLimit(): int
     {
         return max(1, min(500, (int) (ClusterConfig::offlineSettings()['replay_limit'] ?? 100)));
     }
 
     /**
-     * 上线补推：逐条 deliverEventToFdLocally（走 enricher），成功则 markDelivered。
+     * 上线补推：拉取 pending，逐条本机投递，成功则 markDelivered。
      *
-     * **注意**：
-     * - `skipped`（enricher 返回 null，如消息已删）也视为已处理，避免 PEL 式重复补推
-     * - `failed` / `gone` 不 mark，下次上线重试
+     * 投递走 {@see WebsocketConnectionManager::deliverEventToFdLocallyDetailed()}，
+     * 因此会经过 PushPayloadEnricher（引用模式可在此展开完整消息）。
+     *
+     * 结果处理：
+     * - `delivered`：push 成功 → 加入待 ACK 列表
+     * - `skipped`：enricher 返回 null（如消息已删）→ 也 mark，避免反复补推死信
+     * - `failed` / `gone`：不 mark，等下次上线或拉取重试
+     *
+     * @return int 本轮 mark 的条数（含 skipped）
      */
     private static function replayToFd(Server $server, int $fd, string $userId, int $limit): int
     {
@@ -544,6 +683,7 @@ class OfflineMessageCoordinator
             $data = is_array($message['data'] ?? null) ? $message['data'] : [];
             $traceId = trim((string) ($message['trace_id'] ?? ''));
             if ($traceId !== '') {
+                // 用落库时的 trace 补推，便于日志串联
                 WebsocketTraceContext::apply($traceId);
             }
 
