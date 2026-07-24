@@ -12,15 +12,37 @@
 namespace Swoolefy\Core\Coroutine;
 
 use Swoolefy\Library\Db\PDOConnection;
-use Swoole\Coroutine;
 use Swoole\Coroutine\Channel;
 use Swoolefy\Core\Dto\ContainerObjectDto;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Exception\SystemException;
 
+/**
+ * 协程对象池（Channel 实现）。
+ *
+ * ## 计数约定
+ * - channel.length：空闲对象数
+ * - callCount：已借出、尚未归还的对象数
+ * - poolsNum：池容量上限（空闲 + 借出 不宜长期超过该值）
+ *
+ * ## 取对象策略（{@see getObj()}）
+ * 1. 空池 warm-up：首次借出且 channel 为空时一次性 make(poolsNum)
+ * 2. 有空闲：直接 pop，避免无谓等待
+ * 3. 未满懒创建：callCount < poolsNum 时再 make(1)，缓解并发冷启动
+ * 4. 全借出：用 channel->pop(popTimeout) 阻塞等待归还（替代「sleep 一次就返回 null」）
+ * 5. 超时边界短重试：再 pop(0.05) 两次，覆盖 push/pop 临界竞态，且不再次完整阻塞 popTimeout
+ *
+ * ## 归还策略（{@see pushObj()}）
+ * - 未过期且未满：push 成功后安全递减 callCount
+ * - push 超时 / 已过期 / 池已满：丢弃对象并 decreaseCallCount，必要时 refillOne 补回空闲槽
+ *
+ * 取不到对象时返回 null，上层 ComponentTrait 可降级 creatObject。
+ */
 class PoolsHandler
 {
     /**
+     * 空闲对象通道，容量 = poolsNum。
+     *
      * @var Channel
      */
     protected ?Channel $channel = null;
@@ -31,6 +53,8 @@ class PoolsHandler
     protected $poolName;
 
     /**
+     * 池容量上限。
+     *
      * @var int
      */
     protected $poolsNum = 30;
@@ -41,11 +65,15 @@ class PoolsHandler
     protected $pushTimeout = 2;
 
     /**
+     * 全借出时等待归还的最长时间（秒），见 getObj 第 4 步。
+     *
      * @var int
      */
     protected $popTimeout = 1;
 
     /**
+     * 当前已借出、尚未归还的对象数（仅在 fetchObj 成功 +1，归还/丢弃时 decreaseCallCount）。
+     *
      * @var int
      */
     protected $callCount = 0;
@@ -183,7 +211,10 @@ class PoolsHandler
     }
 
     /**
-     * pushObj 使用完要重新push进channel
+     * 归还对象到 channel。
+     *
+     * 过期、池已满或 push 超时：丢弃并 decreaseCallCount，再按需补建 1 个空闲对象，
+     * 避免 callCount 虚高导致长期无法懒创建、命中率下降。
      *
      * @param object $obj
      * @return void
@@ -192,6 +223,7 @@ class PoolsHandler
     {
         \Swoole\Coroutine::create(function () use ($obj) {
             $isPush = true;
+            // 超过生命周期的对象不再回池，防止陈旧连接长期复用
             if (!is_null($obj->__objExpireTime) && time() > $obj->__objExpireTime) {
                 $isPush = false;
             }
@@ -208,32 +240,29 @@ class PoolsHandler
             }
 
             if ($isPush) {
-                $this->channel->push($obj, $this->pushTimeout);
-                $length = $this->channel->length();
-                // 修正
-                if (($this->poolsNum - $length) == $this->callCount - 1) {
-                    --$this->callCount;
+                $pushed = $this->channel->push($obj, $this->pushTimeout);
+                if ($pushed) {
+                    // 归还成功：借出计数 -1，供其他协程 pop 到
+                    $this->decreaseCallCount();
                 } else {
-                    $this->callCount = $this->poolsNum - $length;
+                    // push 超时：对象丢弃，仍须扣减借出计数，并尝试补槽
+                    unset($obj);
+                    $this->decreaseCallCount();
+                    $this->refillOneIfNeeded();
                 }
             } else {
+                // 过期或池已满：丢弃 + 扣计数 + 有空位则补建
                 unset($obj);
-                --$this->callCount;
-                if ($this->channel->length() < $this->poolsNum) {
-                    (new \Swoolefy\Core\EventApp)->registerApp(function() {
-                        $this->make(1);
-                    });
-                }
-            }
-
-            if ($this->callCount < 0) {
-                $this->callCount = 0;
+                $this->decreaseCallCount();
+                $this->refillOneIfNeeded();
             }
         });
     }
 
     /**
-     * @return object
+     * 从池中取出对象；成功时 callCount+1。
+     *
+     * @return object|null
      * @throws \Exception
      */
     public function fetchObj()
@@ -241,6 +270,7 @@ class PoolsHandler
         try {
             $obj = $this->getObj();
             if (is_object($obj)) {
+                // 仅在真正取到对象时记为借出，避免 null 污染 callCount
                 $this->callCount++;
                 $targetObj = $obj->getObject();
             }
@@ -261,25 +291,83 @@ class PoolsHandler
     }
 
     /**
-     * getObj
-     * @return mixed
+     * 高并发取对象（详见类注释「取对象策略」）。
+     *
+     * 旧实现：忙时 sleep(0.01) 一次，channel 仍空则直接 null，池命中率不稳。
+     * 现实现：优先空闲 / 懒创建，否则阻塞等待归还，超时后再短重试。
+     *
+     * @return object|null
      */
     protected function getObj()
     {
-        // first build object
-        if ($this->callCount == 0 && $this->channel->isEmpty()) {
-            if ($this->poolsNum) {
-                $this->make($this->poolsNum);
-            }
-        } else {
-            if ($this->callCount >= $this->poolsNum || $this->channel->isEmpty()) {
-                Coroutine\System::sleep(0.01);
-            }
+        if ($this->channel === null) {
+            return null;
         }
-        if ($this->channel->length() > 0) {
+
+        // 1) 空池 warm-up：首次借出时一次性填满，降低并发冷启动风暴
+        if ($this->callCount === 0 && $this->channel->isEmpty() && $this->poolsNum > 0) {
+            $this->make($this->poolsNum);
             return $this->pop();
         }
+
+        // 2) 有空闲：直接取，不进入等待
+        if ($this->channel->length() > 0) {
+            $obj = $this->pop();
+            if (is_object($obj)) {
+                return $obj;
+            }
+        }
+
+        // 3) 未满懒创建：仍有容量预算时补 1 个，缓解「池未建满但并发已到」
+        if ($this->callCount < $this->poolsNum) {
+            $this->make(1);
+            $obj = $this->pop();
+            if (is_object($obj)) {
+                return $obj;
+            }
+        }
+
+        // 4) 全借出：在 channel 上阻塞等待归还，最长 popTimeout（秒）
+        $obj = $this->pop();
+        if (is_object($obj)) {
+            return $obj;
+        }
+
+        // 5) 超时边界短重试：覆盖 push 刚完成 / pop 刚超时的竞态；用 0.05s 而非再次完整 popTimeout
+        for ($i = 0; $i < 2; $i++) {
+            if ($this->callCount < $this->poolsNum && $this->channel->isEmpty()) {
+                $this->make(1);
+            }
+            $obj = $this->pop(0.05);
+            if (is_object($obj)) {
+                return $obj;
+            }
+        }
+
+        // 仍失败则 null，由上层降级新建实例
         return null;
+    }
+
+    /**
+     * 安全递减借出计数，避免并发归还时减到负数。
+     */
+    protected function decreaseCallCount(): void
+    {
+        if ($this->callCount > 0) {
+            --$this->callCount;
+        }
+    }
+
+    /**
+     * 丢弃对象后若 channel 未满，异步补建 1 个空闲对象，维持池水位。
+     */
+    protected function refillOneIfNeeded(): void
+    {
+        if ($this->channel !== null && $this->channel->length() < $this->poolsNum) {
+            (new \Swoolefy\Core\EventApp)->registerApp(function () {
+                $this->make(1);
+            });
+        }
     }
 
     /**
@@ -321,16 +409,22 @@ class PoolsHandler
     }
 
     /**
+     * 从 channel 弹出对象；可指定等待秒数（null 则用 popTimeout）。
+     *
+     * 弹出后若已过期：丢弃并 make(1) 再 pop 一次，避免把失效连接交给业务。
+     *
+     * @param float|null $timeout
      * @return object|null
      */
-    protected function pop()
+    protected function pop(?float $timeout = null)
     {
-        $containerObject = $this->channel->pop($this->popTimeout);
+        $timeout ??= (float) $this->popTimeout;
+        $containerObject = $this->channel->pop($timeout);
         if (is_object($containerObject) && !is_null($containerObject->__objExpireTime) && time() > $containerObject->__objExpireTime) {
-            //rebuild object
+            // 过期对象重建后再取，保持池内可用实例数
             unset($containerObject);
             $this->make(1);
-            $containerObject = $this->channel->pop($this->popTimeout);
+            $containerObject = $this->channel->pop($timeout);
         }
 
         return is_object($containerObject) ? $containerObject : null;
