@@ -28,7 +28,7 @@ use Swoolefy\Exception\SystemException;
  * | 方法 | 说明 |
  * |------|------|
  * | pushToUser | 要求非空 user_id；目标须已通过 auth 绑定 user 索引 |
- * | joinWebsocketGroup | 写入索引前经 group.join_authorizer 鉴权 |
+ * | joinWebsocketGroup | 写入索引前经 group.join_authorizer 鉴权；返回 ok+reason |
  * | getWebsocketUserId | 握手鉴权 callback 或 query uid 绑定的身份 |
  *
  * @see WebsocketConnectionManager
@@ -161,9 +161,9 @@ class WebsocketService extends BService
      *
      * @param array $params 客户端 join 参数（invite_code、password 等），透传给鉴权器
      *
-     * @return bool 鉴权失败或参数非法时返回 false，原因见 WebsocketConnectionManager::getLastJoinDenyReason()
+     * @return array{ok: bool, reason: string|null} ok=false 时 reason 为拒绝原因（协程安全，勿再用进程级 static）
      */
-    public function joinWebsocketGroup(string $group, array $params = []): bool
+    public function joinWebsocketGroup(string $group, array $params = []): array
     {
         return WebsocketConnectionManager::joinGroup((int) $this->fd, $group, $params);
     }

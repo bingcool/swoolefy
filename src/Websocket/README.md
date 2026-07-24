@@ -310,7 +310,10 @@ class ChatService extends WebsocketService
     public function joinGroup(array $params)
     {
         $group = (string) ($params['group'] ?? 'public');
-        $this->joinWebsocketGroup($group);
+        $result = $this->joinWebsocketGroup($group, $params);
+        if (empty($result['ok'])) {
+            throw new \InvalidArgumentException((string) ($result['reason'] ?? 'group join denied'));
+        }
         $this->pushEvent($this->getWebsocketMsg()->getFd(), 'group.joined', ['group' => $group]);
     }
 }
@@ -329,7 +332,7 @@ class ChatService extends WebsocketService
 | `pushToUser($userId, $event, $data)` | 向用户所有连接推送 |
 | `pushToGroup($group, $event, $data)` | 向小组广播 |
 | `broadcast($event, $data)` | 全服广播 |
-| `joinWebsocketGroup($group)` | 当前连接加入小组 |
+| `joinWebsocketGroup($group, $params = [])` | 加入小组；返回 `['ok'=>bool,'reason'=>?string]`（协程安全） |
 | `leaveWebsocketGroup($group)` | 当前连接离开小组 |
 | `getWebsocketUserId()` | 当前连接绑定的 user_id |
 | `pullOfflineMessages($limit, $afterId)` | 拉取当前用户待投递离线消息 |

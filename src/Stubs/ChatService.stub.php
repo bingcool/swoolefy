@@ -86,9 +86,9 @@ class ChatService extends WebsocketService
     public function joinGroup(array $params)
     {
         $group = (string) ($params['group'] ?? 'public');
-        if (!$this->joinWebsocketGroup($group, $params)) {
-            $reason = \Swoolefy\Websocket\WebsocketConnectionManager::getLastJoinDenyReason() ?? 'group join denied';
-            throw new \InvalidArgumentException($reason);
+        $result = $this->joinWebsocketGroup($group, $params);
+        if (empty($result['ok'])) {
+            throw new \InvalidArgumentException((string) ($result['reason'] ?? 'group join denied'));
         }
         $this->pushEvent($this->getWebsocketMsg()->getFd(), 'group.joined', ['group' => $group]);
     }

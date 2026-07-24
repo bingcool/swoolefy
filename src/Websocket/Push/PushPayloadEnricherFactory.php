@@ -7,7 +7,13 @@ use Swoolefy\Websocket\Cluster\ClusterConfig;
 /**
  * 从 Config/websocket.php → push.enricher 加载载荷扩展器。
  *
- * ## 配置示例（Config/websocket.php）
+ * ## 协程安全
+ *
+ * - **只缓存配置**，每次 {@see get()} 按配置新建业务实例（或 Callable 包装）。
+ * - 禁止在 Enricher 成员变量中保存当前 user/fd/request；请求数据只用方法参数。
+ * - {@see setOverride()} 供单测注入，进程内复用同一实例（测试可控）。
+ *
+ * ## 配置示例
  *
  * ```php
  * 'push' => [
@@ -19,8 +25,13 @@ use Swoolefy\Websocket\Cluster\ClusterConfig;
  */
 class PushPayloadEnricherFactory
 {
-    private static ?PushPayloadEnricherInterface $enricher = null;
-    private static bool $resolved = false;
+    private static bool $configLoaded = false;
+
+    /** @var mixed */
+    private static $rawConfig = null;
+
+    private static bool $hasOverride = false;
+
     private static ?PushPayloadEnricherInterface $override = null;
 
     /**
@@ -29,41 +40,33 @@ class PushPayloadEnricherFactory
      */
     public static function setOverride(?PushPayloadEnricherInterface $enricher): void
     {
+        self::$hasOverride = true;
         self::$override = $enricher;
-        self::$resolved = true;
-        self::$enricher = $enricher;
     }
 
     /** 重置缓存，供单测 teardown 使用 */
     public static function reset(): void
     {
-        self::$enricher = null;
-        self::$resolved = false;
+        self::$configLoaded = false;
+        self::$rawConfig = null;
+        self::$hasOverride = false;
         self::$override = null;
     }
 
     /**
-     * 获取 enricher 单例（进程内只解析一次配置）。
+     * 获取 enricher（配置只读一次；业务实例每次新建，避免请求态串协程）。
      *
      * @return PushPayloadEnricherInterface|null 未配置或解析失败时返回 null
      */
     public static function get(): ?PushPayloadEnricherInterface
     {
-        if (self::$resolved) {
-            return self::$enricher;
+        if (self::$hasOverride) {
+            return self::$override;
         }
 
-        self::$resolved = true;
-        if (self::$override instanceof PushPayloadEnricherInterface) {
-            self::$enricher = self::$override;
+        self::loadConfigOnce();
 
-            return self::$enricher;
-        }
-
-        $config = ClusterConfig::pushSettings()['enricher'] ?? null;
-        self::$enricher = self::resolve($config);
-
-        return self::$enricher;
+        return self::resolve(self::$rawConfig);
     }
 
     /**
@@ -87,7 +90,7 @@ class PushPayloadEnricherFactory
             return new CallablePushPayloadEnricher($config);
         }
 
-        // [Class, 'method']：PHP 中实例方法不能直接 is_callable([Class, 'method'])，需先 new 再绑定
+        // [Class, 'method']：每次 new Class，避免业务实例上的请求态被多协程复用
         if (is_array($config) && count($config) === 2 && is_string($config[0]) && is_string($config[1]) && class_exists($config[0])) {
             $instance = new $config[0]();
             if (method_exists($instance, $config[1])) {
@@ -106,5 +109,15 @@ class PushPayloadEnricherFactory
         }
 
         return null;
+    }
+
+    private static function loadConfigOnce(): void
+    {
+        if (self::$configLoaded) {
+            return;
+        }
+
+        self::$configLoaded = true;
+        self::$rawConfig = ClusterConfig::pushSettings()['enricher'] ?? null;
     }
 }

@@ -19,56 +19,74 @@ use Swoolefy\Websocket\Cluster\ClusterConfig;
  *
  * 一句话：本类管「消息存在哪、怎么读写」；Hook 管「人上线了业务还要做什么」。
  *
+ * ## 协程安全
+ *
+ * - **只缓存配置**，每次 {@see get()} 新建 Store 实例，避免业务在 `$this` 上缓存 user/request。
+ * - Store 实现应无请求态：连接池/PDO 通过 Application 按需获取，或构造时注入无状态依赖。
+ * - {@see setOverride()} 供单测注入并复用同一实例（如 InMemory 累加断言）。
+ * - {@see isConfigured()} 不实例化，供 {@see OfflineMessageCoordinator::isEnabled()} 快速判断。
+ *
  * ## 解析规则
  *
- * - 实例对象
- * - 类名字符串 / 单元素 `[Class::class]`（脚手架默认）
- * - `[Class, 'method']` 工厂方法，或 callable / 闭包（返回 Store 实例）
- *
- * MySQL 等持久化由**业务类**实现 {@see OfflineMessageStoreInterface}；框架只负责调度落库/补推。
+ * - 实例对象（配置里直接放对象则进程内共享，业务自负协程安全）
+ * - 类名字符串 / 单元素 `[Class::class]`（脚手架默认）→ 每次 new
+ * - `[Class, 'method']` 工厂方法，或 callable / 闭包 → 每次调用
  *
  * @see ClusterConfig::offlineSettings()
  * @see OfflineMessageCoordinator
  */
 class OfflineMessageStoreFactory
 {
-    private static ?OfflineMessageStoreInterface $store = null;
-    private static bool $resolved = false;
+    private static bool $configLoaded = false;
+
+    /** @var mixed */
+    private static $rawConfig = null;
+
+    private static bool $hasOverride = false;
+
     private static ?OfflineMessageStoreInterface $override = null;
 
-    /** 单测注入，优先级高于配置文件 */
+    /** 单测注入，优先级高于配置文件（复用同一实例） */
     public static function setOverride(?OfflineMessageStoreInterface $store): void
     {
+        self::$hasOverride = true;
         self::$override = $store;
-        self::$resolved = true;
-        self::$store = $store;
     }
 
     public static function reset(): void
     {
-        self::$store = null;
-        self::$resolved = false;
+        self::$configLoaded = false;
+        self::$rawConfig = null;
+        self::$hasOverride = false;
         self::$override = null;
     }
 
-    /** 进程内单例；未配置或解析失败返回 null */
+    /**
+     * 配置是否可解析为 Store（不 new 业务类）。
+     */
+    public static function isConfigured(): bool
+    {
+        if (self::$hasOverride) {
+            return self::$override instanceof OfflineMessageStoreInterface;
+        }
+
+        self::loadConfigOnce();
+
+        return self::configLooksValid(self::$rawConfig);
+    }
+
+    /**
+     * 获取 Store：配置只读一次；默认每次新建实例。
+     */
     public static function get(): ?OfflineMessageStoreInterface
     {
-        if (self::$resolved) {
-            return self::$store;
+        if (self::$hasOverride) {
+            return self::$override;
         }
 
-        self::$resolved = true;
-        if (self::$override instanceof OfflineMessageStoreInterface) {
-            self::$store = self::$override;
+        self::loadConfigOnce();
 
-            return self::$store;
-        }
-
-        $config = ClusterConfig::offlineSettings()['store'] ?? null;
-        self::$store = self::resolve($config);
-
-        return self::$store;
+        return self::resolve(self::$rawConfig);
     }
 
     /**
@@ -97,7 +115,7 @@ class OfflineMessageStoreFactory
                 return self::instantiateStore($items[0]);
             }
 
-            // 工厂方法：[Factory::class, 'make'] → 返回 Store
+            // 工厂方法：[Factory::class, 'make'] → 每次调用 make，由工厂决定是否返回新实例
             if (
                 count($items) === 2
                 && is_string($items[0])
@@ -132,5 +150,52 @@ class OfflineMessageStoreFactory
         $instance = new $class();
 
         return $instance instanceof OfflineMessageStoreInterface ? $instance : null;
+    }
+
+    /**
+     * @param mixed $config
+     */
+    private static function configLooksValid($config): bool
+    {
+        if ($config === null || $config === '') {
+            return false;
+        }
+
+        if ($config instanceof OfflineMessageStoreInterface) {
+            return true;
+        }
+
+        if (is_array($config)) {
+            $items = array_values($config);
+            if (count($items) === 1 && is_string($items[0])) {
+                return class_exists($items[0]) && is_a($items[0], OfflineMessageStoreInterface::class, true);
+            }
+            if (
+                count($items) === 2
+                && is_string($items[0])
+                && is_string($items[1])
+                && class_exists($items[0])
+            ) {
+                return method_exists($items[0], $items[1]) || (new \ReflectionClass($items[0]))->hasMethod($items[1]);
+            }
+
+            return false;
+        }
+
+        if (is_string($config)) {
+            return class_exists($config) && is_a($config, OfflineMessageStoreInterface::class, true);
+        }
+
+        return is_callable($config);
+    }
+
+    private static function loadConfigOnce(): void
+    {
+        if (self::$configLoaded) {
+            return;
+        }
+
+        self::$configLoaded = true;
+        self::$rawConfig = ClusterConfig::offlineSettings()['store'] ?? null;
     }
 }

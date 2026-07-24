@@ -13,6 +13,7 @@ namespace Swoolefy\Websocket;
 
 use Swoole\Http\Request;
 use Swoole\WebSocket\Server;
+use Swoolefy\Core\Coroutine\Context as SwooleContext;
 use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingSessionRegistry;
 use Swoolefy\Websocket\SocketIO\SocketIOPacket;
@@ -31,8 +32,12 @@ class WebsocketConnectionManager
     /** polling 虚拟 fd 全局自增（跨 Worker） */
     public const TABLE_POLLING_META = 'table_websocket_polling_meta';
 
-    /** 最近一次 joinGroup 被拒绝的原因（供业务层返回错误信息） */
-    private static ?string $lastJoinDenyReason = null;
+    /**
+     * 当前协程内最近一次 joinGroup 失败原因（协程 Context，避免 Worker 级 static 串号）。
+     *
+     * @deprecated 请优先使用 joinGroup() 返回值中的 reason；本键仅兼容旧调用 getLastJoinDenyReason()
+     */
+    private const JOIN_DENY_REASON_CONTEXT_KEY = '__ws_join_deny_reason';
 
     /**
      * 连接表定义在 server createTables() 前注入配置，所有 worker 共享。
@@ -356,24 +361,32 @@ class WebsocketConnectionManager
         }
     }
 
-    public static function joinGroup(int $fd, string $group, array $params = []): bool
+    /**
+     * 当前连接加入小组（经 group.join_authorizer 鉴权后写入 Table + Redis）。
+     *
+     * 返回值携带失败原因，避免进程级 static 在多协程下串号：
+     * `['ok' => bool, 'reason' => ?string]`
+     *
+     * @param array $params 客户端 join 参数（invite_code、password 等），透传给鉴权器
+     *
+     * @return array{ok: bool, reason: string|null}
+     */
+    public static function joinGroup(int $fd, string $group, array $params = []): array
     {
         $group = trim($group);
         $connection = self::getConnection($fd);
         if ($group === '' || !$connection) {
-            return false;
+            return self::joinGroupResult(false, 'invalid group or connection');
         }
 
         // 加组鉴权：Config/websocket.php → group.join_authorizer
         $userId = (string) ($connection['user_id'] ?? '');
         $denyReason = Group\GroupJoinAuthorizerFactory::authorize($fd, $userId, $group, $params);
         if ($denyReason !== null) {
-            self::$lastJoinDenyReason = $denyReason;
             \Swoolefy\Websocket\Metrics\WebsocketMetrics::recordJoinDenied();
 
-            return false;
+            return self::joinGroupResult(false, $denyReason);
         }
-        self::$lastJoinDenyReason = null;
 
         // 连接表内保存 groups 快照，close 时可以反向清理 TABLE_GROUPS 索引。
         $groups = self::decodeGroups((string) ($connection['groups'] ?? ''));
@@ -394,13 +407,42 @@ class WebsocketConnectionManager
             (string) $connection['groups']
         );
 
-        return true;
+        return self::joinGroupResult(true, null);
     }
 
-    /** 最近一次 joinGroup 被拒绝的原因（供 ChatService 返回给客户端） */
+    /**
+     * 当前协程内最近一次 joinGroup 失败原因。
+     *
+     * @deprecated 请使用 joinGroup() / joinWebsocketGroup() 返回值中的 reason，避免依赖副作用
+     */
     public static function getLastJoinDenyReason(): ?string
     {
-        return self::$lastJoinDenyReason;
+        $reason = SwooleContext::get(self::JOIN_DENY_REASON_CONTEXT_KEY);
+
+        return is_string($reason) && $reason !== '' ? $reason : null;
+    }
+
+    /**
+     * @return array{ok: bool, reason: string|null}
+     */
+    private static function joinGroupResult(bool $ok, ?string $reason): array
+    {
+        // 同步写入当前协程 Context，兼容仍调用 getLastJoinDenyReason() 的旧业务代码
+        if (\Swoole\Coroutine::getCid() >= 0) {
+            try {
+                if ($ok || $reason === null || $reason === '') {
+                    if (SwooleContext::has(self::JOIN_DENY_REASON_CONTEXT_KEY)) {
+                        SwooleContext::delete(self::JOIN_DENY_REASON_CONTEXT_KEY);
+                    }
+                } else {
+                    SwooleContext::set(self::JOIN_DENY_REASON_CONTEXT_KEY, $reason);
+                }
+            } catch (\Throwable $throwable) {
+                // 无 Context 容器时忽略；调用方仍可使用返回值 reason
+            }
+        }
+
+        return ['ok' => $ok, 'reason' => $ok ? null : $reason];
     }
 
     /**

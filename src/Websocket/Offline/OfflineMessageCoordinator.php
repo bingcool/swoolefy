@@ -596,14 +596,15 @@ class OfflineMessageCoordinator
     /**
      * 离线能力是否真正可用。
      *
-     * 条件：`offline.enable=true` **且** {@see OfflineMessageStoreFactory::get()} 能解析出 Store。
+     * 条件：`offline.enable=true` **且** {@see OfflineMessageStoreFactory::isConfigured()}。
      * 只开开关、未配好 store 时返回 false，避免空转误以为已落库。
+     * 使用 isConfigured() 而非 get()，避免仅为探测而反复 new Store。
      */
     public static function isEnabled(): bool
     {
         $offline = ClusterConfig::offlineSettings();
 
-        return !empty($offline['enable']) && OfflineMessageStoreFactory::get() instanceof OfflineMessageStoreInterface;
+        return !empty($offline['enable']) && OfflineMessageStoreFactory::isConfigured();
     }
 
     /**

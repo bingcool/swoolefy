@@ -28,6 +28,11 @@ use Swoolefy\Websocket\Offline\OfflineReconnectHookInterface;
  * $page = OfflineMessageCoordinator::pullPending($userId, 100);
  * // 自行 push + ackDelivered
  * ```
+ *
+ * ## 协程安全（重要）
+ *
+ * Factory 每次 get() 会 new 本类；须保持**无请求态成员变量**。
+ * 用户身份只用参数 `$userId`，勿在 `$this` 上缓存。
  */
 class OfflineReconnectCallback implements OfflineReconnectHookInterface
 {

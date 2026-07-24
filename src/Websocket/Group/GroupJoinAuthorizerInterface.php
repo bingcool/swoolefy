@@ -12,8 +12,8 @@ namespace Swoolefy\Websocket\Group;
  *   → ChatService::joinGroup($params)
  *   → WebsocketConnectionManager::joinGroup($fd, $group, $params)
  *   → GroupJoinAuthorizerFactory::authorize()（本接口）
- *   → 允许：写入本地 Table + Redis group 索引
- *   → 拒绝：返回 false，getLastJoinDenyReason() 可取原因
+ *   → 允许：写入本地 Table + Redis group 索引，返回 ['ok' => true, 'reason' => null]
+ *   → 拒绝：返回 ['ok' => false, 'reason' => 拒绝原因]（协程安全，勿用进程级 static）
  * ```
  *
  * ## 典型用途

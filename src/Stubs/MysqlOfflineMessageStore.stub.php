@@ -30,6 +30,11 @@ use Swoolefy\Websocket\Offline\OfflineMessageStoreInterface;
  *
  * 建表 SQL：`src/Stubs/ws_offline_messages.sql.stub`
  *
+ * ## 协程安全（重要）
+ *
+ * Factory 每次 get() 会 new 本类；须保持**无请求态成员变量**。
+ * Db/PDO 在方法内通过 Application 组件获取，勿在 `$this` 上缓存当前 userId/request。
+ *
  * @see OfflineMessageStoreInterface
  */
 class MysqlOfflineMessageStore implements OfflineMessageStoreInterface

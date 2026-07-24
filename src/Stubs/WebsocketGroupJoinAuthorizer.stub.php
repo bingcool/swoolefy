@@ -24,6 +24,11 @@ use Swoolefy\Websocket\Group\GroupJoinAuthorizerInterface;
  *
  * 鉴权失败时 ChatService::joinGroup 抛 InvalidArgumentException，Socket.IO ack 为 code=-1。
  *
+ * ## 协程安全（重要）
+ *
+ * Factory 每次 authorize 会 new 本类；须保持**无请求态成员变量**。
+ * 禁止 `$this->currentUser`；只用方法参数 `$userId` / `$params`。
+ *
  * @see GroupJoinAuthorizerInterface
  * @see \Swoolefy\Websocket\WebsocketConnectionManager::joinGroup()
  */

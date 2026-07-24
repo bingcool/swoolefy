@@ -27,6 +27,11 @@ use Swoolefy\Websocket\Push\PushPayloadEnricherInterface;
  *
  * 实现 `loadMessage()` 对接你的消息表；可按 $event / $fd 做权限过滤或字段裁剪。
  *
+ * ## 协程安全（重要）
+ *
+ * Factory 每次投递会 new 本类；仍须保持**无请求态成员变量**。
+ * 禁止 `$this->currentUser` / `$this->fd`；只用 enrich() 参数，或 FrameworkContext。
+ *
  * @see PushPayloadEnricherInterface
  */
 class MessagePushEnricher implements PushPayloadEnricherInterface

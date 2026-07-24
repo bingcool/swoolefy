@@ -20,6 +20,12 @@ use Swoolefy\Websocket\Cluster\ClusterConfig;
  * 一句话：Store 管「消息存在哪、怎么读写」；本类管「人上线了业务还要做什么」
  * （未读 badge、会话同步、审计日志，或 `replay_on_reconnect=false` 时自管补推）。
  *
+ * ## 协程安全
+ *
+ * - **只缓存配置**，每次 {@see get()} 新建 Hook / Callable 包装，避免请求态成员串协程。
+ * - Hook 实现保持无状态；用户身份用参数 `$userId` / {@see \Swoolefy\Support\FrameworkContext}。
+ * - {@see setOverride()} 供单测注入并复用同一实例。
+ *
  * ## 解析规则
  *
  * 与 Store 工厂类似：实例、`[Class, 'method']`、callable / 闭包、实现接口的类名。
@@ -31,41 +37,38 @@ use Swoolefy\Websocket\Cluster\ClusterConfig;
  */
 class OfflineReconnectHookFactory
 {
-    private static ?OfflineReconnectHookInterface $hook = null;
-    private static bool $resolved = false;
+    private static bool $configLoaded = false;
+
+    /** @var mixed */
+    private static $rawConfig = null;
+
+    private static bool $hasOverride = false;
+
     private static ?OfflineReconnectHookInterface $override = null;
 
     public static function setOverride(?OfflineReconnectHookInterface $hook): void
     {
+        self::$hasOverride = true;
         self::$override = $hook;
-        self::$resolved = true;
-        self::$hook = $hook;
     }
 
     public static function reset(): void
     {
-        self::$hook = null;
-        self::$resolved = false;
+        self::$configLoaded = false;
+        self::$rawConfig = null;
+        self::$hasOverride = false;
         self::$override = null;
     }
 
     public static function get(): ?OfflineReconnectHookInterface
     {
-        if (self::$resolved) {
-            return self::$hook;
+        if (self::$hasOverride) {
+            return self::$override;
         }
 
-        self::$resolved = true;
-        if (self::$override instanceof OfflineReconnectHookInterface) {
-            self::$hook = self::$override;
+        self::loadConfigOnce();
 
-            return self::$hook;
-        }
-
-        $config = ClusterConfig::offlineSettings()['on_reconnect'] ?? null;
-        self::$hook = self::resolve($config);
-
-        return self::$hook;
+        return self::resolve(self::$rawConfig);
     }
 
     /** @param mixed $config */
@@ -101,5 +104,15 @@ class OfflineReconnectHookFactory
         }
 
         return null;
+    }
+
+    private static function loadConfigOnce(): void
+    {
+        if (self::$configLoaded) {
+            return;
+        }
+
+        self::$configLoaded = true;
+        self::$rawConfig = ClusterConfig::offlineSettings()['on_reconnect'] ?? null;
     }
 }

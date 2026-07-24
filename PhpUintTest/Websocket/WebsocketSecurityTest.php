@@ -14,6 +14,7 @@ use Swoolefy\Websocket\Cluster\ExternalPushPublisher;
 use Swoolefy\Websocket\Group\CallableGroupJoinAuthorizer;
 use Swoolefy\Websocket\Group\GroupJoinAuthorizerFactory;
 use Swoolefy\Websocket\WebsocketAuthenticator;
+use Swoolefy\Websocket\WebsocketConnectionManager;
 
 /**
  * WebSocket 安全相关单元测试（鉴权 / 加组 / server_id / pushToUser）。
@@ -108,6 +109,20 @@ final class WebsocketSecurityTest extends TestCase
             GroupJoinAuthorizerFactory::authorize(1, 'u1', 'secret', ['password' => 'bad'])
         );
         $this->assertNull(GroupJoinAuthorizerFactory::authorize(1, 'u1', 'secret', ['password' => 'pass']));
+    }
+
+    /**
+     * joinGroup 失败原因走返回值，不再依赖进程级 static（避免多协程串号）。
+     */
+    public function testJoinGroupReturnsDenyReasonInResult(): void
+    {
+        $missingConn = WebsocketConnectionManager::joinGroup(999991, 'room-a');
+        $this->assertFalse($missingConn['ok']);
+        $this->assertSame('invalid group or connection', $missingConn['reason']);
+
+        $emptyGroup = WebsocketConnectionManager::joinGroup(1, '   ');
+        $this->assertFalse($emptyGroup['ok']);
+        $this->assertSame('invalid group or connection', $emptyGroup['reason']);
     }
 
     public function testPushToUserRejectsEmptyUserId(): void
