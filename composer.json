@@ -44,8 +44,7 @@
         "symfony/expression-language": "~7.4",
         "mathsgod/milvus-client-php": "^2.1",
         "neuron-core/php-vector": "^1.1",
-        "neuron-core/router": "^1.2",
-        "bingcool/library": "dev-library-6.x"
+        "neuron-core/router": "^1.2"
     },
     "autoload": {
         "files": [
@@ -150,11 +149,5 @@
             "php-http/discovery": false,
             "tbachert/spi": false
         }
-    },
-    "repositories": [
-        {
-            "type": "path",
-            "url": "../library"
-        }
-    ]
+    }
 }
