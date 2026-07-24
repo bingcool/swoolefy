@@ -131,7 +131,7 @@ trait MqttBrokerSupport
     {
         unset($fd);
 
-        static ?Atomic $seq = null;
+        static $seq = null;
         $seq ??= new Atomic(0);
 
         // CAS 循环：读当前值 → 算下一号（满则回 1）→ cmpset 成功才返回
