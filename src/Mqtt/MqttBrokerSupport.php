@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Swoolefy\Mqtt;
 
+use Swoole\Atomic;
 use Swoole\Server;
 
 /**
@@ -12,7 +13,7 @@ use Swoole\Server;
  * 提供：
  * - dispatchPublish：按订阅表路由 PUBLISH（协商 delivery QoS = min(pub, sub)）
  * - deliverRetainedOnSubscribe：新 SUBSCRIBE 时推送匹配的 Retain 消息
- * - nextMessageId：Broker 向订阅者下发 QoS1/2 时生成 message_id
+ * - nextMessageId：Worker 内全局 Atomic 生成 1~65535（多协程安全；pending 仍按 fd 隔离）
  *
  * 子类需实现 packAndSend() 以区分 V3/V5 报文编码。
  */
@@ -118,13 +119,28 @@ trait MqttBrokerSupport
         }
     }
 
-    /** Broker 侧生成 outbound message_id（1~65535 循环）。 */
+    /**
+     * Broker 侧生成 outbound message_id（1~65535 循环）。
+     *
+     * 使用 Worker 进程内 {@see Atomic} + cmpset，避免多协程同时 publish 撞同一 id。
+     * pending 表按 fd 隔离，全局序号跨连接共享不影响 ACK 配对。
+     *
+     * @param int $fd 目标连接（保留参数便于日后按 fd 扩展；当前未使用）
+     */
     protected function nextMessageId(int $fd): int
     {
-        unset($fd); // 当前 Worker 内全局递增；可按 fd 分片扩展
-        static $seq = 1;
-        $seq = ($seq % 65535) + 1; // MQTT message_id 有效范围 1~65535
+        unset($fd);
 
-        return $seq;
+        static ?Atomic $seq = null;
+        $seq ??= new Atomic(0);
+
+        // CAS 循环：读当前值 → 算下一号（满则回 1）→ cmpset 成功才返回
+        while (true) {
+            $current = $seq->get();
+            $next = $current >= 65535 ? 1 : $current + 1;
+            if ($seq->cmpset($current, $next)) {
+                return $next;
+            }
+        }
     }
 }

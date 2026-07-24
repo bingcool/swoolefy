@@ -12,10 +12,14 @@
 /**
  * Test\ Demo 应用加载：{START_DIR_ROOT}/Test/...
  *
+ * 类名：Test\Autoloader（与 PhpUintTest\Autoloader、其它应用 \<App>\Autoloader 区分，避免全局重复声明）
+ *
  * 可被多次 include（composer autoload-dev + cli.php registerNamespace）。
  * START_DIR_ROOT 须为仓库根（与 cli.php 一致）。
  */
-if (!class_exists('Autoloader', false) && !class_exists('autoloader', false)) {
+namespace Test;
+
+if (!class_exists(__NAMESPACE__ . '\\Autoloader', false)) {
     class Autoloader
     {
         /** @var string|null */
@@ -46,7 +50,7 @@ if (!class_exists('Autoloader', false) && !class_exists('autoloader', false)) {
             }
 
             foreach (self::$rootNamespace as $namespace) {
-                if (strpos($className, $namespace) !== 0) {
+                if ($className !== $namespace && !str_starts_with($className, $namespace . '\\')) {
                     continue;
                 }
 

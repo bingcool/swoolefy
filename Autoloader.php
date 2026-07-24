@@ -10,19 +10,24 @@
  */
 
 /**
- * 应用命名空间自动加载模板（create 时复制到 APP_PATH/Autoloader.php，并替换 &lt;{APP_NAME}&gt;）。
+ * 应用命名空间自动加载模板（create 时复制到 APP_PATH/Autoloader.php，并替换 "__APP_NAMESPACE__"）。
  *
+ * 类名：\{AppName}\Autoloader（与业务根命名空间一致，避免多应用全局 class Autoloader 冲突）
  * 路径：{START_DIR_ROOT}/{AppName}/...
  * 可被多次 include。
+ *
+ * 注意：本文件仅作模板；占位符 __APP_NAMESPACE__ 在复制到应用目录时替换为真实应用名。
  */
-if (!class_exists('Autoloader', false) && !class_exists('autoloader', false)) {
+namespace __APP_NAMESPACE__;
+
+if (!class_exists(__NAMESPACE__ . '\\Autoloader', false)) {
     class Autoloader
     {
         /** @var string|null */
         private static $baseDirectory = null;
 
         /** @var list<string> */
-        private static $rootNamespace = ["<{APP_NAME}>"];
+        private static $rootNamespace = ['__APP_NAMESPACE__'];
 
         /** @var array<string, true> */
         private static $classMapNamespace = [];
@@ -46,7 +51,8 @@ if (!class_exists('Autoloader', false) && !class_exists('autoloader', false)) {
             }
 
             foreach (self::$rootNamespace as $namespace) {
-                if (strpos($className, $namespace) !== 0) {
+                // 精确前缀：Foo 不匹配 Foobar\
+                if ($className !== $namespace && !str_starts_with($className, $namespace . '\\')) {
                     continue;
                 }
 

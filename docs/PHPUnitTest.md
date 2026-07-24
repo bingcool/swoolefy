@@ -187,8 +187,9 @@ composer 仅映射框架本体；Demo / PHPUnit 命名空间各自注册：
 | 命名空间 | 注册入口 |
 |----------|----------|
 | `Swoolefy\` | `vendor/autoload.php`（composer `autoload.psr-4`） |
-| `Test\` | `Test/Autoloader.php`（cli.php `registerNamespace`；PHPUnit/PhpStorm 经 `autoload-dev.files`） |
-| `PhpUintTest\` | `PhpUintTest/Autoloader.php`（经 `PhpUintTest/register_dev_autoload.php` → `autoload-dev.files`） |
+| `Test\` | `Test\Autoloader`（`Test/Autoloader.php`；cli.php `registerNamespace`；PHPUnit/PhpStorm 经 `autoload-dev.files`） |
+| `PhpUintTest\` | `PhpUintTest\Autoloader`（经 `PhpUintTest/register_dev_autoload.php` → `autoload-dev.files`） |
+| 业务应用 `App\` 等 | `\<AppName>\Autoloader`（create 自根目录 `Autoloader.php` 模板复制） |
 
 PhpStorm 单独 Run method 时若只挂 `vendor/autoload.php`，依赖上述 `autoload-dev.files`；改完后执行一次 `composer dump-autoload`。也可在 PHPUnit 配置里指定 Default configuration file = `phpunit.xml.dist`。
 
