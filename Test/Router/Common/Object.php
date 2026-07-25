@@ -48,7 +48,7 @@ Route::group([
     ]);
 
     // GET /user/order/add
-    Route::get('/order/add', [
+    Route::post('/order/add', [
         'dispatch_route' => [\Test\Controller\ObjectController::class, 'saveOrder'],
     ]);
 });

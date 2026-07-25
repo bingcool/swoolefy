@@ -2,26 +2,7 @@
 
 namespace Test\Router\Product;
 
-use Swoolefy\Http\Route;
-use Swoolefy\Http\RequestInput;
-
 /**
- * Controller 下的控制器路由
+ * 原 GET /product/list/mylist 与 IndexController::index 重复（同为 GET），已删除。
+ * 产品列表演示请使用独立 Controller + 独立 action，勿再挂到 IndexController::index。
  */
-
-Route::group([
-    // 路由前缀
-    'prefix' => 'product',
-    // 路由中间件
-    'middleware' => []
-], function () {
-    Route::get('/list/mylist', [
-        'beforeHandle' => function(RequestInput $requestInput) {
-            var_dump('beforeHandle');
-        },
-        'dispatch_route' => [\Test\Controller\IndexController::class, 'index'],
-        'afterHandle' => function(RequestInput $requestInput) {
-            var_dump('afterHandle');
-        }
-    ]);
-});

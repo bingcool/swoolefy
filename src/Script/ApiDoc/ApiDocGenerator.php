@@ -808,7 +808,8 @@ final class ApiDocGenerator
             return '';
         }
 
-        foreach (preg_split('/\R/', $doc) ?: [] as $line) {
+        // CR/LF only — bare /\R/ without /u matches byte 0x85 (NEL) and splits UTF-8 Chinese (入/内).
+        foreach (preg_split('/\r\n|\n|\r/', $doc) ?: [] as $line) {
             $line = trim((string)$line);
             $line = preg_replace('/^\s*\*\s?/', '', $line) ?? $line;
             $line = trim($line);

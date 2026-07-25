@@ -27,8 +27,3 @@ Route::group([
     ]);
 
 });
-
-// 分组外兼容：GET /cache/test1
-Route::match(['GET'], '/cache/test1', [
-    'dispatch_route' => [\Test\Controller\CacheController::class, 'test1'],
-]);

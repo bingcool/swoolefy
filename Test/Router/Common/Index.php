@@ -9,11 +9,12 @@ use Test\Middleware\Group\GroupTestMiddleware;
 use Test\Middleware\Route\ValidLoginMiddleware;
 
 /**
- * IndexController 路由
+ * IndexController 路由（每个 action 同一 HTTP 方法只挂一条路径）。
+ *
  * @see \Test\Controller\IndexController
  */
 
-// GET /index/index
+// GET /index/index —— 首页唯一入口（勿再挂 /api/、/product/* 到同一 action）
 Route::get('/index/index', [
     'beforeHandle' => function (RequestInput $requestInput) {
         Context::set('name', 'bingcool');
@@ -22,33 +23,12 @@ Route::get('/index/index', [
     'dispatch_route' => [\Test\Controller\IndexController::class, 'index'],
     'afterHandle' => function (RequestInput $requestInput) {
     },
-    'afterHandle1' => function (RequestInput $requestInput) {
-    },
 ])->enableCacheRouteMeta(false);
 
 Route::group([
     'prefix' => 'api',
     'middleware' => [GroupTestMiddleware::class],
 ], function () {
-    // GET /api/
-    Route::get('/', [
-        'beforeHandle' => function (RequestInput $requestInput) {
-            $requestInput->setValue('name', 'bingcool');
-        },
-        'beforeHandle1' => function (RequestInput $requestInput) {
-            $name = $requestInput->getValue('name');
-            var_dump($name);
-        },
-        'dispatch_route' => [\Test\Controller\IndexController::class, 'index'],
-        'afterHandle' => function (RequestInput $requestInput) {
-            var_dump('afterHandle');
-            var_dump('after:' . $requestInput->getValue('name'));
-        },
-        'afterHandle1' => function (RequestInput $requestInput) {
-            var_dump('afterHandle1');
-        },
-    ]);
-
     // GET /api/index/testLog
     Route::get('/index/testLog', [
         'dispatch_route' => [\Test\Controller\IndexController::class, 'testLog'],

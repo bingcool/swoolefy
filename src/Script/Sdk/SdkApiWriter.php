@@ -201,6 +201,10 @@ PHP;
 
     /**
      * Copy controller action docblock (trimmed) with 4-space indent for the generated client method.
+     *
+     * Important: split lines with {@see self::splitLines()} — never preg_split('/\R/') without /u,
+     * because in non-Unicode mode \R matches raw byte 0x85 (Unicode NEL), which is a common
+     * continuation byte inside UTF-8 Chinese (e.g. 入=E5 85 A5, 内=E5 86 85) and corrupts comments.
      */
     private function formatControllerActionDocblock(ReflectionMethod $method): string
     {
@@ -213,13 +217,13 @@ PHP;
             if ($doc === '') {
                 return '';
             }
-            $lines = preg_split('/\R/', $doc);
+            $lines = $this->splitLines($doc);
 
             return implode("\n", array_map(static fn (string $l) => '    ' . $l, $lines)) . "\n";
         }
 
         $inner = substr($doc, 3, -2);
-        $rawLines = preg_split('/\R/', $inner);
+        $rawLines = $this->splitLines($inner);
         $bodyLines = [];
         foreach ($rawLines as $line) {
             $stripped = rtrim(preg_replace('/^\s*\*\s?/', '', $line) ?? $line);
@@ -239,6 +243,16 @@ PHP;
         $out[] = '     */';
 
         return implode("\n", $out) . "\n";
+    }
+
+    /**
+     * Split on CR/LF only (UTF-8 safe). Do not use bare /\R/ — see formatControllerActionDocblock().
+     *
+     * @return list<string>
+     */
+    private function splitLines(string $text): array
+    {
+        return preg_split('/\r\n|\n|\r/', $text) ?: [''];
     }
 
     /**
