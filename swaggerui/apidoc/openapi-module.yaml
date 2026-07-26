@@ -8,7 +8,7 @@ paths:
     post:
       tags:
         - Agent
-      summary: !!binary 5a6M5pW05rWL6K+V77yaQ2FwYWJpbGl0eSDop6PmnpDlkI7ms6jl
+      summary: '完整测试：Capability 解析后注入 CapabilityToolAgent，并执行对话。'
       operationId: postAgentCapabilityControllerChat
       responses:
         200:
@@ -63,7 +63,7 @@ paths:
     post:
       tags:
         - Agent
-      summary: !!binary 5Ls=
+      summary: '仅解析 Capability，返回 selectedTools（不请求 LLM）。'
       operationId: postAgentCapabilityControllerResolve
       responses:
         200:
@@ -173,7 +173,7 @@ paths:
     post:
       tags:
         - Agent
-      summary: !!binary U1FMIOaMgeS5
+      summary: 'SQL 持久化多轮会话（与 chat 相同记忆后端，显式返回 historyCount）。'
       operationId: postAgentChatControllerChatPersist
       responses:
         200:
@@ -283,7 +283,7 @@ paths:
     post:
       tags:
         - Agent
-      summary: !!binary 5oyH5a6a5qih5Z6L5o+Q5L6b6IA=
+      summary: '指定模型提供者对话（provider 必填）。'
       operationId: postAgentChatControllerChat1
       responses:
         200:
@@ -947,7 +947,7 @@ paths:
     get:
       tags:
         - Mcp
-      summary: !!binary 5YiX5Ye6IE1DUCBTZXJ2ZXIg5Q==
+      summary: '列出 MCP Server 公开信息。'
       operationId: getMcpControllerServers
       responses:
         200:
@@ -1002,7 +1002,7 @@ paths:
     get:
       tags:
         - Mcp
-      summary: !!binary 5Y+R546w5oyH5a6aIFNlcnZlciDnmoTlt6Xl
+      summary: '发现指定 Server 的工具名列表。'
       operationId: getMcpControllerTools
       responses:
         200:
@@ -1639,7 +1639,7 @@ paths:
     get:
       tags:
         - Rag
-      summary: !!binary 5b2T5YmNIFJBRyDp
+      summary: '当前 RAG 配置摘要。'
       operationId: getRagControllerConfig
       responses:
         200:
@@ -1694,7 +1694,7 @@ paths:
     post:
       tags:
         - Rag
-      summary: !!binary 6Ieq5a6a5LmJ5paH5pys5Q==
+      summary: 自定义文本入库。
       operationId: postRagControllerIngest
       responses:
         200:
@@ -1804,7 +1804,7 @@ paths:
     post:
       tags:
         - Rag
-      summary: !!binary 5YaZ5Q==
+      summary: 写入演示语料。
       operationId: postRagControllerSeed
       responses:
         200:
@@ -2866,7 +2866,7 @@ paths:
     get:
       tags:
         - Workflow
-      summary: !!binary 5p+l55yL5Y2V5Liq5bel5L2c5rWB55qEIERBRyDor6bmgw==
+      summary: '查看单个工作流的 DAG 详情（节点、固定边、条件边）。'
       operationId: getWorkflowControllerDescribe
       responses:
         200:

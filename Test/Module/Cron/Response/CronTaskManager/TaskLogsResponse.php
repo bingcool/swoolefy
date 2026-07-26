@@ -16,4 +16,9 @@ class TaskLogsResponse extends BasePageResultResponse
     {
         $this->data = $data;
     }
+
+    public function getData(): TaskLogsPageResult
+    {
+        return $this->data;
+    }
 }

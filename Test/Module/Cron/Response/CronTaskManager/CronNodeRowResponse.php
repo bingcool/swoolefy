@@ -24,4 +24,11 @@ class CronNodeRowResponse extends BaseResponse
     {
         return $this->data;
     }
+
+    public function setData($data): static
+    {
+        $this->data = $data;
+
+        return $this;
+    }
 }

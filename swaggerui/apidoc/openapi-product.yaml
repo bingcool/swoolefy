@@ -1,6 +1,0 @@
-openapi: 3.0.3
-info:
-  title: 用户产品中心
-  description: 用户产品模块（原 /product/list/mylist 与 Index 首页重复已移除，待独立 Product API）
-  version: 1.0.0
-paths: {}

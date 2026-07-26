@@ -14,6 +14,9 @@ use Swoolefy\Support\Neuron\NeuronAiConfig;
 use Swoolefy\Support\Neuron\NeuronAiProviderName;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Test\Module\Agent\ChatAgent;
+use Test\Module\Agent\Response\ChatPersistResponse;
+use Test\Module\Agent\Response\ChatResponse;
+use Test\Module\Agent\Response\ChatThinkingResponse;
 use Test\Module\Workflow\WorkflowService;
 use Throwable;
 
@@ -36,7 +39,7 @@ final class AgentChatController extends BController
     /** 默认 Provider 对话（ChatAgent → SQL）。
      curl -X POST http://localhost:9501/api/v1/agent/chat -H "Content-Type: application/json" -d '{"message":"你好","sessionId":"s1","userId":"u1","provider":"deepseek"}'
      */
-    public function chat(RequestInput $requestInput): array
+    public function chat(RequestInput $requestInput): ChatResponse
     {
         $providerAlias = trim((string) $requestInput->input('provider', ''));
         $model = trim((string) $requestInput->input('model', ''));
@@ -51,7 +54,7 @@ final class AgentChatController extends BController
      *
      curl -X POST http://localhost:9501/api/v1/agent/chat1 -H "Content-Type: application/json" -d '{"message":"你好","sessionId":"s1","userId":"u1","provider":"deepseek"}'
      */
-    public function chat1(RequestInput $requestInput): array
+    public function chat1(RequestInput $requestInput): ChatResponse
     {
         $providerAlias = trim((string) $requestInput->input('provider', ''));
         if ($providerAlias === '') {
@@ -70,7 +73,7 @@ final class AgentChatController extends BController
      *
      * @see https://api-docs.deepseek.com/zh-cn/guides/thinking_mode
      */
-    public function chatThinking(RequestInput $requestInput): array
+    public function chatThinking(RequestInput $requestInput): ChatThinkingResponse
     {
         $message = trim((string) $requestInput->input('message', ''));
         if ($message === '') {
@@ -92,7 +95,7 @@ final class AgentChatController extends BController
             $model = 'deepseek-chat';
         }
 
-        [$threadId, $sessionId, $userId] = $this->resolveThread($requestInput);
+        [$threadId] = $this->resolveThread($requestInput);
 
         $parameters = [
             'thinking' => ['type' => $thinkingType],
@@ -118,16 +121,16 @@ final class AgentChatController extends BController
             throw new SystemException('Agent chat thinking failed: ' . $e->getMessage(), 500, $e);
         }
 
-        return [
-            'threadId' => $threadId,
-            'message' => $message,
-            'reply' => $assistant->getContent(),
-            'reasoning_content' => $this->extractReasoningContent($assistant),
-            'provider' => NeuronAiProviderName::DEEPSEEK,
-            'model' => $model,
-            'thinking' => $thinkingType,
-            'reasoning_effort' => $thinkingType === 'enabled' ? $effort : null,
-        ];
+        return new ChatThinkingResponse(
+            $threadId,
+            $message,
+            (string) $assistant->getContent(),
+            $this->extractReasoningContent($assistant),
+            NeuronAiProviderName::DEEPSEEK,
+            $model,
+            $thinkingType,
+            $thinkingType === 'enabled' ? $effort : null,
+        );
     }
 
     /**
@@ -137,7 +140,7 @@ final class AgentChatController extends BController
      *
      curl -X POST http://localhost:9501/api/v1/agent/chat-persist -H "Content-Type: application/json" -d '{"message":"你好","sessionId":"s1","userId":"u1","provider":"deepseek"}'
      */
-    public function chatPersist(RequestInput $requestInput): array
+    public function chatPersist(RequestInput $requestInput): ChatPersistResponse
     {
         $message = trim((string) $requestInput->input('message', ''));
         if ($message === '') {
@@ -169,22 +172,17 @@ final class AgentChatController extends BController
             throw new SystemException('Agent chat persist failed: ' . $e->getMessage(), 500, $e);
         }
 
-        return [
-            'threadId' => $threadId,
-            'message' => $message,
-            'reply' => $reply,
-            'provider' => $providerAlias !== '' ? $providerAlias : NeuronAiConfig::load()->defaultProviderName(),
-            'model' => $model !== '' ? $model : null,
-            'persisted' => true,
-            'historyCount' => $historyCount,
-            'memory' => 'sql',
-        ];
+        return new ChatPersistResponse(
+            $threadId,
+            $message,
+            $reply,
+            $providerAlias !== '' ? $providerAlias : NeuronAiConfig::load()->defaultProviderName(),
+            $model !== '' ? $model : null,
+            $historyCount,
+        );
     }
 
-    /**
-     * @return array{threadId: string, message: string, reply: string, provider: string, model: string|null}
-     */
-    private function runChat(RequestInput $requestInput, string $providerAlias, string $model): array
+    private function runChat(RequestInput $requestInput, string $providerAlias, string $model): ChatResponse
     {
         $message = trim((string) $requestInput->input('message', ''));
         if ($message === '') {
@@ -212,13 +210,13 @@ final class AgentChatController extends BController
             throw new SystemException('Agent chat failed: ' . $e->getMessage(), 500, $e);
         }
 
-        return [
-            'threadId' => $threadId,
-            'message' => $message,
-            'reply' => $reply,
-            'provider' => $providerAlias !== '' ? $providerAlias : NeuronAiConfig::load()->defaultProviderName(),
-            'model' => $model !== '' ? $model : null,
-        ];
+        return new ChatResponse(
+            $threadId,
+            $message,
+            (string) $reply,
+            $providerAlias !== '' ? $providerAlias : NeuronAiConfig::load()->defaultProviderName(),
+            $model !== '' ? $model : null,
+        );
     }
 
     /**

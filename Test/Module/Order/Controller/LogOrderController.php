@@ -1,8 +1,6 @@
 <?php
 namespace Test\Module\Order\Controller;
 
-use GenerateSdk\Swoolefy\Test\Support\SdkArrayInteger;
-use GenerateSdk\Swoolefy\Test\Support\SdkCovertProperty;
 use Swoolefy\Annotation\ApiController;
 use Swoolefy\Annotation\ApiOperation;
 use Swoolefy\Annotation\ApiProperty;

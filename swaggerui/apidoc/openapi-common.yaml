@@ -732,7 +732,7 @@ paths:
     get:
       tags:
         - Download
-      summary: !!binary 5rWL6K+V5rWP6KeI5Zmo5YY=
+      summary: '测试浏览器内联预览下载（Content-Disposition: inline）。'
       operationId: getDownloadControllerInline
       responses:
         200:
@@ -787,6 +787,336 @@ paths:
         - Exception
       summary: 测试触发错误与异常处理
       operationId: getExceptionControllerTest
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/file-storage/delete:
+    post:
+      tags:
+        - FileStorage
+      summary: 'FileStorage local delete'
+      operationId: postFileStorageControllerDelete
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/file-storage/exists:
+    get:
+      tags:
+        - FileStorage
+      summary: 'FileStorage local fileExists'
+      operationId: getFileStorageControllerExists
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/file-storage/get:
+    get:
+      tags:
+        - FileStorage
+      summary: 'FileStorage local getObject'
+      operationId: getFileStorageControllerGet
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/file-storage/metadata:
+    get:
+      tags:
+        - FileStorage
+      summary: 'FileStorage local getMetadata'
+      operationId: getFileStorageControllerMetadata
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/file-storage/put:
+    post:
+      tags:
+        - FileStorage
+      summary: 'FileStorage local putObject'
+      operationId: postFileStorageControllerPut
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/file-storage/roundtrip:
+    post:
+      tags:
+        - FileStorage
+      summary: 'FileStorage local put/get/metadata/delete roundtrip'
+      operationId: postFileStorageControllerRoundtrip
       responses:
         200:
           description: success
@@ -950,7 +1280,7 @@ paths:
     get:
       tags:
         - Index
-      summary: !!binary 5rWL6K+VIFJ1bkxvZyDkuJrliqHml6Xlv5flhpnl
+      summary: '测试 RunLog 业务日志写入'
       operationId: getIndexControllerTestLog1
       responses:
         200:
@@ -1005,7 +1335,7 @@ paths:
     get:
       tags:
         - Index
-      summary: 测试查询用户列表与总数。
+      summary: 测试查询用户列表与总数
       operationId: getIndexControllerTestUserList
       responses:
         200:
@@ -2168,61 +2498,6 @@ paths:
                   - msg
                   - trace_id
                   - data
-  /cache/test1:
-    get:
-      tags:
-        - Cache
-      summary: '测试 Cache setMultiple 批量写入'
-      operationId: getCacheControllerTest1
-      responses:
-        200:
-          description: success
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  code:
-                    type: integer
-                    example: 0
-                  msg:
-                    type: string
-                    example: success
-                  trace_id:
-                    type: string
-                    example: ''
-                  data:
-                    type: array
-                    items:
-                      type: string
-                required:
-                  - code
-                  - msg
-                  - trace_id
-                  - data
-        400:
-          description: 'validation failed'
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  code:
-                    type: integer
-                    example: -1
-                  msg:
-                    type: string
-                    example: 'validation failed'
-                  trace_id:
-                    type: string
-                    example: ''
-                  data:
-                    nullable: true
-                required:
-                  - code
-                  - msg
-                  - trace_id
-                  - data
   /index/index:
     get:
       tags:
@@ -2330,11 +2605,11 @@ paths:
                   - trace_id
                   - data
   /user/order/add:
-    get:
+    post:
       tags:
         - Object
       summary: '测试 Entity 保存订单（含 AFTER_INSERT 事件）'
-      operationId: getObjectControllerSaveOrder
+      operationId: postObjectControllerSaveOrder
       responses:
         200:
           description: success
@@ -4004,7 +4279,7 @@ paths:
     get:
       tags:
         - UserOrder
-      summary: !!binary RGIg5Q==
+      summary: 'Db 全量综合测试入口。'
       operationId: getUserOrderControllerUserList
       responses:
         200:
@@ -4081,7 +4356,7 @@ paths:
     post:
       tags:
         - UserOrder
-      summary: !!binary RGIg5Q==
+      summary: 'Db 全量综合测试入口。'
       operationId: postUserOrderControllerUserList
       responses:
         200:
@@ -4158,7 +4433,7 @@ paths:
     put:
       tags:
         - UserOrder
-      summary: !!binary RGIg5Q==
+      summary: 'Db 全量综合测试入口。'
       operationId: putUserOrderControllerUserList
       responses:
         200:
@@ -4235,7 +4510,7 @@ paths:
     patch:
       tags:
         - UserOrder
-      summary: !!binary RGIg5Q==
+      summary: 'Db 全量综合测试入口。'
       operationId: patchUserOrderControllerUserList
       responses:
         200:
@@ -4312,7 +4587,7 @@ paths:
     delete:
       tags:
         - UserOrder
-      summary: !!binary RGIg5Q==
+      summary: 'Db 全量综合测试入口。'
       operationId: deleteUserOrderControllerUserList
       responses:
         200:
@@ -4389,7 +4664,7 @@ paths:
     head:
       tags:
         - UserOrder
-      summary: !!binary RGIg5Q==
+      summary: 'Db 全量综合测试入口。'
       operationId: headUserOrderControllerUserList
       responses:
         200:
@@ -4466,7 +4741,7 @@ paths:
     options:
       tags:
         - UserOrder
-      summary: !!binary RGIg5Q==
+      summary: 'Db 全量综合测试入口。'
       operationId: optionsUserOrderControllerUserList
       responses:
         200:
@@ -4544,7 +4819,7 @@ paths:
     get:
       tags:
         - UserOrder
-      summary: !!binary 5Y2P56iL55u45Q==
+      summary: 协程相关专项测试。
       operationId: getUserOrderControllerUserList1
       responses:
         200:
@@ -4598,7 +4873,7 @@ paths:
     post:
       tags:
         - UserOrder
-      summary: !!binary 5Y2P56iL55u45Q==
+      summary: 协程相关专项测试。
       operationId: postUserOrderControllerUserList1
       responses:
         200:
@@ -4652,7 +4927,7 @@ paths:
     put:
       tags:
         - UserOrder
-      summary: !!binary 5Y2P56iL55u45Q==
+      summary: 协程相关专项测试。
       operationId: putUserOrderControllerUserList1
       responses:
         200:
@@ -4706,7 +4981,7 @@ paths:
     patch:
       tags:
         - UserOrder
-      summary: !!binary 5Y2P56iL55u45Q==
+      summary: 协程相关专项测试。
       operationId: patchUserOrderControllerUserList1
       responses:
         200:
@@ -4760,7 +5035,7 @@ paths:
     delete:
       tags:
         - UserOrder
-      summary: !!binary 5Y2P56iL55u45Q==
+      summary: 协程相关专项测试。
       operationId: deleteUserOrderControllerUserList1
       responses:
         200:
@@ -4814,7 +5089,7 @@ paths:
     head:
       tags:
         - UserOrder
-      summary: !!binary 5Y2P56iL55u45Q==
+      summary: 协程相关专项测试。
       operationId: headUserOrderControllerUserList1
       responses:
         200:
@@ -4868,7 +5143,7 @@ paths:
     options:
       tags:
         - UserOrder
-      summary: !!binary 5Y2P56iL55u45Q==
+      summary: 协程相关专项测试。
       operationId: optionsUserOrderControllerUserList1
       responses:
         200:
