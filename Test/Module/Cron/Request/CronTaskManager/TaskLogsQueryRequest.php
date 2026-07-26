@@ -14,7 +14,7 @@ use Swoolefy\Http\BasePageRequest;
  */
 class TaskLogsQueryRequest extends BasePageRequest
 {
-    #[ApiProperty(description: '任务 ID（cron 任务主键）')]
+    #[ApiProperty(description: '任务主键ID')]
     #[ValidationRule(rule: 'required|int', message: 'taskId 不能为空')]
     #[StringToInt]
     protected int $taskId = 0;

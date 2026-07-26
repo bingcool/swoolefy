@@ -138,9 +138,13 @@ paths:
                     type: string
                     example: ''
                   data:
-                    type: array
-                    items:
-                      type: string
+                    type: object
+                    properties:
+                      threadId: { type: string, description: '会话线程 ID（userId:sessionId）' }
+                      message: { type: string, description: 用户输入消息 }
+                      reply: { type: string, description: 助手回复内容 }
+                      provider: { type: string, description: 模型提供者别名（ai_model_providers） }
+                      model: { type: string, nullable: true, description: '模型名称；未指定时为 null' }
                 required:
                   - code
                   - msg
@@ -193,9 +197,16 @@ paths:
                     type: string
                     example: ''
                   data:
-                    type: array
-                    items:
-                      type: string
+                    type: object
+                    properties:
+                      threadId: { type: string, description: '会话线程 ID（userId:sessionId）' }
+                      message: { type: string, description: 用户输入消息 }
+                      reply: { type: string, description: 助手回复内容 }
+                      provider: { type: string, description: 模型提供者别名（ai_model_providers） }
+                      model: { type: string, nullable: true, description: '模型名称；未指定时为 null' }
+                      persisted: { type: boolean, description: '是否已写入 SQL 记忆' }
+                      historyCount: { type: integer, description: 当前会话历史消息条数（含本轮） }
+                      memory: { type: string, description: '记忆后端标识，如 sql' }
                 required:
                   - code
                   - msg
@@ -248,9 +259,16 @@ paths:
                     type: string
                     example: ''
                   data:
-                    type: array
-                    items:
-                      type: string
+                    type: object
+                    properties:
+                      threadId: { type: string, description: '会话线程 ID（userId:sessionId）' }
+                      message: { type: string, description: 用户输入消息 }
+                      reply: { type: string, description: 助手回复内容 }
+                      reasoning_content: { type: string, nullable: true, description: '思考过程内容（DeepSeek reasoning）；无则为 null' }
+                      provider: { type: string, description: 模型提供者别名 }
+                      model: { type: string, description: 模型名称 }
+                      thinking: { type: string, description: '思考模式：enabled | disabled' }
+                      reasoning_effort: { type: string, nullable: true, description: '推理强度：high | max；thinking=disabled 时为 null' }
                 required:
                   - code
                   - msg
@@ -303,9 +321,13 @@ paths:
                     type: string
                     example: ''
                   data:
-                    type: array
-                    items:
-                      type: string
+                    type: object
+                    properties:
+                      threadId: { type: string, description: '会话线程 ID（userId:sessionId）' }
+                      message: { type: string, description: 用户输入消息 }
+                      reply: { type: string, description: 助手回复内容 }
+                      provider: { type: string, description: 模型提供者别名（ai_model_providers） }
+                      model: { type: string, nullable: true, description: '模型名称；未指定时为 null' }
                 required:
                   - code
                   - msg
@@ -2584,7 +2606,7 @@ paths:
           required: true
           schema:
             type: integer
-          description: '任务 ID（cron 任务主键）'
+          description: 任务主键ID）
         -
           name: page
           in: query

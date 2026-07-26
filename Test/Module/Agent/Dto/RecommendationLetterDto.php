@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Module\Agent\Dto;
 
-use NeuronAI\StructuredOutput\SchemaProperty;
+use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Core\Dto\ArrayDto;
 
 /**
@@ -12,9 +12,9 @@ use Swoolefy\Core\Dto\ArrayDto;
  */
 final class RecommendationLetterDto extends ArrayDto
 {
-    #[SchemaProperty(description: '推荐信标题', required: true)]
+    #[ApiProperty(description: '推荐信标题')]
     public string $title;
 
-    #[SchemaProperty(description: '完整推荐信正文，正式、流畅、有说服力', required: true)]
+    #[ApiProperty(description: '完整推荐信正文，正式、流畅、有说服力')]
     public string $article;
 }
