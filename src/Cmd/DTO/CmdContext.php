@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Swoolefy\Cmd\DTO;
 
+use Swoolefy\Core\SystemEnv;
+
 /**
  * 命令上下文：封装单次命令执行所需的全部应用信息。
  *
@@ -62,7 +64,9 @@ final class CmdContext
         $protocol = $appMeta['protocol'] ?? '';
 
         // 是否为 WorkerService（Cron/Daemon/Script 模式）
-        $isWorkerService = defined('WORKER_SERVICE_NAME');
+        // 必须通过 IS_DAEMON_SERVICE/IS_SCRIPT_SERVICE/IS_CRON_SERVICE 判断，
+        // 不能用 defined('WORKER_SERVICE_NAME')，因为 cli.php 也定义了该常量
+        $isWorkerService = SystemEnv::isWorkerService();
 
         // 读取 Protocol/conf.php 完整配置
         $configFile = $appPath . '/Protocol/conf.php';
@@ -85,8 +89,6 @@ final class CmdContext
             'mqtt' => 'MqttServer',
         ];
         $serverClass = $appName . '\\' . ($protocolMap[$protocol] ?? '');
-
-        var_dump(CLI_TO_WORKER_PIPE);
 
         return new self(
             appName: $appName,
