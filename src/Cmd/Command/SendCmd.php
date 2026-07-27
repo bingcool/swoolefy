@@ -86,15 +86,8 @@ class SendCmd extends BaseCmd
             return Command::SUCCESS;
         }
 
-        // 创建响应管道，监听 Worker 回复
-        $workerToCliPipe = $ctx->workerToCliPipe;
-        if ($workerToCliPipe) {
-            FifoPipeClient::listenResponse($workerToCliPipe, 5000, function (string $msg) {
-                fmtPrintInfo($msg ?: '已向master进程发起跑脚本指令');
-            });
-        }
-
-        // 通过管道发送消息到 Worker
+        // 必须先发送管道消息，再启动事件循环监听
+        // 因为 listenResponse() 内部的 Event::wait() 是阻塞的
         $manager = new ServerLifecycleManager();
         $manager->sendWorkerPipeMessage(
             $ctx,
@@ -102,6 +95,14 @@ class SendCmd extends BaseCmd
             $processName,
             json_encode(['action' => $action, 'msg' => $msg])
         );
+
+        // 创建响应管道，监听 Worker 回复
+        $workerToCliPipe = $ctx->workerToCliPipe;
+        if ($workerToCliPipe) {
+            FifoPipeClient::listenResponse($workerToCliPipe, 5000, function (string $msg) {
+                fmtPrintInfo($msg ?: '已向master进程发起跑脚本指令');
+            });
+        }
 
         return Command::SUCCESS;
     }

@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace Swoolefy\Cmd\Command;
 
-use Swoolefy\Cmd\Application\ServerLifecycleManager;
 use Swoolefy\Cmd\BaseCmd;
 use Swoolefy\Cmd\Infrastructure\FifoPipeClient;
 use Swoolefy\Cmd\Infrastructure\PidFileManager;
 use Swoolefy\Cmd\Infrastructure\ServerStatusRenderer;
 use Swoolefy\Cmd\Support\ProcessTreeTerminator;
-use Swoolefy\Core\SystemEnv;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -114,16 +112,16 @@ class StatusCmd extends BaseCmd
         $pipeMsgDto->targetHandler = $workerToCliPipe;
         $pipeMsg = serialize($pipeMsgDto);
 
+        // 必须先发送查询消息，再启动事件循环监听
+        // 因为 listenResponse() 内部的 Event::wait() 是阻塞的
+        fwrite($pipe, $pipeMsg);
+        fclose($pipe);
+        sleep(1);
         // 创建响应管道，监听 Worker 回复（超时 10 秒）
         if ($workerToCliPipe) {
             FifoPipeClient::listenResponse($workerToCliPipe, 10000, function (string $msg) {
                 fmtPrintInfo($msg);
             });
         }
-
-        // 发送查询消息到 Worker
-        sleep(1);
-        fwrite($pipe, $pipeMsg);
-        fclose($pipe);
     }
 }
