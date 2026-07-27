@@ -65,11 +65,13 @@ class StatusCmd extends BaseCmd
      * 通过 FIFO 管道向主 Worker 发送 WORKER_CLI_STATUS 消息，
      * Worker 处理后通过响应管道返回状态信息。
      *
-     * 流程：
-     * 1. 校验 PID 文件和进程状态
-     * 2. 校验 FIFO 管道是否可用
-     * 3. 创建响应管道监听 Worker 回复
-     * 4. 发送状态查询消息到 Worker
+     * ===== FIFO 通信时序严格约束，绝对不能乱 =====
+     *
+     *   Step 1: prepareResponsePipe() — 创建响应 FIFO + 注册 Event 监听
+     *   Step 2: sleep(1) + fwrite()  — 等待注册完成后发送消息给 Worker
+     *   Step 3: waitForResponse()    — 阻塞等待 Worker 响应
+     *
+     * 颠倒任何步骤都会导致通信失败（Worker 响应丢失或 CLI 无输出）。
      *
      * @param \Swoolefy\Cmd\DTO\CmdContext $ctx 命令上下文
      */
@@ -112,15 +114,28 @@ class StatusCmd extends BaseCmd
         $pipeMsgDto->targetHandler = $workerToCliPipe;
         $pipeMsg = serialize($pipeMsgDto);
 
-        // 必须先发送查询消息，再启动事件循环监听
-        // 因为 listenResponse() 内部的 Event::wait() 是阻塞的
-        fwrite($pipe, $pipeMsg);
-        fclose($pipe);
-        // 创建响应管道，监听 Worker 回复（超时 10 秒）
+        // ===== FIFO 通信时序（严格顺序，不能乱）=====
+        // Step 1: 先创建响应 FIFO 并注册事件监听
+        // !! 必须在发送消息之前完成 !!
+        // 否则 Worker 处理完消息后尝试写入响应时，FIFO 尚未创建，响应将丢失
+        $fifoClient = null;
         if ($workerToCliPipe) {
-            FifoPipeClient::listenResponse($workerToCliPipe, 10000, function (string $msg) {
+            $fifoClient = FifoPipeClient::prepareResponsePipe($workerToCliPipe, 10000, function (string $msg) {
                 fmtPrintInfo($msg);
             });
+        }
+
+        // Step 2: 等待事件循环注册完成后，再发送查询消息给 Worker
+        // sleep(1) 确保 Swoole Event::add 已完成注册
+        sleep(1);
+        fwrite($pipe, $pipeMsg);
+        fclose($pipe);
+
+        // Step 3: 阻塞等待 Worker 响应（超时 10 秒）
+        // !! 必须在 Step 1 和 Step 2 之后调用 !!
+        // Event::wait() 是阻塞调用，一旦进入就无法返回
+        if ($fifoClient) {
+            $fifoClient->waitForResponse();
         }
     }
 }

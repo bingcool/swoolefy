@@ -38,13 +38,13 @@ class SendCmd extends BaseCmd
     /**
      * 执行发送消息命令。
      *
-     * 流程：
-     * 1. 校验是否为 WorkerService
-     * 2. 校验 PID 文件和进程状态
-     * 3. 执行全局前置回调（start/restart 动作时）
-     * 4. 创建响应管道监听 Worker 回复
-     * 5. 通过管道发送消息到 Worker
-     * 6. 等待响应并输出结果
+     * ===== FIFO 通信时序严格约束，绝对不能乱 =====
+     *
+     *   Step 1: prepareResponsePipe() — 创建响应 FIFO + 注册 Event 监听
+     *   Step 2: sendWorkerPipeMessage() — 发送消息给 Worker
+     *   Step 3: waitForResponse()     — 阻塞等待 Worker 响应
+     *
+     * 颠倒任何步骤都会导致通信失败（Worker 响应丢失或 CLI 无输出）。
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
@@ -86,8 +86,19 @@ class SendCmd extends BaseCmd
             return Command::SUCCESS;
         }
 
-        // 必须先发送管道消息，再启动事件循环监听
-        // 因为 listenResponse() 内部的 Event::wait() 是阻塞的
+        // ===== FIFO 通信时序（严格顺序，不能乱）=====
+        // Step 1: 先创建响应 FIFO 并注册事件监听
+        // !! 必须在发送消息之前完成 !!
+        // 否则 Worker 处理完消息后尝试写入响应时，FIFO 尚未创建，响应将丢失
+        $workerToCliPipe = $ctx->workerToCliPipe;
+        $fifoClient = null;
+        if ($workerToCliPipe) {
+            $fifoClient = FifoPipeClient::prepareResponsePipe($workerToCliPipe, 5000, function (string $msg) {
+                fmtPrintInfo($msg ?: '已向master进程发起跑脚本指令');
+            });
+        }
+
+        // Step 2: 发送管道消息到 Worker
         $manager = new ServerLifecycleManager();
         $manager->sendWorkerPipeMessage(
             $ctx,
@@ -96,12 +107,11 @@ class SendCmd extends BaseCmd
             json_encode(['action' => $action, 'msg' => $msg])
         );
 
-        // 创建响应管道，监听 Worker 回复
-        $workerToCliPipe = $ctx->workerToCliPipe;
-        if ($workerToCliPipe) {
-            FifoPipeClient::listenResponse($workerToCliPipe, 5000, function (string $msg) {
-                fmtPrintInfo($msg ?: '已向master进程发起跑脚本指令');
-            });
+        // Step 3: 阻塞等待 Worker 响应
+        // !! 必须在 Step 1 和 Step 2 之后调用 !!
+        // Event::wait() 是阻塞调用，一旦进入就无法返回
+        if ($fifoClient) {
+            $fifoClient->waitForResponse();
         }
 
         return Command::SUCCESS;
