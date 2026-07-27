@@ -116,7 +116,6 @@ class StatusCmd extends BaseCmd
         // 因为 listenResponse() 内部的 Event::wait() 是阻塞的
         fwrite($pipe, $pipeMsg);
         fclose($pipe);
-        sleep(1);
         // 创建响应管道，监听 Worker 回复（超时 10 秒）
         if ($workerToCliPipe) {
             FifoPipeClient::listenResponse($workerToCliPipe, 10000, function (string $msg) {

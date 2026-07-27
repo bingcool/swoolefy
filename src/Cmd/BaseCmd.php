@@ -144,6 +144,11 @@ class BaseCmd extends Command
         } catch (CmdInitException $e) {
             $this->initError = $e;
             fmtPrintError($e->getMessage());
+        } catch (\Throwable $e) {
+            // 捕获 Protocol/conf.php 等 include 中抛出的非 CmdInitException 异常
+            // （如 SystemException、RuntimeException 等），避免命令无声退出
+            $this->initError = $e;
+            fmtPrintError("初始化失败: " . $e->getMessage());
         }
     }
 
