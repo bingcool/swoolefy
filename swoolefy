@@ -10,14 +10,14 @@
  * +----------------------------------------------------------------------
  */
 
-use Swoolefy\Cmd\MonitorCmd;
-use Swoolefy\Cmd\ReloadCmd;
-use Swoolefy\Cmd\SendCmd;
-use Swoolefy\Cmd\StartCmd;
+use Swoolefy\Cmd\Command\MonitorCmd;
+use Swoolefy\Cmd\Command\ReloadCmd;
+use Swoolefy\Cmd\Command\SendCmd;
+use Swoolefy\Cmd\Command\StartCmd;
 use Swoolefy\Cmd\CreateCmd;
-use Swoolefy\Cmd\StatusCmd;
-use Swoolefy\Cmd\StopCmd;
-use Swoolefy\Cmd\RestartCmd;
+use Swoolefy\Cmd\Command\StatusCmd;
+use Swoolefy\Cmd\Command\StopCmd;
+use Swoolefy\Cmd\Command\RestartCmd;
 use Symfony\Component\Console\Application;
 
 function isWorkerService(): bool
