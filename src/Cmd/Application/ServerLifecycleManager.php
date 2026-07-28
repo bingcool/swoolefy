@@ -112,30 +112,85 @@ final class ServerLifecycleManager
      *
      * 停止策略：
      * 1. 先通过 FIFO 管道通知 Worker 进程停止（WORKER_CLI_STOP）
-     * 2. 等待 Worker 处理完成（3秒）
-     * 3. 再停止 Server 主进程（复用 stopServer 逻辑）
+     * 2. 再停止 Server 主进程（复用 stopServer 逻辑）
+     * 3. 按 Worker PID 单独确认 MainManager 已退出，超时后强制清理
      *
      * @param CmdContext $ctx 命令上下文
      * @return StopResult 停止操作结果
      */
     public function stopWorkerService(CmdContext $ctx): StopResult
     {
-        $pidFile = $ctx->pidFile;
-        if (!$pidFile || !is_file($pidFile)) {
-            return StopResult::pidFileNotFound($pidFile ?? '');
-        }
+        $serverPid = ($ctx->pidFile !== '' && is_file($ctx->pidFile))
+            ? PidFileManager::read($ctx->pidFile)
+            : 0;
+        $workerMasterPid = ($ctx->workerPidFile !== '' && is_file($ctx->workerPidFile))
+            ? PidFileManager::read($ctx->workerPidFile)
+            : 0;
 
-        $masterPid = PidFileManager::read($pidFile);
-        if ($masterPid <= 0 || !ProcessTreeTerminator::isAlive($masterPid)) {
+        $serverAlive = $serverPid > 0 && ProcessTreeTerminator::isAlive($serverPid);
+        $workerMasterAlive = $workerMasterPid > 0 && ProcessTreeTerminator::isAlive($workerMasterPid);
+        if (!$serverAlive && !$workerMasterAlive) {
+            PidFileManager::remove($ctx->pidFile);
+            PidFileManager::remove($ctx->workerPidFile);
+
             return StopResult::alreadyStopped();
         }
 
-        // 通过管道通知 Worker 停止
-        $this->sendWorkerPipeMessage($ctx, WORKER_CLI_STOP);
-        sleep(3);
+        // 优先通过 FIFO 触发 MainManager 自身的完整关闭流程（子进程 → timer/FIFO → EventLoop → self exit）。
+        $notified = $workerMasterAlive && $this->sendWorkerPipeMessage($ctx, WORKER_CLI_STOP);
+        if ($workerMasterAlive && !$notified) {
+            // FIFO 不可用时直接通知 Worker Master；SIGTERM 与 FIFO 共用 shutdownMainManager()。
+            \Swoole\Process::kill($workerMasterPid, SIGTERM);
+        }
 
-        // 再停止 Server 主进程
-        return $this->stopServer($ctx);
+        // 外层 Swoole Server 与 Worker Master 是两个需要分别确认的进程。
+        $serverResult = $serverAlive ? $this->stopServer($ctx) : StopResult::alreadyStopped();
+
+        if (!$this->waitWorkerMasterStopped($ctx, $workerMasterPid, 20)) {
+            return StopResult::timeout($workerMasterPid);
+        }
+
+        return $serverResult;
+    }
+
+    /**
+     * 等待 Worker Master 退出；超时后先 SIGTERM，再按 PID 树 SIGKILL 兜底。
+     *
+     * macOS 上外层 Swoole Server 退出后，Worker Master 可能被 re-parent 到 PID 1，
+     * 因此不能只依赖外层 Server PID 树或进程标题匹配。
+     */
+    private function waitWorkerMasterStopped(CmdContext $ctx, int $workerMasterPid, int $timeoutSeconds): bool
+    {
+        if ($workerMasterPid <= 0) {
+            PidFileManager::remove($ctx->workerPidFile);
+
+            return true;
+        }
+
+        $deadline = microtime(true) + max(1, $timeoutSeconds);
+        while (microtime(true) < $deadline) {
+            if (!ProcessTreeTerminator::isAlive($workerMasterPid)) {
+                PidFileManager::remove($ctx->workerPidFile);
+
+                return true;
+            }
+            usleep(100_000);
+        }
+
+        // MainManager 未按期退出：直接按记录的 Worker PID 处理，不依赖 PPID 或 process title。
+        \Swoole\Process::kill($workerMasterPid, SIGTERM);
+        usleep(500_000);
+        if (ProcessTreeTerminator::isAlive($workerMasterPid)) {
+            ProcessTreeTerminator::killProcessTree($workerMasterPid);
+            usleep(500_000);
+        }
+
+        $stopped = !ProcessTreeTerminator::isAlive($workerMasterPid);
+        if ($stopped) {
+            PidFileManager::remove($ctx->workerPidFile);
+        }
+
+        return $stopped;
     }
 
     /**

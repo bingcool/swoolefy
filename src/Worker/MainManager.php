@@ -103,6 +103,11 @@ class MainManager
      */
     private $cliPipeFd;
 
+    /**
+     * 状态上报定时器 ID；退出时必须主动清理，否则 EventLoop 仍有活动 watcher。
+     */
+    private ?int $reportStatusTimerId = null;
+
 
     /**
      * @var \Closure
@@ -426,12 +431,14 @@ class MainManager
      */
     private function installMasterStopSignal()
     {
+        $handler = $this->signalHandle();
+        // 无论前台/daemon，SIGTERM 都必须进入 MainManager 自身的完整退出流程。
         if (!$this->isDaemon) {
-            // Ctrl+C
-            \Swoole\Process::signal(SIGHUP, $this->signalHandle());
+            \Swoole\Process::signal(SIGINT, $handler);
+            \Swoole\Process::signal(SIGHUP, $handler);
             return;
         }
-        \Swoole\Process::signal(SIGTERM, $this->signalHandle());
+        \Swoole\Process::signal(SIGTERM, $handler);
     }
 
     /**
@@ -446,36 +453,103 @@ class MainManager
                 case SIGINT:
                 case SIGHUP:
                 case SIGTERM:
-                    if (!$this->isExit) {
-                        $this->isExit = true;
-                        foreach ($this->processWorkers as $processes) {
-                            foreach ($processes as $workerId => $process) {
-                                try {
-                                    $processName = $process->getProcessName();
-                                    $this->writeByProcessName($processName, AbstractBaseWorker::WORKERFY_PROCESS_EXIT_FLAG, $workerId);
-                                } catch (\Throwable $exception) {
-                                    if (isset($processName)) {
-                                        $this->fmtWriteError("Master handle Signal (SIGINT,SIGTERM) error Process={$processName},worker_id={$workerId} exit failed, error=" . $exception->getMessage());
-                                    }
-                                }
-                            }
-                        }
-                        call_user_func($this->onRegisterShutdownFunction);
-                        // 等待子进程退出确认；超时后强制 SIGKILL，避免静默截断在途任务却无人观测
-                        $this->waitWorkersExitOrKill(15.0);
-                        $this->isExit = false;
-                        if (method_exists(AbstractProcess::getProcessInstance(), '__destruct') && version_compare(phpversion(), '8.0.0', '>=') ) {
-                            AbstractProcess::getProcessInstance()->__destruct();
-                        }
-                        \Swoole\Event::del(AbstractProcess::getProcessInstance()->getProcess()->pipe);
-                        \Swoole\Event::exit();
-                        AbstractProcess::getProcessInstance()->getProcess()->exit(0);
-                    }
+                    $this->shutdownMainManager('signal:' . $signal);
                     break;
                 default:
                     break;
             }
         };
+    }
+
+    /**
+     * MainManager 唯一退出入口（Signal 与 CLI FIFO stop 共用）。
+     *
+     * 退出顺序：
+     * 1. 标记退出，拒绝重复进入；
+     * 2. 通知并等待所有业务子进程退出，超时后强杀；
+     * 3. 清理状态定时器、CLI FIFO、SysV 队列和 PID 文件；
+     * 4. 退出 Swoole EventLoop 与 MainManager 当前进程。
+     */
+    private function shutdownMainManager(string $source): void
+    {
+        if ($this->isExit) {
+            return;
+        }
+        $this->isExit = true;
+        $this->fmtWriteInfo("MainManager begin shutdown, source={$source}, pid={$this->masterPid}");
+
+        try {
+            $this->stopAllWorkerProcessCommand();
+        } catch (\Throwable $throwable) {
+            $this->handleShutdownException($throwable);
+        }
+
+        try {
+            // 即使通知个别 Worker 失败，仍要检查并清理所有已知子进程。
+            $this->waitWorkersExitOrKill(15.0);
+        } catch (\Throwable $throwable) {
+            $this->handleShutdownException($throwable);
+        }
+
+        $this->clearReportStatusTimer();
+
+        if (is_callable($this->onRegisterShutdownFunction)) {
+            try {
+                call_user_func($this->onRegisterShutdownFunction);
+            } catch (\Throwable $throwable) {
+                $this->handleShutdownException($throwable);
+            }
+        }
+
+        // 仅删除属于当前 MainManager 的 PID 文件，避免误删新实例文件。
+        if (defined('WORKER_PID_FILE') && is_file(WORKER_PID_FILE)) {
+            $pidInFile = (int) trim((string) @file_get_contents(WORKER_PID_FILE));
+            if ($pidInFile === (int) $this->masterPid) {
+                @unlink(WORKER_PID_FILE);
+            }
+        }
+
+        try {
+            $processInstance = AbstractProcess::getProcessInstance();
+            $process = $processInstance->getProcess();
+            if (method_exists($processInstance, '__destruct') && version_compare(phpversion(), '8.0.0', '>=')) {
+                $processInstance->__destruct();
+            }
+            @\Swoole\Event::del($process->pipe);
+            \Swoole\Event::exit();
+            $process->exit(0);
+        } catch (\Throwable $throwable) {
+            $this->handleShutdownException($throwable);
+            \Swoole\Event::exit();
+            exit(0);
+        }
+    }
+
+    /**
+     * 退出阶段的异常处理器自身也不得阻断最终的 process exit。
+     */
+    private function handleShutdownException(\Throwable $throwable): void
+    {
+        try {
+            if (is_callable($this->onHandleException)) {
+                $this->onHandleException->call($this, $throwable);
+            } else {
+                $this->fmtWriteError('MainManager shutdown error: ' . $throwable->getMessage());
+            }
+        } catch (\Throwable) {
+            // shutdown 路径中异常上报失败只能忽略，必须继续释放资源并退出。
+        }
+    }
+
+    /**
+     * 清理状态上报 timer，避免所有子进程退出后 MainManager EventLoop 仍保持存活。
+     */
+    private function clearReportStatusTimer(): void
+    {
+        if ($this->reportStatusTimerId !== null) {
+            \Swoole\Timer::clear($this->reportStatusTimerId);
+            $this->reportStatusTimerId = null;
+        }
     }
 
     /**
@@ -1194,10 +1268,13 @@ class MainManager
             }
         });
 
+        // Swoole Timer::tick() 失败时可能返回 false，避免赋值给 ?int 属性触发 TypeError。
+        $this->reportStatusTimerId = is_int($timerId) ? $timerId : null;
+
         // master destroy before clear timer_id
-        if ($timerId) {
-            register_shutdown_function(function () use ($timerId) {
-                \Swoole\Timer::clear($timerId);
+        if ($this->reportStatusTimerId !== null) {
+            register_shutdown_function(function () {
+                $this->clearReportStatusTimer();
             });
         }
     }
@@ -1463,8 +1540,9 @@ class MainManager
                             $this->masterStatusToCliFifoPipe($cliPipeMsgDto->targetHandler);
                             break;
                         case WORKER_CLI_STOP :
-                            $this->stopAllWorkerProcessCommand();
-                            break;
+                            // 不能只停子进程：FIFO 和状态 timer 会令 MainManager 在 macOS 上长期存活。
+                            $this->shutdownMainManager('cli-pipe');
+                            return;
                         case WORKER_CLI_RESTART :
                             $dateTime = date('Y-m-d H:i:s');
                             $this->fmtWriteInfo("[{$dateTime}] 重启整个服务，所有进程将重启");
@@ -1628,6 +1706,8 @@ class MainManager
                 // remove signal
                 @\Swoole\Process::signal(SIGUSR1, null);
                 @\Swoole\Process::signal(SIGUSR2, null);
+                @\Swoole\Process::signal(SIGINT, null);
+                @\Swoole\Process::signal(SIGHUP, null);
                 @\Swoole\Process::signal(SIGTERM, null);
             }
             $this->fmtWriteInfo("终端关闭，master进程stop, worker_master_pid={$this->masterPid}");
