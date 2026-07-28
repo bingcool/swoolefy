@@ -61,9 +61,11 @@ class AuthenticateMiddleware implements RouteMiddlewareInterface
      *
      * @throws AuthException 401
      */
-    public function handle(RequestInput $requestInput, ResponseOutput $responseOutput)
+    public function handle(RequestInput $requestInput, ResponseOutput $responseOutput): bool
     {
         $this->authenticate($requestInput, optional: false);
+
+        return true;
     }
 
     /**

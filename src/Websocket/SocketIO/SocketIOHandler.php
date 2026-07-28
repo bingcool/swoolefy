@@ -119,8 +119,10 @@ class SocketIOHandler
 
     /**
      * WebSocket 入站：TEXT 为 Engine.IO 文本包；BINARY 为二进制附件后续帧。
+     *
+     * @param bool $alreadyTouched 上层（如 dispatchMessageFrame）是否已 touch
      */
-    public static function onMessage(Server $server, Frame $frame, array $config = []): bool
+    public static function onMessage(Server $server, Frame $frame, array $config = [], bool $alreadyTouched = false): bool
     {
         $fd = (int) $frame->fd;
         if ((int) $frame->opcode === WEBSOCKET_OPCODE_BINARY) {
@@ -131,18 +133,26 @@ class SocketIOHandler
             }
             $outbound = self::handleParsedPacket($fd, $packet, $config, $server);
         } else {
-            $outbound = self::handleInbound($fd, (string) $frame->data, $config, $server);
+            $outbound = self::handleInbound($fd, (string) $frame->data, $config, $server, $alreadyTouched);
         }
 
         return self::pushOutbound($server, $fd, $outbound);
     }
 
     /**
+     * @param bool $alreadyTouched 上层是否已刷新活跃时间
      * @return string[]
      */
-    public static function handleInbound(int $fd, string $raw, array $config, ?Server $server = null): array
-    {
-        WebsocketConnectionManager::touch($fd);
+    public static function handleInbound(
+        int $fd,
+        string $raw,
+        array $config,
+        ?Server $server = null,
+        bool $alreadyTouched = false,
+    ): array {
+        if (!$alreadyTouched) {
+            WebsocketConnectionManager::touch($fd);
+        }
 
         try {
             $packet = SocketIOPacket::parse($raw);
@@ -372,7 +382,8 @@ class SocketIOHandler
         );
 
         $handler = new WebsocketHandler();
-        $ok = $handler->handlePacket($websocketPacket, false);
+        // 入站路径已由 dispatchMessageFrame / handleInbound 完成 touch
+        $ok = $handler->handlePacket($websocketPacket, false, false);
         $outbound = [];
 
         if ($packet->id !== '') {

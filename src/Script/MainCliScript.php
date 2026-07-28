@@ -41,9 +41,39 @@ class MainCliScript extends AbstractScriptProcess
     protected $maxWaitTime = 5.0;
 
     /**
+     * 显式允许调用的 action 白名单；非空时仅这些方法可被 CLI 调用。
+     * 为空时允许「当前类声明的 public 方法」，但仍排除框架生命周期方法。
+     *
+     * @var list<string>
+     */
+    protected $allowedActions = [];
+
+    /**
      * @var array
      */
     protected $forbiddenActions = [];
+
+    /**
+     * 框架内部 / 生命周期方法，永远不可作为 CLI handle_action。
+     *
+     * @var list<string>
+     */
+    private const FRAMEWORK_DENIED_ACTIONS = [
+        '__construct',
+        '__destruct',
+        '__call',
+        '__callStatic',
+        'init',
+        'run',
+        'exitAll',
+        'isExecuted',
+        'waitCoroutineFinish',
+        'parseClass',
+        'onHandleException',
+        'getProcess',
+        'getProcessName',
+        'getProcessWorkerId',
+    ];
 
     /**
      * @return void
@@ -69,9 +99,8 @@ class MainCliScript extends AbstractScriptProcess
         }
         $this->setIsCliScript();
         try {
-            $action = getenv('handle_action');
-            if (in_array($action, $this->forbiddenActions)) {
-                fmtPrintError("Function action=[$action] forbidden to exec!");
+            $action = (string) getenv('handle_action');
+            if (!$this->assertCliActionAllowed($action)) {
                 $this->exitAll(true, 0);
                 return;
             }
@@ -90,6 +119,49 @@ class MainCliScript extends AbstractScriptProcess
         } finally {
             $this->exitAll(true, 0);
         }
+    }
+
+    /**
+     * CLI action 安全校验：白名单 / 黑名单 / public / 排除框架方法。
+     */
+    protected function assertCliActionAllowed(string $action): bool
+    {
+        if ($action === '' || !preg_match('/^[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*$/', $action)) {
+            fmtPrintError("Function action is empty or invalid!");
+            return false;
+        }
+        if (in_array($action, self::FRAMEWORK_DENIED_ACTIONS, true) || in_array($action, $this->forbiddenActions, true)) {
+            fmtPrintError("Function action=[{$action}] forbidden to exec!");
+            return false;
+        }
+        if ($this->allowedActions !== [] && !in_array($action, $this->allowedActions, true)) {
+            fmtPrintError("Function action=[{$action}] not in allowedActions whitelist!");
+            return false;
+        }
+        if (!method_exists($this, $action)) {
+            fmtPrintError("Function action=[{$action}] not found!");
+            return false;
+        }
+
+        try {
+            $ref = new \ReflectionMethod($this, $action);
+        } catch (\ReflectionException $e) {
+            fmtPrintError("Function action=[{$action}] reflection failed!");
+            return false;
+        }
+
+        if (!$ref->isPublic() || $ref->isStatic() || $ref->isConstructor() || $ref->isDestructor()) {
+            fmtPrintError("Function action=[{$action}] must be a public instance method!");
+            return false;
+        }
+
+        // 未配置白名单时：仅允许在「当前具体脚本类」上声明的方法，避免父类辅助方法被误调
+        if ($this->allowedActions === [] && $ref->getDeclaringClass()->getName() !== static::class) {
+            fmtPrintError("Function action=[{$action}] must be declared on " . static::class . " (or set allowedActions)!");
+            return false;
+        }
+
+        return true;
     }
 
     /**

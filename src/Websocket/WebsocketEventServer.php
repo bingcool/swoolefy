@@ -68,13 +68,13 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
     public function dispatchMessageFrame(Server $server, Frame $frame, array $websocketConfig): void
     {
         goApp(function () use ($server, $frame, $websocketConfig) {
-            // touch 写 Redis 全局索引，须在 EventApp 内
+            // touch 写 Redis 全局索引，须在 EventApp 内；下层 handler 传 alreadyTouched=true 避免重复
             WebsocketConnectionManager::touch((int) $frame->fd);
 
             $connection = WebsocketConnectionManager::getConnection((int) $frame->fd);
             // 同一个 onMessage 入口按连接标记区分普通 WebSocket 与 Socket.IO 协议。
             if (!empty($websocketConfig['socketio']['enable']) && !empty($connection['is_socketio'])) {
-                SocketIO\SocketIOHandler::onMessage($server, $frame, $websocketConfig);
+                SocketIO\SocketIOHandler::onMessage($server, $frame, $websocketConfig, true);
 
                 return;
             }

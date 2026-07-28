@@ -40,8 +40,10 @@ final class OptionalAuthenticateMiddleware extends AuthenticateMiddleware
     /**
      * @throws AuthException 仅当携带了非法 token
      */
-    public function handle(RequestInput $requestInput, ResponseOutput $responseOutput)
+    public function handle(RequestInput $requestInput, ResponseOutput $responseOutput): bool
     {
         $this->authenticate($requestInput, optional: true);
+
+        return true;
     }
 }

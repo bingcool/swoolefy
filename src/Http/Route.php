@@ -75,7 +75,7 @@ class Route
             'method' => ['GET'],
             'route_meta' => $routeMeta,
             'route_option' => &$routeOption,
-            'enable_cors_middleware' => self::setCoresOptionMethod($groupMeta, $routeMeta, $newUri),
+            'enable_cors_middleware' => self::setCorsOptionMethod($groupMeta, $routeMeta, $newUri),
         ];
 
         return $routeOption;
@@ -96,7 +96,7 @@ class Route
             'method' => ['POST'],
             'route_meta' => $routeMeta,
             'route_option' => &$routeOption,
-            'enable_cors_middleware' => self::setCoresOptionMethod($groupMeta, $routeMeta, $newUri),
+            'enable_cors_middleware' => self::setCorsOptionMethod($groupMeta, $routeMeta, $newUri),
         ];
 
         return $routeOption;
@@ -117,7 +117,7 @@ class Route
             'method' => ['PUT'],
             'route_meta' => $routeMeta,
             'route_option' => &$routeOption,
-            'enable_cors_middleware' => self::setCoresOptionMethod($groupMeta, $routeMeta, $newUri),
+            'enable_cors_middleware' => self::setCorsOptionMethod($groupMeta, $routeMeta, $newUri),
         ];
         return $routeOption;
     }
@@ -137,7 +137,7 @@ class Route
             'method' => ['PATCH'],
             'route_meta' => $routeMeta,
             'route_option' => &$routeOption,
-            'enable_cors_middleware' => self::setCoresOptionMethod($groupMeta, $routeMeta, $newUri),
+            'enable_cors_middleware' => self::setCorsOptionMethod($groupMeta, $routeMeta, $newUri),
         ];
         return $routeOption;
     }
@@ -157,7 +157,7 @@ class Route
             'method' => ['DELETE'],
             'route_meta' => $routeMeta,
             'route_option' => &$routeOption,
-            'enable_cors_middleware' => self::setCoresOptionMethod($groupMeta, $routeMeta, $newUri),
+            'enable_cors_middleware' => self::setCorsOptionMethod($groupMeta, $routeMeta, $newUri),
         ];
         return $routeOption;
     }
@@ -218,7 +218,7 @@ class Route
                 'method' => [$method],
                 'route_meta' => $routeMeta,
                 'route_option' => &$routeOption,
-                'enable_cors_middleware' => self::setCoresOptionMethod($groupMeta, $routeMeta, $newUri),
+                'enable_cors_middleware' => self::setCorsOptionMethod($groupMeta, $routeMeta, $newUri),
             ];
         }
         return $routeOption;
@@ -315,30 +315,30 @@ class Route
     }
 
     /**
-     * 设置OPTIONS方法
+     * 设置 OPTIONS 方法（启用 CORS 中间件时自动注册）。
+     *
      * @param $groupMeta
      * @param $routeMeta
      * @param $newUri
      * @return bool
      */
-    protected static function setCoresOptionMethod(&$groupMeta, &$routeMeta, $newUri): bool
+    protected static function setCorsOptionMethod(&$groupMeta, &$routeMeta, $newUri): bool
     {
-        // 检测分组是否启用coresMiddleware
+        // 检测分组是否启用 CORS middleware
         if (isset($groupMeta['enable_group_cors_middleware'])) {
-            $enableGroupCoresMiddleware = $groupMeta['enable_group_cors_middleware'];
+            $enableGroupCorsMiddleware = $groupMeta['enable_group_cors_middleware'];
         } else {
-            // 分组级别已启用coresMiddleware
-            $enableGroupCoresMiddleware = self::isEnableGroupCoresMiddleware($groupMeta);
-            $groupMeta['enable_group_cors_middleware'] = $enableGroupCoresMiddleware;
+            $enableGroupCorsMiddleware = self::isEnableGroupCorsMiddleware($groupMeta);
+            $groupMeta['enable_group_cors_middleware'] = $enableGroupCorsMiddleware;
         }
 
-        if (!$enableGroupCoresMiddleware) {
-            // 分组没启用,那么检测单个路由是否启用coresMiddleware
-            $enableCoresMiddleware = self::isEnableRouteCoresMiddleware($routeMeta);
+        if (!$enableGroupCorsMiddleware) {
+            // 分组未启用时，再检测单个路由是否启用 CORS middleware
+            $enableCorsMiddleware = self::isEnableRouteCorsMiddleware($routeMeta);
         } else {
-            $enableCoresMiddleware = $enableGroupCoresMiddleware;
+            $enableCorsMiddleware = $enableGroupCorsMiddleware;
         }
-        if ($enableCoresMiddleware) {
+        if ($enableCorsMiddleware) {
             self::$routeMap[$newUri]['OPTIONS'] = [
                 'group_meta' => $groupMeta,
                 'method' => ['OPTIONS'],
@@ -346,16 +346,24 @@ class Route
                 'route_option' => null,
             ];
         }
-        return $enableCoresMiddleware;
+        return $enableCorsMiddleware;
     }
 
     /**
-     * 分组级别cores middleware
+     * @deprecated 拼写错误兼容；请使用 {@see setCorsOptionMethod()}
+     */
+    protected static function setCoresOptionMethod(&$groupMeta, &$routeMeta, $newUri): bool
+    {
+        return self::setCorsOptionMethod($groupMeta, $routeMeta, $newUri);
+    }
+
+    /**
+     * 分组级别是否挂载了 CORS middleware。
      *
      * @param $groupMeta
-     * @return array
+     * @return bool
      */
-    protected static function isEnableGroupCoresMiddleware(&$groupMeta): bool
+    protected static function isEnableGroupCorsMiddleware(&$groupMeta): bool
     {
         foreach ($groupMeta['middleware'] ?? [] as $handle) {
             if (is_string($handle)) {
@@ -367,14 +375,23 @@ class Route
         return false;
     }
 
+    /**
+     * @deprecated 拼写错误兼容；请使用 {@see isEnableGroupCorsMiddleware()}
+     */
+    protected static function isEnableGroupCoresMiddleware(&$groupMeta): bool
+    {
+        return self::isEnableGroupCorsMiddleware($groupMeta);
+    }
 
-    /** 单个路由级别的cores middleware
+    /**
+     * 单个路由级别是否挂载了 CORS middleware。
+     *
      * @param $routeMeta
      * @return bool
      */
-    protected static function isEnableRouteCoresMiddleware(&$routeMeta): bool
+    protected static function isEnableRouteCorsMiddleware(&$routeMeta): bool
     {
-        foreach($routeMeta as $alias => $handle) {
+        foreach ($routeMeta as $alias => $handle) {
             if ($alias != 'dispatch_route') {
                 if (is_array($handle)) {
                     foreach ($handle as $handleItem) {
@@ -397,5 +414,13 @@ class Route
             }
         }
         return false;
+    }
+
+    /**
+     * @deprecated 拼写错误兼容；请使用 {@see isEnableRouteCorsMiddleware()}
+     */
+    protected static function isEnableRouteCoresMiddleware(&$routeMeta): bool
+    {
+        return self::isEnableRouteCorsMiddleware($routeMeta);
     }
 }

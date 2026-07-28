@@ -7,8 +7,10 @@ use Swoolefy\Core\RouteMiddlewareInterface;
 
 class GroupTestMiddleware implements RouteMiddlewareInterface
 {
-    public function handle(RequestInput $requestInput, ResponseOutput $responseOutput)
+    public function handle(RequestInput $requestInput, ResponseOutput $responseOutput): bool
     {
         //var_dump(__CLASS__);
+
+        return true;
     }
 }

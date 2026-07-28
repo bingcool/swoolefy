@@ -384,14 +384,24 @@ class HttpRoute extends AppDispatch
             // cors middleware 一次调用即可，避免重复执行 handle()
             if ($supportCors && $middlewareEntity instanceof CorsMiddlewareInterface) {
                 $preflightResult = $middlewareEntity->handle($this->requestInput, $this->responseOutput);
-                if ($method === 'OPTIONS' || empty($preflightResult)) {
+                // OPTIONS 预检结束，或 Origin/path 校验失败（false）时中止后续调度
+                if ($method === 'OPTIONS' || $preflightResult === false) {
                     throw new CorsRespException();
                 }
                 continue;
             }
 
             if ($middlewareEntity instanceof RouteMiddlewareInterface) {
-                $middlewareEntity->handle($this->requestInput, $this->responseOutput);
+                $continue = $middlewareEntity->handle($this->requestInput, $this->responseOutput);
+                if ($continue === false) {
+                    if ($throwWhenClosureFalse) {
+                        throw new SystemException(
+                            'Route middleware return false, Not Allow To Next Middle',
+                            HttpStatus::INTERNAL_SERVER_ERROR
+                        );
+                    }
+                    break;
+                }
             }
         }
     }

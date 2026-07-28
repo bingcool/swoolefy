@@ -25,17 +25,22 @@ class Helper
     }
 
     /**
-     * isValidateIp 判断是否是合法的的ip地址
+     * 判断是否是合法的 IP 地址（IPv4 或 IPv6）。
+     *
      * @param string $ip
      * @return bool
      */
     public static function isValidateIp(string $ip): bool
     {
-        $ipv4 = ip2long($ip);
-        if (is_numeric($ipv4)) {
-            return true;
-        }
-        return false;
+        return filter_var($ip, FILTER_VALIDATE_IP) !== false;
+    }
+
+    /**
+     * 仅校验 IPv4。
+     */
+    public static function isValidIpv4(string $ip): bool
+    {
+        return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
     }
 
     /**
@@ -48,21 +53,34 @@ class Helper
     }
 
     /**
-     * ip是否是公网IP
-     * @param $ip
-     * @return bool
+     * 是否为公网可达 IP（排除私网与保留地址）。
+     */
+    public static function isPublicIp(string $ip): bool
+    {
+        return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false;
+    }
+
+    /**
+     * 是否为私网 IP（10/8、172.16/12、192.168/16 等）。
+     *
+     * 合法但带 FILTER_FLAG_NO_PRIV_RANGE 校验失败即视为私网。
+     */
+    public static function isPrivateIp(string $ip): bool
+    {
+        if (filter_var($ip, FILTER_VALIDATE_IP) === false) {
+            return false;
+        }
+
+        return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE) === false;
+    }
+
+    /**
+     * @deprecated 请使用 {@see isPrivateIp()}；历史注释误写为「公网」，名称与实现均不一致
+     * @param mixed $ip
      */
     public static function isInternalIp($ip): bool
     {
-        $ip = ip2long($ip);
-        if (!$ip) {
-            return false;
-        }
-        $result = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
-        if ($result) {
-            $result = true;
-        }
-        return $result;
+        return self::isPrivateIp((string) $ip);
     }
 
     /**
@@ -113,11 +131,13 @@ class Helper
             $pattern = $strings . $numbers;
         }
         $max = strlen($pattern) - 1;
+        if ($max < 0 || $length <= 0) {
+            return '';
+        }
+        $randomizer = new \Random\Randomizer();
         $key = '';
         for ($i = 0; $i < $length; $i++) {
-            //生成php随机数
-            $randNum = (new \Random\Randomizer())->getInt(0, $max);
-            $key .= $pattern[$randNum];
+            $key .= $pattern[$randomizer->getInt(0, $max)];
         }
         return $key;
     }
@@ -197,21 +217,11 @@ class Helper
      */
     public static function roundByPrecision(float $number, int $precision): float
     {
-        if (strpos($number, '.') && (strlen(substr($number, strpos($number, '.') + 1)) > $precision)) {
-            $number = substr($number, 0, strpos($number, '.') + 1 + $precision + 1);
-            if (substr($number, -1) >= 5) {
-                if ($precision > 1) {
-                    $number = substr($number, 0, -1) + (float)('0.' . str_repeat(0, $precision - 1) . '1');
-                } elseif ($precision == 1) {
-                    $number = substr($number, 0, -1) + 0.1;
-                } else {
-                    $number = substr($number, 0, -1) + 1;
-                }
-            } else {
-                $number = substr($number, 0, -1);
-            }
+        if ($precision < 0) {
+            $precision = 0;
         }
-        return $number;
+
+        return (float) round($number, $precision);
     }
 
     /**

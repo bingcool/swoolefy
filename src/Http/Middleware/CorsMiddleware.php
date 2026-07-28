@@ -151,7 +151,7 @@ class CorsMiddleware implements CorsMiddlewareInterface
      * @param ResponseOutput $responseOutput
      * @return bool
      */
-    public function handle(RequestInput $requestInput, ResponseOutput $responseOutput)
+    public function handle(RequestInput $requestInput, ResponseOutput $responseOutput): bool
     {
         // 一次http请求只需要执行一次
         if (SwooleContext::has(self::__CORS_OPTIONS_HEADER_RESP)) {

@@ -691,13 +691,28 @@ trait RequestParseTrait
     }
 
     /**
-     * 获取自定义上下文透传的key-value数据
+     * 获取自定义上下文透传的 key-value；键不存在时返回 $default（不再触发 undefined key warning）。
      *
      * @param string $key
+     * @param mixed $default
      * @return mixed
      */
-    public function getValue(string $key)
+    public function getValue(string $key, mixed $default = null): mixed
     {
+        return array_key_exists($key, $this->extendData) ? $this->extendData[$key] : $default;
+    }
+
+    /**
+     * 强制读取自定义上下文；键不存在时抛异常。
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function getRequiredValue(string $key): mixed
+    {
+        if (!array_key_exists($key, $this->extendData)) {
+            throw new \InvalidArgumentException("extendData key [{$key}] is required");
+        }
+
         return $this->extendData[$key];
     }
 
@@ -950,46 +965,48 @@ trait RequestParseTrait
     }
 
     /**
-     * getBrowserType
-     * @return string
+     * 粗略识别浏览器名称与版本（仅供调试/展示，勿作安全依据）。
      */
     public function getBrowser(): string
     {
-        $sys = $this->swooleRequest->server['HTTP_USER_AGENT'];
-        if (stripos($sys, "Firefox/") > 0) {
-            preg_match("/Firefox\/([^;)]+)+/i", $sys, $b);
-            $exp[0] = "Firefox";
-            $exp[1] = $b[1];
-        } elseif (stripos($sys, "Maxthon") > 0) {
-            preg_match("/Maxthon\/([\d\.]+)/", $sys, $aoyou);
-            $exp[0] = "傲游";
-            $exp[1] = $aoyou[1];
-        } elseif (stripos($sys, "MSIE") > 0) {
-            preg_match("/MSIE\s+([^;)]+)+/i", $sys, $ie);
-            $exp[0] = "IE";
-            $exp[1] = $ie[1];
-        } elseif (stripos($sys, "OPR") > 0) {
-            preg_match("/OPR\/([\d\.]+)/", $sys, $opera);
-            $exp[0] = "Opera";
-            $exp[1] = $opera[1];
-        } elseif (stripos($sys, "Edge") > 0) {
-            preg_match("/Edge\/([\d\.]+)/", $sys, $Edge);
-            $exp[0] = "Edge";
-            $exp[1] = $Edge[1];
-        } elseif (stripos($sys, "Chrome") > 0) {
-            preg_match("/Chrome\/([\d\.]+)/", $sys, $google);
-            $exp[0] = "Chrome";
-            $exp[1] = $google[1];
-        } elseif (stripos($sys, 'rv:') > 0 && stripos($sys, 'Gecko') > 0) {
-            preg_match("/rv:([\d\.]+)/", $sys, $IE);
-            $exp[0] = "IE";
-            $exp[1] = $IE[1];
-        } else {
-            $exp[0] = "Unkown";
-            $exp[1] = "";
+        $sys = (string) (
+            $this->swooleRequest->header['user-agent']
+            ?? $this->swooleRequest->server['HTTP_USER_AGENT']
+            ?? ''
+        );
+        if ($sys === '') {
+            return 'Unkown()';
         }
 
-        return $exp[0] . '(' . $exp[1] . ')';
+        $rules = [
+            ['Firefox/', '/Firefox\/([^;)\s]+)/i', 'Firefox'],
+            ['Maxthon', '/Maxthon\/([\d\.]+)/i', '傲游'],
+            ['MSIE', '/MSIE\s+([^;)\s]+)/i', 'IE'],
+            ['OPR', '/OPR\/([\d\.]+)/i', 'Opera'],
+            ['Edge', '/Edge\/([\d\.]+)/i', 'Edge'],
+            ['Chrome', '/Chrome\/([\d\.]+)/i', 'Chrome'],
+        ];
+
+        foreach ($rules as [$needle, $pattern, $name]) {
+            if (stripos($sys, $needle) === false) {
+                continue;
+            }
+            if (preg_match($pattern, $sys, $matches) === 1) {
+                return $name . '(' . ($matches[1] ?? '') . ')';
+            }
+
+            return $name . '()';
+        }
+
+        if (stripos($sys, 'rv:') !== false && stripos($sys, 'Gecko') !== false) {
+            if (preg_match('/rv:([\d\.]+)/i', $sys, $matches) === 1) {
+                return 'IE(' . ($matches[1] ?? '') . ')';
+            }
+
+            return 'IE()';
+        }
+
+        return 'Unkown()';
     }
 
 

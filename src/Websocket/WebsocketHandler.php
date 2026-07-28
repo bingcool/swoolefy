@@ -58,7 +58,7 @@ class WebsocketHandler extends Swoole implements HandlerInterface
                 } catch (\InvalidArgumentException $exception) {
                     return $this->sendError((int) $fd, $exception->getMessage());
                 }
-                return $this->handlePacket($packet);
+                return $this->handlePacket($packet, true, false);
             }
 
             parent::run($fd, $payload);
@@ -82,7 +82,11 @@ class WebsocketHandler extends Swoole implements HandlerInterface
 
     }
 
-    public function handlePacket(WebsocketPacket $packet, bool $sendError = true): bool
+    /**
+     * @param bool $sendError 业务异常时是否推送错误帧
+     * @param bool $touch 是否刷新连接活跃时间；统一分发入口已 touch 时传 false
+     */
+    public function handlePacket(WebsocketPacket $packet, bool $sendError = true, bool $touch = true): bool
     {
         try {
             parent::run($packet->getFd(), $packet->getRaw());
@@ -90,7 +94,9 @@ class WebsocketHandler extends Swoole implements HandlerInterface
             $this->setWebsocketPacket($packet);
             $this->setMixedParams($packet->getParams());
             $this->setServiceHandle($packet->getEndpoint());
-            WebsocketConnectionManager::touch($packet->getFd());
+            if ($touch) {
+                WebsocketConnectionManager::touch($packet->getFd());
+            }
 
             // 框架级 ping 可走统一 JSON 格式，也兼容历史 endpoint ping。
             if ($packet->getType() === WebsocketPacket::TYPE_PING || $this->ping($packet->getEndpoint())) {

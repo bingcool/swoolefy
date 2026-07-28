@@ -137,28 +137,7 @@ class RedisConnectionRegistry
                 return;
             }
 
-            $serverId = (string) ($meta['server_id'] ?? '');
-            $userId = (string) ($meta['user_id'] ?? '');
-            $groups = self::decodeGroups((string) ($meta['groups'] ?? ''));
-
-            $redis->del(self::connKey($connId));
-            $redis->zRem(self::aliveKey(), $connId);
-
-            if ($userId !== '') {
-                $redis->sRem(self::userKey($userId), $connId);
-            }
-
-            foreach ($groups as $group) {
-                $redis->sRem(self::groupKey($group), $connId);
-            }
-
-            if ($serverId !== '') {
-                $redis->sRem(self::nodeConnsKey($serverId), $connId);
-                // 节点下最后一个 conn 断开 → 从 nodes 移除，broadcast 不再扇出到此节点
-                if ((int) $redis->sCard(self::nodeConnsKey($serverId)) === 0) {
-                    $redis->sRem(self::nodesKey(), $serverId);
-                }
-            }
+            self::purgeConnIndexes($redis, $connId, $meta);
         });
     }
 
@@ -360,29 +339,14 @@ class RedisConnectionRegistry
                     continue;
                 }
 
-                // 与 unregister() 相同：先读 Hash 清理 user/group/node 反向索引，再删 conn + alive
+                // 与 unregister() 共用 purgeConnIndexes，避免反向索引清理演进不一致
                 $meta = $redis->hGetAll(self::connKey($connId));
                 if (is_array($meta) && !empty($meta)) {
-                    $serverId = (string) ($meta['server_id'] ?? '');
-                    $userId = (string) ($meta['user_id'] ?? '');
-                    $groups = self::decodeGroups((string) ($meta['groups'] ?? ''));
-
-                    if ($userId !== '') {
-                        $redis->sRem(self::userKey($userId), $connId);
-                    }
-                    foreach ($groups as $group) {
-                        $redis->sRem(self::groupKey($group), $connId);
-                    }
-                    if ($serverId !== '') {
-                        $redis->sRem(self::nodeConnsKey($serverId), $connId);
-                        if ((int) $redis->sCard(self::nodeConnsKey($serverId)) === 0) {
-                            $redis->sRem(self::nodesKey(), $serverId);
-                        }
-                    }
+                    self::purgeConnIndexes($redis, $connId, $meta);
+                } else {
+                    $redis->del(self::connKey($connId));
+                    $redis->zRem(self::aliveKey(), $connId);
                 }
-
-                $redis->del(self::connKey($connId));
-                $redis->zRem(self::aliveKey(), $connId);
                 $removed++;
             }
 
@@ -455,6 +419,40 @@ class RedisConnectionRegistry
     private static function execute(callable $callback)
     {
         return ClusterRedisClient::execute($callback);
+    }
+
+    /**
+     * 在已有 Redis adapter 上清理 conn 的全部反向索引并删除 Hash / alive member。
+     *
+     * unregister() 与 cleanupExpired() 共用，避免两处演进不一致。
+     *
+     * @param mixed $redis ClusterRedisClient adapter
+     * @param array<string, mixed> $meta conn Hash 字段
+     */
+    private static function purgeConnIndexes($redis, string $connId, array $meta): void
+    {
+        $serverId = (string) ($meta['server_id'] ?? '');
+        $userId = (string) ($meta['user_id'] ?? '');
+        $groups = self::decodeGroups((string) ($meta['groups'] ?? ''));
+
+        $redis->del(self::connKey($connId));
+        $redis->zRem(self::aliveKey(), $connId);
+
+        if ($userId !== '') {
+            $redis->sRem(self::userKey($userId), $connId);
+        }
+
+        foreach ($groups as $group) {
+            $redis->sRem(self::groupKey($group), $connId);
+        }
+
+        if ($serverId !== '') {
+            $redis->sRem(self::nodeConnsKey($serverId), $connId);
+            // 节点下最后一个 conn 断开 → 从 nodes 移除，broadcast 不再扇出到此节点
+            if ((int) $redis->sCard(self::nodeConnsKey($serverId)) === 0) {
+                $redis->sRem(self::nodesKey(), $serverId);
+            }
+        }
     }
 
     /** `{prefix}conn:{conn_id}` */

@@ -486,6 +486,7 @@ abstract class WebsocketServer extends BaseServer
         if ($workerId === 0 && $interval > 0 && $timeout > 0) {
             // 心跳扫描只放在 worker 0，所有连接状态在 Swoole\Table 中共享。
             goTick($interval * 1000, function () use ($server, $timeout) {
+                WebsocketFrameAssembler::cleanupStale();
                 WebsocketConnectionManager::disconnectExpired($server, $timeout);
             });
         }

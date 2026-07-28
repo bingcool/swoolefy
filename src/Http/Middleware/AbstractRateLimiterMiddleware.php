@@ -62,19 +62,19 @@ abstract class AbstractRateLimiterMiddleware implements RateLimiterMiddlewareInt
      * @throws RateLimitExceededException 窗口内请求数已达上限
      * @throws SystemException              Redis 组件类型错误等内部故障（500）
      */
-    public function handle(RequestInput $requestInput, ResponseOutput $responseOutput)
+    public function handle(RequestInput $requestInput, ResponseOutput $responseOutput): bool
     {
         // RateLimitConfig: rate_limit.php
         $config = $this->config();
 
         // 总开关关闭：不访问 Redis，直接放行（便于压测或临时关闭）
         if (!$config->enabled()) {
-            return;
+            return true;
         }
 
         // 子类钩子：例如用户维在「未登录且 skip」时不计数
         if ($this->shouldSkip($requestInput, $config)) {
-            return;
+            return true;
         }
 
         [$limitNum, $windowSeconds] = $this->resolveLimits($requestInput, $config);
@@ -94,7 +94,7 @@ abstract class AbstractRateLimiterMiddleware implements RateLimiterMiddlewareInt
                 $this->writeLimitHeaders($responseOutput, $limitNum, $remaining, $windowSeconds);
             }
 
-            return;
+            return true;
         }
 
         // 已限流：Remaining=0，并提示客户端多久后可重试（秒）

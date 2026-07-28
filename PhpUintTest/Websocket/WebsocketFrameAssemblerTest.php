@@ -99,4 +99,21 @@ final class WebsocketFrameAssemblerTest extends TestCase
         $this->assertInstanceOf(Frame::class, $part2);
         $this->assertSame('{"msg":"hi"}', $part2->data);
     }
+
+    public function testCleanupStaleRemovesIdleFragmentBuffers(): void
+    {
+        WebsocketFrameAssembler::feed($this->makeFrame(7, WEBSOCKET_OPCODE_TEXT, 'stale-', false));
+        $this->assertSame(1, WebsocketFrameAssembler::pendingCount());
+
+        $ref = new \ReflectionClass(WebsocketFrameAssembler::class);
+        $buffers = $ref->getProperty('buffers');
+        $buffers->setAccessible(true);
+        $all = $buffers->getValue();
+        $all[7]['updated_at'] = time() - 120;
+        $buffers->setValue(null, $all);
+
+        $removed = WebsocketFrameAssembler::cleanupStale(60);
+        $this->assertSame(1, $removed);
+        $this->assertSame(0, WebsocketFrameAssembler::pendingCount());
+    }
 }
