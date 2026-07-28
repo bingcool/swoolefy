@@ -432,12 +432,10 @@ class MainManager
     private function installMasterStopSignal()
     {
         $handler = $this->signalHandle();
-        // 无论前台/daemon，SIGTERM 都必须进入 MainManager 自身的完整退出流程。
-        if (!$this->isDaemon) {
-            \Swoole\Process::signal(SIGINT, $handler);
-            \Swoole\Process::signal(SIGHUP, $handler);
-            return;
-        }
+        // Ctrl+C 的 SIGINT 由外层 Swoole Master 处理。MainManager 作为自定义进程
+        // 只处理 Master 下发的 SIGTERM，避免多个前台进程同时消费 SIGINT，
+        // 导致 shell 的前台进程组/提示符不能及时恢复。
+        \Swoole\Process::signal(SIGHUP, $handler);
         \Swoole\Process::signal(SIGTERM, $handler);
     }
 
