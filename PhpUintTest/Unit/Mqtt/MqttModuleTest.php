@@ -260,6 +260,47 @@ final class MqttModuleTest extends TestCase
     }
 
     /**
+     * 验证：Retain 超过 topic / 单条字节 / 总字节上限时拒绝写入。
+     */
+    public function testRetainedMessageLimits(): void
+    {
+        $mgr = MqttSessionManager::getInstance();
+        $mgr->configureRetainLimits([
+            'max_topics' => 3,
+            'max_message_bytes' => 10,
+            'max_total_bytes' => 10,
+        ]);
+
+        $this->assertTrue($mgr->storeRetained('a', '12345', 0, true));
+        $this->assertFalse($mgr->storeRetained('big', str_repeat('x', 11), 0, true), 'single message too large');
+        $this->assertTrue($mgr->storeRetained('b', '12345', 0, true));
+        $this->assertFalse($mgr->storeRetained('c', '1', 0, true), 'total bytes would exceed');
+
+        $mgr->configureRetainLimits(['max_topics' => 2, 'max_total_bytes' => 100]);
+        $this->assertFalse($mgr->storeRetained('c', '1', 0, true), 'max topics reached');
+
+        $stats = $mgr->stats();
+        $this->assertSame(2, $stats['retained_topics']);
+        $this->assertSame(10, $stats['retained_total_bytes']);
+    }
+
+    /**
+     * 验证：出站 pending ID 可查询，便于 nextMessageId 跳过在途 ID。
+     */
+    public function testHasOutboundPending(): void
+    {
+        $mgr = MqttSessionManager::getInstance();
+        $mgr->bind(50, 'out', 'u', 60, MQTT_PROTOCOL_LEVEL3, true);
+        $mgr->rememberOutbound(50, 7, 1);
+
+        $this->assertTrue($mgr->hasOutboundPending(50, 7));
+        $this->assertFalse($mgr->hasOutboundPending(50, 8));
+
+        $mgr->ackOutbound(50, 7);
+        $this->assertFalse($mgr->hasOutboundPending(50, 7));
+    }
+
+    /**
      * 验证：设置 MQTT_SMOKE_HOST/PORT 且安装 simps/mqtt 时可执行端到端冒烟（否则跳过）。
      */
     #[Group('smoke')]

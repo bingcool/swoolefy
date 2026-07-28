@@ -172,7 +172,7 @@ abstract class MqttServer extends BaseServer
                         $from_worker_id = $task->worker_id;
                         $task_id = $task->id;
                         $data = $task->data;
-                        $task_data = unserialize($data);
+                        $task_data = unserialize($data, ['allowed_classes' => false]);
                         static::onTask($server, $task_id, $from_worker_id, $task_data, $task);
                     } catch (\Throwable $e) {
                         self::catchException($e);
@@ -182,7 +182,7 @@ abstract class MqttServer extends BaseServer
             } else {
                 $this->mqttServer->on('task', function (\Swoole\Server $server, $task_id, $from_worker_id, $data) {
                     try {
-                        $task_data = unserialize($data);
+                        $task_data = unserialize($data, ['allowed_classes' => false]);
                         static::onTask($server, $task_id, $from_worker_id, $task_data);
                     } catch (\Throwable $e) {
                         self::catchException($e);
@@ -196,7 +196,7 @@ abstract class MqttServer extends BaseServer
          */
         $this->mqttServer->on('finish', function (\Swoole\Server $server, $task_id, $data) {
             try {
-                $params = unserialize($data);
+                $params = unserialize($data, ['allowed_classes' => false]);
                 list($data, $contextData) = $params;
                 (new EventApp())->registerApp(function () use ($server, $task_id, $data, $contextData) {
                     foreach ($contextData as $key=>$value) {
@@ -299,6 +299,10 @@ abstract class MqttServer extends BaseServer
     protected function workerStartInit($server, $workerId)
     {
         MqttSessionManager::reset();
+        $mqttConf = Swfy::getConf()['mqtt'] ?? [];
+        if (isset($mqttConf['retain_limits']) && is_array($mqttConf['retain_limits'])) {
+            MqttSessionManager::getInstance()->configureRetainLimits($mqttConf['retain_limits']);
+        }
         parent::workerStartInit($server, $workerId);
     }
 

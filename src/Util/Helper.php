@@ -354,11 +354,13 @@ class Helper
 
     /**
      * asyncHttpClient 简单的模拟http异步并发请求
+     *
      * @param array $urls
      * @param int $timeout 单位ms
+     * @param bool $verifySsl 默认校验 HTTPS 证书；仅测试等场景可显式传 false
      * @return bool
      */
-    public function asyncHttpClient(array $urls = [], int $timeout = 500): bool
+    public function asyncHttpClient(array $urls = [], int $timeout = 500, bool $verifySsl = true): bool
     {
         if (!empty($urls)) {
             $conn = [];
@@ -367,8 +369,8 @@ class Helper
                 $conn[$i] = curl_init($url);
                 curl_setopt($conn[$i], CURLOPT_CUSTOMREQUEST, "GET");
                 curl_setopt($conn[$i], CURLOPT_HEADER, 0);
-                curl_setopt($conn[$i], CURLOPT_SSL_VERIFYPEER, FALSE);
-                curl_setopt($conn[$i], CURLOPT_SSL_VERIFYHOST, FALSE);
+                curl_setopt($conn[$i], CURLOPT_SSL_VERIFYPEER, $verifySsl);
+                curl_setopt($conn[$i], CURLOPT_SSL_VERIFYHOST, $verifySsl ? 2 : 0);
                 curl_setopt($conn[$i], CURLOPT_NOSIGNAL, 1);
                 curl_setopt($conn[$i], CURLOPT_TIMEOUT_MS, $timeout);
                 curl_setopt($conn[$i], CURLOPT_RETURNTRANSFER, true);

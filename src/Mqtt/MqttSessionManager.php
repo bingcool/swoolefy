@@ -42,6 +42,18 @@ final class MqttSessionManager
     /** @var array<string, array{message:string,qos:int,retain:bool,timestamp:int}> */
     private array $retainedMessages = [];
 
+    /** Retain 最大 topic 数（可被 conf 覆盖；默认防御性上限） */
+    private int $maxRetainedTopics = 10000;
+
+    /** 单条 Retain 最大字节数 */
+    private int $maxRetainedMessageBytes = 262144;
+
+    /** Retain 表总字节预算 */
+    private int $maxRetainedTotalBytes = 16777216;
+
+    /** 当前 Retain 消息总字节（不含 topic 键） */
+    private int $retainedTotalBytes = 0;
+
     /** QoS1：等待客户端 PUBACK */
     public const OUTBOUND_PHASE_PUBACK = 'puback';
 
@@ -205,13 +217,34 @@ final class MqttSessionManager
 
     /**
      * 存储或清除 Retain 消息（retain=false 时删除该 topic 的 retain 条目）。
+     *
+     * @return bool true=已写入/清除；false=因超限拒绝写入（不清空已有条目）
      */
-    public function storeRetained(string $topic, string $message, int $qos, bool $retain): void
+    public function storeRetained(string $topic, string $message, int $qos, bool $retain): bool
     {
         // retain=false 的 PUBLISH 会清除该 topic 已有 Retain（MQTT 规范）
         if (!$retain) {
-            unset($this->retainedMessages[$topic]);
-            return;
+            $this->forgetRetainedTopic($topic);
+            return true;
+        }
+
+        $messageBytes = strlen($message);
+        if ($messageBytes > $this->maxRetainedMessageBytes) {
+            return false;
+        }
+
+        $oldBytes = isset($this->retainedMessages[$topic])
+            ? strlen((string) $this->retainedMessages[$topic]['message'])
+            : 0;
+        $isNewTopic = !isset($this->retainedMessages[$topic]);
+
+        if ($isNewTopic && count($this->retainedMessages) >= $this->maxRetainedTopics) {
+            return false;
+        }
+
+        $projectedTotal = $this->retainedTotalBytes - $oldBytes + $messageBytes;
+        if ($projectedTotal > $this->maxRetainedTotalBytes) {
+            return false;
         }
 
         // 同一 topic 新 Retain 覆盖旧值
@@ -221,6 +254,39 @@ final class MqttSessionManager
             'retain' => true,
             'timestamp' => time(),
         ];
+        $this->retainedTotalBytes = $projectedTotal;
+
+        return true;
+    }
+
+    /**
+     * 配置 Retain 资源上限（Worker 启动时由 conf 注入；非法值忽略）。
+     *
+     * @param array{max_topics?:int,max_message_bytes?:int,max_total_bytes?:int} $limits
+     */
+    public function configureRetainLimits(array $limits): void
+    {
+        if (isset($limits['max_topics']) && (int) $limits['max_topics'] > 0) {
+            $this->maxRetainedTopics = (int) $limits['max_topics'];
+        }
+        if (isset($limits['max_message_bytes']) && (int) $limits['max_message_bytes'] > 0) {
+            $this->maxRetainedMessageBytes = (int) $limits['max_message_bytes'];
+        }
+        if (isset($limits['max_total_bytes']) && (int) $limits['max_total_bytes'] > 0) {
+            $this->maxRetainedTotalBytes = (int) $limits['max_total_bytes'];
+        }
+    }
+
+    private function forgetRetainedTopic(string $topic): void
+    {
+        if (!isset($this->retainedMessages[$topic])) {
+            return;
+        }
+        $this->retainedTotalBytes -= strlen((string) $this->retainedMessages[$topic]['message']);
+        if ($this->retainedTotalBytes < 0) {
+            $this->retainedTotalBytes = 0;
+        }
+        unset($this->retainedMessages[$topic]);
     }
 
     /**
@@ -354,6 +420,14 @@ final class MqttSessionManager
     }
 
     /**
+     * 该连接是否仍有指定 message_id 在途（出站未 ACK）。
+     */
+    public function hasOutboundPending(int $fd, int $messageId): bool
+    {
+        return $messageId > 0 && isset($this->outboundPending[$fd][$messageId]);
+    }
+
+    /**
      * 出站 QoS2：收到客户端 PUBREC。
      *
      * 将 phase 推进到 pubcomp，并返回 true 表示应发送（或重发）PUBREL。
@@ -477,6 +551,9 @@ final class MqttSessionManager
             'connected' => $connected,
             'subscriptions' => $subscriptionCount,
             'retained_topics' => count($this->retainedMessages),
+            'retained_total_bytes' => $this->retainedTotalBytes,
+            'retained_max_topics' => $this->maxRetainedTopics,
+            'retained_max_total_bytes' => $this->maxRetainedTotalBytes,
             'pending_qos' => $this->pendingWorkCount(),
         ];
     }

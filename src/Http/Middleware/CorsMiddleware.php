@@ -87,15 +87,52 @@ class CorsMiddleware implements CorsMiddlewareInterface
 
         $newAllowedOriginsPatterns = [];
         foreach ($allowedOriginsPatterns as $allowedOriginsPattern) {
-            $allowedOriginsPattern = trim($allowedOriginsPattern);
-            $allowedOriginsPattern = trim($allowedOriginsPattern,'/');
-            $allowedOriginsPattern = str_replace('*.', '', $allowedOriginsPattern);
-            $newAllowedOriginsPatternHttp = '/^http:\/\/(.*\.)?'.$allowedOriginsPattern.'$/';
-            $newAllowedOriginsPatternHttps = '/^https:\/\/(.*\.)?'.$allowedOriginsPattern.'$/';
-            $newAllowedOriginsPatterns = array_merge(
-                $newAllowedOriginsPatterns, [$newAllowedOriginsPatternHttp, $newAllowedOriginsPatternHttps]);
+            $domain = $this->normalizeAllowedOriginPatternDomain((string) $allowedOriginsPattern);
+            if ($domain === null) {
+                continue;
+            }
+            $quoted = preg_quote($domain, '/');
+            $newAllowedOriginsPatterns[] = '/^http:\/\/(.*\.)?' . $quoted . '$/i';
+            $newAllowedOriginsPatterns[] = '/^https:\/\/(.*\.)?' . $quoted . '$/i';
         }
         $this->options['allowedOriginsPatterns'] = $newAllowedOriginsPatterns;
+    }
+
+    /**
+     * 将 *.example.com / example.com 规范为纯域名；拒绝 scheme、path、port 等非法配置。
+     */
+    protected function normalizeAllowedOriginPatternDomain(string $pattern): ?string
+    {
+        $pattern = trim($pattern);
+        $pattern = trim($pattern, '/');
+        if ($pattern === '') {
+            return null;
+        }
+
+        // 拒绝完整 Origin / URL（含 scheme、path、query）
+        if (preg_match('#^[a-z][a-z0-9+.-]*://#i', $pattern) === 1
+            || str_contains($pattern, '/')
+            || str_contains($pattern, '?')
+            || str_contains($pattern, '#')
+            || str_contains($pattern, '@')
+        ) {
+            return null;
+        }
+
+        // 去掉可选端口（配置不应带端口；带了也拒绝以免误匹配）
+        if (str_contains($pattern, ':')) {
+            return null;
+        }
+
+        $pattern = preg_replace('/^\*\./', '', $pattern) ?? $pattern;
+        $pattern = strtolower($pattern);
+
+        // 宽松域名形态：label.label...（含 localhost）
+        if (preg_match('/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i', $pattern) !== 1) {
+            return null;
+        }
+
+        return $pattern;
     }
 
     /**

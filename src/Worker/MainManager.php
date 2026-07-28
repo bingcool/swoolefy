@@ -461,6 +461,8 @@ class MainManager
                             }
                         }
                         call_user_func($this->onRegisterShutdownFunction);
+                        // 等待子进程退出确认；超时后强制 SIGKILL，避免静默截断在途任务却无人观测
+                        $this->waitWorkersExitOrKill(15.0);
                         $this->isExit = false;
                         if (method_exists(AbstractProcess::getProcessInstance(), '__destruct') && version_compare(phpversion(), '8.0.0', '>=') ) {
                             AbstractProcess::getProcessInstance()->__destruct();
@@ -474,6 +476,50 @@ class MainManager
                     break;
             }
         };
+    }
+
+    /**
+     * 通知退出后等待子进程结束；超时则 SIGKILL 并记录未正常退出的 PID。
+     */
+    private function waitWorkersExitOrKill(float $timeoutSeconds): void
+    {
+        $deadline = microtime(true) + max(0.1, $timeoutSeconds);
+        $alive = [];
+        foreach ($this->processWorkers as $processes) {
+            foreach ($processes as $process) {
+                try {
+                    $pid = (int) $process->getPid();
+                } catch (\Throwable $e) {
+                    continue;
+                }
+                if ($pid > 0) {
+                    $alive[$pid] = $process->getProcessName() . '#' . $process->getProcessWorkerId();
+                }
+            }
+        }
+
+        while ($alive !== [] && microtime(true) < $deadline) {
+            while ($ret = \Swoole\Process::wait(false)) {
+                if (is_array($ret) && isset($ret['pid'])) {
+                    unset($alive[(int) $ret['pid']]);
+                }
+            }
+            foreach ($alive as $pid => $name) {
+                if (!@\posix_kill($pid, 0)) {
+                    unset($alive[$pid]);
+                }
+            }
+            if ($alive === []) {
+                break;
+            }
+            usleep(50000);
+        }
+
+        foreach ($alive as $pid => $name) {
+            $this->fmtWriteError("Master shutdown timeout, force kill worker pid={$pid} name={$name}");
+            @\posix_kill($pid, SIGKILL);
+            \Swoole\Process::wait(false);
+        }
     }
 
     /**
@@ -728,7 +774,7 @@ class MainManager
                 \Swoole\Event::add($swooleProcess->pipe, function ($pipe) use ($swooleProcess) {
                     $message = $swooleProcess->read(64 * 1024);
                     if (is_string($message)) {
-                        $messageDto = unserialize($message);
+                        $messageDto = unserialize($message, ['allowed_classes' => [MessageDtoWorker::class]]);
                         if (!$messageDto instanceof MessageDtoWorker) {
                             $this->fmtWriteError("Accept message type error");
                             return;
@@ -1410,7 +1456,7 @@ class MainManager
         \Swoole\Event::add($this->cliPipeFd, function () {
             try {
                 $pipeMsg = fread($this->cliPipeFd, 8192);
-                $cliPipeMsgDto = unserialize($pipeMsg);
+                $cliPipeMsgDto = unserialize($pipeMsg, ['allowed_classes' => [\Swoolefy\Worker\Dto\PipeMsgDtoWorker::class]]);
                 if ($cliPipeMsgDto instanceof \Swoolefy\Worker\Dto\PipeMsgDtoWorker) {
                     switch ($cliPipeMsgDto->action) {
                         case WORKER_CLI_STATUS :

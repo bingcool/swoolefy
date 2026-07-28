@@ -246,8 +246,6 @@ class BaseRequest extends ArrayDto
         $data = $this->toArray();
         unset($data['requestInput']);
 
-        var_dump($data);
-
         return $data;
     }
 }

@@ -434,7 +434,7 @@ abstract class AbstractBaseWorker
      */
     private function decodePipeMessage(string $message): ?MessageDtoWorker
     {
-        $messageDto = unserialize($message);
+        $messageDto = unserialize($message, ['allowed_classes' => [MessageDtoWorker::class]]);
         if (!$messageDto instanceof MessageDtoWorker) {
             $this->fmtWriteError("Accept message type error");
             return null;

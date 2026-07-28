@@ -283,27 +283,62 @@ class Log
         $pattern = '/^(.*?)([\/][0-9]{8})/';
         if (preg_match($pattern, $logFilePath, $matches)) {
             $parentDir = DIRECTORY_SEPARATOR.trim($matches[1],'/');
+            if (!is_dir($parentDir)) {
+                $this->doUnlink = true;
+                return;
+            }
             $logDirList = scandir($parentDir);
+            if ($logDirList === false) {
+                $this->doUnlink = true;
+                return;
+            }
             $lastDay = date('Ymd', time() - 24 * 3600 * ($this->rotateDay));
             foreach ($logDirList as $logDateDir) {
                 if ($logDateDir == '.' || $logDateDir == '..') {
                     continue;
                 }
-                $fullDateLogPath= $parentDir.DIRECTORY_SEPARATOR.$logDateDir;
-                if (is_dir($fullDateLogPath) && is_numeric($logDateDir) && $logDateDir < $lastDay) {
-                    if (defined('LINUX_RM_SHELL')) {
-                        $shell = constant('LINUX_RM_SHELL');
-                    }else {
-                        $shell = 'rm -rf';
-                    }
+                // 仅允许纯数字日期目录，避免误删
+                if (!ctype_digit((string) $logDateDir)) {
+                    continue;
+                }
+                $fullDateLogPath = $parentDir . DIRECTORY_SEPARATOR . $logDateDir;
+                if (is_dir($fullDateLogPath) && $logDateDir < $lastDay) {
                     try {
-                        @exec($shell.' '.$fullDateLogPath, $output, $return_var);
-                    }catch (\Throwable $e) {
-                        var_dump($e->getMessage());
+                        $this->removeDirectoryRecursive($fullDateLogPath);
+                    } catch (\Throwable $e) {
+                        error_log('[swoolefy][Log] unlink history log dir failed: ' . $fullDateLogPath . ' err=' . $e->getMessage());
                     }
                 }
             }
             $this->doUnlink = true;
+        }
+    }
+
+    /**
+     * 递归删除目录（纯 PHP，避免 shell 拼接路径）。
+     */
+    protected function removeDirectoryRecursive(string $dir): void
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($iterator as $fileInfo) {
+            /** @var \SplFileInfo $fileInfo */
+            $path = $fileInfo->getPathname();
+            if ($fileInfo->isDir()) {
+                if (!@rmdir($path)) {
+                    throw new \RuntimeException('rmdir failed: ' . $path);
+                }
+            } elseif (!@unlink($path)) {
+                throw new \RuntimeException('unlink failed: ' . $path);
+            }
+        }
+        if (!@rmdir($dir)) {
+            throw new \RuntimeException('rmdir failed: ' . $dir);
         }
     }
 

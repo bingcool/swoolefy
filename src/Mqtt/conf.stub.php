@@ -78,6 +78,12 @@ return [
         'username'           => '',
         'password'           => '',
         'mqtt_event_handler' => \Swoolefy\Mqtt\ProductionMqttEventV3::class,
+        // Retain 内存上限（防不可信客户端刷爆 Worker）
+        'retain_limits' => [
+            'max_topics' => 10000,
+            'max_message_bytes' => 262144,
+            'max_total_bytes' => 16777216,
+        ],
     ],
 
     'enable_pv_collector'  => true,

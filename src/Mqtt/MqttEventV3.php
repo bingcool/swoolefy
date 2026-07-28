@@ -124,10 +124,9 @@ abstract class MqttEventV3
 
     public function unSubscribe($type, $topics, $message_id): void
     {
-        unset($type);
+        unset($type, $message_id);
+        // 仅处理退订；UNSUBACK 由 MqttReceiveDispatcher 统一发送
         $this->sessions()->unsubscribe($this->fd, (array) $topics);
-        // V3 unSubscribe 内直接发 UNSUBACK（Dispatcher 不再重复发送）
-        $this->unSubscribeAck($message_id);
     }
 
     /**

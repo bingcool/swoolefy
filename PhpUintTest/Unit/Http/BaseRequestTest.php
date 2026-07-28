@@ -115,4 +115,22 @@ final class BaseRequestTest extends TestCase
         $this->assertSame(50, $data['pageSize'] ?? null);
         $this->assertSame(2, $req->integer('page'));
     }
+
+    /**
+     * 验证：validatedData() 不向输出缓冲写入调试内容（回归：禁止 var_dump）。
+     */
+    public function testValidatedDataDoesNotDumpToOutput(): void
+    {
+        $req = (new SampleCreateUserRequest())
+            ->setUsername('secret-user')
+            ->setAge(18)
+            ->setEnabled(true);
+
+        ob_start();
+        $data = $req->validatedData();
+        $output = ob_get_clean();
+
+        $this->assertSame('', $output);
+        $this->assertSame('secret-user', $data['username'] ?? null);
+    }
 }

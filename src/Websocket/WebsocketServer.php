@@ -183,15 +183,32 @@ abstract class WebsocketServer extends BaseServer
 
                 // 框架 Redis（register/touch 等）与业务 onOpen 均须在 goApp 内，复用协程级 Redis 单例
                 goApp(function () use ($server, $request, $websocketConfig, $auth) {
-                    if (!empty($websocketConfig['socketio']['enable']) && SocketIO\SocketIOHandler::isSocketIORequest($request)) {
-                        SocketIO\SocketIOHandler::onOpen($server, $request, $websocketConfig, (string) $auth['user_id']);
-                    } else {
-                        WebsocketConnectionManager::open($server, $request, [
-                            'user_id' => (string) $auth['user_id'],
-                        ]);
-                    }
+                    $fd = (int) $request->fd;
+                    $registered = false;
+                    try {
+                        if (!empty($websocketConfig['socketio']['enable']) && SocketIO\SocketIOHandler::isSocketIORequest($request)) {
+                            SocketIO\SocketIOHandler::onOpen($server, $request, $websocketConfig, (string) $auth['user_id']);
+                        } else {
+                            WebsocketConnectionManager::open($server, $request, [
+                                'user_id' => (string) $auth['user_id'],
+                            ]);
+                        }
+                        $registered = true;
 
-                    static::onOpen($server, $request);
+                        static::onOpen($server, $request);
+                    } catch (\Throwable $throwable) {
+                        if ($registered) {
+                            try {
+                                WebsocketConnectionManager::close($fd);
+                            } catch (\Throwable $closeError) {
+                                // 清理失败仍继续断开连接
+                            }
+                            if ($server->isEstablished($fd)) {
+                                $server->disconnect($fd, 1011, 'onOpen failed');
+                            }
+                        }
+                        throw $throwable;
+                    }
                 });
 
                 return true;
@@ -261,7 +278,7 @@ abstract class WebsocketServer extends BaseServer
                         $data           = $task->data;
                         $task_id        = $task->id;
                         $from_worker_id = $task->worker_id;
-                        $task_data      = unserialize($data);
+                        $task_data      = unserialize($data, ['allowed_classes' => false]);
                         static::onTask($server, $task_id, $from_worker_id, $task_data, $task);
                     } catch (\Throwable $e) {
                         self::catchException($e);
@@ -270,7 +287,7 @@ abstract class WebsocketServer extends BaseServer
             } else {
                 $this->webServer->on('task', function (\Swoole\WebSocket\Server $server, $task_id, $from_worker_id, $data) {
                     try {
-                        $task_data = unserialize($data);
+                        $task_data = unserialize($data, ['allowed_classes' => false]);
                         static::onTask($server, $task_id, $from_worker_id, $task_data);
                     } catch (\Throwable $e) {
                         self::catchException($e);
@@ -284,7 +301,7 @@ abstract class WebsocketServer extends BaseServer
          */
         $this->webServer->on('finish', function (\Swoole\WebSocket\Server $server, $task_id, $data) {
             try {
-                $params = unserialize($data);
+                $params = unserialize($data, ['allowed_classes' => false]);
                 list($data, $contextData) = $params;
                 (new EventApp())->registerApp(function () use ($server, $task_id, $data, $contextData) {
                     foreach ($contextData as $key=>$value) {

@@ -200,6 +200,20 @@ abstract class HttpServer extends BaseServer
                             $this->errorOpenTelemetry($span, $e);
                         });
                     }
+                    // 外层异常（OpenTelemetry / onRequest 前置等）可能尚未写出响应
+                    if ($response->isWritable()) {
+                        try {
+                            $response->status(500);
+                            $response->header('Content-Type', 'application/json; charset=utf-8');
+                            $response->end(json_encode([
+                                'code' => 500,
+                                'msg' => 'Internal Server Error',
+                                'data' => null,
+                            ], JSON_UNESCAPED_UNICODE));
+                        } catch (\Throwable $endError) {
+                            // 已部分写出或连接已关闭时忽略
+                        }
+                    }
                 }
             }
         });
@@ -214,7 +228,7 @@ abstract class HttpServer extends BaseServer
                         $data           = $task->data;
                         $task_id        = $task->id;
                         $from_worker_id = $task->worker_id;
-                        $task_data      = unserialize($data);
+                        $task_data      = unserialize($data, ['allowed_classes' => false]);
                         static::onTask($server, $task_id, $from_worker_id, $task_data, $task);
                     } catch (\Throwable $e) {
                         self::catchException($e);
@@ -223,7 +237,7 @@ abstract class HttpServer extends BaseServer
             } else {
                 $this->webServer->on('task', function (\Swoole\Http\Server $server, $task_id, $from_worker_id, $data) {
                     try {
-                        $task_data = unserialize($data);
+                        $task_data = unserialize($data, ['allowed_classes' => false]);
                         static::onTask($server, $task_id, $from_worker_id, $task_data);
                     } catch (\Throwable $e) {
                         self::catchException($e);
@@ -238,7 +252,7 @@ abstract class HttpServer extends BaseServer
          */
         $this->webServer->on('finish', function (\Swoole\Http\Server $server, $task_id, $data) {
             try {
-                $params = unserialize($data);
+                $params = unserialize($data, ['allowed_classes' => false]);
                 list($data, $contextData) = $params;
                 (new EventApp())->registerApp(function () use ($server, $task_id, $data, $contextData) {
                     foreach ($contextData as $key=>$value) {

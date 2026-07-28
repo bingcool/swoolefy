@@ -172,7 +172,7 @@ abstract class TcpServer extends BaseServer
                         $data           = $task->data;
                         $task_id        = $task->id;
                         $from_worker_id = $task->worker_id;
-                        $task_data      = unserialize($data);
+                        $task_data      = unserialize($data, ['allowed_classes' => false]);
                         static::onTask($server, $task_id, $from_worker_id, $task_data, $task);
                     } catch (\Throwable $e) {
                         self::catchException($e);
@@ -182,7 +182,7 @@ abstract class TcpServer extends BaseServer
             } else {
                 $this->tcpServer->on('task', function (\Swoole\Server $server, $task_id, $from_worker_id, $data) {
                     try {
-                        $task_data = unserialize($data);
+                        $task_data = unserialize($data, ['allowed_classes' => false]);
                         static::onTask($server, $task_id, $from_worker_id, $task_data);
                     } catch (\Throwable $e) {
                         self::catchException($e);
@@ -196,7 +196,7 @@ abstract class TcpServer extends BaseServer
          */
         $this->tcpServer->on('finish', function (\Swoole\Server $server, $task_id, $data) {
             try {
-                $params = unserialize($data);
+                $params = unserialize($data, ['allowed_classes' => false]);
                 list($data, $contextData) = $params;
                 (new EventApp())->registerApp(function () use ($server, $task_id, $data, $contextData) {
                     foreach ($contextData as $key=>$value) {
