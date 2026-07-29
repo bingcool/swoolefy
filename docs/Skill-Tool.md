@@ -13,14 +13,15 @@ LLM Agent 同时需要两类能力：
 
 - Skill 保存“怎样做”的程序性知识，以目录中的 `SKILL.md` 表达。
 - Tool 提供可执行能力，以 Neuron `ToolInterface` 暴露给模型。
-- 为了让模型按需取得 Skill 正文，每个启用的 Skill 又会被包装成一个只返回 Markdown 正文的 `skill_*` Neuron Tool。
+- 默认（`skillsMode=tool`）下，为了让模型按需取得 Skill 正文，每个启用的 Skill 又会被包装成一个只返回 Markdown 正文的 `skill_*` Neuron Tool。
+- 也可显式选择 `skillsMode=inline`，把正文直接注入 instructions（不挂 `skill_*`），或 `both` 同时保留两者。
 
-这样可以避免把所有 Skill 正文一次性塞入 system prompt，同时保持 Skill 与具体业务 Tool 的弱耦合。
+默认 progressive disclosure 避免把所有 Skill 正文一次性塞入 system prompt，同时保持 Skill 与具体业务 Tool 的弱耦合。
 
 设计目标包括：
 
 1. 复用 Neuron 原生 Tool Calling，不修改 Neuron 核心。
-2. Skill 正文按模型需要返回，减少初始 prompt token。
+2. 默认 Skill 正文按模型需要返回，减少初始 prompt token；需要时可显式内联正文。
 3. Skill 与执行能力分离：流程可以复用，业务 Tool 可以独立替换。
 4. MCP 全量挂载与 Capability 动态筛选可切换。
 5. Agent 自带 Tool、外部 Tool 和 Skill Tool 可以共存。
@@ -53,7 +54,7 @@ Skill 是 `{root}/{skill-directory}/SKILL.md` 中的程序性知识，包含：
 
 例如 `weather-ops` 说明应先在日期不明确时调用 `get_date`，再调用 `get_weather`，并要求只依据 Tool JSON 回答。
 
-Skill 本身不是天气查询能力，也不会执行正文中的步骤。当前实现会把 Skill 包装成 `skill_weather_ops` Tool；调用这个 Tool 只会返回 Skill 的 Markdown 正文，由模型阅读后决定是否继续调用业务 Tool。
+Skill 本身不是天气查询能力，也不会执行正文中的步骤。默认 `skillsMode=tool` 时会把 Skill 包装成 `skill_weather_ops` Tool；调用这个 Tool 只会返回 Skill 的 Markdown 正文，由模型阅读后决定是否继续调用业务 Tool。`inline` 模式下正文直接进入 instructions，不再挂载 `skill_*`。
 
 ### 2.3 MCP Tool
 
@@ -96,20 +97,23 @@ protected function tools(): array
 
 当前关系可以概括为：
 
-> Skill 是 `SKILL.md` 中的程序性知识；运行时被包装为 `skill_*` Neuron Tool。普通 Tool、MCP Tool、Capability Tool 和 Agent Native Tool 才是执行能力。
+> Skill 是 `SKILL.md` 中的程序性知识。默认运行时包装为 `skill_*` Neuron Tool；也可经 `skillsMode` 内联进 instructions。普通 Tool、MCP Tool、Capability Tool 和 Agent Native Tool 才是执行能力。
 
 ```mermaid
 flowchart LR
-    Skill["SKILL.md<br/>程序性知识"] --> SkillTool["skill_* Tool<br/>返回 Markdown 正文"]
-    Model["模型"] -->|先调用| SkillTool
+    Skill["SKILL.md<br/>程序性知识"] --> Mode{"skillsMode"}
+    Mode -->|tool / both| SkillTool["skill_* Tool<br/>返回 Markdown 正文"]
+    Mode -->|inline / both| Inline["instructions<br/>&lt;SKILL&gt; 正文"]
+    Model["模型"] -->|tool: 先调用| SkillTool
     SkillTool -->|操作规程| Model
+    Inline -->|inline: 直接阅读| Model
     Model -->|再按规程调用| Business["业务 / MCP Tool<br/>执行能力"]
     Business -->|事实或动作结果| Model
 ```
 
 Skill Tool 与业务 Tool 都使用 Neuron Tool Calling 通道，但语义不同：
 
-- `skill_*`：返回“如何完成任务”；
+- `skill_*`：返回“如何完成任务”（tool / both）；
 - `get_weather` 等业务 Tool：返回“任务执行结果”。
 
 ## 4. 完整加载与调用链
@@ -119,15 +123,14 @@ Skill Tool 与业务 Tool 都使用 Neuron Tool Calling 通道，但语义不同
 完整链路如下：
 
 1. 调用方在 `agentOptions['skills']` 中声明要启用的 Skill 名称。
-2. `NeuronFactory::attachSkillTools()` 解析 Skill roots。
+2. `NeuronFactory::attachSkillTools()` 解析 Skill roots 与 `skillsMode`（默认 `tool`）。
 3. `SkillLoader` 扫描每个 root 下一级子目录中的 `SKILL.md`。
 4. `SkillFrontmatterParser` 拆分 YAML frontmatter 与 Markdown 正文。
 5. `SkillLoader` 生成 `SkillDefinition`。
-6. `SkillToolFactory::makeMany()` 为每个定义创建一个 `skill_*` Tool。
-7. `Agent::addTool()` 挂载这些 Skill Tool。
-8. 默认将 `<AVAILABLE-SKILLS>` 短列表追加到 Agent instructions。
+6. `tool` / `both`：`SkillToolFactory::makeMany()` 创建 `skill_*` Tool 并 `Agent::addTool()`；`inline` 跳过挂载。
+7. 若 `skillsPrompt=true`：`tool` 注入 `<AVAILABLE-SKILLS>` 短列表；`inline` / `both` 另注入 `<SKILL name="...">` 正文（短列表文案改为「已内联」语义，且 `inline` 不引导 call `skill_*`）。
 
-注意：`SKILL.md` 文件在 boot/扫描阶段已经读入并解析，正文被闭包捕获在内存中；“按需”指正文只在 `skill_*` Tool 被调用时返回给模型，而不是调用时才从磁盘读取。
+注意：`SKILL.md` 文件在 boot/扫描阶段已经读入并解析。`tool` 模式下正文被闭包捕获在内存中，“按需”指正文只在 `skill_*` 被调用时返回给模型，而不是调用时才从磁盘读取。
 
 ### 4.2 对话阶段
 
@@ -183,9 +186,28 @@ sequenceDiagram
 
 `capabilityEnabled` 的 per-call 值优先于全局 `capability.enabled`；全局默认值为 `false`。
 
-## 6. Prompt 注入机制
+## 6. Prompt 注入与 `skillsMode`
 
-默认 `skillsPrompt=true`。挂载 Skill Tool 后，`SkillToolFactory::availableSkillsPrompt()` 生成：
+### 6.1 `skillsMode`
+
+| Mode | 挂载 `skill_*` | instructions（`skillsPrompt=true`） | 默认 |
+|------|----------------|--------------------------------------|------|
+| `tool` | 是 | `<AVAILABLE-SKILLS>` 短列表，引导 call `skill_*`；**正文不进** prompt | 是 |
+| `inline` | 否 | 短列表（「已内联」语义，不引导 call `skill_*`）+ `<SKILL name="...">` 正文 | 否 |
+| `both` | 是 | 同上全文注入 + 短列表注明 `skill_*` 仍可用、可能重复占 token | 否 |
+
+非法 `skillsMode` 抛 `InvalidArgumentException`（须为 `tool` / `inline` / `both`）。缺省或未设置时为 `tool`。
+
+### 6.2 `skillsPrompt`（兼容旧布尔）
+
+默认 `skillsPrompt=true`。
+
+- **`tool`**：控制是否注入 `<AVAILABLE-SKILLS>` 短列表；关闭后仍挂载 `skill_*`。
+- **`inline` / `both`**：控制是否注入短列表与正文；关闭后 `inline` 不注入任何 Skill 文案（且无 Tool），`both` 仍挂载 `skill_*` 但不注入正文。
+
+布尔值通过 `FILTER_VALIDATE_BOOLEAN` 解析，因此 `false`、`0`、`'0'`、`'false'` 等都可关闭注入。
+
+### 6.3 `tool` 模式短列表示例
 
 ```text
 <AVAILABLE-SKILLS>
@@ -194,26 +216,23 @@ Call the matching skill_* tool when you need that procedural knowledge.
 </AVAILABLE-SKILLS>
 ```
 
-该块会追加到 `Agent::resolveInstructions()` 的现有内容之后，并通过 `setInstructions()` 写回。
+默认只注入 name、description、`skill_*` 名与一句按需调用说明；**不注入 Markdown 正文**。正文只在 `skill_*` 执行后作为 Tool result 返回。
 
-默认只注入：
+### 6.4 `inline` / `both` 正文示例
 
-- Skill `name`；
-- Skill `description`，缺失时显示 `(no description)`；
-- 对应 `skill_*` Tool 名；
-- 一句建议模型按需调用 Skill Tool 的说明。
+```text
+<AVAILABLE-SKILLS>
+- weather-ops: How to use weather tools ...
+These skills are already inlined in this prompt as <SKILL> blocks. Follow them directly; do not call skill_* tools.
+</AVAILABLE-SKILLS>
 
-默认**不注入 Skill Markdown 正文**。正文只在 `skill_*` Tool 执行后作为 Tool result 返回。
-
-设置：
-
-```php
-'skillsPrompt' => false,
+<SKILL name="weather-ops">
+# Weather Ops
+...
+</SKILL>
 ```
 
-会跳过 `<AVAILABLE-SKILLS>` instructions 注入，但不会取消 Skill 的加载或 `skill_*` Tool 挂载。模型仍可能从 Tool schema 的名称和描述发现它，只是 system instructions 中没有显式 Skill 清单。
-
-布尔值通过 `FILTER_VALIDATE_BOOLEAN` 解析，因此 `false`、`0`、`'0'`、`'false'` 等都可关闭注入。
+`both` 的短列表会改为提示 `skill_*` 仍可用、调用可能重复占 token。正文由 `SkillToolFactory::inlineSkillsPrompt()` 生成。
 
 ## 7. 目录、按名加载、frontmatter、缓存与异常
 
@@ -357,12 +376,19 @@ $agentOptions = [
     'provider' => 'deepseek',
     'model' => 'deepseek-chat',
     'skills' => ['weather-ops', 'tool-calling'],
+    'skillsMode' => 'tool', // tool | inline | both，默认 tool
     'skillPaths' => [
         ROOT_PATH . '/Test/Skills',
     ],
     'skillsPrompt' => true,
     'capabilityEnabled' => false,
 ];
+
+// 正文直接进 system prompt，不挂 skill_*：
+// 'skillsMode' => 'inline',
+
+// 正文注入 + 仍保留 skill_*（可能重复 token）：
+// 'skillsMode' => 'both',
 
 $agent = $neuronFactory->create(
     WeatherToolAgent::class,
@@ -438,7 +464,9 @@ When the user asks about weather for a city:
 
 ### 10.4 token 与性能
 
-- 默认 prompt 只增加名称、描述和 Tool 名，避免加入全部正文。
+- 默认 `skillsMode=tool` 时 prompt 只增加名称、描述和 Tool 名，避免加入全部正文。
+- `inline` / `both` 会把正文常驻 instructions，短 Skill 更合适；长规程优先用 `tool`。
+- `both` 若再调用 `skill_*`，正文可能重复进入上下文。
 - 调用 `skill_*` 后，完整正文仍会作为 Tool result 消耗上下文 token；正文应聚焦步骤，避免重复背景材料。
 - Skill Tool 本身也会增加 Tool schema；大量 Skill 同时挂载仍会增加模型上下文。
 - Capability 的 `default_top_k`/`max_schema_tools` 只限制 Capability 执行 Tool，不限制随后独立挂载的 Skill Tool。
@@ -451,9 +479,10 @@ When the user asks about weather for a city:
   - `boot()`：总装配顺序；
   - `attachTools()`：Capability 与 MCP 全量路径选择；
   - `attachMcpTools()`：MCP Tool 全量挂载；
-  - `attachSkillTools()`：Skill 加载、包装和挂载；
+  - `attachSkillTools()`：按 `skillsMode` 加载、挂载和/或注入；
   - `resolveSkillRoots()`：roots 优先级；
-  - `appendAvailableSkillsPrompt()`：追加短 prompt。
+  - `resolveSkillsMode()`：解析 `skillsMode`；
+  - `appendInstructionsBlock()`：追加 instructions。
 - `src/Support/Neuron/NeuronAiConfig.php`
   - `skillsSection()`；
   - `skillPaths()`。
@@ -466,7 +495,7 @@ When the user asks about weather for a city:
 - `src/Support/Neuron/Skill/SkillNotFoundException.php`
   - 显式 Skill 名称不存在时的异常。
 - `src/Support/Neuron/Skill/SkillToolFactory.php`
-  - `skill_*` 命名、Tool 创建、`AVAILABLE-SKILLS` 生成。
+  - `skill_*` 命名、Tool 创建、`AVAILABLE-SKILLS` / `inlineSkillsPrompt()`。
 - `Test/Skills/weather-ops/SKILL.md`
   - 天气 Tool 使用规程示例。
 - `Test/Skills/tool-calling/SKILL.md`
@@ -500,3 +529,4 @@ When the user asks about weather for a city:
 8. **确定性 Skill 执行器**：对必须严格按步骤执行的规程，转换为显式 Workflow，而不是依赖模型自由解释。
 9. **正文大小限制与安全扫描**：在加载阶段限制字节数，并检查敏感信息或危险 prompt 模式。
 10. **调用去重策略**：通过 Middleware 或 Agent 状态避免同一轮重复调用同一个 Skill。
+11. ~~**正文当提示语显式模式**~~：已实现，见 `skillsMode`（`tool` / `inline` / `both`）。

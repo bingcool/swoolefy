@@ -21,7 +21,7 @@ use Swoolefy\Support\CapabilityCenter\CapabilityComponentFactory;
 use Swoolefy\Support\CapabilityCenter\Resolver\ToolResolveContext;
 use Swoolefy\Support\FrameworkContext;
 use Swoolefy\Support\Mcp\McpFactory;
-use Swoolefy\Support\Neuron\Skill\SkillDefinition;
+use InvalidArgumentException;
 use Swoolefy\Support\Neuron\Skill\SkillLoader;
 use Swoolefy\Support\Neuron\Skill\SkillToolFactory;
 use Swoolefy\Support\SupportLog;
@@ -44,7 +44,8 @@ use Throwable;
  * - CAPABILITY_ENABLED=false（默认）：走 attachMcpTools() 全量加载 MCP Tools；
  * - CAPABILITY_ENABLED=true：走 CapabilityCenter 解析 Top-K + pinned，再懒加载注入；
  * - Capability 出错且 fail_closed=false：fail-open 回退旧 MCP 全量挂载；
- * - agentOptions['skills']：按名加载本地 SKILL.md，每个 skill 挂一个 Neuron Tool（正文按需返回）。
+ * - agentOptions['skills']：按名加载本地 SKILL.md；默认 skillsMode=tool 时挂 skill_* Tool（正文按需返回），
+ *   skillsMode=inline 时把正文注入 instructions，skillsMode=both 时两者兼有。
  *
  * Middleware（与 Neuron 官方一致，见 https://docs.neuron-ai.dev/agent/middleware）：
  * - Agent 子类可覆盖 middleware() / globalMiddleware()（构造期注册）；
@@ -283,14 +284,18 @@ final class NeuronFactory
     }
 
     /**
-     * 将 agentOptions['skills'] 声明的本地 SKILL.md 挂为 Neuron Tool。
+     * 将 agentOptions['skills'] 声明的本地 SKILL.md 按 skillsMode 挂载 / 注入。
      *
      * agentOptions 键：
      *   skills       — skill 名称列表（对应 {root}/{name}/SKILL.md）
      *   skillPaths   — 覆盖扫描根目录；缺省用 NeuronAiConfig / APP_PATH|ROOT_PATH/Skills
-     *   skillsPrompt — 是否在 instructions 追加 AVAILABLE-SKILLS 短列表（默认 true）
+     *   skillsMode   — tool|inline|both（默认 tool）；非法值抛 InvalidArgumentException
+     *   skillsPrompt — tool：是否注入 AVAILABLE-SKILLS 短列表（默认 true）；
+     *                  inline/both：是否注入正文（及对应短列表文案）
      *
-     * 每个 skill 对应一个 tool（如 weather-ops → skill_weather_ops）；invoke 返回 markdown 正文。
+     * tool：每个 skill 对应 skill_* Tool，正文仅作 tool result。
+     * inline：正文注入 instructions（&lt;SKILL&gt;），不挂载 skill_*。
+     * both：正文注入 + 仍挂载 skill_*（可能重复占 token）。
      * 显式名称未找到时抛 {@see \Swoolefy\Support\Neuron\Skill\SkillNotFoundException}。
      *
      * @param array<string, mixed> $agentOptions
@@ -308,16 +313,53 @@ final class NeuronFactory
             return;
         }
 
-        $tools = SkillToolFactory::makeMany($definitions);
-        if ($tools !== []) {
-            $agent->addTool($tools);
+        $mode = $this->resolveSkillsMode($agentOptions);
+        $injectPrompt = $this->agentOptionsBool($agentOptions, 'skillsPrompt', true);
+
+        // tool / both：挂载 skill_*；inline：不挂，避免无意义的 tool call
+        if ($mode === SkillToolFactory::MODE_TOOL || $mode === SkillToolFactory::MODE_BOTH) {
+            $tools = SkillToolFactory::makeMany($definitions);
+            if ($tools !== []) {
+                $agent->addTool($tools);
+            }
         }
 
-        // 默认注入短列表（名称+description），不把 SKILL.md 全文塞进 system prompt
-        $injectPrompt = $this->agentOptionsBool($agentOptions, 'skillsPrompt', true);
-        if ($injectPrompt) {
-            $this->appendAvailableSkillsPrompt($agent, $definitions);
+        if (!$injectPrompt) {
+            return;
         }
+
+        $blocks = [];
+        if ($mode === SkillToolFactory::MODE_TOOL) {
+            // 短列表（名称+description），不把 SKILL.md 全文塞进 system prompt
+            $blocks[] = SkillToolFactory::availableSkillsPrompt($definitions, SkillToolFactory::MODE_TOOL);
+        } else {
+            // inline / both：正文注入；短列表改为「已内联」语义（both 仍提示 skill_* 可用）
+            $blocks[] = SkillToolFactory::availableSkillsPrompt($definitions, $mode);
+            $blocks[] = SkillToolFactory::inlineSkillsPrompt($definitions);
+        }
+
+        $combined = trim(implode("\n\n", array_filter(
+            $blocks,
+            static fn (string $block): bool => $block !== '',
+        )));
+        if ($combined !== '') {
+            $this->appendInstructionsBlock($agent, $combined);
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $agentOptions
+     *
+     * @throws InvalidArgumentException
+     */
+    private function resolveSkillsMode(array $agentOptions): string
+    {
+        $raw = $agentOptions['skillsMode'] ?? SkillToolFactory::MODE_TOOL;
+        if (!is_string($raw) || trim($raw) === '') {
+            throw new InvalidArgumentException('skillsMode must be a non-empty string: tool|inline|both');
+        }
+
+        return SkillToolFactory::normalizeMode($raw);
     }
 
     /**
@@ -341,12 +383,8 @@ final class NeuronFactory
         return SkillLoader::defaultRoots();
     }
 
-    /**
-     * @param list<SkillDefinition> $definitions
-     */
-    private function appendAvailableSkillsPrompt(Agent $agent, array $definitions): void
+    private function appendInstructionsBlock(Agent $agent, string $block): void
     {
-        $block = SkillToolFactory::availableSkillsPrompt($definitions);
         if ($block === '') {
             return;
         }

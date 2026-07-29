@@ -138,7 +138,10 @@ return [
         'fail_closed' => env(NeuronAiCapabilityEnv::FAIL_CLOSED, false),
     ],
     // 本地 SKILL.md 根目录；空则默认 APP_PATH/Skills 与 ROOT_PATH/Skills。
-    // agentOptions['skills'] = ['weather-ops'] 时按名加载并挂为 skill_* Tool。
+    // 本地 SKILL.md 扫描根目录。加载行为由 agentOptions 控制：
+    //   skills       — 要启用的 skill 名列表，如 ['weather-ops']
+    //   skillsMode   — tool（默认，挂 skill_*，正文按需）| inline（正文进 instructions）| both
+    //   skillsPrompt — tool：是否注入 AVAILABLE-SKILLS 短列表；inline/both：是否注入正文（默认 true）
     'skills' => [
         'paths' => [
             // APP_PATH . '/Skills',

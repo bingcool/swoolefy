@@ -126,8 +126,15 @@ final class NeuronAiConfig
         return is_array($section) ? $section : [];
     }
 
-    /** 返回 skills 配置段（本地 SKILL.md 根目录等）。 */
-    /** @return array<string, mixed> */
+    /**
+     * 返回 skills 配置段（本地 SKILL.md 根目录等）。
+     *
+     * 挂载/注入模式由 agentOptions 控制（非本段全局开关）：
+     * - skillsMode：tool（默认 progressive disclosure）| inline | both
+     * - skillsPrompt：是否注入短列表（tool）或正文（inline/both），默认 true
+     *
+     * @return array<string, mixed>
+     */
     public function skillsSection(): array
     {
         $section = $this->config['skills'] ?? [];
@@ -140,6 +147,7 @@ final class NeuronAiConfig
      *
      * 空数组表示由 {@see \Swoolefy\Support\Neuron\Skill\SkillLoader::defaultRoots()} 决定
      * （APP_PATH/Skills、ROOT_PATH/Skills）。agentOptions['skillPaths'] 可 per-call 覆盖。
+     * 正文是否进 system prompt 由 agentOptions['skillsMode'] 决定（默认 tool：不进）。
      *
      * @return list<string>
      */

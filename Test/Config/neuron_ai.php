@@ -128,7 +128,7 @@ return [
         // false 表示 CapabilityCenter 出错时 fail-open 回退旧 MCP 链路；生产严格模式可设 true。
         'fail_closed' => env(NeuronAiCapabilityEnv::FAIL_CLOSED, false),
     ],
-    // 本地 SKILL.md：默认扫 APP_PATH/Skills；agentOptions['skills'] 按名挂为 skill_* Tool。
+    // 本地 SKILL.md：默认扫 Test/Skills。agentOptions：skills / skillsMode(tool|inline|both) / skillsPrompt。
     'skills' => [
         'paths' => [
             dirname(__DIR__) . '/Skills',

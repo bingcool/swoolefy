@@ -174,10 +174,127 @@ MD;
         $this->assertTrue(str_contains($prompt, '<AVAILABLE-SKILLS>'));
         $this->assertTrue(str_contains($prompt, 'weather-ops'));
         $this->assertTrue(str_contains($prompt, 'skill_weather_ops'));
+        $this->assertTrue(str_contains($prompt, 'Call the matching skill_*'));
         $this->assertFalse(str_contains($prompt, 'Known demo cities'));
     }
 
+    public function testAvailableSkillsPromptInlineDoesNotGuideSkillToolCall(): void
+    {
+        $skills = (new SkillLoader([$this->skillsRoot]))->loadMany(['weather-ops']);
+        $prompt = SkillToolFactory::availableSkillsPrompt($skills, SkillToolFactory::MODE_INLINE);
+
+        $this->assertTrue(str_contains($prompt, 'weather-ops'));
+        $this->assertTrue(str_contains($prompt, 'already inlined'));
+        $this->assertFalse(str_contains($prompt, 'tool: skill_weather_ops'));
+        $this->assertFalse(str_contains($prompt, 'Call the matching skill_*'));
+    }
+
+    public function testInlineSkillsPromptWrapsMarkdownBody(): void
+    {
+        $skills = (new SkillLoader([$this->skillsRoot]))->loadMany(['weather-ops']);
+        $prompt = SkillToolFactory::inlineSkillsPrompt($skills);
+
+        $this->assertTrue(str_contains($prompt, '<SKILL name="weather-ops">'));
+        $this->assertTrue(str_contains($prompt, '# Weather Ops'));
+        $this->assertTrue(str_contains($prompt, 'Known demo cities'));
+        $this->assertTrue(str_contains($prompt, '</SKILL>'));
+        $this->assertFalse(str_contains($prompt, 'name: weather-ops'));
+    }
+
+    public function testNormalizeSkillsModeRejectsInvalid(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('skillsMode must be one of');
+        SkillToolFactory::normalizeMode('prompt');
+    }
+
     public function testNeuronFactoryAttachesSkillToolsAndPrompt(): void
+    {
+        $agent = $this->bootAgentWithSkills([
+            'skills' => ['weather-ops'],
+            'skillsPrompt' => true,
+        ]);
+
+        $names = $this->toolNames($agent);
+        $this->assertTrue(in_array('skill_weather_ops', $names, true), 'skill tool attached');
+
+        $instructions = $agent->resolveInstructions();
+        $this->assertTrue(str_contains($instructions, '<AVAILABLE-SKILLS>'));
+        $this->assertTrue(str_contains($instructions, 'weather-ops'));
+        $this->assertFalse(str_contains($instructions, 'Known demo cities'), 'full skill body must not dump into instructions');
+        $this->assertFalse(str_contains($instructions, '<SKILL name='));
+    }
+
+    public function testNeuronFactoryDefaultSkillsModeIsTool(): void
+    {
+        $agent = $this->bootAgentWithSkills([
+            'skills' => ['weather-ops'],
+        ]);
+
+        $this->assertTrue(in_array('skill_weather_ops', $this->toolNames($agent), true));
+        $this->assertFalse(str_contains($agent->resolveInstructions(), 'Known demo cities'));
+    }
+
+    public function testNeuronFactoryInlineModeInjectsBodyWithoutSkillTools(): void
+    {
+        $agent = $this->bootAgentWithSkills([
+            'skills' => ['weather-ops'],
+            'skillsMode' => 'inline',
+            'skillsPrompt' => true,
+        ]);
+
+        $names = $this->toolNames($agent);
+        $this->assertFalse(in_array('skill_weather_ops', $names, true), 'inline must not attach skill_*');
+        foreach ($names as $name) {
+            $this->assertFalse(str_starts_with($name, 'skill_'), 'tools must not include skill_*');
+        }
+
+        $instructions = $agent->resolveInstructions();
+        $this->assertTrue(str_contains($instructions, '<SKILL name="weather-ops">'));
+        $this->assertTrue(str_contains($instructions, 'Known demo cities'));
+        $this->assertTrue(str_contains($instructions, 'already inlined'));
+        $this->assertFalse(str_contains($instructions, 'Call the matching skill_*'));
+    }
+
+    public function testNeuronFactoryBothModeInjectsBodyAndKeepsSkillTools(): void
+    {
+        $agent = $this->bootAgentWithSkills([
+            'skills' => ['weather-ops'],
+            'skillsMode' => 'both',
+            'skillsPrompt' => true,
+        ]);
+
+        $this->assertTrue(in_array('skill_weather_ops', $this->toolNames($agent), true));
+
+        $instructions = $agent->resolveInstructions();
+        $this->assertTrue(str_contains($instructions, '<SKILL name="weather-ops">'));
+        $this->assertTrue(str_contains($instructions, 'Known demo cities'));
+        $this->assertTrue(str_contains($instructions, 'skill_weather_ops'));
+        $this->assertTrue(str_contains($instructions, 'duplicate tokens'));
+    }
+
+    public function testNeuronFactoryInvalidSkillsModeThrows(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('skillsMode must be one of');
+        $this->bootAgentWithSkills([
+            'skills' => ['weather-ops'],
+            'skillsMode' => 'prompt',
+        ]);
+    }
+
+    public function testNeuronFactoryMissingSkillThrows(): void
+    {
+        $this->expectException(SkillNotFoundException::class);
+        $this->bootAgentWithSkills([
+            'skills' => ['missing-skill-xyz'],
+        ]);
+    }
+
+    /**
+     * @param array<string, mixed> $agentOptions
+     */
+    private function bootAgentWithSkills(array $agentOptions): Agent
     {
         $agentClass = new class extends Agent {
             protected function provider(): AIProviderInterface
@@ -195,45 +312,20 @@ MD;
             ]),
         );
 
-        $agent = $factory->create($agentClass::class, new WorkflowState(), [
+        return $factory->create($agentClass::class, new WorkflowState(), array_merge([
             'capabilityEnabled' => false,
-            'skills' => ['weather-ops'],
-            'skillsPrompt' => true,
-        ]);
+        ], $agentOptions));
+    }
 
-        $names = array_map(
+    /**
+     * @return list<string>
+     */
+    private function toolNames(Agent $agent): array
+    {
+        return array_map(
             static fn (ToolInterface $tool): string => $tool->getName(),
             $agent->getTools(),
         );
-        $this->assertTrue(in_array('skill_weather_ops', $names, true), 'skill tool attached');
-
-        $instructions = $agent->resolveInstructions();
-        $this->assertTrue(str_contains($instructions, '<AVAILABLE-SKILLS>'));
-        $this->assertTrue(str_contains($instructions, 'weather-ops'));
-        $this->assertFalse(str_contains($instructions, 'Known demo cities'), 'full skill body must not dump into instructions');
-    }
-
-    public function testNeuronFactoryMissingSkillThrows(): void
-    {
-        $agentClass = new class extends Agent {
-            protected function provider(): AIProviderInterface
-            {
-                return FakeAIProvider::make(new AssistantMessage('ok'));
-            }
-        };
-
-        $factory = new NeuronFactory(
-            config: NeuronAiConfig::fromArray([
-                'capability' => ['enabled' => false],
-                'skills' => ['paths' => [$this->skillsRoot]],
-            ]),
-        );
-
-        $this->expectException(SkillNotFoundException::class);
-        $factory->create($agentClass::class, new WorkflowState(), [
-            'capabilityEnabled' => false,
-            'skills' => ['missing-skill-xyz'],
-        ]);
     }
 
     private function removeDir(string $dir): void
