@@ -137,6 +137,13 @@ return [
         // false 表示 CapabilityCenter 出错时 fail-open 回退旧 MCP 链路；生产严格模式可设 true。
         'fail_closed' => env(NeuronAiCapabilityEnv::FAIL_CLOSED, false),
     ],
+    // 本地 SKILL.md 根目录；空则默认 APP_PATH/Skills 与 ROOT_PATH/Skills。
+    // agentOptions['skills'] = ['weather-ops'] 时按名加载并挂为 skill_* Tool。
+    'skills' => [
+        'paths' => [
+            // APP_PATH . '/Skills',
+        ],
+    ],
     'neuron' => [
         'http_client' => 'swoole', // swoole | guzzle
         // Agent 未覆盖 provider() 时使用的默认别名

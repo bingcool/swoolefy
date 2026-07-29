@@ -21,6 +21,9 @@ use Swoolefy\Support\CapabilityCenter\CapabilityComponentFactory;
 use Swoolefy\Support\CapabilityCenter\Resolver\ToolResolveContext;
 use Swoolefy\Support\FrameworkContext;
 use Swoolefy\Support\Mcp\McpFactory;
+use Swoolefy\Support\Neuron\Skill\SkillDefinition;
+use Swoolefy\Support\Neuron\Skill\SkillLoader;
+use Swoolefy\Support\Neuron\Skill\SkillToolFactory;
 use Swoolefy\Support\SupportLog;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\State\WorkflowState;
@@ -33,13 +36,15 @@ use Throwable;
  * 1. 创建或 boot Neuron Agent 实例；
  * 2. 注入 LLM Provider（节点 alias 或 default_provider，含 RouterProvider fallback）；
  * 3. 挂载 Tool（MCP 全量 或 CapabilityCenter Top-K 动态筛选）；
- * 4. 可选覆盖 ChatHistory；
- * 5. 挂载 Neuron Agent Middleware（节点级 / 全局）。
+ * 4. 可选挂载本地 Skills 为 Tool（agentOptions['skills']）；
+ * 5. 可选覆盖 ChatHistory；
+ * 6. 挂载 Neuron Agent Middleware（节点级 / 全局）。
  *
  * Tool 挂载策略：
  * - CAPABILITY_ENABLED=false（默认）：走 attachMcpTools() 全量加载 MCP Tools；
  * - CAPABILITY_ENABLED=true：走 CapabilityCenter 解析 Top-K + pinned，再懒加载注入；
- * - Capability 出错且 fail_closed=false：fail-open 回退旧 MCP 全量挂载。
+ * - Capability 出错且 fail_closed=false：fail-open 回退旧 MCP 全量挂载；
+ * - agentOptions['skills']：按名加载本地 SKILL.md，每个 skill 挂一个 Neuron Tool（正文按需返回）。
  *
  * Middleware（与 Neuron 官方一致，见 https://docs.neuron-ai.dev/agent/middleware）：
  * - Agent 子类可覆盖 middleware() / globalMiddleware()（构造期注册）；
@@ -106,7 +111,8 @@ final class NeuronFactory
      * 1. applyProvider — 注入 LLM；
      * 2. setChatHistory — 仅 agentOptions 显式传入时覆盖；
      * 3. attachTools   — MCP 全量 或 CapabilityCenter 动态筛选；
-     * 4. attachMiddleware — agentOptions 声明的节点/全局 Middleware。
+     * 4. attachSkillTools — 本地 SKILL.md → Neuron Tool（按需加载正文）；
+     * 5. attachMiddleware — agentOptions 声明的节点/全局 Middleware。
      *
      * @param array<string, mixed> $agentOptions
      */
@@ -121,6 +127,7 @@ final class NeuronFactory
         }
 
         $this->attachTools($agent, $agentOptions);
+        $this->attachSkillTools($agent, $agentOptions);
         $this->attachMiddleware($agent, $agentOptions);
 
         return $agent;
@@ -273,6 +280,79 @@ final class NeuronFactory
         if ($tools !== []) {
             $agent->addTool($tools);
         }
+    }
+
+    /**
+     * 将 agentOptions['skills'] 声明的本地 SKILL.md 挂为 Neuron Tool。
+     *
+     * agentOptions 键：
+     *   skills       — skill 名称列表（对应 {root}/{name}/SKILL.md）
+     *   skillPaths   — 覆盖扫描根目录；缺省用 NeuronAiConfig / APP_PATH|ROOT_PATH/Skills
+     *   skillsPrompt — 是否在 instructions 追加 AVAILABLE-SKILLS 短列表（默认 true）
+     *
+     * 每个 skill 对应一个 tool（如 weather-ops → skill_weather_ops）；invoke 返回 markdown 正文。
+     * 显式名称未找到时抛 {@see \Swoolefy\Support\Neuron\Skill\SkillNotFoundException}。
+     *
+     * @param array<string, mixed> $agentOptions
+     */
+    private function attachSkillTools(Agent $agent, array $agentOptions): void
+    {
+        $names = $this->normalizeStringList($agentOptions['skills'] ?? []);
+        if ($names === []) {
+            return;
+        }
+
+        $loader = new SkillLoader($this->resolveSkillRoots($agentOptions));
+        $definitions = $loader->loadMany($names);
+        if ($definitions === []) {
+            return;
+        }
+
+        $tools = SkillToolFactory::makeMany($definitions);
+        if ($tools !== []) {
+            $agent->addTool($tools);
+        }
+
+        // 默认注入短列表（名称+description），不把 SKILL.md 全文塞进 system prompt
+        $injectPrompt = $this->agentOptionsBool($agentOptions, 'skillsPrompt', true);
+        if ($injectPrompt) {
+            $this->appendAvailableSkillsPrompt($agent, $definitions);
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $agentOptions
+     *
+     * @return list<string>
+     */
+    private function resolveSkillRoots(array $agentOptions): array
+    {
+        $fromOptions = $this->normalizeStringList($agentOptions['skillPaths'] ?? $agentOptions['skillRoots'] ?? []);
+        if ($fromOptions !== []) {
+            return $fromOptions;
+        }
+
+        $config = $this->config ?? NeuronAiConfig::load();
+        $fromConfig = $config->skillPaths();
+        if ($fromConfig !== []) {
+            return $fromConfig;
+        }
+
+        return SkillLoader::defaultRoots();
+    }
+
+    /**
+     * @param list<SkillDefinition> $definitions
+     */
+    private function appendAvailableSkillsPrompt(Agent $agent, array $definitions): void
+    {
+        $block = SkillToolFactory::availableSkillsPrompt($definitions);
+        if ($block === '') {
+            return;
+        }
+
+        $current = trim($agent->resolveInstructions());
+        $agent->setInstructions($current === '' ? $block : $current . "\n\n" . $block);
     }
 
     /**

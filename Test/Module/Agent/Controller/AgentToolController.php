@@ -36,6 +36,7 @@ use Throwable;
  *   message   string  必填，如「深圳今天天气怎么样？」
  *   provider  string  可选
  *   model     string  可选
+ *   skills    string|string[] 可选，本地 SKILL.md 名（默认 weather-ops）；挂为 skill_* Tool
  *
  * @see https://docs.neuron-ai.dev/agent/streaming
  */
@@ -75,12 +76,15 @@ final class AgentToolController extends BController
             throw new SystemException('Agent tool weather failed: ' . $e->getMessage(), 500, $e);
         }
 
+        $skills = is_array($agentOptions['skills'] ?? null) ? $agentOptions['skills'] : [];
+
         return [
             'message' => $message,
             'reply' => $reply,
             'provider' => $provider,
             'model' => $agentOptions['model'] ?? null,
             'tools' => ['get_date', 'get_weather'],
+            'skills' => $skills,
         ];
     }
 
@@ -119,10 +123,13 @@ final class AgentToolController extends BController
         $agentOptions = $this->resolveAgentOptions($requestInput);
         $provider = $this->resolveProviderLabel($agentOptions);
 
+        $skills = is_array($agentOptions['skills'] ?? null) ? $agentOptions['skills'] : [];
+
         $sink->publish('start', [
             'provider' => $provider,
             'model' => $agentOptions['model'] ?? null,
             'tools' => ['get_date', 'get_weather'],
+            'skills' => $skills,
         ]);
 
         $state = WorkflowState::fromInput(['message' => $message]);
@@ -204,7 +211,42 @@ final class AgentToolController extends BController
             $agentOptions['model'] = $model;
         }
 
+        // 本地 SKILL.md → skill_* Tool；默认挂 weather-ops（Test/Skills）
+        $skills = $this->normalizeSkillsInput($requestInput->input('skills', ['weather-ops']));
+        if ($skills !== []) {
+            $agentOptions['skills'] = $skills;
+        }
+
+        $skillPaths = $this->normalizeSkillsInput($requestInput->input('skillPaths', []));
+        if ($skillPaths !== []) {
+            $agentOptions['skillPaths'] = $skillPaths;
+        }
+
         return $agentOptions;
+    }
+
+    /**
+     * @param mixed $raw
+     *
+     * @return list<string>
+     */
+    private function normalizeSkillsInput(mixed $raw): array
+    {
+        if (is_string($raw) && $raw !== '') {
+            $raw = preg_split('/\s*,\s*/', $raw) ?: [];
+        }
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        $list = [];
+        foreach ($raw as $value) {
+            if (is_string($value) && $value !== '' && !in_array($value, $list, true)) {
+                $list[] = $value;
+            }
+        }
+
+        return $list;
     }
 
     /** @param array<string, mixed> $agentOptions */

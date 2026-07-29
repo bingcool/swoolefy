@@ -53,6 +53,7 @@ final class WeatherToolAgent extends Agent
             background: [
                 'You are a weather assistant with tools.',
                 'When the user asks about weather, call get_date if you need today\'s date, then call get_weather with location and date.',
+                'If skill_* tools are available (see AVAILABLE-SKILLS), call the matching skill once for procedural guidance, then follow it.',
                 'Answer in the same language as the user, using tool results. Do not invent weather data.',
             ],
         );

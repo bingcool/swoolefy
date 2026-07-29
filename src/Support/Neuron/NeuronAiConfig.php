@@ -126,6 +126,40 @@ final class NeuronAiConfig
         return is_array($section) ? $section : [];
     }
 
+    /** 返回 skills 配置段（本地 SKILL.md 根目录等）。 */
+    /** @return array<string, mixed> */
+    public function skillsSection(): array
+    {
+        $section = $this->config['skills'] ?? [];
+
+        return is_array($section) ? $section : [];
+    }
+
+    /**
+     * 本地 Skill 扫描根目录（skills.paths）。
+     *
+     * 空数组表示由 {@see \Swoolefy\Support\Neuron\Skill\SkillLoader::defaultRoots()} 决定
+     * （APP_PATH/Skills、ROOT_PATH/Skills）。agentOptions['skillPaths'] 可 per-call 覆盖。
+     *
+     * @return list<string>
+     */
+    public function skillPaths(): array
+    {
+        $raw = $this->skillsSection()['paths'] ?? [];
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        $paths = [];
+        foreach ($raw as $path) {
+            if (is_string($path) && $path !== '' && !in_array($path, $paths, true)) {
+                $paths[] = $path;
+            }
+        }
+
+        return $paths;
+    }
+
     /**
      * CapabilityCenter 总开关。
      *
