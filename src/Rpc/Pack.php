@@ -314,7 +314,9 @@ class Pack extends BaseParse
     }
 
     /**
-     * delete 删除缓存的不完整的僵尸式数据包，可以在onclose回调中执行,防止内存偷偷溢增
+     * 删除指定 fd 的半包缓存（连接级 close 专用），防止半包内存偷偷溢增。
+     * 幂等：fd 不存在时直接返回 true，不抛异常；不得改用 destroy()。
+     *
      * @param int $fd
      * @return bool
      */
@@ -325,7 +327,11 @@ class Pack extends BaseParse
     }
 
     /**
-     * destroy 当workerStop时,删除缓冲的不完整的僵尸式数据包，并强制断开这些链接
+     * 进程级清理全部连接的半包缓存，并强制断开仍存在的连接。
+     *
+     * 仅允许 WorkerStop、Server shutdown 等进程级入口调用；
+     * 连接级 close 必须用 delete($fd)，否则会误清其他 fd 并牵连断连。
+     *
      * @return bool
      */
     public function destroy()
@@ -337,7 +343,8 @@ class Pack extends BaseParse
                 }
                 unset($this->_buffers[$fd], $this->_headers[$fd]);
             }
-            return true;
         }
+
+        return true;
     }
 }

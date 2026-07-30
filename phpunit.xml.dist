@@ -16,6 +16,8 @@
             <directory>PhpUintTest/Unit/Library</directory>
             <directory>PhpUintTest/Unit/Script</directory>
             <directory>PhpUintTest/Unit/Cmd</directory>
+            <directory>PhpUintTest/Unit/Rpc</directory>
+            <directory>PhpUintTest/Unit/Worker</directory>
         </testsuite>
         <testsuite name="coroutine">
             <directory>PhpUintTest/Coroutine</directory>

@@ -92,7 +92,14 @@ trait MainProcessCommandTrait
         $extendData       = $config['extend_data'] ?? [];
         $this->parseArgs($args, $config);
         for ($workerId=0; $workerId < $processWorkerNum; $workerId++) {
-            $this->forkNewProcess($processClass, $processName, $workerId, $args, $extendData);
+            $this->forkNewProcess(
+                $processClass,
+                $processName,
+                $workerId,
+                $args,
+                $extendData,
+                AbstractBaseWorker::PROCESS_STATIC_TYPE
+            );
         }
         $this->setProcessLists($processName, $processClass, $processWorkerNum, $args, $extendData);
     }

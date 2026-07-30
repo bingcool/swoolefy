@@ -49,6 +49,13 @@ class MainManager
     private $processWorkers = [];
 
     /**
+     * 已发出停止请求、等待 SIGCHLD 回收的动态进程，key 为 PID。
+     *
+     * @var array<int, string>
+     */
+    private array $stoppingDynamicProcesses = [];
+
+    /**
      * @var array
      */
     private $processPidMap = [];
@@ -740,16 +747,24 @@ class MainManager
                         /**@var AbstractBaseWorker $process */
                         $process         = $this->getProcessByPid($pid);
                         if (!is_object($process)) {
-                            return;
+                            // 未知或已回收 PID：保持幂等，继续处理本批次其他退出事件。
+                            continue 2;
                         }
                         $processName     = $process->getProcessName();
                         $processWorkerId = $process->getProcessWorkerId();
+                        $isDynamicProcess = $process->isDynamicProcess();
                         $key = md5($processName);
                         if (isset($this->processWorkers[$key][$processWorkerId])) {
                             unset($this->processWorkers[$key][$processWorkerId]);
                             if (count($this->processWorkers[$key]) == 0) {
                                 unset($this->processWorkers[$key]);
                             }
+                        }
+                        if ($isDynamicProcess) {
+                            // 确认退出后再减动态计数；发停止信号时不得提前 --，避免扩缩容窗口误判
+                            unset($this->stoppingDynamicProcesses[$pid]);
+                            $this->storageDynamicProcessNum($processName);
+                            $this->processLists[$key]['dynamic_process_destroying'] = $this->hasStoppingDynamicProcess($processName);
                         }
                         @\Swoole\Event::del($process->getSwooleProcess()->pipe);
                         $this->checkMasterToExit();
@@ -1005,22 +1020,39 @@ class MainManager
         }
 
         for ($workerId = $runningProcessWorkerNum; $workerId < $totalProcessNum; $workerId++) {
-            $this->forkNewProcess($processClass, $processName, $workerId, $args, $extendData);
+            // 动态扩容必须显式传入 PROCESS_DYNAMIC_TYPE，禁止 fork 内写死 static
+            $this->forkNewProcess(
+                $processClass,
+                $processName,
+                $workerId,
+                $args,
+                $extendData,
+                AbstractBaseWorker::PROCESS_DYNAMIC_TYPE
+            );
         }
         // 创建动态进程后,更新存贮动态进程数量
         $this->storageDynamicProcessNum($processName);
     }
 
     /**
+        * fork 子进程；processType 由调用方决定，默认保持静态进程语义。
      *
      * @param $processClass
      * @param $processName
      * @param $workerId
      * @param $args
      * @param $extendData
+     * @param int $processType PROCESS_STATIC_TYPE|PROCESS_DYNAMIC_TYPE
      * @return void
      */
-    protected function forkNewProcess($processClass, $processName, $workerId, $args = [], $extendData = [])
+    protected function forkNewProcess(
+        $processClass,
+        $processName,
+        $workerId,
+        $args = [],
+        $extendData = [],
+        int $processType = AbstractBaseWorker::PROCESS_STATIC_TYPE
+    )
     {
         try {
             /** @var AbstractBaseWorker $newProcess */
@@ -1034,7 +1066,8 @@ class MainManager
             $key = md5($processName);
             $newProcess->setProcessWorkerId($workerId);
             $newProcess->setMasterPid($this->getMasterPid());
-            $newProcess->setProcessType(AbstractBaseWorker::PROCESS_STATIC_TYPE);
+            // 类型由入参决定：静态入口走默认值，动态扩容传入 PROCESS_DYNAMIC_TYPE
+            $newProcess->setProcessType($processType);
             $newProcess->setStartTime();
             $this->processWorkers[$key][$workerId] = $newProcess;
             $newProcess->start();
@@ -1049,7 +1082,7 @@ class MainManager
     }
 
     /**
-     * destroyDynamicProcess
+     * 缩容：只向 dynamic 进程发退出信号；计数延后到 SIGCHLD reap，重复请求幂等。
      *
      * @param string $processName
      * @param int $processNum
@@ -1060,21 +1093,43 @@ class MainManager
     {
         $processWorkers = $this->getProcessByName($processName, -1);
         $key = md5($processName);
+        $stoppingCount = 0;
         foreach ($processWorkers as $workerId => $process) {
-            if ($process->isDynamicProcess()) {
-                $this->processLists[$key]['dynamic_process_destroying'] = true;
-                try {
-                    $this->writeByProcessName($processName, AbstractBaseWorker::WORKERFY_PROCESS_EXIT_FLAG, $workerId);
-                    if ($this->processLists[$key]['dynamic_process_worker_num'] > 0) {
-                        $this->processLists[$key]['dynamic_process_worker_num']--;
-                    }
-                    $this->fmtWriteInfo("Dynamic process={$processName},worker_id={$workerId} destroy successful");
-                } catch (\Throwable $e) {
-                    $this->fmtWriteError("DestroyDynamicProcess error message=" . $e->getMessage());
-                }
+            // 跳过 static，以及已达本次目标停止数的动态进程
+            if (!$process->isDynamicProcess() || ($processNum >= 0 && $stoppingCount >= $processNum)) {
+                continue;
+            }
+
+            $pid = (int)$process->getPid();
+            // PID 无效或已在 stopping 集合：幂等跳过，避免重复发信号/重复减计数
+            if ($pid <= 0 || isset($this->stoppingDynamicProcesses[$pid])) {
+                continue;
+            }
+
+            // 仅标记 stopping，不在此处减少 dynamic_process_worker_num
+            $this->stoppingDynamicProcesses[$pid] = $processName;
+            $this->processLists[$key]['dynamic_process_destroying'] = true;
+            try {
+                $this->writeByProcessName($processName, AbstractBaseWorker::WORKERFY_PROCESS_EXIT_FLAG, $workerId);
+                ++$stoppingCount;
+                $this->fmtWriteInfo("Dynamic process={$processName},worker_id={$workerId} stopping");
+            } catch (\Throwable $e) {
+                unset($this->stoppingDynamicProcesses[$pid]);
+                $this->fmtWriteError("DestroyDynamicProcess error message=" . $e->getMessage());
             }
         }
-        $this->processLists[$key]['dynamic_process_destroying'] = false;
+        $this->processLists[$key]['dynamic_process_destroying'] = $this->hasStoppingDynamicProcess($processName);
+    }
+
+    /**
+     * 该进程名下是否仍有等待回收的动态进程。
+     *
+     * @param string $processName
+     * @return bool
+     */
+    private function hasStoppingDynamicProcess(string $processName): bool
+    {
+        return in_array($processName, $this->stoppingDynamicProcesses, true);
     }
 
     /**

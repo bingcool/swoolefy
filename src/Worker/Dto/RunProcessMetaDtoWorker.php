@@ -41,7 +41,7 @@ class RunProcessMetaDtoWorker extends WorkerAbstractDto
     public $check_pid_not_exist_count = 0;
 
     /**
-     * 启动时间戳
+     * 进程真实启动时间戳（秒），供 CommandRunner::isNextHandle 判断超时；非 start_time。
      * @var int
      */
     public $start_timestamp = 0;

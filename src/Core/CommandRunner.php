@@ -261,19 +261,26 @@ class CommandRunner
      * @param int $timeOut 规定时间内达到，强制拉起下一个进程
      * @return bool
      */
-    public function isNextHandle(bool $isNeedCheck = true, int $timeOut = 60)
+    public function isNextHandle(bool $isNeedCheck = true, int $timeOut = 60): bool
     {
         $this->isNextFlag = true;
         $this->gcExitProcess();
         if (count($this->runProcessMetaPool) >= $this->concurrent && $isNeedCheck) {
             $exitProcess = [];
+            $now = time();
             /**
              * @var RunProcessMetaDtoWorker $runProcessMetaItem
              */
             foreach ($this->runProcessMetaPool as $runProcessMetaItem) {
-                $startTime  = strtotime($runProcessMetaItem->start_time);
-                // 进程已经存在，并且已经执行超过了规定时间,强制拉起下一个进程
-                if (\Swoole\Process::kill($runProcessMetaItem->pid, 0) &&  time() > ($timeOut + $startTime)) {
+                // P0：必须用 start_timestamp（秒），勿读不存在的 start_time，否则并发上限形同失效
+                $startTimestamp = (int)($runProcessMetaItem->start_timestamp ?? 0);
+                // 存活且真实超时才放行；start_timestamp<=0 或时钟回拨（>now）均视为未超时
+                if (
+                    $startTimestamp > 0
+                    && $startTimestamp <= $now
+                    && \Swoole\Process::kill($runProcessMetaItem->pid, 0)
+                    && $now > ($timeOut + $startTimestamp)
+                ) {
                     $isNext = true;
                     break;
                 }

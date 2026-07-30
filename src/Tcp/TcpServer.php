@@ -225,12 +225,13 @@ abstract class TcpServer extends BaseServer
         });
 
         /**
-         * close
+         * close：连接级清理，只删当前 fd 半包缓存，禁止调用 Pack::destroy()（会清空全部连接）。
          */
         $this->tcpServer->on('close', function (\Swoole\Server $server, $fd, $reactorId) {
             try {
                 if (parent::isPackLength()) {
-                    $this->Pack->destroy();
+                    // P0：单连接断开不得误清理其他 fd 的半包，否则会牵连断连
+                    $this->Pack->delete($fd);
                 }
                 (new EventApp())->registerApp(function () use ($server, $fd) {
                     $this->onClose($server, $fd);
@@ -241,11 +242,15 @@ abstract class TcpServer extends BaseServer
         });
 
         /**
-         * WorkerStop
+         * WorkerStop：进程退出时才做全量半包清理
          */
         $this->tcpServer->on('WorkerStop', function (\Swoole\Server $server, $worker_id) {
             \Swoole\Coroutine::create(function () use ($server, $worker_id) {
                 try {
+                    if (parent::isPackLength()) {
+                        // 进程级入口：清空本 Worker 全部半包缓存
+                        $this->Pack->destroy();
+                    }
                     (new EventApp())->registerApp(function () use ($server, $worker_id) {
                         $this->startCtrl->workerStop($server, $worker_id);
                     });

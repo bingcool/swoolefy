@@ -28,6 +28,11 @@ abstract class HttpServer extends BaseServer
 {
 
     /**
+     * WorkerService 无 HTTP 控制面时的固定错误码（对外不暴露内部服务类型）。
+     */
+    public const WORKER_SERVICE_HTTP_UNAVAILABLE = 'worker_service_http_unavailable';
+
+    /**
      * serverName
      * @var string
      */
@@ -106,6 +111,11 @@ abstract class HttpServer extends BaseServer
      */
     public function start()
     {
+        // 无控制面组合不拦启动（兼容），只告警一次；请求侧统一 503 结束，避免悬挂
+        if (SystemEnv::isWorkerService() && !self::shouldServeWorkerServiceHttpControlPlane()) {
+            error_log('Warning: WorkerService HTTP control plane is unavailable; requests will receive HTTP 503.');
+        }
+
         /**
          * start
          */
@@ -163,12 +173,16 @@ abstract class HttpServer extends BaseServer
             }
 
             if (SystemEnv::isWorkerService()) {
-                if ((SystemEnv::isCronService() || SystemEnv::isDaemonService()) && self::isHttpApp()) {
+                // Cron/Daemon 控制面走 CtlApi；其余 WorkerService 必须显式 end，禁止空返回导致请求悬挂
+                if (self::shouldServeWorkerServiceHttpControlPlane()) {
                     goApp(function () use($request, $response) {
                         (new CtlApi($request, $response))->handle();
                         return true;
                     });
+                } else {
+                    self::endWorkerServiceHttpUnavailable($response);
                 }
+                return true;
             } else {
                 try {
                     /**
@@ -325,6 +339,36 @@ abstract class HttpServer extends BaseServer
         });
 
         $this->webServer->start();
+    }
+
+    /**
+     * Cron/Daemon + HTTP 控制面才走 CtlApi；其他 WorkerService 组合一律 503。
+     */
+    public static function shouldServeWorkerServiceHttpControlPlane(): bool
+    {
+        return (SystemEnv::isCronService() || SystemEnv::isDaemonService()) && self::isHttpApp();
+    }
+
+    /**
+     * 固定不透明错误体：仅暴露约定 code，不带出内部服务类型/配置。
+     *
+     * @return string
+     */
+    public static function buildWorkerServiceHttpUnavailableBody(): string
+    {
+        return json_encode([
+            'code' => self::WORKER_SERVICE_HTTP_UNAVAILABLE,
+        ], JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * 无 HTTP 控制面的 WorkerService：显式结束响应，避免请求悬挂。
+     */
+    public static function endWorkerServiceHttpUnavailable(Response $response): void
+    {
+        $response->status(503);
+        $response->header('Content-Type', 'application/json; charset=utf-8');
+        $response->end(self::buildWorkerServiceHttpUnavailableBody());
     }
 
 }
