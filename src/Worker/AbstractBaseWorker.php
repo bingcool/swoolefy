@@ -298,8 +298,14 @@ abstract class AbstractBaseWorker
         $this->processName     = $processName;
         $this->enableCoroutine = $enableCoroutine;
 
-        if (isset($args['wait_time']) && is_numeric($args['wait_time'])) {
-            $this->waitTime = $args['wait_time'];
+        if (array_key_exists('wait_time', $args)) {
+            // wait_time 非法时直接失败，禁止静默落到过短默认值导致 Master 提前强杀
+            if (!is_numeric($args['wait_time']) || (float) $args['wait_time'] <= 0) {
+                throw new WorkerException(
+                    "Process={$processName} args.wait_time must be a positive number"
+                );
+            }
+            $this->waitTime = (int) $args['wait_time'];
         }
 
         if (isset($args['user']) && is_string($args['user'])) {
@@ -1170,6 +1176,14 @@ abstract class AbstractBaseWorker
     public function getWaitTime(): int
     {
         return $this->waitTime;
+    }
+
+    /**
+     * Worker 收到退出指令后，协程排空阶段最长等待秒数（与 wait_time 共同构成排空预算）。
+     */
+    public function getMaxWaitTimeOfExit(): int
+    {
+        return $this->maxWaitTimeOfExit;
     }
 
     /**

@@ -281,40 +281,38 @@ class CtlApi
     }
 
     /**
+     * 更新 confctl 运行态：经 ConfCtlStore 独占锁读改写，避免并发丢键与半截写。
+     *
      * @param string $processName
      * @param string $action
      * @return void
      */
     protected function lockProcessRuntimeFile(string $processName, string $action)
     {
-        $workerConfLockFile = WORKER_PID_FILE_ROOT.'/confctl.json';
-        $fileContent = file_get_contents($workerConfLockFile);
-        if (!empty($fileContent)) {
-            $fileProcessConfList = json_decode($fileContent, true);
-        }
-
         $confList = MainManager::includeWorkerConf();
         $confListMap = array_column($confList, null, 'process_name');
+        if (!isset($confListMap[$processName])) {
+            return;
+        }
 
-        if (isset($confListMap[$processName])) {
+        $store = new ConfCtlStore(ConfCtlStore::defaultPath());
+        $store->update(function (array $fileProcessConfList) use ($processName, $action) {
             if ($action == 'stop') {
                 $fileProcessConfList[$processName] = [
                     'start_time' => '',
                     'stop_time'  => date('Y-m-d H:i:s'),
                     'running'    => 0,
                 ];
-            }else if (in_array($action, ['restart', 'start'])) {
+            } elseif (in_array($action, ['restart', 'start'])) {
                 $fileProcessConfList[$processName] = [
                     'start_time' => date('Y-m-d H:i:s'),
                     'stop_time'  => '',
                     'running'    => 1,
                 ];
             }
-        }
 
-        if (!empty($fileProcessConfList)) {
-            file_put_contents($workerConfLockFile, json_encode($fileProcessConfList, JSON_UNESCAPED_UNICODE));
-        }
+            return $fileProcessConfList;
+        });
     }
 
     /**

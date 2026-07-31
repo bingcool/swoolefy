@@ -27,6 +27,11 @@ class MainManager
     use Traits\SingletonTrait, Traits\SystemTrait, Traits\MainProcessCommandTrait;
 
     /**
+     * Master 等待 Worker 排空后的清理余量（秒），保证总上限不低于 Worker 最大排空时间。
+     */
+    public const SHUTDOWN_CLEANUP_MARGIN_SECONDS = 5;
+
+    /**
      * @var array
      */
     protected $config;
@@ -268,7 +273,26 @@ class MainManager
             $this->fmtWriteInfo("Process Name={$processName}, params of process_worker_num more then max_process_num={$maxProcessNum}");
             $processWorkerNum = $maxProcessNum;
         }
+        $this->validateWorkerWaitTime($args, $processName);
         $this->setProcessLists($processName, $processClass, $processWorkerNum, $args, $extendData);
+    }
+
+    /**
+     * 启动阶段校验 wait_time：配置非法则失败，避免 Master 使用过短隐式等待。
+     *
+     * @param array $args
+     * @param string $processName
+     */
+    protected function validateWorkerWaitTime(array $args, string $processName): void
+    {
+        if (!array_key_exists('wait_time', $args)) {
+            return;
+        }
+        if (!is_numeric($args['wait_time']) || (float) $args['wait_time'] <= 0) {
+            throw new WorkerException(
+                "Process={$processName} args.wait_time must be a positive number"
+            );
+        }
     }
 
     /**
@@ -491,7 +515,8 @@ class MainManager
 
         try {
             // 即使通知个别 Worker 失败，仍要检查并清理所有已知子进程。
-            $this->waitWorkersExitOrKill(15.0);
+            // 等待预算 = max(wait_time + maxWaitTimeOfExit) + 清理余量，避免硬编码过短导致排空中被强杀。
+            $this->waitWorkersExitOrKill($this->resolveShutdownWaitSeconds());
         } catch (\Throwable $throwable) {
             $this->handleShutdownException($throwable);
         }
@@ -514,6 +539,8 @@ class MainManager
             }
         }
 
+        $this->fmtWriteInfo("MainManager shutdown finished, source={$source}, pid={$this->masterPid}");
+
         try {
             $processInstance = AbstractProcess::getProcessInstance();
             $process = $processInstance->getProcess();
@@ -528,6 +555,33 @@ class MainManager
             \Swoole\Event::exit();
             exit(0);
         }
+    }
+
+    /**
+     * Master 优雅退出等待上限：取各 Worker 的 wait_time + maxWaitTimeOfExit 最大值，再加清理余量。
+     */
+    protected function resolveShutdownWaitSeconds(): float
+    {
+        $maxDrain = 0.0;
+        foreach ($this->processWorkers as $processes) {
+            foreach ($processes as $process) {
+                if (!is_object($process) || !method_exists($process, 'getWaitTime')) {
+                    continue;
+                }
+                $waitTime = (float) $process->getWaitTime();
+                $maxExit = method_exists($process, 'getMaxWaitTimeOfExit')
+                    ? (float) $process->getMaxWaitTimeOfExit()
+                    : 30.0;
+                $maxDrain = max($maxDrain, $waitTime + $maxExit);
+            }
+        }
+
+        // 尚无 Worker 实例时回退到框架默认排空预算（10+30），不得短于该值
+        if ($maxDrain <= 0) {
+            $maxDrain = 10.0 + 30.0;
+        }
+
+        return $maxDrain + (float) self::SHUTDOWN_CLEANUP_MARGIN_SECONDS;
     }
 
     /**
@@ -562,7 +616,8 @@ class MainManager
      */
     private function waitWorkersExitOrKill(float $timeoutSeconds): void
     {
-        $deadline = microtime(true) + max(0.1, $timeoutSeconds);
+        $timeoutSeconds = max(0.1, $timeoutSeconds);
+        $deadline = microtime(true) + $timeoutSeconds;
         $alive = [];
         foreach ($this->processWorkers as $processes) {
             foreach ($processes as $process) {
@@ -576,6 +631,11 @@ class MainManager
                 }
             }
         }
+
+        $pidList = $alive === [] ? '(none)' : implode(',', array_keys($alive));
+        $this->fmtWriteInfo(
+            "MainManager wait workers exit begin, timeout={$timeoutSeconds}s, alive_pids={$pidList}"
+        );
 
         while ($alive !== [] && microtime(true) < $deadline) {
             while ($ret = \Swoole\Process::wait(false)) {
@@ -594,10 +654,22 @@ class MainManager
             usleep(50000);
         }
 
+        if ($alive === []) {
+            $this->fmtWriteInfo('MainManager all workers exited within shutdown budget');
+            return;
+        }
+
+        $remain = implode(',', array_keys($alive));
+        $this->fmtWriteError("MainManager enter force kill, remaining_pids={$remain}");
         foreach ($alive as $pid => $name) {
             $this->fmtWriteError("Master shutdown timeout, force kill worker pid={$pid} name={$name}");
             @\posix_kill($pid, SIGKILL);
             \Swoole\Process::wait(false);
+            // Swoole wait 未回收时再尝试 pcntl，避免强杀后僵尸残留
+            if (function_exists('pcntl_waitpid')) {
+                $status = 0;
+                @pcntl_waitpid($pid, $status, WNOHANG);
+            }
         }
     }
 
@@ -1913,48 +1985,39 @@ class MainManager
         }
 
         $currentProcessConfList = self::includeWorkerConf();
-
-        $workerConfLockFile = WORKER_PID_FILE_ROOT.'/confctl.json';
-        if (!file_exists($workerConfLockFile)) {
-            file_put_contents($workerConfLockFile, json_encode([], JSON_UNESCAPED_UNICODE));
-        }
-
-        $fileContent = file_get_contents($workerConfLockFile);
-
-        if (!empty($fileContent)) {
-            $fileProcessConfListMap = json_decode($fileContent, true);
-        }else {
-            $fileProcessConfListMap = [];
-        }
-
         $currentProcessConfListMap = array_column($currentProcessConfList, null, 'process_name');
-        // 最新的进程不包括历史的进程的，将lockfile中的进程删除
-        foreach ($fileProcessConfListMap as $processName => $fileProcessConf) {
-            if (!isset($currentProcessConfListMap[$processName])) {
-                unset($fileProcessConfListMap[$processName]);
-            }
-        }
 
-        if (!empty($currentProcessConfListMap)) {
-            foreach ($currentProcessConfListMap as $processName => $currentProcessConf) {
-                if (!isset($fileProcessConfListMap[$processName])) {
-                    $fileProcessConfListMap[$processName] = [
-                        'start_time' => date('Y-m-d H:i:s'),
-                        'stop_time'  => '',
-                        'running'    => 1,
-                    ];
+        // confctl 读改写经统一 Store：独占锁 + 原子 rename，损坏 JSON 不覆盖
+        $store = new ConfCtlStore(ConfCtlStore::defaultPath());
+        $fileProcessConfListMap = $store->update(function (array $fileProcessConfListMap) use ($currentProcessConfListMap) {
+            // 最新的进程不包括历史的进程的，将lockfile中的进程删除
+            foreach ($fileProcessConfListMap as $processName => $fileProcessConf) {
+                if (!isset($currentProcessConfListMap[$processName])) {
+                    unset($fileProcessConfListMap[$processName]);
                 }
             }
-        }
+
+            if (!empty($currentProcessConfListMap)) {
+                foreach ($currentProcessConfListMap as $processName => $currentProcessConf) {
+                    if (!isset($fileProcessConfListMap[$processName])) {
+                        $fileProcessConfListMap[$processName] = [
+                            'start_time' => date('Y-m-d H:i:s'),
+                            'stop_time'  => '',
+                            'running'    => 1,
+                        ];
+                    }
+                }
+            }
+
+            return $fileProcessConfListMap;
+        });
 
         // lockFile标志为running=0停止状态的，这里无需启动
         foreach ($fileProcessConfListMap as $processName => $fileProcessConf) {
-            if (isset($currentProcessConfListMap[$processName]) && $fileProcessConf['running'] == 0) {
+            if (isset($currentProcessConfListMap[$processName]) && ($fileProcessConf['running'] ?? 1) == 0) {
                 unset($currentProcessConfListMap[$processName]);
             }
         }
-
-        file_put_contents($workerConfLockFile, json_encode($fileProcessConfListMap, JSON_UNESCAPED_UNICODE));
 
         return array_values($currentProcessConfListMap);
    }
