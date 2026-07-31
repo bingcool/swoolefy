@@ -86,6 +86,7 @@ class ChatService extends WebsocketService
     public function joinGroup(array $params)
     {
         $group = (string) ($params['group'] ?? 'public');
+        // joinWebsocketGroup 返回 ['ok'=>bool,'reason'=>?string]，勿当 bool 判断
         $result = $this->joinWebsocketGroup($group, $params);
         if (empty($result['ok'])) {
             throw new \InvalidArgumentException((string) ($result['reason'] ?? 'group join denied'));

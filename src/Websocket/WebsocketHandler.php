@@ -88,6 +88,7 @@ class WebsocketHandler extends Swoole implements HandlerInterface
      */
     public function handlePacket(WebsocketPacket $packet, bool $sendError = true, bool $touch = true): bool
     {
+        ServiceDispatch::clearLastDispatchError();
         try {
             parent::run($packet->getFd(), $packet->getRaw());
             // 将当前消息挂到 Application 上，业务服务可通过 WebsocketService::getWebsocketMsg() 读取 request_id、fd 等信息。
@@ -116,6 +117,7 @@ class WebsocketHandler extends Swoole implements HandlerInterface
 
             return $dispatcher->dispatch() !== false;
         } catch (\Throwable $throwable) {
+            ServiceDispatch::setLastDispatchError($throwable->getMessage());
             if ($sendError) {
                 $this->sendError($packet->getFd(), $throwable->getMessage(), -1, $packet->getRequestId(), $packet->getEndpoint());
             }

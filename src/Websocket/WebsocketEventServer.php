@@ -15,7 +15,8 @@ use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoole\WebSocket\Server;
 use Swoole\WebSocket\Frame;
-use Swoolefy\Core\Swfy;
+use Swoolefy\Core\BaseServer;
+use Swoolefy\Core\Coroutine\Context as SwooleContext;
 use Swoolefy\EventInterface\WebsocketEventInterface;
 
 abstract class WebsocketEventServer extends WebsocketServer implements WebsocketEventInterface
@@ -60,10 +61,15 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
     }
 
     /**
-     * 完整消息帧（分片重组后）在 EventApp 内 dispatch：touch Redis 索引 + Socket.IO / 原生 WS。
+     * 完整消息帧（分片重组后）在独立协程内 dispatch：touch Redis 索引 + Socket.IO / 原生 WS。
      *
      * 由 WebsocketServer::on('message') 在 WebsocketFrameAssembler 收齐帧后调用；
      * 分片重组无 Redis IO，留在 WebsocketServer 回调外层。
+     *
+     * 注意：此处不能用 goApp()/EventApp。goApp 会绑定 EventController，而下游
+     * WebsocketHandler::run()/handlePacket() 需要把自身注册为 Application；
+     * 同协程二次 setApp 会抛 “Application already bound”，Socket.IO ack 变成 dispatch failed。
+     * Redis 无 EventApp 时走 ClusterRedisClient 协程级连接缓存即可。
      */
     public function dispatchMessageFrame(Server $server, Frame $frame, array $websocketConfig): void
     {
@@ -73,18 +79,27 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
             return;
         }
 
-        goApp(function () use ($server, $frame, $websocketConfig, $fd) {
-            // touch 写 Redis 全局索引，须在 EventApp 内；下层 handler 传 alreadyTouched=true 避免重复
-            WebsocketConnectionManager::touch($fd);
-
-            $connection = WebsocketConnectionManager::getConnection($fd);
-            // 同一个 onMessage 入口按连接标记区分普通 WebSocket 与 Socket.IO 协议。
-            if (!empty($websocketConfig['socketio']['enable']) && !empty($connection['is_socketio'])) {
-                SocketIO\SocketIOHandler::onMessage($server, $frame, $websocketConfig, true);
-
-                return;
+        $contextData = SwooleContext::snapshot();
+        \Swoole\Coroutine::create(function () use ($server, $frame, $websocketConfig, $fd, $contextData) {
+            foreach ($contextData as $key => $value) {
+                SwooleContext::set($key, $value);
             }
-            static::onMessage($server, $frame);
+
+            try {
+                // 下层 Socket.IO / 原生 WS 以 WebsocketHandler 作为 Application；此处先 touch
+                WebsocketConnectionManager::touch($fd);
+
+                $connection = WebsocketConnectionManager::getConnection($fd);
+                // 同一个 onMessage 入口按连接标记区分普通 WebSocket 与 Socket.IO 协议。
+                if (!empty($websocketConfig['socketio']['enable']) && !empty($connection['is_socketio'])) {
+                    SocketIO\SocketIOHandler::onMessage($server, $frame, $websocketConfig, true);
+
+                    return;
+                }
+                static::onMessage($server, $frame);
+            } catch (\Throwable $throwable) {
+                BaseServer::catchException($throwable);
+            }
         });
     }
 

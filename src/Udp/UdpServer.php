@@ -137,10 +137,10 @@ abstract class UdpServer extends BaseServer
                 $this->udpServer->on('task', function (Server $server, \Swoole\Server\Task $task) {
                     try {
                         $data           = $task->data;
-                        $task_id        = $task->id;
-                        $from_worker_id = $task->worker_id;
-                        $task_data      = unserialize($data, ['allowed_classes' => false]);
-                        static::onTask($server, $task_id, $from_worker_id, $task_data, $task);
+                        $taskId        = $task->id;
+                        $fromWorkerId = $task->worker_id;
+                        $taskData      = unserialize($data, ['allowed_classes' => false]);
+                        static::onTask($server, $taskId, $fromWorkerId, $taskData, $task);
                     } catch (\Throwable $e) {
                         self::catchException($e);
                     }
@@ -148,8 +148,8 @@ abstract class UdpServer extends BaseServer
             } else {
                 $this->udpServer->on('task', function (Server $server, $task_id, $from_worker_id, $data) {
                     try {
-                        $task_data = unserialize($data, ['allowed_classes' => false]);
-                        static::onTask($server, $task_id, $from_worker_id, $task_data);
+                        $taskData = unserialize($data, ['allowed_classes' => false]);
+                        static::onTask($server, $task_id, $from_worker_id, $taskData);
                     } catch (\Throwable $e) {
                         self::catchException($e);
                     }

@@ -387,10 +387,9 @@ abstract class WebsocketServer extends BaseServer
                         if (!empty($websocketConfig['socketio']['enable'])
                             && SocketIO\SocketIOHandler::isSocketIOPollingRequest($request)
                             && SocketIO\SocketIOHandler::isPollingEnabled($websocketConfig)) {
-                            EventApp::run(function () use ($request, $response, $websocketConfig) {
-                                SocketIO\SocketIOPollingHandler::handleHttp($request, $response, $websocketConfig);
-                            });
-
+                            // 不能 EventApp::run：polling POST 会 dispatchEvent→WebsocketHandler::setApp，
+                            // 与 EventController 同协程冲突（与 dispatchMessageFrame 相同根因）。
+                            SocketIO\SocketIOPollingHandler::handleHttp($request, $response, $websocketConfig);
                             return true;
                         }
                         if (SocketIO\SocketIOHandler::isSocketIOHttpRequest($request)) {

@@ -14,6 +14,8 @@ namespace Swoolefy\Websocket\SocketIO;
 use Swoole\Http\Request;
 use Swoole\WebSocket\Frame;
 use Swoole\WebSocket\Server;
+use Swoolefy\Core\ServiceDispatch;
+use Swoolefy\Core\SystemEnv;
 use Swoolefy\Websocket\Cluster\ClusterRedisException;
 use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingConfig;
 use Swoolefy\Websocket\WebsocketConnectionManager;
@@ -439,16 +441,36 @@ class SocketIOHandler
         // 入站路径已由 dispatchMessageFrame / handleInbound 完成 touch
         $ok = $handler->handlePacket($websocketPacket, false, false);
         $outbound = [];
+        // 错误写在当前协程 Context；ack 读完即清，避免同协程后续请求误读
+        $detail = ServiceDispatch::getLastDispatchError();
+        ServiceDispatch::clearLastDispatchError();
+        $failMsg = self::clientDispatchErrorMessage($detail);
 
         if ($packet->id !== '') {
             $outbound[] = $ok
                 ? SocketIOPacket::ack($packet->id, [['code' => 0, 'msg' => 'ok']], $packet->namespace)
-                : SocketIOPacket::ack($packet->id, [['code' => -1, 'msg' => 'dispatch failed']], $packet->namespace);
+                : SocketIOPacket::ack($packet->id, [['code' => -1, 'msg' => $failMsg]], $packet->namespace);
         } elseif (!$ok) {
-            $outbound[] = SocketIOPacket::error('dispatch failed', -1, $packet->namespace);
+            $outbound[] = SocketIOPacket::error($failMsg, -1, $packet->namespace);
         }
 
         return $outbound;
+    }
+
+    /**
+     * 开发/测试环境回传真实异常；灰度/生产脱敏为 dispatch failed。
+     */
+    private static function clientDispatchErrorMessage(?string $detail): string
+    {
+        if ($detail === null || $detail === '') {
+            return 'dispatch failed';
+        }
+
+        if (SystemEnv::isGraEnv() || SystemEnv::isPrdEnv()) {
+            return 'dispatch failed';
+        }
+
+        return $detail;
     }
 
     /** @param string[] $outbound */
