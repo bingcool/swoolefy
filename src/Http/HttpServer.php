@@ -21,6 +21,7 @@ use Swoolefy\Util\Helper;
 use Swoolefy\Worker\CtlApi;
 use Swoolefy\Core\Coroutine\Context as SwooleContext;
 use Swoolefy\Library\CurlProxy\OpentelemetryMiddleware;
+use Swoolefy\Support\FrameworkContext;
 use Swoolefy\Support\HeaderPropagation\HeaderContext;
 use Swoolefy\Support\HeaderPropagation\HeaderPropagator;
 
@@ -196,7 +197,9 @@ abstract class HttpServer extends BaseServer
                     SwooleContext::set(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID, $traceId);
                     SwooleContext::set(OpentelemetryMiddleware::OPENTELEMETRY_TRACEPARENT_ID, $traceparent ?? "");
                     HeaderContext::set(HeaderPropagator::captureIncoming($headers, $traceId));
+                    // 请求结束清除本地验票快照，避免常驻 Worker 协程上下文残留身份（最终也会由swoole在协程结束后释放的）
                     Coroutine::defer(static function () {
+                        FrameworkContext::clearUser();
                         HeaderContext::clear();
                     });
                     static::onRequest($request, $response);

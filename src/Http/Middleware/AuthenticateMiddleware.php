@@ -71,6 +71,9 @@ class AuthenticateMiddleware implements RouteMiddlewareInterface
     /**
      * 共享验票逻辑（子类 Optional 传 optional=true）。
      *
+     * Optional 仅对「未携带 Token」匿名放行；携带 Token 时非法/过期/null 一律 401；
+     * Guard 非 AuthException 内部异常映射 500，禁止降级为匿名。
+     *
      * @param bool $optional true：无 token 直接 return；有非法 token 仍抛 401
      *
      * @throws AuthException
@@ -84,20 +87,25 @@ class AuthenticateMiddleware implements RouteMiddlewareInterface
         $token = $this->bearerToken($requestInput);
         if ($token === '') {
             if ($optional) {
-                // 使用 OptionalAuthenticateMiddleware 中间件验证（有token则验证，无token则不验证（即匿名放行），
-                // 不会throw异常报错，可以继续往下执行
+                // Optional 只放行缺失 Token，不得把验票失败当匿名
                 return;
             }
             // 挂 AuthenticateMiddleware强制认证登录中间件，缺失token，直接抛异常，拒绝往下执行
             throw new AuthException('Missing bearer token', Status::UNAUTHORIZED);
         }
 
-        $user = $guard->authenticate(['token' => $token]);
+        try {
+            $user = $guard->authenticate(['token' => $token]);
+        } catch (AuthException $e) {
+            // 非法 / 过期等凭证错误：强制与 Optional 均 401，不降级匿名
+            throw $e;
+        } catch (\Throwable $e) {
+            // Guard 内部异常：500，禁止 Optional 静默放行
+            throw new AuthException('Auth guard error', Status::INTERNAL_SERVER_ERROR, $e);
+        }
+
+        // 已携带 Token 却得到 null：视为验票失败（自定义 Guard 不得借 Optional 匿名化）
         if ($user === null) {
-            if ($optional) {
-                return;
-            }
-            // 挂 AuthenticateMiddleware强制认证登录中间件，Bear token解释认证失败，直接抛异常，拒绝往下执行
             throw new AuthException('Unauthenticated', Status::UNAUTHORIZED);
         }
 

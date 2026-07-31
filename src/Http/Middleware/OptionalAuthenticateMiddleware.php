@@ -23,9 +23,10 @@ use Swoolefy\Support\Auth\AuthException;
  *
  * | 请求 | 行为 |
  * |------|------|
- * | 无 Authorization | 放行（匿名；getUserId 仍可读透传头） |
+ * | 无 Authorization / 无 Bearer | 放行（匿名；getUserId 仍可读透传头） |
  * | 合法 Bearer | setUser 后放行 |
- * | 非法 / 过期 Bearer | 仍抛 AuthException(401)，不会静默当匿名 |
+ * | 非法 / 过期 Bearer，或验票返回 null | 仍抛 AuthException(401)，不会静默当匿名 |
+ * | Guard 内部非 Auth 异常 | AuthException(500)，禁止降级匿名 |
  *
  * 1、公开接口：两个登录中间件都不要挂。
  * 2、游客 + 登录用户都可以共同访问同一接口：路由挂 @see OptionalAuthenticateMiddleware

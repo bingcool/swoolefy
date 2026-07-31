@@ -164,6 +164,9 @@ class App extends \Swoolefy\Core\Component
     }
 
     /**
+     * 集中规范化 server/header 键名：server 全部转大写，header 同步为 HTTP_*。
+     * path()/限流等必须读 PATH_INFO 等大写键，禁止再依赖 Swoole 原始小写 path_info。
+     *
      * @param SwooleRequest $request
      * @return void
      */

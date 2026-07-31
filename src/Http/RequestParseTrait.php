@@ -218,12 +218,50 @@ trait RequestParseTrait
     }
 
     /**
+     * 当前请求 path（去掉首尾 `/`；根路径返回 `/`）。
+     *
+     * 读取 App::parseHeaders 规范化后的 PATH_INFO；缺失时从 REQUEST_URI
+     * 解析并去掉 query；最终缺失返回 `/`，不触发 undefined key warning。
+     *
      * @return string
      */
     public function path()
     {
-        $pattern = trim($this->getSwooleRequest()->server['path_info'], '/');
+        $pathInfo = $this->normalizedServerParam('PATH_INFO');
+        if ($pathInfo === null || $pathInfo === '') {
+            $requestUri = (string) ($this->normalizedServerParam('REQUEST_URI') ?? '');
+            if ($requestUri !== '') {
+                $parsed = parse_url($requestUri, PHP_URL_PATH);
+                $pathInfo = is_string($parsed) ? $parsed : '';
+            } else {
+                $pathInfo = '';
+            }
+        }
+
+        $pattern = trim((string) $pathInfo, '/');
+
         return $pattern === '' ? '/' : $pattern;
+    }
+
+    /**
+     * 读取 server 参数：优先大写键（parseHeaders 后），兼容 Swoole 原始小写键。
+     * Header/server 键名规范化以 App::parseHeaders 为准，调用方勿再混用大小写硬编码。
+     *
+     * @param string $upperKey 规范化大写键名，如 PATH_INFO、REQUEST_URI
+     * @return mixed|null
+     */
+    protected function normalizedServerParam(string $upperKey)
+    {
+        $server = $this->swooleRequest->server ?? [];
+        if (array_key_exists($upperKey, $server)) {
+            return $server[$upperKey];
+        }
+        $lowerKey = strtolower($upperKey);
+        if (array_key_exists($lowerKey, $server)) {
+            return $server[$lowerKey];
+        }
+
+        return null;
     }
 
     /**
