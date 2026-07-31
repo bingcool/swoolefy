@@ -51,6 +51,48 @@ final class MqttReceiveDispatcher
     }
 
     /**
+     * 决定本包解码器用的协议级别
+     *
+     * - 已 CONNECT：固定用 Session.protocolLevel
+     * - 未 CONNECT 且 auto_protocol：仅允许从 CONNECT 报文探测
+     * - 未 CONNECT 且 auto_protocol 收到非 CONNECT：协议错误
+     *
+     * @param array<string, mixed>|null $mqttConf
+     */
+    public static function resolveReceiveProtocolLevel(int $fd, string $raw, ?array $mqttConf = null): int
+    {
+        $mqttConf ??= (array) (Swfy::getConf()['mqtt'] ?? []);
+        $session = MqttSessionManager::getInstance()->get($fd);
+
+        // CONNECT 成功后始终以 Session 协议级别为准（V3/V5 交错连接互不干扰）
+        if ($session !== null && $session->connected) {
+            return $session->protocolLevel === MQTT_PROTOCOL_LEVEL5
+                ? MQTT_PROTOCOL_LEVEL5
+                : MQTT_PROTOCOL_LEVEL3;
+        }
+
+        $auto = ($mqttConf['auto_protocol'] ?? false) === true;
+        $default = (int) ($mqttConf['protocol_level'] ?? MQTT_PROTOCOL_LEVEL3);
+        $default = $default === MQTT_PROTOCOL_LEVEL5 ? MQTT_PROTOCOL_LEVEL5 : MQTT_PROTOCOL_LEVEL3;
+
+        if (!$auto) {
+            return $default;
+        }
+
+        // 仅 CONNECT 前允许 auto detect（依赖 simps/mqtt；缺失时 fail closed）
+        if (!class_exists(Protocol\V3::class)) {
+            throw new MqttProtocolException('MQTT non-CONNECT packet without session', $fd);
+        }
+
+        $peek = Protocol\V3::unpack($raw);
+        if (is_array($peek) && ($peek['type'] ?? null) === Types::CONNECT) {
+            return self::resolveProtocolLevel($peek);
+        }
+
+        throw new MqttProtocolException('MQTT non-CONNECT packet without session', $fd);
+    }
+
+    /**
      * 从配置或 CONNECT 报文解析协议级别。
      *
      * conf.mqtt.auto_protocol=true 时以 CONNECT.protocol_level 为准。
@@ -70,6 +112,29 @@ final class MqttReceiveDispatcher
         return $level === MQTT_PROTOCOL_LEVEL5 ? MQTT_PROTOCOL_LEVEL5 : MQTT_PROTOCOL_LEVEL3;
     }
 
+    /**
+     * 按协议级别选择 Event Handler；auto_protocol 下避免 V3 类被用于 V5 路径。
+     */
+    private static function resolveEventClass(int $protocolLevel): string
+    {
+        $conf = (array) (Swfy::getConf()['mqtt'] ?? []);
+        $configured = $conf['mqtt_event_handler'] ?? null;
+
+        if ($protocolLevel === MQTT_PROTOCOL_LEVEL5) {
+            if (is_string($configured) && is_a($configured, MqttEventV5::class, true)) {
+                return $configured;
+            }
+
+            return ProductionMqttEventV5::class;
+        }
+
+        if (is_string($configured) && is_a($configured, MqttEventV3::class, true)) {
+            return $configured;
+        }
+
+        return ProductionMqttEventV3::class;
+    }
+
     private static function dispatchV3(Server $server, int $fd, string $raw): bool
     {
         $data = Protocol\V3::unpack($raw);
@@ -79,8 +144,10 @@ final class MqttReceiveDispatcher
             throw new MqttProtocolException('Mqtt Packet parse missing type', $fd);
         }
 
-        $conf = Swfy::getConf();
-        $eventClass = $conf['mqtt']['mqtt_event_handler'] ?? ProductionMqttEventV3::class;
+        // 合法控制报文：刷新 keep_alive 计时
+        MqttSessionManager::getInstance()->touchActivity($fd);
+
+        $eventClass = self::resolveEventClass(MQTT_PROTOCOL_LEVEL3);
         /** @var MqttEventV3 $mqttEvent */
         $mqttEvent = new $eventClass($fd, $data);
         $type = (int) $data['type'];
@@ -170,8 +237,10 @@ final class MqttReceiveDispatcher
             throw new MqttProtocolException('Mqtt Packet parse missing type', $fd);
         }
 
-        $conf = Swfy::getConf();
-        $eventClass = $conf['mqtt']['mqtt_event_handler'] ?? ProductionMqttEventV5::class;
+        // 合法控制报文：刷新 keep_alive 计时
+        MqttSessionManager::getInstance()->touchActivity($fd);
+
+        $eventClass = self::resolveEventClass(MQTT_PROTOCOL_LEVEL5);
         /** @var MqttEventV5 $mqttEvent */
         $mqttEvent = new $eventClass($fd, $data);
         $type = (int) $data['type'];

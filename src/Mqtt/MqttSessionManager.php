@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Swoolefy\Mqtt;
 
-use Swoole\Server;
-
 /**
  * Worker 内 MQTT 会话与订阅注册中心（Broker 核心状态机）。
  *
@@ -53,6 +51,15 @@ final class MqttSessionManager
 
     /** 当前 Retain 消息总字节（不含 topic 键） */
     private int $retainedTotalBytes = 0;
+
+    /** 每连接 QoS2 pending 最大条数（旧配置缺失时用此保守默认） */
+    private int $maxQos2PendingCount = 64;
+
+    /** 每连接 QoS2 pending 最大总字节 */
+    private int $maxQos2PendingBytes = 262144;
+
+    /** QoS2 pending TTL（秒），超时由维护 tick 清理 */
+    private int $qos2PendingTtl = 120;
 
     /** QoS1：等待客户端 PUBACK */
     public const OUTBOUND_PHASE_PUBACK = 'puback';
@@ -277,6 +284,24 @@ final class MqttSessionManager
         }
     }
 
+    /**
+     * 配置每连接 QoS2 pending 限额（条数 / 字节 / TTL）；非法值忽略，保留默认。
+     *
+     * @param array{max_count?:int,max_bytes?:int,ttl?:int} $limits
+     */
+    public function configureQos2PendingLimits(array $limits): void
+    {
+        if (isset($limits['max_count']) && (int) $limits['max_count'] > 0) {
+            $this->maxQos2PendingCount = (int) $limits['max_count'];
+        }
+        if (isset($limits['max_bytes']) && (int) $limits['max_bytes'] > 0) {
+            $this->maxQos2PendingBytes = (int) $limits['max_bytes'];
+        }
+        if (isset($limits['ttl']) && (int) $limits['ttl'] > 0) {
+            $this->qos2PendingTtl = (int) $limits['ttl'];
+        }
+    }
+
     private function forgetRetainedTopic(string $topic): void
     {
         if (!isset($this->retainedMessages[$topic])) {
@@ -360,17 +385,124 @@ final class MqttSessionManager
 
     /**
      * QoS2：暂存客户端 PUBLISH，待收到 PUBREL 后由 Dispatcher 释放并 dispatch。
+     * 写入前检查条数与字节上限；超限抛协议异常由上层断连。
      */
     public function rememberInboundQoS2(int $fd, int|string $messageId, string $topic, string $message, int $qos, bool $retain): void
     {
         $session = $this->requireConnected($fd);
+        $id = (int) $messageId;
+        $bytes = strlen($message);
+        $now = time();
+
+        // 同 message_id 重复 PUBLISH：覆盖旧条目，不重复计入条数
+        $oldBytes = isset($session->inboundQoS2[$id])
+            ? (int) ($session->inboundQoS2[$id]['bytes'] ?? strlen((string) $session->inboundQoS2[$id]['message']))
+            : 0;
+        $isNew = !isset($session->inboundQoS2[$id]);
+
+        if ($isNew && count($session->inboundQoS2) >= $this->maxQos2PendingCount) {
+            throw new MqttProtocolException('MQTT QoS2 pending count exceeded', $fd);
+        }
+
+        $projectedBytes = $this->inboundQos2Bytes($session) - $oldBytes + $bytes;
+        if ($projectedBytes > $this->maxQos2PendingBytes) {
+            throw new MqttProtocolException('MQTT QoS2 pending bytes exceeded', $fd);
+        }
+
         // 以 message_id 为键暂存，PUBREL 到达后 release 并删除
-        $session->inboundQoS2[(int) $messageId] = [
+        $session->inboundQoS2[$id] = [
             'topic' => $topic,
             'message' => $message,
             'qos' => $qos,
             'retain' => $retain,
+            'bytes' => $bytes,
+            'created_at' => $now,
         ];
+    }
+
+    /** 当前会话 inbound QoS2 总字节 */
+    private function inboundQos2Bytes(MqttSession $session): int
+    {
+        $total = 0;
+        foreach ($session->inboundQoS2 as $entry) {
+            $total += (int) ($entry['bytes'] ?? strlen((string) ($entry['message'] ?? '')));
+        }
+
+        return $total;
+    }
+
+    /**
+     * 清理过期 inbound QoS2 pending（维护 tick 调用）。
+     *
+     * @return int 本次清理的条目数
+     */
+    public function cleanupExpiredQos2Pending(?int $now = null): int
+    {
+        $now ??= time();
+        $ttl = $this->qos2PendingTtl;
+        if ($ttl <= 0) {
+            return 0;
+        }
+
+        $removed = 0;
+        $deadline = $now - $ttl;
+        foreach ($this->sessions as $session) {
+            foreach ($session->inboundQoS2 as $id => $entry) {
+                $createdAt = (int) ($entry['created_at'] ?? 0);
+                if ($createdAt > 0 && $createdAt < $deadline) {
+                    unset($session->inboundQoS2[$id]);
+                    $removed++;
+                }
+            }
+        }
+
+        return $removed;
+    }
+
+    /**
+     * 按 keep_alive × 1.5 关闭超时连接；keep_alive=0 跳过。
+     * 关闭前走 remove() 清理订阅/pending，避免只 close fd。
+     *
+     * @return int 本次关闭的连接数
+     */
+    /**
+     * @param Server|object{exists(int):bool,close(int,bool=):bool} $server
+     */
+    public function closeKeepAliveTimeouts(object $server, ?int $now = null): int
+    {
+        $now ??= time();
+        // 先收集再删除，避免遍历中修改 sessions
+        $expiredFds = [];
+        foreach ($this->sessions as $fd => $session) {
+            if (!$session->connected || $session->keepAlive <= 0) {
+                continue;
+            }
+            $timeout = (int) ceil($session->keepAlive * 1.5);
+            $lastActive = $session->lastActiveAt > 0 ? $session->lastActiveAt : $session->connectedAt;
+            if ($lastActive > 0 && ($now - $lastActive) > $timeout) {
+                $expiredFds[] = (int) $fd;
+            }
+        }
+
+        foreach ($expiredFds as $fd) {
+            // 先清会话再关 TCP，保证遗嘱/订阅路径可扩展且无残留
+            $this->remove($fd, sendWill: true);
+            if ($server->exists($fd)) {
+                $server->close($fd);
+            }
+        }
+
+        return count($expiredFds);
+    }
+
+    /** 刷新连接活跃时间（合法控制报文到达时） */
+    public function touchActivity(int $fd, ?int $now = null): void
+    {
+        $session = $this->sessions[$fd] ?? null;
+        if ($session === null || !$session->connected) {
+            return;
+        }
+        $session->touch($now ?? time());
     }
 
     /**
@@ -546,6 +678,13 @@ final class MqttSessionManager
             }
         }
 
+        $qos2PendingCount = 0;
+        $qos2PendingBytes = 0;
+        foreach ($this->sessions as $session) {
+            $qos2PendingCount += count($session->inboundQoS2);
+            $qos2PendingBytes += $this->inboundQos2Bytes($session);
+        }
+
         return [
             'sessions' => count($this->sessions),
             'connected' => $connected,
@@ -555,6 +694,11 @@ final class MqttSessionManager
             'retained_max_topics' => $this->maxRetainedTopics,
             'retained_max_total_bytes' => $this->maxRetainedTotalBytes,
             'pending_qos' => $this->pendingWorkCount(),
+            'mqtt_qos2_pending_count' => $qos2PendingCount,
+            'mqtt_qos2_pending_bytes' => $qos2PendingBytes,
+            'qos2_pending_max_count' => $this->maxQos2PendingCount,
+            'qos2_pending_max_bytes' => $this->maxQos2PendingBytes,
+            'qos2_pending_ttl' => $this->qos2PendingTtl,
         ];
     }
 }

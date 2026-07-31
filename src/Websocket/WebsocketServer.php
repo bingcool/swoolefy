@@ -487,6 +487,8 @@ abstract class WebsocketServer extends BaseServer
             // 心跳扫描只放在 worker 0，所有连接状态在 Swoole\Table 中共享。
             goTick($interval * 1000, function () use ($server, $timeout) {
                 WebsocketFrameAssembler::cleanupStale();
+                // Socket.IO 二进制附件半包老化（空闲 / 总生命周期）
+                SocketIO\SocketIOBinaryAssembler::cleanupStale();
                 WebsocketConnectionManager::disconnectExpired($server, $timeout);
             });
         }

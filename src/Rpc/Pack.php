@@ -55,7 +55,7 @@ class Pack extends BaseParse
     protected static $packLngthKey = 'length';
 
     /**
-     * $serialize_type 设置数据序列化的方式
+     * 数据序列化方式。默认 json（推荐）；serialize 仅可信内网兼容模式。
      * @var string
      */
     protected static $serializeType = 'json';
@@ -88,7 +88,7 @@ class Pack extends BaseParse
 
     /**
      * setSerializeType
-     * @param string $serializeType
+     * @param string $serializeType json（推荐）| serialize（仅可信内网）
      */
     public function setSerializeType(string $serializeType = 'json')
     {
@@ -115,6 +115,14 @@ class Pack extends BaseParse
     }
 
     /**
+     * @return int
+     */
+    public static function getPacketMaxlength(): int
+    {
+        return self::$packetMaxlength;
+    }
+
+    /**
      * decodePack swoole底层已经根据配置的解包协议分割tcp数据,data是一个完整的数据包
      * @param int $fd
      * @param mixed $data
@@ -127,38 +135,86 @@ class Pack extends BaseParse
          */
         $this->parseUnpackType();
 
-        /**
-         * 解析包头
-         */
-        $header = unpack(self::$unpackLengthType, mb_strcut($data, 0, self::$headerLength, 'UTF-8'));
+        // 二进制 payload 必须用 substr，禁止 mb_strcut（按字符截断会破坏包头/包体）
+        $header = unpack(self::$unpackLengthType, substr((string) $data, 0, self::$headerLength));
 
         $this->filterHeader($header);
 
         /**
          * 包头包含的包体长度值
          */
-        $length = $header[self::$packLngthKey];
+        $length = (int) $header[self::$packLngthKey];
+
+        // 长度非法：只清理并关闭当前 fd，不影响其他连接半包状态
+        if ($length <= 0 || $length > self::$packetMaxlength) {
+            $this->rejectInvalidLength($fd, $header, $length);
+        }
 
         $this->_headers[$fd] = $header;
 
-        $pack_body = mb_strcut($data, self::$headerLength, $length, 'UTF-8');
+        $pack_body = substr((string) $data, self::$headerLength, $length);
 
-        $pack_data = $this->decode($pack_body, self::$serializeType);
+        try {
+            $pack_data = $this->decode($pack_body, self::$serializeType);
+        } catch (\Throwable $throwable) {
+            // 解码异常转为统一协议错误；日志不写 payload
+            $this->rejectParseBody($fd, $header);
+        }
 
         if ($pack_data === null || $pack_data === false || $pack_data === '') {
-            $error_msg = 'Parse Packet Error, May Be Packet Encoding Error';
-            $this->sendErrorMessage($fd, parent::ERR_PARSE_BODY, $error_msg, $header);
-            throw new \Exception(sprintf(
-                "errorMsg:%s,header=%s,body=%s",
-                $error_msg,
-                json_encode($header, JSON_UNESCAPED_UNICODE),
-                $pack_body
-            ));
+            $this->rejectParseBody($fd, $header);
         }
 
         $payload = [$this->_headers[$fd], $pack_data];
         unset($this->_buffers[$fd], $this->_headers[$fd]);
         return $payload;
+    }
+
+    /**
+     * 包长非法：回错误 → 删半包 → 关当前 fd → 抛统一异常（不含 payload）。
+     *
+     * @param array<string, mixed> $header
+     */
+    private function rejectInvalidLength(int $fd, array $header, int $length): void
+    {
+        $errorMsg = 'Invalid packet body length';
+        // 回错失败不阻断关连（单测或 Server 未就绪时）
+        try {
+            $this->sendErrorMessage($fd, parent::ERR_TOOBIG, $errorMsg, $header);
+        } catch (\Throwable $ignore) {
+        }
+        $this->delete($fd);
+        if ($this->server && method_exists($this->server, 'exists') && $this->server->exists($fd)) {
+            $this->server->close($fd, true);
+        }
+
+        throw new \Exception(sprintf(
+            'errorMsg:%s,length=%d,header=%s',
+            $errorMsg,
+            $length,
+            json_encode($header, JSON_UNESCAPED_UNICODE)
+        ));
+    }
+
+    /**
+     * 包体解码失败：统一协议错误，禁止把 payload 写入日志。
+     *
+     * @param array<string, mixed> $header
+     */
+    private function rejectParseBody(int $fd, array $header): void
+    {
+        $errorMsg = 'Parse Packet Error, May Be Packet Encoding Error';
+        try {
+            $this->sendErrorMessage($fd, parent::ERR_PARSE_BODY, $errorMsg, $header);
+        } catch (\Throwable $ignore) {
+        }
+        $this->delete($fd);
+
+        throw new \Exception(sprintf(
+            'errorMsg:%s,header=%s',
+            $errorMsg,
+            json_encode($header, JSON_UNESCAPED_UNICODE)
+        ));
     }
 
     /**
@@ -216,7 +272,10 @@ class Pack extends BaseParse
     public function filterHeader(&$header)
     {
         foreach ($header as $key => &$value) {
-            $header[$key] = trim($value);
+            // 数值型 length 等字段不可 trim（PHP 8+ 会对 int 抛 TypeError）
+            if (is_string($value)) {
+                $header[$key] = trim($value);
+            }
         }
         return $header;
     }
@@ -290,7 +349,9 @@ class Pack extends BaseParse
     }
 
     /**
-     * decode 数据反序列化
+     * decode 数据反序列化。
+     * serialize 模式强制 allowed_classes=false，防止对象注入；推荐使用 JSON。
+     *
      * @param mixed $data
      * @param int  $unserializeType
      * @return mixed
@@ -305,11 +366,9 @@ class Pack extends BaseParse
             // json
             case 1:
                 return json_decode($data, true);
-                break;
             default:
-                // serialize
-                return unserialize($data);
-                break;
+                // serialize：仅可信内网兼容；禁止实例化任意类
+                return unserialize($data, ['allowed_classes' => false]);
         }
     }
 

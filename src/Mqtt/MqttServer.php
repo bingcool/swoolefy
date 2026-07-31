@@ -17,9 +17,6 @@ use Swoolefy\Util\Helper;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\EventApp;
 use Swoolefy\Core\Swfy;
-use Simps\MQTT\Protocol;
-use Simps\MQTT\Protocol\Types;
-
 abstract class MqttServer extends BaseServer
 {
 
@@ -300,36 +297,49 @@ abstract class MqttServer extends BaseServer
     {
         MqttSessionManager::reset();
         $mqttConf = Swfy::getConf()['mqtt'] ?? [];
+        $mgr = MqttSessionManager::getInstance();
         if (isset($mqttConf['retain_limits']) && is_array($mqttConf['retain_limits'])) {
-            MqttSessionManager::getInstance()->configureRetainLimits($mqttConf['retain_limits']);
+            $mgr->configureRetainLimits($mqttConf['retain_limits']);
         }
+        // QoS2 pending 限额：旧配置缺失时走 SessionManager 保守默认
+        if (isset($mqttConf['qos2_pending']) && is_array($mqttConf['qos2_pending'])) {
+            $mgr->configureQos2PendingLimits($mqttConf['qos2_pending']);
+        }
+
         parent::workerStartInit($server, $workerId);
+
+        // 会话状态在 Worker 内存：每个 Worker 都要跑维护 tick（QoS2 TTL + keep_alive）
+        $interval = (int) ($mqttConf['keepalive_check_interval']
+            ?? (self::$setting['heartbeat_check_interval'] ?? 30));
+        if ($interval > 0) {
+            goTick($interval * 1000, static function () use ($server) {
+                $manager = MqttSessionManager::getInstance();
+                $manager->cleanupExpiredQos2Pending();
+                $manager->closeKeepAliveTimeouts($server);
+            });
+        }
     }
 
     /**
-     * @param Server $server
-     * @param int $fd
-     * @param int $reactor_id
-     * @param $data
-     * @return bool
-     * @throws \Throwable
-     */
-    /**
      * TCP 收包入口：解析 MQTT 报文并交给 {@see MqttReceiveDispatcher}。
      *
-     * auto_protocol=true 时从 CONNECT 报文推断 V3/V5。
+     * auto_protocol：CONNECT 成功后后续报文固定用 Session 协议级别。
      */
     public function onReceive(Server $server, int $fd, int $reactor_id, $data)
     {
-        $conf = Swfy::getConf();
-        $protocolLevel = (int) ($conf['mqtt']['protocol_level'] ?? MQTT_PROTOCOL_LEVEL3);
-
-        // auto_protocol：首包若是 CONNECT，从报文推断 V3/V5
-        if (($conf['mqtt']['auto_protocol'] ?? false) === true) {
-            $peek = Protocol\V3::unpack($data);
-            if (is_array($peek) && ($peek['type'] ?? null) === Types::CONNECT) {
-                $protocolLevel = MqttReceiveDispatcher::resolveProtocolLevel($peek);
+        $mqttConf = (array) (Swfy::getConf()['mqtt'] ?? []);
+        try {
+            $protocolLevel = MqttReceiveDispatcher::resolveReceiveProtocolLevel(
+                (int) $fd,
+                (string) $data,
+                $mqttConf
+            );
+        } catch (MqttProtocolException $e) {
+            // Session 不存在的非 CONNECT（auto_protocol）：协议错误断开
+            if ($server->exists((int) $fd)) {
+                $server->close((int) $fd);
             }
+            throw $e;
         }
 
         return MqttReceiveDispatcher::dispatch($server, $fd, (string) $data, $protocolLevel);

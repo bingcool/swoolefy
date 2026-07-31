@@ -13,6 +13,11 @@ return [
     'ping_interval' => 25,
     'ping_timeout'  => 20,
     'max_payload'   => 1000000,
+    // 二进制附件 pending 老化：空闲超时 / 总生命周期（秒）；持续小帧不能无限续期
+    'binary_idle_timeout' => 60,
+    'binary_max_lifetime' => 300,
+    'binary_max_attachments' => 32,
+    'binary_max_bytes' => 2097152,
     'allow_polling' => true,
     'poll_timeout' => 25,
     'transports' => ['websocket', 'polling'],

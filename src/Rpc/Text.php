@@ -20,7 +20,7 @@ class Text extends BaseParse
     protected static $pack_eof = "\r\n\r\n";
 
     /**
-     * $serialize_type 设置数据序列化的方式
+     * 数据序列化方式。默认 json（推荐）；serialize 仅可信内网兼容模式。
      * @var string
      */
     protected static $serialize_type = 'json';
@@ -36,7 +36,7 @@ class Text extends BaseParse
 
     /**
      * setSerializeType
-     * @param string $serialize_type
+     * @param string $serialize_type json（推荐）| serialize（仅可信内网）
      */
     public function setSerializeType(string $serialize_type = 'json')
     {
@@ -103,7 +103,9 @@ class Text extends BaseParse
     }
 
     /**
-     * decode 数据反序列化
+     * decode 数据反序列化。
+     * serialize 模式强制 allowed_classes=false，防止对象注入；推荐使用 JSON。
+     *
      * @param string $data
      * @param mixed $unserialize_type
      * @return mixed
@@ -118,8 +120,8 @@ class Text extends BaseParse
             case 1:
                 return json_decode($data, true);
             default:
-                // serialize
-                return unserialize($data);
+                // serialize：仅可信内网兼容；禁止实例化任意类
+                return unserialize($data, ['allowed_classes' => false]);
         }
     }
 

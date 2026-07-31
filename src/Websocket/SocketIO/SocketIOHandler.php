@@ -127,7 +127,13 @@ class SocketIOHandler
         $fd = (int) $frame->fd;
         if ((int) $frame->opcode === WEBSOCKET_OPCODE_BINARY) {
             // 二进制 event 的第二帧起：与上一 TEXT 包中的 attachmentCount 配对
-            $packet = SocketIOBinaryAssembler::feedBinary($fd, (string) $frame->data);
+            try {
+                $packet = SocketIOBinaryAssembler::feedBinary($fd, (string) $frame->data);
+            } catch (\Throwable $throwable) {
+                // 超限/老化清理后回协议错误，避免未捕获异常打挂 Worker
+                SocketIOBinaryAssembler::clear($fd);
+                return self::pushOutbound($server, $fd, [SocketIOPacket::error($throwable->getMessage())]);
+            }
             if ($packet === null) {
                 return true;
             }
@@ -165,7 +171,13 @@ class SocketIOHandler
         }
 
         // ENGINE_MESSAGE 且带 `-N-` 后缀时，需等待 BINARY 帧收齐后再 dispatch
-        $ready = SocketIOBinaryAssembler::feedText($fd, $packet);
+        try {
+            $ready = SocketIOBinaryAssembler::feedText($fd, $packet);
+        } catch (\Throwable $throwable) {
+            SocketIOBinaryAssembler::clear($fd);
+
+            return [SocketIOPacket::error($throwable->getMessage())];
+        }
         if ($ready === null) {
             return [];
         }

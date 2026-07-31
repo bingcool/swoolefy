@@ -68,9 +68,11 @@ return [
      * MQTT Broker 配置
      *
      * protocol_level   : 4 = MQTT 3.1.1，5 = MQTT 5.0
-     * auto_protocol    : true 时从 CONNECT 报文自动识别协议版本
+     * auto_protocol    : true 时仅 CONNECT 前自动识别；握手后固定用 Session 协议级别
      * username/password: 均为空时不鉴权；生产环境务必设置
-     * mqtt_event_handler: 事件类，默认 ProductionMqttEventV3
+     * mqtt_event_handler: 事件类，默认 ProductionMqttEventV3（auto_protocol 下 V5 会回退 ProductionMqttEventV5）
+     * qos2_pending     : 每连接 inbound QoS2 暂存上限（条数/字节/TTL）
+     * keepalive_check_interval: 维护 tick 秒数（QoS2 TTL + keep_alive×1.5）
      */
     'mqtt' => [
         'protocol_level'     => MQTT_PROTOCOL_LEVEL3,
@@ -84,6 +86,13 @@ return [
             'max_message_bytes' => 262144,
             'max_total_bytes' => 16777216,
         ],
+        // inbound QoS2 pending 保守上限；旧配置缺失时框架自动使用默认值
+        'qos2_pending' => [
+            'max_count' => 64,
+            'max_bytes' => 262144,
+            'ttl' => 120,
+        ],
+        'keepalive_check_interval' => 15,
     ],
 
     'enable_pv_collector'  => true,

@@ -24,9 +24,12 @@ final class MqttSession
     /**
      * 客户端 PUBLISH QoS2 暂存区（等待 PUBREL 后才真正 dispatch）。
      *
-     * @var array<int, array{topic:string,message:string,qos:int,retain:bool}>
+     * @var array<int, array{topic:string,message:string,qos:int,retain:bool,bytes:int,created_at:int}>
      */
     public array $inboundQoS2 = [];
+
+    /** 最近一次合法控制报文时间（Unix 秒），供 keep_alive × 1.5 超时判断 */
+    public int $lastActiveAt = 0;
 
     public function __construct(
         /** Swoole 连接 fd（Worker 内唯一） */
@@ -35,9 +38,9 @@ final class MqttSession
         public string $clientId = '',
         /** 认证用户名（可为空） */
         public string $username = '',
-        /** 心跳 keep alive 秒数，0 表示客户端未声明 */
+        /** 心跳 keep alive 秒数，0 表示禁用该连接的 keep-alive 超时 */
         public int $keepAlive = 0,
-        /** 协议级别：4=MQTT3.1.1，5=MQTT5.0 */
+        /** 协议级别：4=MQTT3.1.1，5=MQTT5.0（auto_protocol 后续报文以此为准） */
         public int $protocolLevel = MQTT_PROTOCOL_LEVEL3,
         /** 是否已完成 CONNECT 握手 */
         public bool $connected = false,
@@ -50,5 +53,14 @@ final class MqttSession
         if ($this->connectedAt === 0) {
             $this->connectedAt = time();
         }
+        if ($this->lastActiveAt === 0) {
+            $this->lastActiveAt = $this->connectedAt;
+        }
+    }
+
+    /** 刷新活跃时间（收到合法控制报文时调用） */
+    public function touch(int $now = 0): void
+    {
+        $this->lastActiveAt = $now > 0 ? $now : time();
     }
 }
