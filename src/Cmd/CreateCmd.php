@@ -567,6 +567,9 @@ EOF;
     {
         $content =
 <<<EOF
+# 是否开启异常捕获日志脱敏password,token等,生产环境建议开启
+ENABLE_LOG_SANITIZE=false
+
 #cron service debug配置,默认开启
 CRON_DEBUG=true 
 

@@ -12,6 +12,7 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Log\LogManager;
+use Swoolefy\Http\LogParamSanitizer;
 use Swoolefy\Http\ResponseOutput;
 
 class SwoolefyException
@@ -113,7 +114,13 @@ class SwoolefyException
         }
 
         if (isset($app->swooleRequest->post) && !empty($app->swooleRequest->post)) {
-            $postRaw = json_encode($app->swooleRequest->post, JSON_UNESCAPED_UNICODE);
+            // 调试附加 post 必须脱敏，避免 password/token 进入响应与普通日志
+            // 是否启用日志脱敏，生产环境建议启用
+            if (env("ENABLE_LOG_SANITIZE", false)) {
+                $postRaw = json_encode(LogParamSanitizer::sanitize($app->swooleRequest->post), JSON_UNESCAPED_UNICODE);
+            } else {
+                $postRaw = json_encode($app->swooleRequest->post, JSON_UNESCAPED_UNICODE);
+            }
             $errorMsg = $exceptionMsg . ' in file ' . $throwable->getFile() . ' on line ' . $throwable->getLine() . ' ||| ' . $app->swooleRequest->server['REQUEST_URI'] . $queryString.' ||| '.$postRaw;
         } else {
             $errorMsg = $exceptionMsg . ' in file ' . $throwable->getFile() . ' on line ' . $throwable->getLine() . ' ||| ' . $app->swooleRequest->server['REQUEST_URI'] . $queryString;

@@ -11,6 +11,10 @@
 
 namespace Swoolefy\Http;
 
+use Swoolefy\Core\Coroutine\Context as SwooleContext;
+use Swoolefy\Exception\InvalidJsonException;
+use Swoolefy\Library\CurlProxy\OpentelemetryMiddleware;
+
 /**
  * 按 Content-Type 安全解析 JSON 请求体，避免对二进制/表单 body 误 json_decode。
  */
@@ -18,6 +22,7 @@ final class RequestBodyParser
 {
     /**
      * @return array<string, mixed>
+     * @throws InvalidJsonException
      */
     public static function parseJsonPayload(?string $contentType, string|false $rawBody, string $method): array
     {
@@ -25,12 +30,28 @@ final class RequestBodyParser
             return [];
         }
 
+        // 空 body：保持现有约定，视为无 JSON 字段
         if (!is_string($rawBody) || $rawBody === '') {
             return [];
         }
 
-        $decoded = json_decode($rawBody, true);
+        try {
+            $decoded = json_decode($rawBody, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            $requestId = '';
+            if (SwooleContext::has(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID)) {
+                $requestId = (string) SwooleContext::get(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID);
+            }
+            // 不记录完整 body，仅 reason + request_id
+            throw InvalidJsonException::fromJsonException($e, $requestId);
+        }
 
+        // 合法 JSON null：与历史 is_array 分支一致，当作空输入
+        if ($decoded === null) {
+            return [];
+        }
+
+        // 标量 JSON（字符串/数字等）不作为表单字段合并
         return is_array($decoded) ? $decoded : [];
     }
 

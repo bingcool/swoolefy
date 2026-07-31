@@ -259,36 +259,51 @@ class CorsMiddleware implements CorsMiddlewareInterface
     }
 
     /**
+     * 精确 Origin 与 pattern Origin 命中后走同一写头逻辑（含 credentials）。
+     *
      * @param RequestInput $requestInput
      * @param ResponseOutput $responseOutput
      * @return void
      */
     protected function setCorsHeaders(RequestInput $requestInput, ResponseOutput $responseOutput): void
     {
-        $origin = $requestInput->getHeaderParams('origin');
-        if (in_array('*', $this->options['allowedOrigins']) && !$this->options['supportsCredentials']) {
-            $responseOutput->withHeader("Access-Control-Allow-Origin", '*');
-        } else if (in_array($origin, $this->options['allowedOrigins'])) {
-            $responseOutput->withHeader("Access-Control-Allow-Origin", $origin);
-            // set support Cookie
-            if ($this->options['supportsCredentials']) {
-                $responseOutput->withHeader("Access-Control-Allow-Credentials", 'true');
-            }
-        } else if (!empty($this->originPattern)) {
-            $responseOutput->withHeader("Access-Control-Allow-Origin", $origin);
+        $origin = (string) $requestInput->getHeaderParams('origin');
+        $supportsCredentials = (bool) $this->options['supportsCredentials'];
+        $allowAllOrigins = in_array('*', $this->options['allowedOrigins'], true);
+        $exactMatch = in_array($origin, $this->options['allowedOrigins'], true);
+        $patternMatch = !empty($this->originPattern);
+
+        // 凭证模式禁止 Access-Control-Allow-Origin: *，改为回显具体 Origin
+        if ($allowAllOrigins && !$supportsCredentials) {
+            $responseOutput->withHeader('Access-Control-Allow-Origin', '*');
+        } elseif ($allowAllOrigins || $exactMatch || $patternMatch) {
+            $this->writeAllowedOriginHeaders($responseOutput, $origin, $supportsCredentials);
         }
 
-        // 动态设置Origin时必须添加Vary头
-        $responseOutput->withHeader("Vary", 'Origin');
+        // 动态设置 Origin 时必须添加 Vary 头
+        $responseOutput->withHeader('Vary', 'Origin');
 
-        $responseOutput->withHeader("Access-Control-Allow-Methods", implode(', ', $this->options['allowedMethods']));
-        $responseOutput->withHeader("Access-Control-Allow-Headers", implode(', ', $this->options['allowedHeaders']));
+        $responseOutput->withHeader('Access-Control-Allow-Methods', implode(', ', $this->options['allowedMethods']));
+        $responseOutput->withHeader('Access-Control-Allow-Headers', implode(', ', $this->options['allowedHeaders']));
         if (!empty($this->options['exposedHeaders'])) {
-            $responseOutput->withHeader("Access-Control-Expose-Headers", implode(', ', $this->options['exposedHeaders']));
+            $responseOutput->withHeader('Access-Control-Expose-Headers', implode(', ', $this->options['exposedHeaders']));
         }
-        // set cache time
         if ($this->options['maxAge'] > 0) {
-            $responseOutput->withHeader("Access-Control-Max-Age", $this->options['maxAge']);
+            $responseOutput->withHeader('Access-Control-Max-Age', $this->options['maxAge']);
+        }
+    }
+
+    /**
+     * 精确/pattern 共用：写 Allow-Origin，并在 supportsCredentials 时写 Credentials。
+     */
+    protected function writeAllowedOriginHeaders(
+        ResponseOutput $responseOutput,
+        string $origin,
+        bool $supportsCredentials
+    ): void {
+        $responseOutput->withHeader('Access-Control-Allow-Origin', $origin);
+        if ($supportsCredentials) {
+            $responseOutput->withHeader('Access-Control-Allow-Credentials', 'true');
         }
     }
 

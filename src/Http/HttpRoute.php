@@ -519,7 +519,22 @@ class HttpRoute extends AppDispatch
         }
 
         if (!empty($missing)) {
-            throw new DispatchException("Missing function required params [" . implode(', ', $missing) . '] |||' . $this->requestInput->getSwooleRequest()->server['REQUEST_URI'] . '|||' . json_encode($actionParams, JSON_UNESCAPED_UNICODE), HttpStatus::BAD_REQUEST);
+            // 对外仅返回缺参名/错误码/request_id，禁止把完整 actionParams（含 password/token）写入异常 message
+            // 调试侧若需记录已绑定参数，必须经 LogParamSanitizer::sanitize，不得直接 json_encode($actionParams)
+            $requestId = '';
+            if (SwooleContext::has(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID)) {
+                $requestId = (string) SwooleContext::get(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID);
+            }
+            $exception = new DispatchException(
+                sprintf('Missing function required params [%s]', implode(', ', $missing)),
+                HttpStatus::BAD_REQUEST
+            );
+            $exception->setContextData([
+                'error_code' => 'missing_params',
+                'missing' => array_values($missing),
+                'request_id' => $requestId,
+            ]);
+            throw $exception;
         }
 
         $this->actionParams = $actionParams;

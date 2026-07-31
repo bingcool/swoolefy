@@ -79,7 +79,12 @@ abstract class HttpAppServer extends HttpServer
         $contentType = $this->getHeaderValue($carrier, 'content-type', '');
         if (in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
             $post = $request->post ?? [];
-            $input = RequestBodyParser::parseJsonPayload($contentType, $request->rawContent(), $method);
+            // OTEL 采样不得因非法 JSON 中断；业务路径在 RequestParseTrait 再解析并抛 400
+            try {
+                $input = RequestBodyParser::parseJsonPayload($contentType, $request->rawContent(), $method);
+            } catch (\Swoolefy\Exception\InvalidJsonException $e) {
+                $input = [];
+            }
             $inputBody = array_merge($post, $input);
         }else if ($method == 'GET') {
             $queryParams = $request->get ?? [];
