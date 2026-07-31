@@ -380,9 +380,13 @@ class BaseCmd extends Command
      * 仅在 create 命令和应用首次启动时调用，
      * 从 Stubs 模板生成应用级事件处理和自动加载文件。
      */
-    protected function commonHandleFile()
+    /**
+     * @param string|null $appPathDir 目标应用目录；null 时使用 APP_PATH（兼容启动路径）
+     */
+    protected function commonHandleFile(?string $appPathDir = null)
     {
-        $eventServerFile = APP_PATH . "/Event.php";
+        $appPathDir = $appPathDir ?? APP_PATH;
+        $eventServerFile = $appPathDir . "/Event.php";
         if (!file_exists($eventServerFile)) {
             $search_str = "protocol\\event";
             $replace_str = APP_NAME;
@@ -392,7 +396,7 @@ class BaseCmd extends Command
             file_put_contents($eventServerFile, $file_content_string);
         }
 
-        $autoloaderFile = APP_PATH . "/Autoloader.php";
+        $autoloaderFile = $appPathDir . "/Autoloader.php";
         if (!file_exists($autoloaderFile)) {
             $replace_str = APP_NAME;
             $file_content_string = file_get_contents(dirname(SRC_DIR_ROOT) . "/Autoloader.php");

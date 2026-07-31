@@ -1846,25 +1846,113 @@ abstract class AbstractBaseWorker
      */
     public function onPipeMsg($msg, string $fromProcessName, int $fromProcessWorkerId, bool $is_proxy_by_master)
     {
-        if (is_string($msg)) {
-            $msg = json_decode($msg, true) ?? $msg;
-            if (is_array($msg) && isset($msg['action'])) {
-                $commandHandleList = array_merge($this->systemCommandHandle, $this->customCommandHandle);
-                $commandHandleItem = $commandHandleList[$msg['action']] ?? [];
-                if (!empty($commandHandleItem) && is_array($commandHandleItem) && count($commandHandleItem) == 2) {
-                    list($class, $method) = $commandHandleItem;
-                    if ($class == self::class || is_subclass_of($class, self::class)) {
-                        if (class_exists(static::class, $method)) {
-                            $this->{$method}($msg, $fromProcessName, $fromProcessWorkerId, $is_proxy_by_master);
-                        }
-                    }else {
-                        (new $class)->{$method}($msg, $fromProcessName, $fromProcessWorkerId, $is_proxy_by_master);
-                    }
-                }else {
-                    $this->fmtWriteError(sprintf("onPipeMsg accept msg=%s is not match property of customCommandHandle key, please check it", json_encode($msg, JSON_UNESCAPED_UNICODE)));
-                }
-            }
+        if (!is_string($msg)) {
+            return null;
         }
+
+        $decoded = json_decode($msg, true) ?? $msg;
+        if (!is_array($decoded) || !isset($decoded['action'])) {
+            return null;
+        }
+
+        $msg = $decoded;
+        $action = (string) $msg['action'];
+        $requestId = (string) ($msg['request_id'] ?? $msg['requestId'] ?? '');
+        $commandHandleList = array_merge($this->systemCommandHandle, $this->customCommandHandle);
+        $commandHandleItem = $commandHandleList[$action] ?? [];
+
+        if (empty($commandHandleItem) || !is_array($commandHandleItem) || count($commandHandleItem) != 2) {
+            $this->fmtWriteError(sprintf(
+                'onPipeMsg accept msg=%s is not match property of customCommandHandle key, please check it',
+                json_encode($msg, JSON_UNESCAPED_UNICODE)
+            ));
+            return [
+                'ok' => false,
+                'error' => 'unknown_pipe_command',
+                'command' => $action,
+                'request_id' => $requestId,
+            ];
+        }
+
+        [$class, $method] = $commandHandleItem;
+        $method = (string) $method;
+
+        // 内部 handler：必须 is_callable，禁止把未验证输入当任意方法名调用
+        if ($class == self::class || (is_string($class) && is_subclass_of($class, self::class))) {
+            if (!is_callable([$this, $method])) {
+                $this->fmtWriteError(sprintf(
+                    'onPipeMsg invalid internal handler, command=%s, handler_type=internal, handler=%s::%s, request_id=%s',
+                    $action,
+                    static::class,
+                    $method,
+                    $requestId
+                ));
+                return [
+                    'ok' => false,
+                    'error' => 'invalid_pipe_handler',
+                    'command' => $action,
+                    'request_id' => $requestId,
+                ];
+            }
+            $this->{$method}($msg, $fromProcessName, $fromProcessWorkerId, $is_proxy_by_master);
+            return ['ok' => true, 'command' => $action, 'request_id' => $requestId];
+        }
+
+        // 外部 class/method：调用前同样校验
+        $handlerClass = is_string($class) ? $class : get_debug_type($class);
+        if (!is_string($class) || !class_exists($class)) {
+            $this->fmtWriteError(sprintf(
+                'onPipeMsg invalid external handler, command=%s, handler_type=external, handler=%s::%s, request_id=%s',
+                $action,
+                $handlerClass,
+                $method,
+                $requestId
+            ));
+            return [
+                'ok' => false,
+                'error' => 'invalid_pipe_handler',
+                'command' => $action,
+                'request_id' => $requestId,
+            ];
+        }
+
+        try {
+            $handler = new $class();
+        } catch (\Throwable $throwable) {
+            $this->fmtWriteError(sprintf(
+                'onPipeMsg invalid external handler, command=%s, handler_type=external, handler=%s::%s, request_id=%s, reason=%s',
+                $action,
+                $handlerClass,
+                $method,
+                $requestId,
+                $throwable->getMessage()
+            ));
+            return [
+                'ok' => false,
+                'error' => 'invalid_pipe_handler',
+                'command' => $action,
+                'request_id' => $requestId,
+            ];
+        }
+
+        if (!is_callable([$handler, $method])) {
+            $this->fmtWriteError(sprintf(
+                'onPipeMsg invalid external handler, command=%s, handler_type=external, handler=%s::%s, request_id=%s',
+                $action,
+                $handlerClass,
+                $method,
+                $requestId
+            ));
+            return [
+                'ok' => false,
+                'error' => 'invalid_pipe_handler',
+                'command' => $action,
+                'request_id' => $requestId,
+            ];
+        }
+
+        $handler->{$method}($msg, $fromProcessName, $fromProcessWorkerId, $is_proxy_by_master);
+        return ['ok' => true, 'command' => $action, 'request_id' => $requestId];
     }
 
     /**

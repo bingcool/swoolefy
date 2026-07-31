@@ -1,7 +1,9 @@
 <?php
 namespace Swoolefy\Cmd;
 
+use Swoolefy\Exception\IOException;
 use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -12,6 +14,11 @@ class CreateCmd extends BaseCmd
 {
     protected static $dirPermission = 0755;
 
+    /**
+     * 创建前等待秒数；测试可置 0 跳过 sleep。
+     */
+    protected int $createDelaySeconds = 1;
+
     protected function configure()
     {
         parent::configure();
@@ -20,198 +27,186 @@ class CreateCmd extends BaseCmd
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $dirs = ['Config', 'Service', 'Protocol', 'Router', 'Storage', 'Middleware', 'Scripts'];
-        $appName = APP_NAME;
-        $appPathDir = APP_PATH;
+        if ($this->hasInitError()) {
+            return Command::FAILURE;
+        }
+
+        $appName = $this->resolveAppName();
+        $appPathDir = $this->resolveAppPath();
+
+        // 目标已存在：失败返回码，绝不 exit()
         if (is_dir($appPathDir)) {
             fmtPrintError("You had create {$appName} project dir");
-            exit(0);
+            return Command::FAILURE;
+        }
+
+        $protocol = $this->resolveProtocol($appName);
+        if ($protocol === null) {
+            fmtPrintError("The app_name={$appName} is not in APP_NAME array in swoolefy file, please check it");
+            return Command::FAILURE;
+        }
+
+        if (!is_string($protocol) || $protocol === '') {
+            fmtPrintError("The app_name={$appName} protocol is invalid");
+            return Command::INVALID;
         }
 
         fmtPrintInfo("开始创建【{$appName}】应用骨架，请稍等......");
-        sleep(1);
-
-        $protocol = APP_META_ARR[$appName]['protocol'];
-        if (!$protocol) {
-            fmtPrintError("The app_name={$appName} is not in APP_NAME array in swoolefy file, please check it");
-            exit(0);
+        if ($this->createDelaySeconds > 0) {
+            sleep($this->createDelaySeconds);
         }
 
+        // 同目录 staging，保证 rename 原子落盘；失败只清临时目录，不碰用户原目标
+        $stagingDir = dirname($appPathDir) . '/.swoolefy_create_' . getmypid() . '_' . bin2hex(random_bytes(4));
+        $stagingAlive = true;
+
+        try {
+            $this->ensureDirectory($stagingDir);
+            $this->ensureRootServiceEntryFiles();
+            $this->buildApplicationSkeleton($stagingDir, $appName, $protocol);
+
+            if (is_dir($appPathDir) || file_exists($appPathDir)) {
+                throw new IOException(
+                    'Target application directory already exists',
+                    0,
+                    null,
+                    $stagingDir,
+                    $appPathDir
+                );
+            }
+
+            if (!rename($stagingDir, $appPathDir)) {
+                throw new IOException(
+                    'Failed to publish application skeleton',
+                    0,
+                    null,
+                    $stagingDir,
+                    $appPathDir
+                );
+            }
+            $stagingAlive = false;
+        } catch (IOException $e) {
+            fmtPrintError($e->getMessage());
+            return Command::FAILURE;
+        } catch (\Throwable $e) {
+            fmtPrintError($e->getMessage());
+            return Command::FAILURE;
+        } finally {
+            if ($stagingAlive && is_dir($stagingDir)) {
+                $this->removeDirectoryTree($stagingDir);
+            }
+        }
+
+        fmtPrintInfo("应用创建成功啦，应用名称为：【{$appName}】，你现在可以使用命令 php cli.php start {$appName} 来启动应用");
+        return Command::SUCCESS;
+    }
+
+    protected function resolveAppName(): string
+    {
+        return APP_NAME;
+    }
+
+    protected function resolveAppPath(): string
+    {
+        return APP_PATH;
+    }
+
+    /**
+     * @return string|null null 表示应用未配置
+     */
+    protected function resolveProtocol(string $appName): ?string
+    {
+        if (!isset(APP_META_ARR[$appName])) {
+            return null;
+        }
+        $protocol = APP_META_ARR[$appName]['protocol'] ?? null;
+        return $protocol === null ? null : (string) $protocol;
+    }
+
+    /**
+     * 在临时目录生成完整应用骨架（不直接写最终 APP_PATH）。
+     *
+     * @throws IOException
+     */
+    protected function buildApplicationSkeleton(string $appPathDir, string $appName, string $protocol): void
+    {
+        $dirs = ['Config', 'Service', 'Protocol', 'Router', 'Storage', 'Middleware', 'Scripts'];
         if ($protocol == self::HTTP_PROTOCOL) {
-            $dirs = ['Common', 'Config', 'Controller', 'Model', 'Module', 'Router', 'Storage', 'Protocol', 'Middleware','Scripts'];
+            $dirs = ['Common', 'Config', 'Controller', 'Model', 'Module', 'Router', 'Storage', 'Protocol', 'Middleware', 'Scripts'];
         }
 
-        $daemonFile = START_DIR_ROOT . '/daemon.php';
-        if (!file_exists($daemonFile)) {
-            @copy(SRC_DIR_ROOT.'/Stubs/daemon.stub.php', $daemonFile);
-        }
-
-        $cronFile = START_DIR_ROOT . '/cron.php';
-        if (!file_exists($cronFile)) {
-            @copy(SRC_DIR_ROOT.'/Stubs/cron.stub.php', $cronFile);
-        }
-
-        $scriptFile = START_DIR_ROOT . '/script.php';
-        if (!file_exists($scriptFile)) {
-            @copy(SRC_DIR_ROOT.'/Stubs/script.stub.php', $scriptFile);
-        }
-
-        @mkdir($appPathDir, self::$dirPermission, true);
-
-        $envFile = $appPathDir.'/.env';
-        if (!is_file($envFile)) {
-            @file_put_contents($envFile, $this->getEnvFileContent());
-        }
-
-        $applicationYamlFile = $appPathDir . '/application.yaml';
-        if (!is_file($applicationYamlFile)) {
-            @file_put_contents($applicationYamlFile, $this->getApplicationYamlContent($appName));
-        }
+        $this->writeFile($appPathDir . '/.env', $this->getEnvFileContent());
+        $this->writeFile($appPathDir . '/application.yaml', $this->getApplicationYamlContent($appName));
 
         foreach ($dirs as $dir) {
-            @mkdir($appPathDir . '/' . $dir, self::$dirPermission, true);
+            $this->ensureDirectory($appPathDir . '/' . $dir);
             switch ($dir) {
                 case 'Common':
                 {
-                    $dirPath = $appPathDir . '/' . $dir;
-                    @mkdir($dirPath, self::$dirPermission, true);
-                    // 默认创建枚举类和常量类文件夹
-                    foreach (['Const','Enum'] as $itemDir) {
-                        $itemDirPath = $appPathDir . '/' . $dir . '/' . $itemDir;
-                        @mkdir($itemDirPath, self::$dirPermission, true);
+                    foreach (['Const', 'Enum'] as $itemDir) {
+                        $this->ensureDirectory($appPathDir . '/' . $dir . '/' . $itemDir);
                     }
                     break;
                 }
                 case 'Config':
                 {
-                    $definesFile = $appPathDir . '/' . $dir . '/constants.php';
-                    if (!file_exists($definesFile)) {
-                        file_put_contents($definesFile, $this->getDefines());
-                    }
+                    $this->writeFile($appPathDir . '/' . $dir . '/constants.php', $this->getDefines());
 
                     $componentDir = $appPathDir . '/' . $dir . '/component';
-                    if (!is_dir($componentDir)) {
-                        @mkdir($componentDir, self::$dirPermission, true);
-                        @copy(SRC_DIR_ROOT.'/Stubs/db.stub.php', $componentDir.'/database.php');
-                        @copy(SRC_DIR_ROOT.'/Stubs/log.stub.php', $componentDir.'/log.php');
-                        @copy(SRC_DIR_ROOT.'/Stubs/cache.stub.php', $componentDir.'/cache.php');
-                        @copy(SRC_DIR_ROOT.'/Stubs/document_parser.component.stub.php', $componentDir.'/document_parser.php');
-                        @copy(SRC_DIR_ROOT.'/Stubs/file_storage.component.stub.php', $componentDir.'/file_storage.php');
-                        @copy(SRC_DIR_ROOT.'/Stubs/oauth.component.stub.php', $componentDir.'/oauth.php');
-                        @copy(SRC_DIR_ROOT.'/Stubs/auth.component.stub.php', $componentDir.'/auth.php');
-                        @copy(SRC_DIR_ROOT.'/Stubs/translator.component.stub.php', $componentDir.'/translator.php');
-                    }
+                    $this->ensureDirectory($componentDir);
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/db.stub.php', $componentDir . '/database.php');
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/log.stub.php', $componentDir . '/log.php');
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/cache.stub.php', $componentDir . '/cache.php');
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/document_parser.component.stub.php', $componentDir . '/document_parser.php');
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/file_storage.component.stub.php', $componentDir . '/file_storage.php');
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/oauth.component.stub.php', $componentDir . '/oauth.php');
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/auth.component.stub.php', $componentDir . '/auth.php');
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/translator.component.stub.php', $componentDir . '/translator.php');
 
-                    $confFile = $appPathDir . '/' . $dir . '/app.php';
-                    if (!file_exists($confFile)) {
-                        @copy(SRC_DIR_ROOT.'/Stubs/app.conf.stub.php', $confFile);
-                    }
-
-                    $dcFile = $appPathDir . '/' . $dir . '/dc.php';
-                    if (!file_exists($dcFile)) {
-                        @copy(SRC_DIR_ROOT.'/Stubs/dc.stub.php', $dcFile);
-                    }
-
-                    $workflowFile = $appPathDir . '/' . $dir . '/workflow.php';
-                    if (!file_exists($workflowFile)) {
-                        @copy(SRC_DIR_ROOT . '/Stubs/workflow.conf.stub.php', $workflowFile);
-                    }
-
-                    $neuronAiFile = $appPathDir . '/' . $dir . '/neuron_ai.php';
-                    if (!file_exists($neuronAiFile)) {
-                        @copy(SRC_DIR_ROOT . '/Stubs/neuron_ai.conf.stub.php', $neuronAiFile);
-                    }
-
-                    $documentOcrFile = $appPathDir . '/' . $dir . '/document_ocr.php';
-                    if (!file_exists($documentOcrFile)) {
-                        @copy(SRC_DIR_ROOT . '/Stubs/document_ocr.conf.stub.php', $documentOcrFile);
-                    }
-
-                    $jobFile = $appPathDir . '/' . $dir . '/job.php';
-                    if (!file_exists($jobFile)) {
-                        @copy(SRC_DIR_ROOT . '/Stubs/job.conf.stub.php', $jobFile);
-                    }
-
-                    $rateLimitFile = $appPathDir . '/' . $dir . '/rate_limit.php';
-                    if (!file_exists($rateLimitFile)) {
-                        @copy(SRC_DIR_ROOT . '/Stubs/rate_limit.conf.stub.php', $rateLimitFile);
-                    }
-
-                    $healthFile = $appPathDir . '/' . $dir . '/health.php';
-                    if (!file_exists($healthFile)) {
-                        @copy(SRC_DIR_ROOT . '/Stubs/health.conf.stub.php', $healthFile);
-                    }
-
-                    $apidocFile = $appPathDir . '/' . $dir . '/apidoc.php';
-                    if (!file_exists($apidocFile)) {
-                        @copy(SRC_DIR_ROOT . '/Stubs/apidoc.conf.stub.php', $apidocFile);
-                    }
-
-                    $fileStorageFile = $appPathDir . '/' . $dir . '/file_storage_system.php';
-                    if (!file_exists($fileStorageFile)) {
-                        @copy(SRC_DIR_ROOT . '/Stubs/file_storage_system.conf.stub.php', $fileStorageFile);
-                    }
-
-                    $oauthFile = $appPathDir . '/' . $dir . '/oauth.php';
-                    if (!file_exists($oauthFile)) {
-                        @copy(SRC_DIR_ROOT . '/Stubs/oauth.conf.stub.php', $oauthFile);
-                    }
-
-                    $authFile = $appPathDir . '/' . $dir . '/auth.php';
-                    if (!file_exists($authFile)) {
-                        @copy(SRC_DIR_ROOT . '/Stubs/auth.conf.stub.php', $authFile);
-                    }
-
-                    $i18nFile = $appPathDir . '/' . $dir . '/i18n.php';
-                    if (!file_exists($i18nFile)) {
-                        @copy(SRC_DIR_ROOT . '/Stubs/i18n.conf.stub.php', $i18nFile);
-                    }
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/app.conf.stub.php', $appPathDir . '/' . $dir . '/app.php');
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/dc.stub.php', $appPathDir . '/' . $dir . '/dc.php');
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/workflow.conf.stub.php', $appPathDir . '/' . $dir . '/workflow.php');
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/neuron_ai.conf.stub.php', $appPathDir . '/' . $dir . '/neuron_ai.php');
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/document_ocr.conf.stub.php', $appPathDir . '/' . $dir . '/document_ocr.php');
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/job.conf.stub.php', $appPathDir . '/' . $dir . '/job.php');
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/rate_limit.conf.stub.php', $appPathDir . '/' . $dir . '/rate_limit.php');
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/health.conf.stub.php', $appPathDir . '/' . $dir . '/health.php');
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/apidoc.conf.stub.php', $appPathDir . '/' . $dir . '/apidoc.php');
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/file_storage_system.conf.stub.php', $appPathDir . '/' . $dir . '/file_storage_system.php');
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/oauth.conf.stub.php', $appPathDir . '/' . $dir . '/oauth.php');
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/auth.conf.stub.php', $appPathDir . '/' . $dir . '/auth.php');
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/i18n.conf.stub.php', $appPathDir . '/' . $dir . '/i18n.php');
 
                     if ($protocol == self::WEBSOCKET_PROTOCOL) {
-                        $socketioFile = $appPathDir . '/' . $dir . '/socketio.php';
-                        if (!file_exists($socketioFile)) {
-                            @copy(SRC_DIR_ROOT . '/Stubs/socketio.conf.stub.php', $socketioFile);
-                        }
-                        $websocketFile = $appPathDir . '/' . $dir . '/websocket.php';
-                        if (!file_exists($websocketFile)) {
-                            $websocketContent = (string) file_get_contents(SRC_DIR_ROOT . '/Stubs/websocket.conf.stub.php');
-                            $websocketContent = str_replace('__APP_NAMESPACE__', $appName, $websocketContent);
-                            @file_put_contents($websocketFile, $websocketContent);
-                        }
+                        $this->copyFile(SRC_DIR_ROOT . '/Stubs/socketio.conf.stub.php', $appPathDir . '/' . $dir . '/socketio.php');
+                        $websocketContent = $this->readFile(SRC_DIR_ROOT . '/Stubs/websocket.conf.stub.php');
+                        $websocketContent = str_replace('__APP_NAMESPACE__', $appName, $websocketContent);
+                        $this->writeFile($appPathDir . '/' . $dir . '/websocket.php', $websocketContent);
                     }
-
                     break;
                 }
                 case 'Controller':
                 {
-                    $controllerFile = $appPathDir . '/' . $dir . '/IndexController.php';
-                    if (!file_exists($controllerFile)) {
-                        file_put_contents($controllerFile, $this->getDefaultController($appName));
-                    }
+                    $this->writeFile(
+                        $appPathDir . '/' . $dir . '/IndexController.php',
+                        $this->getDefaultController($appName)
+                    );
                     break;
                 }
                 case 'Model':
                 {
-                    $modelFile = $appPathDir . '/' . $dir . '/DemoModel.php';
-                    if (!file_exists($modelFile)) {
-                        file_put_contents($modelFile, $this->getDefaultModel($appName));
-                    }
+                    $this->writeFile(
+                        $appPathDir . '/' . $dir . '/DemoModel.php',
+                        $this->getDefaultModel($appName)
+                    );
                     break;
                 }
                 case 'Module':
                 {
                     $moduleName = 'Demo';
-                    foreach ([$moduleName] as $module) {
-                        $moduleDir = $appPathDir . '/' . $dir . '/' . $module;
-                        if (!is_dir($moduleDir)) {
-                            @mkdir($moduleDir, self::$dirPermission, true);
-                        }
-                    }
-                    foreach (['Controller','Dto','Request','Response', 'Exception'] as $itemDir) {
-                        $itemDirPath = $appPathDir . '/' . $dir . '/' . $module . '/' . $itemDir;
-                        if (!is_dir($itemDirPath)) {
-                            @mkdir($itemDirPath, self::$dirPermission, true);
-                        }
+                    $this->ensureDirectory($appPathDir . '/' . $dir . '/' . $moduleName);
+                    foreach (['Controller', 'Dto', 'Request', 'Response', 'Exception'] as $itemDir) {
+                        $this->ensureDirectory($appPathDir . '/' . $dir . '/' . $moduleName . '/' . $itemDir);
                     }
                     break;
                 }
@@ -219,29 +214,18 @@ class CreateCmd extends BaseCmd
                 {
                     switch ($protocol) {
                         case self::HTTP_PROTOCOL:
-                            $apiFile = $appPathDir . "/{$dir}/api.php";
-                            if (!file_exists($apiFile)) {
-                                $apiContent = (string) file_get_contents(SRC_DIR_ROOT . '/Stubs/api.stub.php');
-                                $apiContent = str_replace('\\App\\', "\\{$appName}\\", $apiContent);
-                                @file_put_contents($apiFile, $apiContent);
-                            }
+                            $apiContent = $this->readFile(SRC_DIR_ROOT . '/Stubs/api.stub.php');
+                            $apiContent = str_replace('\\App\\', "\\{$appName}\\", $apiContent);
+                            $this->writeFile($appPathDir . "/{$dir}/api.php", $apiContent);
                             $healthRouterDir = $appPathDir . "/{$dir}/Common";
-                            if (!is_dir($healthRouterDir)) {
-                                @mkdir($healthRouterDir, 0777, true);
-                            }
-                            $healthRouterFile = $healthRouterDir . '/Health.php';
-                            if (!file_exists($healthRouterFile)) {
-                                @copy(SRC_DIR_ROOT . '/Stubs/health.router.stub.php', $healthRouterFile);
-                            }
+                            $this->ensureDirectory($healthRouterDir);
+                            $this->copyFile(SRC_DIR_ROOT . '/Stubs/health.router.stub.php', $healthRouterDir . '/Health.php');
                             break;
                         case self::UDP_PROTOCOL:
                         case self::WEBSOCKET_PROTOCOL:
-                            $apiFile = $appPathDir . "/{$dir}/service.php";
-                            if (!file_exists($apiFile)) {
-                                $apiContent = (string) file_get_contents(SRC_DIR_ROOT.'/Stubs/service.api.stub.php');
-                                $apiContent = str_replace('__APP_NAMESPACE__', $appName, $apiContent);
-                                @file_put_contents($apiFile, $apiContent);
-                            }
+                            $apiContent = $this->readFile(SRC_DIR_ROOT . '/Stubs/service.api.stub.php');
+                            $apiContent = str_replace('__APP_NAMESPACE__', $appName, $apiContent);
+                            $this->writeFile($appPathDir . "/{$dir}/service.php", $apiContent);
                             break;
                         default:
                             break;
@@ -250,36 +234,38 @@ class CreateCmd extends BaseCmd
                 }
                 case 'Protocol':
                 {
-                    $path       = $appPathDir . "/Protocol";
-                    $confFile   = $path . "/conf.php";
-                    if (!file_exists($confFile)) {
-                        switch ($protocol) {
-                            case self::HTTP_PROTOCOL:
-                                @copy(SRC_DIR_ROOT . '/Http/conf.stub.php', $confFile);
-                                // 挂上应用 Bootstrap（Locale + SecurityHeaders）
-                                if (is_file($confFile)) {
-                                    $confContent = (string) file_get_contents($confFile);
-                                    $confContent = str_replace(
-                                        "'application_bootstrap'    => '',",
-                                        "'application_bootstrap'    => \\{$appName}\\Bootstrap::class,",
-                                        $confContent
-                                    );
-                                    @file_put_contents($confFile, $confContent);
-                                }
-                                break;
-                            case self::RPC_PROTOCOL:
-                                @copy(SRC_DIR_ROOT . '/Rpc/conf.stub.php', $confFile);
-                                break;
-                            case self::UDP_PROTOCOL:
-                                @copy(SRC_DIR_ROOT . '/Udp/conf.stub.php', $confFile);
-                                break;
-                            case self::WEBSOCKET_PROTOCOL:
-                                @copy(SRC_DIR_ROOT . '/Websocket/conf.stub.php', $confFile);
-                                break;
-                            case self::MQTT_PROTOCOL:
-                                @copy(SRC_DIR_ROOT . '/Mqtt/conf.stub.php', $confFile);
-                                break;
-                        }
+                    $confFile = $appPathDir . '/Protocol/conf.php';
+                    switch ($protocol) {
+                        case self::HTTP_PROTOCOL:
+                            $this->copyFile(SRC_DIR_ROOT . '/Http/conf.stub.php', $confFile);
+                            $confContent = $this->readFile($confFile);
+                            $confContent = str_replace(
+                                "'application_bootstrap'    => '',",
+                                "'application_bootstrap'    => \\{$appName}\\Bootstrap::class,",
+                                $confContent
+                            );
+                            $this->writeFile($confFile, $confContent);
+                            break;
+                        case self::RPC_PROTOCOL:
+                            $this->copyFile(SRC_DIR_ROOT . '/Rpc/conf.stub.php', $confFile);
+                            break;
+                        case self::UDP_PROTOCOL:
+                            $this->copyFile(SRC_DIR_ROOT . '/Udp/conf.stub.php', $confFile);
+                            break;
+                        case self::WEBSOCKET_PROTOCOL:
+                            $this->copyFile(SRC_DIR_ROOT . '/Websocket/conf.stub.php', $confFile);
+                            break;
+                        case self::MQTT_PROTOCOL:
+                            $this->copyFile(SRC_DIR_ROOT . '/Mqtt/conf.stub.php', $confFile);
+                            break;
+                        default:
+                            throw new IOException(
+                                "Unsupported protocol={$protocol}",
+                                0,
+                                null,
+                                '',
+                                $confFile
+                            );
                     }
                     break;
                 }
@@ -287,23 +273,13 @@ class CreateCmd extends BaseCmd
                 {
                     switch ($protocol) {
                         case self::HTTP_PROTOCOL:
-                            $groupDir = $appPathDir . '/' . $dir . '/Group';
-                            if (!is_dir($groupDir)) {
-                                @mkdir($groupDir, self::$dirPermission, true);
-                            }
-
-                            $routeDir = $appPathDir . '/' . $dir.'/Route';
-                            if (!is_dir($routeDir)) {
-                                @mkdir($routeDir, self::$dirPermission, true);
-                            }
-                            // 鉴权请用框架 AuthenticateMiddleware（见 Router/api.php 示例），不再生成 ValidLoginMiddleware 空 stub
+                            $this->ensureDirectory($appPathDir . '/' . $dir . '/Group');
+                            $this->ensureDirectory($appPathDir . '/' . $dir . '/Route');
                             break;
                         case self::UDP_PROTOCOL:
                         case self::WEBSOCKET_PROTOCOL:
-                            $middlewareDir = $appPathDir . '/' . $dir;
-                            if (!is_dir($middlewareDir)) {
-                                @mkdir($middlewareDir, self::$dirPermission, true);
-                            }
+                            // 目录已在循环开头创建
+                            break;
                         default:
                             break;
                     }
@@ -311,120 +287,247 @@ class CreateCmd extends BaseCmd
                 }
                 case 'Service':
                 {
-                    switch ($protocol)
-                    {
+                    switch ($protocol) {
                         case self::UDP_PROTOCOL:
                         case self::WEBSOCKET_PROTOCOL:
                         case self::RPC_PROTOCOL:
                         case self::MQTT_PROTOCOL:
-                            $serviceDir = $appPathDir . '/' . $dir;
-                            if (!is_dir($serviceDir)) {
-                                @mkdir($serviceDir, self::$dirPermission, true);
-                            }
+                            // 目录已在循环开头创建
                             break;
                         default:
                             break;
                     }
 
-                    // 初始化service模版
                     if ($protocol == self::UDP_PROTOCOL || $protocol == self::WEBSOCKET_PROTOCOL) {
-                        $serviceFile = $appPathDir . '/' . $dir . '/DemoService.php';
-                        if (!file_exists($serviceFile)) {
-                            file_put_contents($serviceFile, $this->getDefaultService($appName, $protocol));
-                        }
+                        $this->writeFile(
+                            $appPathDir . '/' . $dir . '/DemoService.php',
+                            $this->getDefaultService($appName, $protocol)
+                        );
                         if ($protocol == self::WEBSOCKET_PROTOCOL) {
-                            $chatServiceFile = $appPathDir . '/' . $dir . '/ChatService.php';
-                            if (!file_exists($chatServiceFile)) {
-                                $chatServiceContent = (string) file_get_contents(SRC_DIR_ROOT . '/Stubs/ChatService.stub.php');
-                                $chatServiceContent = str_replace('__APP_NAMESPACE__', $appName, $chatServiceContent);
-                                file_put_contents($chatServiceFile, $chatServiceContent);
-                            }
+                            $chatServiceContent = $this->readFile(SRC_DIR_ROOT . '/Stubs/ChatService.stub.php');
+                            $chatServiceContent = str_replace('__APP_NAMESPACE__', $appName, $chatServiceContent);
+                            $this->writeFile($appPathDir . '/' . $dir . '/ChatService.php', $chatServiceContent);
+
                             $pushDir = $appPathDir . '/Push';
-                            @mkdir($pushDir, self::$dirPermission, true);
-                            $enricherFile = $pushDir . '/MessagePushEnricher.php';
-                            if (!file_exists($enricherFile)) {
-                                $enricherContent = (string) file_get_contents(SRC_DIR_ROOT . '/Stubs/MessagePushEnricher.stub.php');
-                                $enricherContent = str_replace('__APP_NAMESPACE__', $appName, $enricherContent);
-                                file_put_contents($enricherFile, $enricherContent);
-                            }
+                            $this->ensureDirectory($pushDir);
+                            $enricherContent = $this->readFile(SRC_DIR_ROOT . '/Stubs/MessagePushEnricher.stub.php');
+                            $enricherContent = str_replace('__APP_NAMESPACE__', $appName, $enricherContent);
+                            $this->writeFile($pushDir . '/MessagePushEnricher.php', $enricherContent);
+
                             $authDir = $appPathDir . '/Auth';
-                            @mkdir($authDir, self::$dirPermission, true);
-                            $authCallbackFile = $authDir . '/WebsocketAuthCallback.php';
-                            if (!file_exists($authCallbackFile)) {
-                                $authContent = (string) file_get_contents(SRC_DIR_ROOT . '/Stubs/WebsocketAuthCallback.stub.php');
-                                $authContent = str_replace('__APP_NAMESPACE__', $appName, $authContent);
-                                file_put_contents($authCallbackFile, $authContent);
-                            }
-                            $groupAuthFile = $authDir . '/WebsocketGroupJoinAuthorizer.php';
-                            if (!file_exists($groupAuthFile)) {
-                                $groupAuthContent = (string) file_get_contents(SRC_DIR_ROOT . '/Stubs/WebsocketGroupJoinAuthorizer.stub.php');
-                                $groupAuthContent = str_replace('__APP_NAMESPACE__', $appName, $groupAuthContent);
-                                file_put_contents($groupAuthFile, $groupAuthContent);
-                            }
+                            $this->ensureDirectory($authDir);
+                            $authContent = $this->readFile(SRC_DIR_ROOT . '/Stubs/WebsocketAuthCallback.stub.php');
+                            $authContent = str_replace('__APP_NAMESPACE__', $appName, $authContent);
+                            $this->writeFile($authDir . '/WebsocketAuthCallback.php', $authContent);
+                            $groupAuthContent = $this->readFile(SRC_DIR_ROOT . '/Stubs/WebsocketGroupJoinAuthorizer.stub.php');
+                            $groupAuthContent = str_replace('__APP_NAMESPACE__', $appName, $groupAuthContent);
+                            $this->writeFile($authDir . '/WebsocketGroupJoinAuthorizer.php', $groupAuthContent);
                         }
                     }
                     break;
                 }
                 case 'Scripts':
                 {
-                    $scriptPath = $appPathDir . '/' . $dir;
-                    $kernelFile = SRC_DIR_ROOT.'/Script/Kernel.php';
-                    $kernelFileContent = file_get_contents($kernelFile);
+                    $kernelFileContent = $this->readFile(SRC_DIR_ROOT . '/Script/Kernel.php');
                     $kernelFileContent = str_replace('namespace Swoolefy\Script', "namespace {$appName}\\{$dir}", $kernelFileContent);
-                    if (!file_exists($scriptPath.'/Kernel.php')) {
-                        @file_put_contents($scriptPath.'/Kernel.php', $kernelFileContent);
-                    }
+                    $this->writeFile($appPathDir . '/' . $dir . '/Kernel.php', $kernelFileContent);
+                    break;
                 }
                 default:
                     break;
             }
         }
-        $this->copyServerFile($appName, $protocol);
+
+        $this->copyServerFile($appName, $protocol, $appPathDir);
         if ($protocol == self::HTTP_PROTOCOL) {
             $this->copyHttpI18nAndBootstrap($appName, $appPathDir);
         }
         if ($protocol == self::WEBSOCKET_PROTOCOL) {
-            @mkdir($appPathDir . '/Tests', self::$dirPermission, true);
-            @copy(SRC_DIR_ROOT . '/Stubs/socketio.client.stub.html', $appPathDir . '/Storage/socketio-client.html');
-            $testHtml = str_replace('__APP_NAMESPACE__', $appName, (string) file_get_contents(SRC_DIR_ROOT . '/Websocket/Tests/socketio-client.html'));
-            @file_put_contents($appPathDir . '/Tests/socketio-client.html', $testHtml);
+            $this->ensureDirectory($appPathDir . '/Tests');
+            $this->ensureDirectory($appPathDir . '/Storage');
+            $this->copyFile(SRC_DIR_ROOT . '/Stubs/socketio.client.stub.html', $appPathDir . '/Storage/socketio-client.html');
+            $testHtml = str_replace(
+                '__APP_NAMESPACE__',
+                $appName,
+                $this->readFile(SRC_DIR_ROOT . '/Websocket/Tests/socketio-client.html')
+            );
+            $this->writeFile($appPathDir . '/Tests/socketio-client.html', $testHtml);
         }
-        fmtPrintInfo("应用创建成功啦，应用名称为：【{$appName}】，你现在可以使用命令 php cli.php start {$appName} 来启动应用");
-        return 0;
+    }
+
+    /**
+     * 仓库根 daemon/cron/script 入口：仅在不存在时复制，失败抛 IOException。
+     *
+     * @throws IOException
+     */
+    protected function ensureRootServiceEntryFiles(): void
+    {
+        $pairs = [
+            START_DIR_ROOT . '/daemon.php' => SRC_DIR_ROOT . '/Stubs/daemon.stub.php',
+            START_DIR_ROOT . '/cron.php' => SRC_DIR_ROOT . '/Stubs/cron.stub.php',
+            START_DIR_ROOT . '/script.php' => SRC_DIR_ROOT . '/Stubs/script.stub.php',
+        ];
+        foreach ($pairs as $target => $source) {
+            if (!file_exists($target)) {
+                $this->copyFile($source, $target);
+            }
+        }
+    }
+
+    /**
+     * @throws IOException
+     */
+    protected function ensureDirectory(string $dir, ?int $permission = null): void
+    {
+        if (is_dir($dir)) {
+            return;
+        }
+        $permission = $permission ?? self::$dirPermission;
+        $parent = dirname($dir);
+        // 先确保父目录存在并可写，避免 mkdir 失败时产生 PHP Warning
+        if ($parent !== $dir && !is_dir($parent)) {
+            $this->ensureDirectory($parent, $permission);
+        }
+        if ($parent !== $dir && is_dir($parent) && !is_writable($parent)) {
+            throw new IOException('Failed to create directory: parent not writable', 0, null, '', $dir);
+        }
+        if (!mkdir($dir, $permission) && !is_dir($dir)) {
+            throw new IOException('Failed to create directory', 0, null, '', $dir);
+        }
+    }
+
+    /**
+     * @throws IOException
+     */
+    protected function copyFile(string $source, string $target): void
+    {
+        if (!is_file($source)) {
+            throw new IOException('Source stub missing', 0, null, $source, $target);
+        }
+        $parent = dirname($target);
+        if (!is_dir($parent)) {
+            $this->ensureDirectory($parent);
+        }
+        if (!copy($source, $target)) {
+            throw new IOException('Failed to copy file', 0, null, $source, $target);
+        }
+    }
+
+    /**
+     * @throws IOException
+     */
+    protected function writeFile(string $target, string $content): void
+    {
+        $parent = dirname($target);
+        if (!is_dir($parent)) {
+            $this->ensureDirectory($parent);
+        }
+        if (file_put_contents($target, $content) === false) {
+            throw new IOException('Failed to write file', 0, null, '', $target);
+        }
+    }
+
+    /**
+     * @throws IOException
+     */
+    protected function readFile(string $source): string
+    {
+        if (!is_file($source)) {
+            throw new IOException('Source file missing', 0, null, $source, '');
+        }
+        $content = file_get_contents($source);
+        if ($content === false) {
+            throw new IOException('Failed to read file', 0, null, $source, '');
+        }
+        return $content;
+    }
+
+    protected function removeDirectoryTree(string $dir): void
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
+        $items = scandir($dir);
+        if ($items === false) {
+            return;
+        }
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+            $path = $dir . '/' . $item;
+            if (is_dir($path) && !is_link($path)) {
+                $this->removeDirectoryTree($path);
+            } else {
+                @unlink($path);
+            }
+        }
+        @rmdir($dir);
     }
 
     /**
      * HTTP：Bootstrap（LocaleMiddleware）+ 默认语言包。
+     *
+     * @throws IOException
      */
     protected function copyHttpI18nAndBootstrap(string $appName, string $appPathDir): void
     {
         $bootstrapFile = $appPathDir . '/Bootstrap.php';
         if (!file_exists($bootstrapFile)) {
-            $content = (string) file_get_contents(SRC_DIR_ROOT . '/Stubs/Bootstrap.stub.php');
+            $content = $this->readFile(SRC_DIR_ROOT . '/Stubs/Bootstrap.stub.php');
             $content = str_replace('MY_APP_NAME', $appName, $content);
-            @file_put_contents($bootstrapFile, $content);
+            $this->writeFile($bootstrapFile, $content);
         }
 
         foreach (['zh_CN' => 'translations.zh_CN.messages.stub.php', 'en' => 'translations.en.messages.stub.php'] as $locale => $stub) {
             $dir = $appPathDir . '/Resource/Translations/' . $locale;
-            if (!is_dir($dir)) {
-                @mkdir($dir, self::$dirPermission, true);
-            }
+            $this->ensureDirectory($dir);
             $messagesFile = $dir . '/messages.php';
             if (!file_exists($messagesFile)) {
-                @copy(SRC_DIR_ROOT . '/Stubs/' . $stub, $messagesFile);
+                $this->copyFile(SRC_DIR_ROOT . '/Stubs/' . $stub, $messagesFile);
             }
         }
     }
 
     /**
-     * @param $appName
-     * @param $protocol
-     * @return void
+     * CreateCmd 路径下 Event/Autoloader 写入必须检查返回值。
+     *
+     * @throws IOException
      */
-    protected function copyServerFile($appName, $protocol)
+    protected function commonHandleFile(?string $appPathDir = null)
     {
-        $this->commonHandleFile();
+        $appPathDir = $appPathDir ?? APP_PATH;
+        $eventServerFile = $appPathDir . '/Event.php';
+        if (!file_exists($eventServerFile)) {
+            $fileContentString = $this->readFile(SRC_DIR_ROOT . '/Stubs/event_handle.stub.php');
+            $count = 1;
+            $fileContentString = str_replace('protocol\\event', APP_NAME, $fileContentString, $count);
+            $this->writeFile($eventServerFile, $fileContentString);
+        }
+
+        $autoloaderFile = $appPathDir . '/Autoloader.php';
+        if (!file_exists($autoloaderFile)) {
+            $fileContentString = $this->readFile(dirname(SRC_DIR_ROOT) . '/Autoloader.php');
+            $fileContentString = str_replace(
+                ['__APP_NAMESPACE__', '<{APP_NAME}>'],
+                [APP_NAME, APP_NAME],
+                $fileContentString
+            );
+            $this->writeFile($autoloaderFile, $fileContentString);
+        }
+    }
+
+    /**
+     * @param string $appName
+     * @param string $protocol
+     * @param string|null $appPathDir
+     * @return void
+     * @throws IOException
+     */
+    protected function copyServerFile($appName, $protocol, ?string $appPathDir = null)
+    {
+        $appPathDir = $appPathDir ?? APP_PATH;
+        $this->commonHandleFile($appPathDir);
         $protocolInfo = $this->protocolMap[$protocol] ?? [];
         if (empty($protocolInfo)) {
             $namespace = 'protocol\\http';
@@ -433,14 +536,14 @@ class CreateCmd extends BaseCmd
             $namespace = $protocolInfo['namespace'];
             $serverName = $protocolInfo['server_name'];
         }
-        $eventServerFile = APP_PATH.'/'.$serverName.'.php';
+        $eventServerFile = $appPathDir . '/' . $serverName . '.php';
         if (!file_exists($eventServerFile)) {
             $searchStr = $namespace;
             $replaceStr = "{$appName}";
-            $fileContentString = file_get_contents(SRC_DIR_ROOT.'/Stubs/'.$serverName.'.stub.php');
+            $fileContentString = $this->readFile(SRC_DIR_ROOT . '/Stubs/' . $serverName . '.stub.php');
             $count = 1;
             $fileContentString = str_replace($searchStr, $replaceStr, $fileContentString, $count);
-            file_put_contents($eventServerFile, $fileContentString);
+            $this->writeFile($eventServerFile, $fileContentString);
         }
     }
 
