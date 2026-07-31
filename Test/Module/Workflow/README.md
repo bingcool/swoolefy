@@ -24,7 +24,8 @@ Run 持久化由 `Test/Config/workflow.php` 控制（`default_run_store` + `run_
 | Contract | （统一 API / 无专用 Demo） | `ContractWorkflowService` |
 | Knowledge | （统一 API / 无专用 Demo） | `KnowledgeWorkflowService` |
 
-约定：**谁启动谁查询**；同一 `WorkflowRegistry` 复用同一 RunStore（见 `WorkflowComponentFactory`）。
+约定：**谁启动谁查询**；`WorkflowRegistry` **进程级复用**（勿按请求创建），同一 `registryId` 复用同一 RunStore（见 `WorkflowComponentFactory`）。
+替换 Registry 时调用 `WorkflowComponentFactory::releaseRegistry($id)`。
 模块回归：`composer test:module-workflows`。
 
 默认 API 前缀：`/api`。下文假设服务监听 `http://127.0.0.1:9501`。

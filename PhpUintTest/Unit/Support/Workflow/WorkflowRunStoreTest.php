@@ -22,6 +22,7 @@ use Swoolefy\Support\Workflow\Engine\DagScheduler;
 use Swoolefy\Support\Workflow\Engine\DbRunStore;
 use Swoolefy\Support\Workflow\Engine\InMemoryRunStore;
 use Swoolefy\Support\Workflow\Engine\NodeExecutionResult;
+use Swoolefy\Support\Workflow\Engine\RedisRunStore;
 use Swoolefy\Support\Workflow\Engine\RunStatus;
 use Swoolefy\Support\Workflow\Engine\RunStoreInterface;
 use Swoolefy\Support\Workflow\Engine\WorkflowEngine;
@@ -31,6 +32,7 @@ use Swoolefy\Support\Workflow\Node\PauseNode;
 use Swoolefy\Support\Workflow\Plugin\PluginManager;
 use Swoolefy\Support\Workflow\Tests\Fixtures\OrderProcessingFixtureWorkflow;
 use Swoolefy\Support\Workflow\Tests\WorkflowRunsSchemaInstaller;
+use Swoolefy\Support\Workflow\WorkflowBootstrap;
 use Swoolefy\Support\Workflow\WorkflowComponentFactory;
 use Swoolefy\Support\Workflow\WorkflowConfig;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
@@ -45,12 +47,20 @@ use PhpUintTest\TestCase;
  * |------|------|
  * | WorkflowRunStoreName | 常量、all()、isSupported() |
  * | WorkflowConfig | run_stores 解析、自定义 alias/driver、redis/db 参数 |
- * | WorkflowComponentFactory | memory 构建、不支持 driver 抛错、redis/db 需 ApplicationContext |
- * | InMemoryRunStore | 跨 Engine 共享、run_id 格式 |
- * | DbRunStore | 持久化、listWaiting、resume、upsert 幂等 |
+ * | WorkflowComponentFactory | memory 构建、稳定 registryId 缓存、releaseRegistry、生产 memory warning |
+ * | WorkflowBootstrap / Facade | 按 WorkflowConfig 装配 RunStore，redis 不静默回退 memory |
+ * | InMemoryRunStore | 跨 Engine 共享、run_id 格式、协程间按 runId 隔离 |
+ * | DbRunStore | 持久化、listWaiting、resume、upsert 幂等、PDO resolver 按次解析 |
  */
 final class WorkflowRunStoreTest extends TestCase
 {
+    protected function tearDown(): void
+    {
+        WorkflowBootstrap::reset();
+        WorkflowComponentFactory::resetRunStores();
+        parent::tearDown();
+    }
+
     /**
      * 返回含 memory/redis/db 三套 run_stores 的示例 Workflow 配置数组。
      *
@@ -216,34 +226,42 @@ final class WorkflowRunStoreTest extends TestCase
     }
 
     /**
-     * 验证：无 ApplicationContext 时构建 redis RunStore 失败，错误信息提及 Application context。
-     *
-     * Redis 连接须从 Swoolefy 应用容器获取，CLI 单测无上下文。
+     * 验证：Factory 构建 RedisRunStore（延迟 resolve）；首次 IO 无 Application 时抛错，不静默 memory。
      */
     public function testFactoryRedisRequiresApplicationContext(): void
     {
         $registry = new WorkflowRegistry();
+        $this->registerOrderWorkflow($registry);
         $config = WorkflowConfig::fromArray($this->sampleRunStoresConfig(WorkflowRunStoreName::REDIS));
 
+        $store = WorkflowComponentFactory::runStore($registry, $config, WorkflowRunStoreName::REDIS);
+        $this->assertTrue($store instanceof RedisRunStore, 'redis store type');
+        $this->assertTrue(!$store instanceof InMemoryRunStore, 'not silent memory');
+
         try {
-            WorkflowComponentFactory::runStore($registry, $config, WorkflowRunStoreName::REDIS);
-            $this->assertTrue(false, 'should throw without app');
+            $store->find('run_missing');
+            $this->assertTrue(false, 'IO should throw without app');
         } catch (WorkflowException $e) {
             $this->assertTrue(str_contains($e->getMessage(), 'Application context'), 'redis needs app');
         }
     }
 
     /**
-     * 验证：无 ApplicationContext 时构建 db RunStore 失败，错误信息提及 Application context。
+     * 验证：Factory 构建 DbRunStore（延迟 resolve）；首次 IO 无 Application 时抛错，不静默 memory。
      */
     public function testFactoryDbRequiresApplicationContext(): void
     {
         $registry = new WorkflowRegistry();
+        $this->registerOrderWorkflow($registry);
         $config = WorkflowConfig::fromArray($this->sampleRunStoresConfig(WorkflowRunStoreName::DB));
 
+        $store = WorkflowComponentFactory::runStore($registry, $config, WorkflowRunStoreName::DB);
+        $this->assertTrue($store instanceof DbRunStore, 'db store type');
+        $this->assertTrue(!$store instanceof InMemoryRunStore, 'not silent memory');
+
         try {
-            WorkflowComponentFactory::runStore($registry, $config, WorkflowRunStoreName::DB);
-            $this->assertTrue(false, 'should throw without app');
+            $store->find('run_missing');
+            $this->assertTrue(false, 'IO should throw without app');
         } catch (WorkflowException $e) {
             $this->assertTrue(str_contains($e->getMessage(), 'Application context'), 'db needs app');
         }
@@ -352,5 +370,216 @@ final class WorkflowRunStoreTest extends TestCase
 
         $count = (int) $pdo->query('SELECT COUNT(*) FROM workflow_runs')->fetchColumn();
         $this->assertTrue($count === 1, 'upsert keeps single row');
+    }
+
+    /**
+     * 验证：稳定 registryId 作缓存键；同一 id 多次 runStore 不增加缓存项。
+     */
+    public function testFactoryCachesByStableRegistryId(): void
+    {
+        WorkflowComponentFactory::resetRunStores();
+        $config = WorkflowConfig::fromArray($this->sampleRunStoresConfig(WorkflowRunStoreName::MEMORY));
+        $registry = new WorkflowRegistry('stable.cache.test');
+
+        $store1 = WorkflowComponentFactory::runStore($registry, $config);
+        $store2 = WorkflowComponentFactory::runStore($registry, $config);
+        // 新对象但相同稳定 id → 仍命中缓存（约定：id 唯一标识 Registry 生命周期）
+        $store3 = WorkflowComponentFactory::runStore(new WorkflowRegistry('stable.cache.test'), $config);
+
+        $this->assertTrue($store1 === $store2, 'same registry instance reuses store');
+        $this->assertTrue($store1 === $store3, 'same registry id reuses store');
+        $this->assertTrue(WorkflowComponentFactory::cachedRunStoreCount() === 1, 'cache size stays 1');
+    }
+
+    /**
+     * 验证：releaseRegistry 后缓存清空，可再绑定新 Store。
+     */
+    public function testReleaseRegistryDropsCachedRunStore(): void
+    {
+        WorkflowComponentFactory::resetRunStores();
+        $config = WorkflowConfig::fromArray($this->sampleRunStoresConfig(WorkflowRunStoreName::MEMORY));
+        $registry = new WorkflowRegistry('release.me');
+        $store1 = WorkflowComponentFactory::runStore($registry, $config);
+        $this->assertTrue(WorkflowComponentFactory::cachedRunStoreCount() === 1, 'cached');
+
+        WorkflowComponentFactory::releaseRegistry($registry->id());
+        $this->assertTrue(WorkflowComponentFactory::cachedRunStoreCount() === 0, 'released');
+
+        $store2 = WorkflowComponentFactory::runStore($registry, $config);
+        $this->assertTrue($store1 !== $store2, 'new store after release');
+        $this->assertTrue(WorkflowComponentFactory::cachedRunStoreCount() === 1, 're-cached');
+    }
+
+    /**
+     * 验证：生产环境 memory 驱动触发 E_USER_WARNING（高可见）；开发环境不警告。
+     */
+    public function testProductionMemoryRunStoreEmitsWarning(): void
+    {
+        WorkflowComponentFactory::resetRunStores();
+        $config = WorkflowConfig::fromArray($this->sampleRunStoresConfig(WorkflowRunStoreName::MEMORY));
+
+        $warned = false;
+        $this->withSwoolefyEnv('prd', function () use ($config, &$warned): void {
+            set_error_handler(static function (int $severity, string $message) use (&$warned): bool {
+                if ($severity === E_USER_WARNING && str_contains($message, 'CRITICAL') && str_contains($message, 'memory')) {
+                    $warned = true;
+
+                    return true;
+                }
+
+                return false;
+            });
+            try {
+                WorkflowComponentFactory::runStore(new WorkflowRegistry('warn.memory'), $config);
+            } finally {
+                restore_error_handler();
+            }
+        });
+        $this->assertTrue($warned, 'production memory must warn');
+
+        WorkflowComponentFactory::resetRunStores();
+        $devWarned = false;
+        $this->withSwoolefyEnv('dev', function () use ($config, &$devWarned): void {
+            set_error_handler(static function (int $severity, string $message) use (&$devWarned): bool {
+                if ($severity === E_USER_WARNING && str_contains($message, 'memory')) {
+                    $devWarned = true;
+
+                    return true;
+                }
+
+                return false;
+            });
+            try {
+                WorkflowComponentFactory::runStore(new WorkflowRegistry('warn.dev'), $config);
+            } finally {
+                restore_error_handler();
+            }
+        });
+        $this->assertTrue(!$devWarned, 'dev memory must not warn');
+    }
+
+    /**
+     * @param callable(): void $callback
+     */
+    private function withSwoolefyEnv(string $env, callable $callback): void
+    {
+        $previous = $_ENV['SWOOLEFY_ENV'] ?? getenv('SWOOLEFY_ENV');
+        $_ENV['SWOOLEFY_ENV'] = $env;
+        putenv('SWOOLEFY_ENV=' . $env);
+
+        try {
+            $callback();
+        } finally {
+            if ($previous === false || $previous === null || $previous === '') {
+                unset($_ENV['SWOOLEFY_ENV']);
+                putenv('SWOOLEFY_ENV');
+            } else {
+                $_ENV['SWOOLEFY_ENV'] = $previous;
+                putenv('SWOOLEFY_ENV=' . $previous);
+            }
+        }
+    }
+
+    /**
+     * 验证：Facade/Bootstrap 按配置装配 RedisRunStore，不静默回退 InMemory；IO 仍需 Application。
+     */
+    public function testBootstrapFacadeHonorsConfiguredRunStoreNotSilentMemory(): void
+    {
+        WorkflowBootstrap::reset();
+        WorkflowComponentFactory::resetRunStores();
+
+        $memoryConfig = WorkflowConfig::fromArray($this->sampleRunStoresConfig(WorkflowRunStoreName::MEMORY));
+        $memoryEngine = WorkflowBootstrap::engine(config: $memoryConfig);
+        $this->assertTrue($memoryEngine->runStore() instanceof InMemoryRunStore, 'memory config');
+
+        $redisConfig = WorkflowConfig::fromArray($this->sampleRunStoresConfig(WorkflowRunStoreName::REDIS));
+        $redisEngine = WorkflowBootstrap::engine(
+            config: $redisConfig,
+            registry: new WorkflowRegistry('facade.redis'),
+        );
+        $this->assertTrue($redisEngine->runStore() instanceof RedisRunStore, 'redis config honored');
+        $this->assertTrue(!$redisEngine->runStore() instanceof InMemoryRunStore, 'not silent memory');
+
+        try {
+            $redisEngine->runStore()->find('run_missing');
+            $this->assertTrue(false, 'IO should throw without app');
+        } catch (WorkflowException $e) {
+            $this->assertTrue(str_contains($e->getMessage(), 'Application context'), 'redis needs app on IO');
+        }
+    }
+
+    /**
+     * 验证：两协程共享同一 RunStore，不同 runId 互不串写。
+     */
+    public function testSharedRunStoreIsolatesByRunIdAcrossCoroutines(): void
+    {
+        WorkflowComponentFactory::resetRunStores();
+        $registry = new WorkflowRegistry('coro.shared');
+        $this->registerOrderWorkflow($registry);
+        $config = WorkflowConfig::fromArray($this->sampleRunStoresConfig(WorkflowRunStoreName::MEMORY));
+        $store = WorkflowComponentFactory::runStore($registry, $config);
+        $compiled = WorkflowComponentFactory::compiler($config)->compile($registry->definition('order_processing'));
+
+        $run = function () use ($store, $compiled): void {
+            $ids = [];
+            $wg = new \Swoole\Coroutine\WaitGroup(2);
+            \Swoole\Coroutine::create(function () use ($store, $compiled, &$ids, $wg): void {
+                $engine = $this->makeEngine($store);
+                $ids['a'] = $engine->start($compiled, ['orderId' => 'ORD-A', 'amount' => 1]);
+                $this->assertTrue($engine->getRun($ids['a'])->state->get('orderId') === 'ORD-A', 'coro A');
+                $wg->done();
+            });
+            \Swoole\Coroutine::create(function () use ($store, $compiled, &$ids, $wg): void {
+                $engine = $this->makeEngine($store);
+                $ids['b'] = $engine->start($compiled, ['orderId' => 'ORD-B', 'amount' => 2]);
+                $this->assertTrue($engine->getRun($ids['b'])->state->get('orderId') === 'ORD-B', 'coro B');
+                $wg->done();
+            });
+            $wg->wait();
+
+            $this->assertTrue(($ids['a'] ?? '') !== ($ids['b'] ?? ''), 'distinct runIds');
+            $this->assertTrue($store->find($ids['a'])?->state->get('orderId') === 'ORD-A', 'A intact');
+            $this->assertTrue($store->find($ids['b'])?->state->get('orderId') === 'ORD-B', 'B intact');
+        };
+
+        if (\Swoole\Coroutine::getCid() >= 0) {
+            $run();
+
+            return;
+        }
+
+        \Swoole\Runtime::enableCoroutine();
+        \Swoole\Coroutine\run($run);
+    }
+
+    /**
+     * 验证：DbRunStore Closure resolver 每次 IO 重新取 PDO（不冻死构造时连接）。
+     */
+    public function testDbRunStoreResolvesPdoPerIo(): void
+    {
+        $registry = new WorkflowRegistry();
+        $this->registerOrderWorkflow($registry);
+        $pdo = new PDO('sqlite::memory:');
+        WorkflowRunsSchemaInstaller::install($pdo);
+        $calls = 0;
+        $store = new DbRunStore(
+            static function () use (&$calls, $pdo): PDO {
+                ++$calls;
+
+                return $pdo;
+            },
+            $registry,
+            'workflow_runs',
+        );
+        $engine = $this->makeEngine($store);
+        $compiled = WorkflowComponentFactory::compiler(
+            WorkflowConfig::fromArray($this->sampleRunStoresConfig()),
+        )->compile($registry->definition('order_processing'));
+
+        $runId = $engine->start($compiled, ['orderId' => 'ORD-RESOLVER', 'amount' => 1]);
+        $engine->getRun($runId);
+
+        $this->assertTrue($calls >= 2, 'pdo resolved at least save+find');
+        $this->assertTrue($engine->getRun($runId)->status === RunStatus::COMPLETED, 'completed via resolver');
     }
 }

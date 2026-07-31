@@ -13,6 +13,8 @@ namespace Swoolefy\Core\Coroutine;
 
 use Swoole\Coroutine\Channel;
 use Swoolefy\Core\Application;
+use Swoolefy\Core\Timer\Tick;
+use Swoolefy\Util\Helper;
 
 class Timer
 {
@@ -39,7 +41,10 @@ class Timer
                     $timeChannel->close();
                     break;
                 }
-
+                // 每次触发仅写入系统字段（含独立 trace id，便于日志排查）
+                Context::set(Tick::CTX_SYS_TICK_TIMER_ID, 'channel');
+                Context::set(Tick::CTX_SYS_TICK_TRIGGER_TIME, time());
+                Context::set(Tick::CTX_X_TRACE_ID, Tick::TRACE_ID_PREFIX_TICKTIMER . Helper::UUid());
                 // block
                 if ($withBlockLapping) {
                     try {
@@ -100,6 +105,9 @@ class Timer
 
         goApp(function ($timeSecond, $callable) use ($timeChannel) {
             while (!$timeChannel->pop($timeSecond)) {
+                // 每次触发仅写入系统字段（含独立 trace id，便于日志排查）
+                Context::set(Tick::CTX_SYS_TICK_TRIGGER_TIME, time());
+                Context::set(Tick::CTX_X_TRACE_ID, Tick::TRACE_ID_PREFIX_AFTERTIMER . Helper::UUid());
                 goApp(function () use($timeChannel, $callable) {
                     $callable($timeChannel);
                 });

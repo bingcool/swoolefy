@@ -19,6 +19,9 @@ use Swoolefy\Support\Workflow\Exception\WorkflowException;
 
 /**
  * 从 Swoolefy 组件容器解析 Redis（phpredis / predis 均继承 RedisConnection）。
+ *
+ * 须在每次 IO 调用（由 RedisRunStore Closure resolver 触发），
+ * 不可在进程级 Store 构造时只 resolve 一次后冻死连接。
  */
 final class WorkflowRedisResolver
 {

@@ -26,6 +26,9 @@ use Throwable;
  *   - RunStoreInterface：幂等 UPSERT save / find
  *   - PauseTaskQueryableInterface：按 status + assignee 索引查询 WAITING
  *
+ * PDO 可直接注入，或注入 `Closure(): PDO`（Factory 生产路径用后者：
+ * 每次 IO 从当前 Application 取连接，避免进程级 Store 冻死首次 cid 的 PDO）。
+ *
  * 高可用要点：
  *   - 使用事务提交快照，避免半写入
  *   - UPSERT 幂等，Worker 重试安全
@@ -37,15 +40,20 @@ use Throwable;
  */
 final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
 {
+    /**
+     * @param PDO|\Closure(): PDO $pdo 连接或按调用解析的 resolver
+     */
     public function __construct(
-        private readonly PDO $pdo,
+        private readonly PDO|\Closure $pdo,
         private readonly WorkflowRegistry $registry,
         private readonly string $table = 'workflow_runs',
     ) {
         if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $this->table)) {
             throw new WorkflowException("Invalid workflow runs table name [{$this->table}]");
         }
-        $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        if ($this->pdo instanceof PDO) {
+            $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        }
     }
 
     /** {@inheritdoc} */
@@ -54,8 +62,9 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
         $snapshot = WorkflowRunSnapshot::fromRun($run)->toArray();
         $payload = json_encode($snapshot, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
         $assignee = $this->resolveAssignee($run);
+        $pdo = $this->connection();
 
-        $driver = (string) $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+        $driver = (string) $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
         $sql = $this->upsertSql($driver);
 
         $attempts = 0;
@@ -63,8 +72,8 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
         while ($attempts < 3) {
             ++$attempts;
             try {
-                $this->pdo->beginTransaction();
-                $stmt = $this->pdo->prepare($sql);
+                $pdo->beginTransaction();
+                $stmt = $pdo->prepare($sql);
                 $stmt->execute([
                     ':run_id' => $run->runId,
                     ':workflow_id' => $run->compiled->workflowId(),
@@ -76,12 +85,12 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
                     ':created_at' => $run->createdAt,
                     ':updated_at' => $run->updatedAt,
                 ]);
-                $this->pdo->commit();
+                $pdo->commit();
 
                 return;
             } catch (Throwable $e) {
-                if ($this->pdo->inTransaction()) {
-                    $this->pdo->rollBack();
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
                 }
                 $lastError = $e;
                 // 死锁 / 瞬时锁等待：短暂退避后重试
@@ -114,7 +123,8 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
         $snapshot = WorkflowRunSnapshot::fromRun($run)->toArray();
         $payload = json_encode($snapshot, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
         $assignee = $this->resolveAssignee($run);
-        $driver = (string) $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+        $pdo = $this->connection();
+        $driver = (string) $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
         $sql = $this->updateIfStatusSql($driver);
 
         $params = [
@@ -134,7 +144,7 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
         while ($attempts < 3) {
             ++$attempts;
             try {
-                $stmt = $this->pdo->prepare($sql);
+                $stmt = $pdo->prepare($sql);
                 $stmt->execute($params);
 
                 // MySQL/InnoDB：status 不匹配时 rowCount=0
@@ -159,7 +169,7 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
     /** {@inheritdoc} */
     public function find(string $runId): ?WorkflowRun
     {
-        $stmt = $this->pdo->prepare(
+        $stmt = $this->connection()->prepare(
             "SELECT payload FROM {$this->table} WHERE run_id = :run_id AND deleted_at IS NULL LIMIT 1",
         );
         $stmt->execute([':run_id' => $runId]);
@@ -184,8 +194,9 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
     /** {@inheritdoc} */
     public function listWaiting(?string $assignee = null): array
     {
+        $pdo = $this->connection();
         if ($assignee !== null && $assignee !== '') {
-            $stmt = $this->pdo->prepare(
+            $stmt = $pdo->prepare(
                 "SELECT payload FROM {$this->table}
                  WHERE status = :status AND assignee = :assignee AND deleted_at IS NULL
                  ORDER BY updated_at ASC",
@@ -195,7 +206,7 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
                 ':assignee' => $assignee,
             ]);
         } else {
-            $stmt = $this->pdo->prepare(
+            $stmt = $pdo->prepare(
                 "SELECT payload FROM {$this->table}
                  WHERE status = :status AND deleted_at IS NULL
                  ORDER BY updated_at ASC",
@@ -237,6 +248,25 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
         $assignee = is_array($output) ? ($output['assignee'] ?? null) : null;
 
         return is_string($assignee) && $assignee !== '' ? $assignee : null;
+    }
+
+    /**
+     * 每次 IO 取 PDO：Closure resolver 走当前协程 Application，禁止冻死首次 cid。
+     */
+    private function connection(): PDO
+    {
+        $pdo = $this->pdo;
+        if ($pdo instanceof \Closure) {
+            $resolved = $pdo();
+            if (!$resolved instanceof PDO) {
+                throw new WorkflowException('DbRunStore resolver must return ' . PDO::class);
+            }
+            $resolved->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+            return $resolved;
+        }
+
+        return $pdo;
     }
 
     private function upsertSql(string $driver): string

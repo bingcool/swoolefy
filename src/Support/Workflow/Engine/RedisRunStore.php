@@ -23,8 +23,8 @@ use Throwable;
 /**
  * Redis Run 快照存储 —— 跨 Worker 持久化 Run，支持 resume / HITL。
  *
- * Redis 实例来自 Swoolefy 组件容器（{@see \Swoolefy\Support\Workflow\WorkflowRedisResolver}），
- * phpredis / predis 包装类均继承 {@see RedisConnection}。
+ * Redis 可直接注入 {@see RedisConnection}，或注入 `Closure(): RedisConnection`
+ *（Factory 生产路径用后者：每次 IO 从当前 Application 取连接，避免进程级 Store 冻死首次 cid）。
  *
  * 存储格式：JSON（{@see WorkflowRunSnapshot}），key = {prefix}{runId}
  *
@@ -62,8 +62,11 @@ end
 return 1
 LUA;
 
+    /**
+     * @param RedisConnection|\Closure(): RedisConnection $redis 连接或按调用解析的 resolver
+     */
     public function __construct(
-        private readonly RedisConnection $redis,
+        private readonly RedisConnection|\Closure $redis,
         private readonly WorkflowRegistry $registry,
         private readonly string $prefix = 'workflow:run:',
         private readonly int $ttlSeconds = 0,
@@ -73,14 +76,15 @@ LUA;
     /** {@inheritdoc} */
     public function save(WorkflowRun $run): void
     {
+        $redis = $this->connection();
         $key = $this->key($run->runId);
         $json = json_encode(WorkflowRunSnapshot::fromRun($run)->toArray(), JSON_THROW_ON_ERROR);
         $ttl = $this->ttlFor($run);
         if ($ttl > 0) {
-            $this->redis->setex($key, $ttl, $json);
+            $redis->setex($key, $ttl, $json);
         } else {
             // WAITING 或 ttl=0：无过期写入；SET 会清除先前 SETEX 留下的 TTL
-            $this->redis->set($key, $json);
+            $redis->set($key, $json);
         }
     }
 
@@ -129,7 +133,7 @@ LUA;
     /** {@inheritdoc} */
     public function find(string $runId): ?WorkflowRun
     {
-        $raw = $this->redis->get($this->key($runId));
+        $raw = $this->connection()->get($this->key($runId));
         if (!is_string($raw) || $raw === '') {
             return null;
         }
@@ -169,11 +173,12 @@ LUA;
     /** @return list<string> runId 列表 */
     private function scanKeys(): array
     {
+        $redis = $this->connection();
         $pattern = $this->prefix . '*';
         $ids = [];
 
-        if ($this->redis instanceof Redis && method_exists($this->redis, 'getRedisInstance')) {
-            $native = $this->redis->getRedisInstance();
+        if ($redis instanceof Redis && method_exists($redis, 'getRedisInstance')) {
+            $native = $redis->getRedisInstance();
             if ($native instanceof \Redis) {
                 $iterator = null;
                 do {
@@ -194,7 +199,7 @@ LUA;
 
         $cursor = '0';
         do {
-            $result = $this->redis->scan($cursor, ['MATCH' => $pattern, 'COUNT' => 100]);
+            $result = $redis->scan($cursor, ['MATCH' => $pattern, 'COUNT' => 100]);
             if (!is_array($result)) {
                 break;
             }
@@ -223,15 +228,31 @@ LUA;
      */
     private function evalScript(string $script, array $keysAndArgs, int $numKeys): mixed
     {
-        if ($this->isPredisDriver()) {
-            return $this->redis->eval($script, $numKeys, ...$keysAndArgs);
+        $redis = $this->connection();
+        if ($redis instanceof Predis) {
+            return $redis->eval($script, $numKeys, ...$keysAndArgs);
         }
 
-        return $this->redis->eval($script, $keysAndArgs, $numKeys);
+        return $redis->eval($script, $keysAndArgs, $numKeys);
     }
 
-    private function isPredisDriver(): bool
+    /**
+     * 每次 IO 取连接：Closure resolver 走当前协程 Application，禁止冻死首次 cid。
+     */
+    private function connection(): RedisConnection
     {
-        return $this->redis instanceof Predis;
+        $redis = $this->redis;
+        if ($redis instanceof \Closure) {
+            $resolved = $redis();
+            if (!$resolved instanceof RedisConnection) {
+                throw new WorkflowException(
+                    'RedisRunStore resolver must return ' . RedisConnection::class,
+                );
+            }
+
+            return $resolved;
+        }
+
+        return $redis;
     }
 }

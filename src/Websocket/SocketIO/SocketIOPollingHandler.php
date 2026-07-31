@@ -4,8 +4,6 @@ namespace Swoolefy\Websocket\SocketIO;
 
 use Swoole\Http\Request;
 use Swoole\Http\Response;
-use Swoole\WebSocket\Frame;
-use Swoole\WebSocket\Server;
 use Swoolefy\Websocket\WebsocketAuthenticator;
 use Swoolefy\Websocket\WebsocketConnectionManager;
 

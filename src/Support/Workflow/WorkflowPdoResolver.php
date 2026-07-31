@@ -22,6 +22,9 @@ use Swoolefy\Support\Workflow\Exception\WorkflowException;
  * 从 Swoolefy 组件容器解析 PDO（供 DbRunStore 使用）。
  *
  * component 对应 Config/component/database.php 中的别名（如 db）。
+ *
+ * 须在每次 IO 调用（由 DbRunStore Closure resolver 触发），
+ * 不可在进程级 Store 构造时只 resolve 一次后冻死连接。
  */
 final class WorkflowPdoResolver
 {

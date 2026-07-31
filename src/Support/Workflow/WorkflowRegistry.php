@@ -26,6 +26,8 @@ use Swoolefy\Support\Workflow\Exception\WorkflowException;
  *   - registerVersion() 仅追加历史版本，不改变 latest
  *   - compiled() 按 workflowId@version 缓存 CompiledWorkflow
  *   - Run 快照持久化 version；hydrate 时校验 Registry 中仍存在该版本
+ *   - {@see id()} 为进程内稳定标识，供 RunStore 工厂缓存；Registry 应进程级复用，
+ *     禁止按请求 new（临时实例会碎片化缓存；替换时调用 {@see WorkflowComponentFactory::releaseRegistry()}）
  *
  * 典型用法：
  *   $registry->register('order', fn () => OrderWorkflow::definition()); // v2 latest
@@ -35,6 +37,9 @@ use Swoolefy\Support\Workflow\Exception\WorkflowException;
  */
 final class WorkflowRegistry
 {
+    /** 进程内稳定标识（非 spl_object_id）；显式传入便于 reload 时 releaseRegistry。 */
+    private readonly string $id;
+
     /** @var array<string, callable(): WorkflowDefinition> workflowId => latest factory */
     private array $factories = [];
 
@@ -43,6 +48,20 @@ final class WorkflowRegistry
 
     /** @var array<string, CompiledWorkflow> cacheKey => compiled */
     private array $compiledCache = [];
+
+    /**
+     * @param string|null $id 稳定 Registry 标识；null 时自动生成。生产模块建议固定字符串（如 module.order）
+     */
+    public function __construct(?string $id = null)
+    {
+        $this->id = $id ?? ('reg_' . bin2hex(random_bytes(8)));
+    }
+
+    /** 供 WorkflowComponentFactory 缓存键使用的稳定标识。 */
+    public function id(): string
+    {
+        return $this->id;
+    }
 
     /**
      * 注册工作流工厂（作为 latest，并按 Definition.version 建立版本索引）。

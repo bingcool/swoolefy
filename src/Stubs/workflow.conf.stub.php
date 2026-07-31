@@ -19,6 +19,7 @@ use Swoolefy\Support\Workflow\WorkflowRunStoreName;
  *   - 默认 default_run_store=DB（跨 Worker HITL/resume）；本地单测可 env WORKFLOW_RUN_STORE=memory
  *   - 使用 DB 前预执行 src/Support/Workflow/Schema/workflow_runs.sql
  *   - component 指向 Config/component/database.php / cache.php 中已配置的高可用组件
+ *   - WorkflowRegistry 须进程级复用（勿按请求 new）；替换时 releaseRegistry(id)
  */
 return [
     'workflow' => [

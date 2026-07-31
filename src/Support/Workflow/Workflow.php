@@ -26,6 +26,9 @@ use Swoolefy\Support\Workflow\Engine\WorkflowRun;
  *   2. {@see compile()} 得到只读 {@see CompiledWorkflow}
  *   3. {@see start()} 通过 {@see WorkflowEngine} 启动运行
  *
+ * 默认 Engine（{@see WorkflowBootstrap::engine()}）按 WorkflowConfig 装配 RunStore；
+ * 生产请用进程级 {@see WorkflowRegistry} + {@see WorkflowComponentFactory}。
+ *
  * 快捷写法（脚本/测试）：
  *   Workflow::define('order_processing')->addNode(...)->compile()->start($input);
  *

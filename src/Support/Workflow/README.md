@@ -86,13 +86,19 @@ $run = $engine->getRun($runId);
 
 ### 生产装配
 
+**Registry 必须进程级复用**（模块 Service 单例），禁止按请求 `new WorkflowRegistry()`。
+RunStore 工厂按 `WorkflowRegistry::id()` 缓存；替换 Registry 时调用
+`WorkflowComponentFactory::releaseRegistry($id)`。共享适配器 OK，隔离单元是 `runId`。
+Engine / Tracing / Plugins 仍按协程或每次 `new` 隔离，不要做成进程级「当前实例」。
+
 ```php
 use Swoolefy\Support\Neuron\NeuronFactory;
 use Swoolefy\Support\Workflow\WorkflowComponentFactory;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
 use Swoolefy\Support\Workflow\Tests\Fixtures\OrderProcessingFixtureWorkflow;
 
-$registry = new WorkflowRegistry();
+// 固定 id，便于 reload 时 releaseRegistry('module.order')
+$registry = new WorkflowRegistry('module.order');
 $registry->register(
     'order_processing',
     fn () => OrderProcessingFixtureWorkflow::definition(new NeuronFactory()),
@@ -241,13 +247,14 @@ use Swoolefy\Support\Workflow\WorkflowRunStoreName;
 
 | 驱动 | 类 | 场景 |
 |------|-----|------|
-| `memory` | `InMemoryRunStore` | 单测、单 Worker 演示（不跨进程） |
+| `memory` | `InMemoryRunStore` | 单测、单 Worker 演示（不跨进程）；生产配置会打 CRITICAL warning，且 HealthCheck 拒绝 |
 | `redis` | `RedisRunStore` | 生产低延迟：跨 Worker resume / HITL |
 | `db` | `DbRunStore` | 生产可查询：跨 Worker、按 status/assignee 索引、易备份审计 |
 
-- Redis：`WorkflowRedisResolver` → `cache.php` 组件
+- Redis：每次 IO 经 `WorkflowRedisResolver` → `cache.php` 组件（不冻死首次 cid 连接）
 - Redis `ttl=0` 表示不过期。生产 HITL 任务可能跨天/跨周审批，不建议设置短 TTL；`SWOOLEFY_ENV=prd` 时，`ProductionHealthCheck` 会拦截小于 7 天的 Redis RunStore TTL。
-- DB：`WorkflowPdoResolver` → `database.php` 组件；**须预执行** `Schema/workflow_runs.sql` 建表（`DbRunStore` 不会自动建表）
+- DB：每次 IO 经 `WorkflowPdoResolver` → `database.php` 组件；**须预执行** `Schema/workflow_runs.sql` 建表（`DbRunStore` 不会自动建表）
+- Facade（`WorkflowBootstrap::engine()`）同样按 `workflow.php` 装配 RunStore，不再隐式固定 InMemory
 - `run_id` 由 `WorkflowRunTime::generateRunId()` 生成，格式 `run_YYYYMMDD_{16位hex}`
 - 表字段 `created_at` / `updated_at` 为 `DATETIME`；`deleted_at` 软删（查询默认过滤）
 - `DbRunStore` 使用事务 UPSERT + `saveIfStatus` CAS，死锁自动重试
@@ -358,9 +365,11 @@ Neuron：`NeuronFactory` + Agent::`chatHistory()`（`ChatHistoryFactory`）+ `Sw
 
 ## 协程单例隔离
 
-`WorkflowBootstrap` 通过 `Context` 缓存 Engine/Compiler，**禁止进程级 static**。单测调用 `WorkflowBootstrap::reset()`。
+`WorkflowBootstrap` 通过 `Context` 缓存 Engine/Compiler/Evaluator，**禁止把 Engine/Tracing/Plugins 做成进程级当前实例**。
+Registry / RunStore 适配器可进程级复用（按 `registryId` 缓存）；隔离单元是 `runId`。
 
-自定义 `PluginManager` 传入时始终新建 Engine，不写入 Context。
+单测调用 `WorkflowBootstrap::reset()`（会 `releaseRegistry` Bootstrap 共享 Registry）。
+自定义 `PluginManager` / `WorkflowConfig` / `WorkflowRegistry` 传入时始终新建 Engine，不写入 Context。
 
 ---
 
