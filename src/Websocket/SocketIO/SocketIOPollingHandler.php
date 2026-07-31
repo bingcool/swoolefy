@@ -99,13 +99,30 @@ class SocketIOPollingHandler
 
         $sid = SocketIOHandler::generateSidPublic();
         $virtualFd = SocketIOSessionManager::allocateVirtualFd();
-        SocketIOSessionManager::bindSid($sid, $virtualFd);
 
-        WebsocketConnectionManager::openPolling($request, [
-            'user_id' => (string) $auth['user_id'],
-            'sid' => $sid,
-            'virtual_fd' => $virtualFd,
-        ]);
+        try {
+            // 先 openPolling 写入含 user_id 的连接元数据，再 bindSid 写 Redis Hash，避免 sid 元数据缺 user_id
+            WebsocketConnectionManager::openPolling($request, [
+                'user_id' => (string) $auth['user_id'],
+                'sid' => $sid,
+                'virtual_fd' => $virtualFd,
+            ]);
+            $connId = (string) ((WebsocketConnectionManager::getConnection($virtualFd)['conn_id'] ?? ''));
+            SocketIOSessionManager::bindSid($sid, $virtualFd, $connId);
+        } catch (\Throwable $throwable) {
+            // 任一步失败回滚本地连接、sid 与用户索引，避免孤儿 sid
+            try {
+                WebsocketConnectionManager::closePollingVirtual($virtualFd);
+            } catch (\Throwable $ignored) {
+            }
+            try {
+                SocketIOSessionManager::destroySession($sid);
+            } catch (\Throwable $ignored) {
+            }
+            self::reject($request, $response, 500, 'polling handshake failed');
+
+            return;
+        }
 
         $socketio = $config['socketio'] ?? [];
         $pingInterval = (int) ($socketio['ping_interval'] ?? 25);

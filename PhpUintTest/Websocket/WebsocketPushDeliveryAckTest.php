@@ -32,7 +32,8 @@ final class WebsocketPushDeliveryAckTest extends TestCase
     public function testShouldAckDelivered(): void
     {
         $this->assertTrue($this->resultWithOutcomes(['delivered'])->shouldAck());
-        $this->assertTrue($this->resultWithOutcomes(['delivered', 'gone', 'failed'])->shouldAck());
+        // 全成功 + 不可重试 gone：可 ACK
+        $this->assertTrue($this->resultWithOutcomes(['delivered', 'gone'])->shouldAck());
     }
 
     public function testShouldAckAllGoneOrSkipped(): void
@@ -46,6 +47,9 @@ final class WebsocketPushDeliveryAckTest extends TestCase
     {
         $this->assertFalse($this->resultWithOutcomes(['failed'])->shouldAck());
         $this->assertFalse($this->resultWithOutcomes(['gone', 'failed'])->shouldAck());
+        // 部分成功仍有可重试 failed 时不得整条 ACK
+        $this->assertFalse($this->resultWithOutcomes(['delivered', 'gone', 'failed'])->shouldAck());
+        $this->assertSame(1, $this->resultWithOutcomes(['delivered', 'failed'])->retryableCount());
     }
 
     public function testShouldAckEmptyAndInvalid(): void
@@ -85,13 +89,18 @@ final class WebsocketPushDeliveryAckTest extends TestCase
 
     public function testDeliverWithResultServerUnavailable(): void
     {
-        $payload = PushMessage::encode(PushMessage::event(
-            [['fd' => 1, 'conn_id' => 'ws:1']],
-            'chat.message',
-            ['msg' => 'hi'],
-            'test'
-        ));
-        $this->assertFalse(PushDeliveryWorker::shouldAckStreamPayload($payload));
+        // deliverWithResult 会写协程 Context（trace_id），须在协程内调用
+        $acked = null;
+        \Swoole\Coroutine\run(function () use (&$acked): void {
+            $payload = PushMessage::encode(PushMessage::event(
+                [['fd' => 1, 'conn_id' => 'ws:1']],
+                'chat.message',
+                ['msg' => 'hi'],
+                'test'
+            ));
+            $acked = PushDeliveryWorker::shouldAckStreamPayload($payload);
+        });
+        $this->assertFalse($acked);
     }
 
     public function testStreamConsumerHandlerIntegration(): void

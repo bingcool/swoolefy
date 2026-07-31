@@ -10,13 +10,14 @@ namespace Swoolefy\Websocket\Cluster;
  * | 场景 | ACK | 说明 |
  * |------|-----|------|
  * | 非法 JSON / 空 payload | 是 | 毒消息，避免 PEL 无限重试 |
- * | Server 不可用 | 否 | 消费进程未就绪，留 PEL 重试 |
- * | 至少 1 个 fd push 成功 | 是 | 部分成功视为完成 |
+ * | Server 不可用 | 否（停机中例外） | 消费进程未就绪，留 PEL 重试 |
+ * | 全部目标 delivered / gone / skipped | 是 | 无可重试失败 |
  * | 无目标 / 本节点无连接 | 是 | 本节点无需投递 |
- * | 全部 fd 已断开（gone） | 是 | 连接不存在，重试无意义 |
- * | 全部 enricher 跳过（skipped） | 是 | 业务明确不投递 |
- * | 存在 established 但 push 失败（failed） | 否 | 可能缓冲区满等临时故障，留 PEL |
+ * | 任一目标 failed（可重试） | 否 | 即使部分已 delivered 也不得整条 ACK |
  * | 去重命中（duplicateSkipped） | 是 | XAUTOCLAIM 重投同 msg_id，跳过重复 push |
+ *
+ * 当前版本不按 target 拆分 Stream；PEL 重试依赖 {@see PushDedupStore} 的 msg_id 幂等，
+ * 避免已成功目标在完整 ACK 前被重复计入“已处理”。
  *
  * @see PushDeliveryWorker
  * @see PushStreamConsumer
@@ -31,7 +32,7 @@ class PushDeliveryResult
     /** enricher 返回 null 等业务跳过 */
     public int $skipped = 0;
 
-    /** fd 在线但 server->push 失败 */
+    /** fd 在线但 server->push 失败（可重试） */
     public int $failed = 0;
 
     public bool $invalidPayload = false;
@@ -117,12 +118,6 @@ class PushDeliveryResult
      * 记录单 fd 投递结果，并写入 targetDetails 供离线按 user_id 聚合。
      *
      * group/broadcast 一次指令含多个 fd，OfflineMessageCoordinator 依赖此明细
-     * 判断「同一用户任一设备 delivered 则跳过落库」。
-     */
-    /**
-     * 记录单 fd 投递结果，并写入 targetDetails 供离线按 user_id 聚合。
-     *
-     * group/broadcast 一次指令含多个 fd，OfflineMessageCoordinator 依赖此明细
      * 判断「某用户全部 gone 且无 delivered」时才落库。
      */
     public function recordTargetOutcome(int $fd, string $connId, string $userId, string $outcome): void
@@ -134,6 +129,12 @@ class PushDeliveryResult
             'user_id' => trim($userId),
             'outcome' => $outcome,
         ];
+    }
+
+    /** 可重试失败数（当前即 failed；serverUnavailable 由 shouldAck 单独处理） */
+    public function retryableCount(): int
+    {
+        return $this->failed;
     }
 
     public function merge(self $other): void
@@ -150,9 +151,11 @@ class PushDeliveryResult
     /**
      * 是否应对 Stream entry 执行 XACK。
      *
+     * 仅当全部目标已 delivered 或明确不可重试（gone/skipped/毒消息）时 ACK。
+     * 任一目标 failed（可重试）时不得 ACK，即使部分已成功——PEL 重试 + msg_id 幂等。
+     *
      * 优雅停机中 serverUnavailable：Worker/Server 正在退出，PEL 重试无意义，
      * 应 ACK 以放行 Master waitForStreamPelDrain（否则卡满 drain_timeout）。
-     * 代价是该条在途推送可能丢失；离线必达仍依赖业务 OfflineStore。
      */
     public function shouldAck(): bool
     {
@@ -168,20 +171,12 @@ class PushDeliveryResult
             return WebsocketShutdownCoordinator::shouldStopConsuming();
         }
 
-        if ($this->delivered > 0) {
-            return true;
+        // 存在可重试失败时不得整条 ACK（部分成功也不例外）
+        if ($this->failed > 0) {
+            return false;
         }
 
-        $attempted = $this->gone + $this->skipped + $this->failed;
-        if ($attempted === 0) {
-            return true;
-        }
-
-        if ($this->failed === 0) {
-            return true;
-        }
-
-        return false;
+        return true;
     }
 
     /** 兼容 ClusterPushBus 等仍需要成功数的调用方 */

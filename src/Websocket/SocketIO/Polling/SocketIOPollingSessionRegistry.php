@@ -6,6 +6,7 @@ use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Websocket\Cluster\ClusterNodeIdentity;
 use Swoolefy\Websocket\Cluster\ClusterRedisAdapterInterface;
 use Swoolefy\Websocket\Cluster\ClusterRedisClient;
+use Swoolefy\Websocket\Cluster\ClusterRedisException;
 use Swoolefy\Websocket\SocketIO\SocketIOSessionManager;
 use Swoolefy\Websocket\WebsocketConnectionManager;
 
@@ -100,11 +101,12 @@ class SocketIOPollingSessionRegistry
     }
 
     /**
-     * 解析 sid 并确保本节点 Table 有映射（跨节点 poll 时从 Redis 回填）。
+     * 解析 sid 并确保本节点 Table 有映射（跨节点 poll/upgrade 时从 Redis 回填影子连接）。
      *
+     * @param bool $throwOnRedisError upgrade 场景传 true：存储异常上抛，由调用方回 1011
      * @return int virtual_fd，未找到返回 0
      */
-    public static function ensureLocal(string $sid): int
+    public static function ensureLocal(string $sid, bool $throwOnRedisError = false): int
     {
         if ($sid === '') {
             return 0;
@@ -113,7 +115,17 @@ class SocketIOPollingSessionRegistry
         if (TableManager::isExistTable(self::TABLE_POLLING_SID)) {
             $row = TableManager::get(self::TABLE_POLLING_SID, $sid);
             if (is_array($row) && !empty($row)) {
-                return (int) ($row['virtual_fd'] ?? 0);
+                $virtualFd = (int) ($row['virtual_fd'] ?? 0);
+                // Table 有 sid 但连接行缺失时仍补 shadow（跨 Worker 同节点）
+                if ($virtualFd > 0 && WebsocketConnectionManager::getConnection($virtualFd) === null) {
+                    $meta = self::fetchRedisMeta($sid, $throwOnRedisError) ?? [
+                        'virtual_fd' => (string) $virtualFd,
+                        'sid' => $sid,
+                    ];
+                    WebsocketConnectionManager::ensurePollingShadow($sid, $virtualFd, $meta);
+                }
+
+                return $virtualFd;
             }
         }
 
@@ -121,7 +133,7 @@ class SocketIOPollingSessionRegistry
             return 0;
         }
 
-        $meta = self::fetchRedisMeta($sid);
+        $meta = self::fetchRedisMeta($sid, $throwOnRedisError);
         if ($meta === null) {
             return 0;
         }
@@ -146,7 +158,7 @@ class SocketIOPollingSessionRegistry
     /**
      * @return array<string, string>|null
      */
-    public static function fetchRedisMeta(string $sid): ?array
+    public static function fetchRedisMeta(string $sid, bool $throwOnError = false): ?array
     {
         if ($sid === '' || !self::shouldMirrorRedis()) {
             return null;
@@ -162,6 +174,14 @@ class SocketIOPollingSessionRegistry
 
             return array_map(static fn ($value): string => (string) $value, $meta);
         } catch (\Throwable $throwable) {
+            if ($throwOnError) {
+                throw new ClusterRedisException(
+                    'polling session redis lookup failed: ' . $throwable->getMessage(),
+                    0,
+                    $throwable
+                );
+            }
+
             return null;
         }
     }

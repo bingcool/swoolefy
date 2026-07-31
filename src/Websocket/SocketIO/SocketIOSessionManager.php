@@ -97,9 +97,10 @@ class SocketIOSessionManager
     /**
      * poll GET/POST 前置：解析 sid 并在本节点回填 Table + 影子连接。
      *
+     * @param bool $throwOnRedisError true 时 Redis 异常上抛（upgrade 用 1011）；false 时视为无效 sid
      * @return int virtual_fd，无效 sid 返回 0
      */
-    public static function resolveSession(string $sid): int
+    public static function resolveSession(string $sid, bool $throwOnRedisError = false): int
     {
         if ($sid === '') {
             return 0;
@@ -109,7 +110,7 @@ class SocketIOSessionManager
             return self::getVirtualFd($sid);
         }
 
-        return SocketIOPollingSessionRegistry::ensureLocal($sid);
+        return SocketIOPollingSessionRegistry::ensureLocal($sid, $throwOnRedisError);
     }
 
     public static function getSidByVirtualFd(int $virtualFd): string

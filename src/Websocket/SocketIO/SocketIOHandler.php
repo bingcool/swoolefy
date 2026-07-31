@@ -14,6 +14,8 @@ namespace Swoolefy\Websocket\SocketIO;
 use Swoole\Http\Request;
 use Swoole\WebSocket\Frame;
 use Swoole\WebSocket\Server;
+use Swoolefy\Websocket\Cluster\ClusterRedisException;
+use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingConfig;
 use Swoolefy\Websocket\WebsocketConnectionManager;
 use Swoolefy\Websocket\WebsocketHandler;
 use Swoolefy\Websocket\WebsocketPacket;
@@ -100,8 +102,8 @@ class SocketIOHandler
     public static function onOpen(Server $server, Request $request, array $config = [], string $userId = ''): void
     {
         $upgradeSid = (string) ($request->get['sid'] ?? '');
-        // upgrade 时不重复发 open，仅迁移虚拟 fd 上的会话状态
-        if ($upgradeSid !== '' && SocketIOSessionManager::hasSession($upgradeSid)) {
+        // 带 sid 一律走升级路径：伪造/过期 sid 拒绝，禁止退化为新建会话
+        if ($upgradeSid !== '') {
             self::upgradePollingToWebSocket($server, $request, $config, $upgradeSid, $userId);
 
             return;
@@ -308,6 +310,7 @@ class SocketIOHandler
      * polling→websocket 升级：虚拟 fd 上的 user/group/namespace/出站队列 迁移到真实 fd。
      *
      * 注意：升级后不再发送 Engine open（客户端 polling 阶段已收到）。
+     * 跨节点时 resolveSession/ensureLocal 回填影子连接；存储异常 1011，会话无效 1008。
      */
     private static function upgradePollingToWebSocket(
         Server $server,
@@ -317,15 +320,55 @@ class SocketIOHandler
         string $userId
     ): void {
         unset($config);
-        $virtualFd = SocketIOSessionManager::getVirtualFd($sid);
-        $connection = WebsocketConnectionManager::getConnection($virtualFd);
-        if (!$connection) {
-            $server->disconnect((int) $request->fd, 1008, 'invalid polling session');
+        $realFd = (int) $request->fd;
+
+        try {
+            // Redis 命中但本机 Table 缺失时 ensureLocal 建立 shadow connection
+            $virtualFd = SocketIOSessionManager::resolveSession($sid, true);
+        } catch (ClusterRedisException $exception) {
+            $server->disconnect($realFd, 1011, 'cluster registry failed');
 
             return;
         }
 
-        $boundUserId = (string) ($connection['user_id'] ?? $userId);
+        if ($virtualFd <= 0) {
+            $server->disconnect($realFd, 1008, 'invalid polling session');
+
+            return;
+        }
+
+        $connection = WebsocketConnectionManager::getConnection($virtualFd);
+        if (!$connection) {
+            $server->disconnect($realFd, 1008, 'invalid polling session');
+
+            return;
+        }
+
+        // transport：升级源必须仍是 polling 会话
+        if ((int) ($connection['is_polling'] ?? 0) !== 1) {
+            $server->disconnect($realFd, 1008, 'transport mismatch');
+
+            return;
+        }
+
+        $boundUserId = (string) ($connection['user_id'] ?? '');
+        if ($boundUserId !== '' && $userId !== '' && $boundUserId !== $userId) {
+            $server->disconnect($realFd, 1008, 'user mismatch');
+
+            return;
+        }
+        if ($boundUserId === '') {
+            $boundUserId = $userId;
+        }
+
+        $lastActiveAt = (int) ($connection['last_active_at'] ?? 0);
+        $sessionTtl = SocketIOPollingConfig::sessionTtl();
+        if ($lastActiveAt > 0 && (time() - $lastActiveAt) > $sessionTtl) {
+            $server->disconnect($realFd, 1008, 'polling session expired');
+
+            return;
+        }
+
         $groups = WebsocketConnectionManager::decodeGroupsPublic((string) ($connection['groups'] ?? ''));
         $namespaces = (string) ($connection['socketio_namespaces'] ?? '');
         $pending = SocketIOSessionManager::drainOutbound($sid);
@@ -338,7 +381,6 @@ class SocketIOHandler
             'is_socketio' => true,
         ]);
 
-        $realFd = (int) $request->fd;
         WebsocketConnectionManager::restoreGroupsWithoutAuth($realFd, $groups);
         if ($namespaces !== '') {
             WebsocketConnectionManager::updateConnection($realFd, array_merge(

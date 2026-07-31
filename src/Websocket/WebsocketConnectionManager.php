@@ -32,12 +32,25 @@ class WebsocketConnectionManager
     /** polling 虚拟 fd 全局自增（跨 Worker） */
     public const TABLE_POLLING_META = 'table_websocket_polling_meta';
 
+    /** Worker 本地：fd 处于 onOpen 异步注册中，首包不得进入业务 */
+    public const LIFECYCLE_OPENING = 'opening';
+
+    /** Worker 本地：连接注册完成，可接受业务帧 */
+    public const LIFECYCLE_READY = 'ready';
+
     /**
      * 当前协程内最近一次 joinGroup 失败原因（协程 Context，避免 Worker 级 static 串号）。
      *
      * @deprecated 请优先使用 joinGroup() 返回值中的 reason；本键仅兼容旧调用 getLastJoinDenyReason()
      */
     private const JOIN_DENY_REASON_CONTEXT_KEY = '__ws_join_deny_reason';
+
+    /**
+     * Worker 本地连接生命周期（opening → ready）；不入 Table，避免跨 Worker 误共享。
+     *
+     * @var array<int, string>
+     */
+    private static array $fdLifecycle = [];
 
     /**
      * 连接表定义在 server createTables() 前注入配置，所有 worker 共享。
@@ -87,6 +100,51 @@ class WebsocketConnectionManager
                 ],
             ],
         ], $pollingTables);
+    }
+
+    /** onOpen 进入异步注册前标记 opening（7.9 首包竞态） */
+    public static function markOpening(int $fd): void
+    {
+        if ($fd <= 0) {
+            return;
+        }
+        self::$fdLifecycle[$fd] = self::LIFECYCLE_OPENING;
+    }
+
+    /** 共享状态注册成功后切换为 ready */
+    public static function markReady(int $fd): void
+    {
+        if ($fd <= 0) {
+            return;
+        }
+        self::$fdLifecycle[$fd] = self::LIFECYCLE_READY;
+    }
+
+    public static function clearConnectionLifecycle(int $fd): void
+    {
+        unset(self::$fdLifecycle[$fd]);
+    }
+
+    /** 消息入口：仅 ready 可进入业务回调 */
+    public static function isConnectionReady(int $fd): bool
+    {
+        return (self::$fdLifecycle[$fd] ?? '') === self::LIFECYCLE_READY;
+    }
+
+    public static function isConnectionOpening(int $fd): bool
+    {
+        return (self::$fdLifecycle[$fd] ?? '') === self::LIFECYCLE_OPENING;
+    }
+
+    public static function connectionLifecycle(int $fd): string
+    {
+        return (string) (self::$fdLifecycle[$fd] ?? '');
+    }
+
+    /** 单测清理 Worker 本地 lifecycle */
+    public static function resetLifecycleForTest(): void
+    {
+        self::$fdLifecycle = [];
     }
 
     public static function open(Server $server, Request $request, array $options = []): void
@@ -301,6 +359,9 @@ class WebsocketConnectionManager
 
     public static function close(int $fd): void
     {
+        // 同步清理 opening/ready，避免 close 后残留 lifecycle
+        self::clearConnectionLifecycle($fd);
+
         $connection = self::getConnection($fd);
         if (!$connection) {
             return;

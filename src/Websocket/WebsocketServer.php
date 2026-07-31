@@ -181,9 +181,12 @@ abstract class WebsocketServer extends BaseServer
                     return false;
                 }
 
+                $fd = (int) $request->fd;
+                // 异步注册前先标 opening，防止首包越过连接注册进入业务
+                WebsocketConnectionManager::markOpening($fd);
+
                 // 框架 Redis（register/touch 等）与业务 onOpen 均须在 goApp 内，复用协程级 Redis 单例
-                goApp(function () use ($server, $request, $websocketConfig, $auth) {
-                    $fd = (int) $request->fd;
+                goApp(function () use ($server, $request, $websocketConfig, $auth, $fd) {
                     $registered = false;
                     try {
                         if (!empty($websocketConfig['socketio']['enable']) && SocketIO\SocketIOHandler::isSocketIORequest($request)) {
@@ -194,32 +197,43 @@ abstract class WebsocketServer extends BaseServer
                             ]);
                         }
                         $registered = true;
+                        // 注册成功后原子切换 ready，此后才允许业务帧
+                        WebsocketConnectionManager::markReady($fd);
 
                         static::onOpen($server, $request);
                     } catch (\Throwable $throwable) {
-                        if ($registered) {
-                            try {
-                                WebsocketConnectionManager::close($fd);
-                            } catch (\Throwable $closeError) {
-                                // 清理失败仍继续断开连接
-                            }
-                            if ($server->isEstablished($fd)) {
-                                $server->disconnect($fd, 1011, 'onOpen failed');
-                            }
+                        try {
+                            WebsocketConnectionManager::close($fd);
+                        } catch (\Throwable $closeError) {
+                            // 清理失败仍继续断开连接
+                        }
+                        if ($server->isEstablished($fd)) {
+                            $server->disconnect(
+                                $fd,
+                                1011,
+                                $registered ? 'onOpen failed' : 'cluster registry failed'
+                            );
                         }
                         throw $throwable;
+                    } finally {
+                        // 失败路径：删除 opening；成功路径保留 ready（close 时再清）
+                        if (!WebsocketConnectionManager::isConnectionReady($fd)) {
+                            WebsocketConnectionManager::clearConnectionLifecycle($fd);
+                        }
                     }
                 });
 
                 return true;
             } catch (\Swoolefy\Websocket\Cluster\ClusterRedisException $e) {
                 // on_redis_failure=reject_open 时，Redis 注册失败拒绝建连
+                WebsocketConnectionManager::clearConnectionLifecycle((int) $request->fd);
                 if ($server->isEstablished((int) $request->fd)) {
                     $server->disconnect((int) $request->fd, 1011, 'cluster registry failed');
                 }
                 self::catchException($e);
                 return false;
             } catch (\Throwable $e) {
+                WebsocketConnectionManager::clearConnectionLifecycle((int) ($request->fd ?? 0));
                 self::catchException($e);
             }
         });
@@ -239,6 +253,11 @@ abstract class WebsocketServer extends BaseServer
                         );
                     }
 
+                    return false;
+                }
+
+                // opening 状态拒绝首包，不进入业务、不缓存无界队列
+                if (!WebsocketConnectionManager::isConnectionReady((int) $frame->fd)) {
                     return false;
                 }
 
@@ -336,6 +355,8 @@ abstract class WebsocketServer extends BaseServer
             try {
                 WebsocketFrameAssembler::clear((int) $fd);
                 SocketIO\SocketIOBinaryAssembler::clear((int) $fd);
+                // 同步清 lifecycle，避免 opening 残留到下一轮同 fd
+                WebsocketConnectionManager::clearConnectionLifecycle((int) $fd);
                 goApp(function () use ($server, $fd) {
                     // close 回调是清理 fd/user/group 索引的唯一兜底入口（含 Redis unregister）
                     WebsocketConnectionManager::close((int) $fd);
