@@ -16,6 +16,7 @@ use Swoolefy\Core\EventController;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\BaseServer;
+use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Core\Dto\TaskMessageDto;
 use Swoolefy\Exception\TaskException;
 
@@ -57,12 +58,13 @@ class AsyncTask implements AsyncTaskInterface
             $fd = is_object(Application::getApp()) ? Application::getApp()->getFd() : null;
         }
 
-        $contextData = \Swoolefy\Core\Coroutine\Context::getContext()->getArrayCopy();
+        // 透传协程上下文快照(标量和数组)；对象/资源/Closure 拒绝投递，避免反序列化注入与连接串用
+        $contextData = Context::snapshot();
         $taskId = Swfy::getServer()->task(serialize(
             [
                 [$taskMessageDto->taskClass, $taskMessageDto->taskAction],
                 $taskMessageDto->taskData,
-                $contextData ?? [],
+                $contextData,
                 $fd
             ]
         ));
@@ -89,11 +91,8 @@ class AsyncTask implements AsyncTaskInterface
      */
     public static function finish($data, $task = null)
     {
-        $cid = \Swoole\Coroutine::getCid();
-        if ($cid >=0 ) {
-            $contextData = \Swoolefy\Core\Coroutine\Context::getContext()->getArrayCopy();
-        }
-        $params = [$data, $contextData ?? []];
+        $contextData = Context::snapshot();
+        $params = [$data, $contextData];
         $data = serialize($params);
         if (BaseServer::isTaskEnableCoroutine() && $task instanceof \Swoole\Server\Task) {
             $task->finish($data);

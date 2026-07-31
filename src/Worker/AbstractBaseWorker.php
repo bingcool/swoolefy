@@ -684,7 +684,7 @@ abstract class AbstractBaseWorker
     {
         $this->writeStartFormatInfo();
 
-        (new \Swoolefy\Core\EventApp)->registerApp(function () {
+        \Swoolefy\Core\EventApp::run(function () {
             $targetAction = 'init';
             if (method_exists(static::class, $targetAction)) {
                 $this->{$targetAction}();
@@ -1491,7 +1491,7 @@ abstract class AbstractBaseWorker
         $this->isExit = true;
         try {
             $this->runtimeCoroutineWait($maxWaitTimeOfExit);
-            (new \Swoolefy\Core\EventApp)->registerApp(function () {
+            \Swoolefy\Core\EventApp::run(function () {
                 $this->onShutDown();
             });
         } catch (\Throwable $throwable) {

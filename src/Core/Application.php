@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Exception\SystemException;
+
 class Application
 {
     /**
@@ -21,31 +23,36 @@ class Application
 
     /**
      * @param App|Swoole|EventController $App
-     * @return bool|void
+     * @return bool
+     * @throws SystemException 当前 cid 已绑定其他实例时拒绝覆盖，提示改用 goApp()
      */
     public static function setApp(App|Swoole|EventController $App): bool
     {
         $cid = $App->getCid();
+        // 禁止覆盖已绑定的请求 App；同一对象重复注册允许幂等
+        if (isset(self::$apps[$cid]) && self::$apps[$cid] !== $App) {
+            throw new SystemException(sprintf(
+                'Application already bound for cid=%s as %s; do not create EventApp in the same coroutine, use goApp() instead',
+                (string) $cid,
+                get_class(self::$apps[$cid])
+            ));
+        }
         self::$apps[$cid] = $App;
         return true;
     }
 
     /**
      * issetApp
-     * @param int $coroutineId
+     * @param int|null $coroutineId
      * @return bool
      */
     public static function issetApp($coroutineId = null): bool
     {
         $cid = \Swoole\Coroutine::getCid();
-        if ($coroutineId) {
+        if ($coroutineId !== null && $coroutineId !== false) {
             $cid = $coroutineId;
         }
-        if (isset(self::$apps[$cid]) && self::$apps[$cid] instanceof EventController) {
-            return true;
-        } else {
-            return false;
-        }
+        return isset(self::$apps[$cid]);
     }
 
     /**
@@ -56,7 +63,7 @@ class Application
     public static function getApp(?int $coroutineId = null): App|Swoole|EventController|null
     {
         $cid = \Swoole\Coroutine::getCid();
-        if ($coroutineId) {
+        if ($coroutineId !== null) {
             $cid = $coroutineId;
         }
         return self::$apps[$cid] ?? null;
@@ -69,7 +76,7 @@ class Application
      */
     public static function removeApp(?int $coroutineId = null): bool
     {
-        if ($coroutineId) {
+        if ($coroutineId !== null) {
             $cid = $coroutineId;
         } else {
             $cid = \Swoole\Coroutine::getCid();
@@ -78,6 +85,14 @@ class Application
             unset(self::$apps[$cid]);
         }
         return true;
+    }
+
+    /**
+     * 测试/诊断用：当前已注册 Application 数量。
+     */
+    public static function countApps(): int
+    {
+        return count(self::$apps);
     }
 
     /**

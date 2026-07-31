@@ -99,7 +99,7 @@ abstract class TcpServer extends BaseServer
         $this->tcpServer->on('ManagerStart', function (\Swoole\Server $server) {
             try {
                 self::setManagerProcessName(self::$config['manager_process_name']);
-                (new EventApp())->registerApp(function () use ($server) {
+                EventApp::run(function () use ($server) {
                     $this->startCtrl->managerStart($server);
                 });
             } catch (\Throwable $e) {
@@ -112,7 +112,7 @@ abstract class TcpServer extends BaseServer
          */
         $this->tcpServer->on('ManagerStop', function (\Swoole\Server $server) {
             try {
-                (new EventApp())->registerApp(function () use ($server) {
+                EventApp::run(function () use ($server) {
                     $this->startCtrl->managerStop($server);
                 });
             } catch (\Throwable $e) {
@@ -132,7 +132,7 @@ abstract class TcpServer extends BaseServer
          */
         $this->tcpServer->on('connect', function (\Swoole\Server $server, $fd) {
             try {
-                (new EventApp())->registerApp(function () use ($server, $fd) {
+                EventApp::run(function () use ($server, $fd) {
                     $this->onConnect($server, $fd);
                 });
             } catch (\Throwable $e) {
@@ -198,7 +198,7 @@ abstract class TcpServer extends BaseServer
             try {
                 $params = unserialize($data, ['allowed_classes' => false]);
                 list($data, $contextData) = $params;
-                (new EventApp())->registerApp(function () use ($server, $task_id, $data, $contextData) {
+                EventApp::run(function () use ($server, $task_id, $data, $contextData) {
                     foreach ($contextData as $key=>$value) {
                         \Swoolefy\Core\Coroutine\Context::set($key, $value);
                     }
@@ -215,7 +215,7 @@ abstract class TcpServer extends BaseServer
          */
         $this->tcpServer->on('pipeMessage', function (\Swoole\Server $server, $from_worker_id, $message) {
             try {
-                (new EventApp())->registerApp(function () use ($server, $from_worker_id, $message) {
+                EventApp::run(function () use ($server, $from_worker_id, $message) {
                     $this->onPipeMessage($server, $from_worker_id, $message);
                 });
                 return true;
@@ -233,7 +233,7 @@ abstract class TcpServer extends BaseServer
                     // P0：单连接断开不得误清理其他 fd 的半包，否则会牵连断连
                     $this->Pack->delete($fd);
                 }
-                (new EventApp())->registerApp(function () use ($server, $fd) {
+                EventApp::run(function () use ($server, $fd) {
                     $this->onClose($server, $fd);
                 });
             } catch (\Throwable $e) {
@@ -251,7 +251,7 @@ abstract class TcpServer extends BaseServer
                         // 进程级入口：清空本 Worker 全部半包缓存
                         $this->Pack->destroy();
                     }
-                    (new EventApp())->registerApp(function () use ($server, $worker_id) {
+                    EventApp::run(function () use ($server, $worker_id) {
                         $this->startCtrl->workerStop($server, $worker_id);
                     });
                 } catch (\Throwable $e) {
@@ -266,7 +266,7 @@ abstract class TcpServer extends BaseServer
         $this->tcpServer->on('WorkerExit', function (\Swoole\Server $server, $worker_id) {
             \Swoole\Coroutine::create(function () use ($server, $worker_id) {
                 try {
-                    (new EventApp())->registerApp(function () use ($server, $worker_id) {
+                    EventApp::run(function () use ($server, $worker_id) {
                         $this->startCtrl->workerExit($server, $worker_id);
                     });
                 } catch (\Throwable $e) {

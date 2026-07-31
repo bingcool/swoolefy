@@ -89,16 +89,17 @@ class Hook
 
     /**
      * getHookCallable
-     * @param int $coroutineId
-     * @return callable
+     * @param int|null $coroutineId 显式传入时直接使用该 cid，不回退到其他协程
+     * @return array 不存在时返回空集合
      */
-    public static function getHookCallable(?int $coroutineId = null)
+    public static function getHookCallable(?int $coroutineId = null): array
     {
-        $cid = 0;
         if (is_null($coroutineId)) {
             $cid = CoroutineManager::getInstance()->getCoroutineId();
+        } else {
+            $cid = $coroutineId;
         }
 
-        return self::$hooks[$cid] ?? null;
+        return self::$hooks[$cid] ?? [];
     }
 }

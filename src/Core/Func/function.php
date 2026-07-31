@@ -184,16 +184,14 @@ function registerNamespace($appPath)
  * @throws \Swoolefy\Exception\SystemException
  */
 function goApp(callable $callback, ...$params) {
-    $contextData = \Swoolefy\Core\Coroutine\Context::getContext()->getArrayCopy();
-    return \Swoole\Coroutine::create(function () use($callback, $params, &$contextData) {
+    // 仅透传协程上下文snapshot副本标量或数组，而对象，socket等拒绝，因为容易造成协程间污染。
+    $contextData = \Swoolefy\Core\Coroutine\Context::snapshot();
+    return \Swoole\Coroutine::create(function () use($callback, $params, $contextData) {
         foreach ($contextData as $key=>$value) {
-            if (is_object($value)) {
-                continue;
-            }
             \Swoolefy\Core\Coroutine\Context::set($key, $value);
         }
         unset($contextData);
-        (new \Swoolefy\Core\EventApp)->registerApp(function($event) use($callback, $params) {
+        \Swoolefy\Core\EventApp::run(function($event) use($callback, $params) {
             try {
                 array_push($params, $event);
                 $callback(...$params);
@@ -219,7 +217,7 @@ function goTick(int $timeMs, callable $callable, bool $withBlockLapping = false)
         return \Swoolefy\Core\Coroutine\Timer::tick($timeMs, $callable, $withBlockLapping);
     }else {
         return \Swoole\Timer::tick($timeMs, function () use($callable) {
-            (new \Swoolefy\Core\EventApp)->registerApp(function() use($callable) {
+            \Swoolefy\Core\EventApp::run(function() use($callable) {
                 try {
                     $callable();
                 }catch (\Throwable $throwable) {
@@ -242,7 +240,7 @@ function goAfter(int $timeMs, callable $callable)
         return \Swoolefy\Core\Coroutine\Timer::after($timeMs, $callable);
     }else {
         return \Swoole\Timer::after($timeMs, function () use($callable) {
-            (new \Swoolefy\Core\EventApp)->registerApp(function() use($callable) {
+            \Swoolefy\Core\EventApp::run(function() use($callable) {
                 try {
                     $callable();
                 }catch (\Throwable $throwable) {

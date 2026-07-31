@@ -14,6 +14,7 @@ namespace Swoolefy\Http;
 use Swoole\Http\Server;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
+use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Task\TaskController;
 use Swoolefy\Library\OpenTelemetry\API\Globals;
 use Swoolefy\Library\OpenTelemetry\API\Trace\SpanKind;
@@ -191,12 +192,19 @@ abstract class HttpAppServer extends HttpServer
             $taskInstance->afterHandle();
 
             unset($callable, $extendData, $fd);
-
         } catch (\Throwable $throwable) {
-            if ($taskInstance !== null && !$taskInstance->isDefer()) {
-                $taskInstance->end();
-            }
+            // 业务异常向上抛出；清理统一放 finally，避免成功路径漏 end
             throw $throwable;
+        } finally {
+            // task_enable_coroutine=false 时无 defer，必须主动 end；已由协程 defer 接管则不重复结束
+            if ($taskInstance !== null && !$taskInstance->isDefer()) {
+                try {
+                    $taskInstance->end();
+                } catch (\Throwable $cleanupThrowable) {
+                    // 清理异常不得覆盖原始业务异常
+                    BaseServer::catchException($cleanupThrowable);
+                }
+            }
         }
     }
 

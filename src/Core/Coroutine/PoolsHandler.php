@@ -364,7 +364,7 @@ class PoolsHandler
     protected function refillOneIfNeeded(): void
     {
         if ($this->channel !== null && $this->channel->length() < $this->poolsNum) {
-            (new \Swoolefy\Core\EventApp)->registerApp(function () {
+            \Swoolefy\Core\EventApp::run(function () {
                 $this->make(1);
             });
         }

@@ -160,7 +160,7 @@ class BaseServer
         self::$startTime = date('Y-m-d H:i:s');
         // start init
         $this->startCtrl = self::eventHandler();
-        (new \Swoolefy\Core\EventApp())->registerApp(function () {
+        \Swoolefy\Core\EventApp::run(function () {
             $this->startCtrl->init();
         });
 
@@ -202,7 +202,7 @@ class BaseServer
             self::catchException($throwable);
         }
 
-        (new EventApp())->registerApp(function () use ($server, $workerId) {
+        EventApp::run(function () use ($server, $workerId) {
             $this->startCtrl->workerStart($server, $workerId);
             static::onWorkerStart($server, $workerId);
         });

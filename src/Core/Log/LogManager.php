@@ -25,9 +25,11 @@ class LogManager
     use \Swoolefy\Core\SingletonTrait;
 
     /**
-     * @var Log
+     * 进程级日志实例表（非协程单例），与 Application::get() 容器隔离。
+     *
+     * @var array<string, Log>
      */
-    protected $logger;
+    protected array $logger = [];
 
     public const SQL_LOG = 'sql_log';
 
@@ -85,8 +87,12 @@ class LogManager
     }
 
     /**
-     * getLogger
-     * @param string $type
+     * 获取进程级日志对象（不带协程单例）。
+     *
+     * 与 Application::getApp()->get($type) 不同：后者走 ComponentTrait 协程容器，
+     * 未注册组件时返回 false；本方法返回 Worker 内共享的 Log 实例。
+     *
+     * @param string $type 日志通道名，如 info_log / sql_log
      * @return Log|null
      */
     public function getLogger(string $type): ?Log

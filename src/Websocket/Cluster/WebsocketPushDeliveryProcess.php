@@ -96,7 +96,7 @@ class WebsocketPushDeliveryProcess extends AbstractProcess
         }
 
         WebsocketShutdownCoordinator::markShuttingDown();
-        (new EventApp())->registerApp(function () {
+        EventApp::run(function () {
             $this->drainDeliveryQueue();
         });
     }

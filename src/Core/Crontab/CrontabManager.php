@@ -13,7 +13,9 @@ namespace Swoolefy\Core\Crontab;
 
 use Cron\CronExpression;
 use Swoolefy\Core\Coroutine\Context;
+use Swoolefy\Core\Timer\Tick;
 use Swoolefy\Exception\CronException;
+use Swoolefy\Util\Helper;
 
 class CrontabManager
 {
@@ -32,7 +34,7 @@ class CrontabManager
      * @param callable $callPreFn
      * @param callable $callback
      */
-    public function addRule(string $cronName, string|float $expression, mixed $func, \Closure $callPreFn = null, \Closure $callback = null, array $extend = [])
+    public function addRule(string $cronName, string|float $expression, mixed $func, ?\Closure $callPreFn = null, ?\Closure $callback = null, array $extend = [])
     {
         if (!class_exists('Cron\\CronExpression')) {
             throw new CronException("If you want to use crontab, you need to install 'composer require dragonmantank/cron-expression' ");
@@ -64,17 +66,24 @@ class CrontabManager
             }
         }
 
-        $arrayCopy = Context::getContext()->getArrayCopy();
+        // 注册时不捕获请求 Context；每次触发写入系统字段，业务值须显式传参
         if(is_numeric($expression)) {
-            $timerId = \Swoole\Timer::tick($expression * 1000, function ($timerId, $expression) use ($func, $cronName, $class, &$arrayCopy, $callPreFn, $callback) {
-                foreach ($arrayCopy as $key=>$value) {
-                    if (is_object($value)) {
-                        continue;
-                    }
-                    Context::set($key, $value);
-                }
-                unset($arrayCopy);
+            /**
+                注册时不捕获请求 Context，避免长期 Timer 故意不带携带用户身份。Tick/After 是进程级长期定时器，不是请求内的子协程。
+                若注册时捕获当前请求 Context，`user` / `tenant` 会被冻住，之后每次触发都带着那次请求的身份，造成跨请求串权。
+                当前行为：
+                - 注册：不 `snapshot()` 请求 Context
+                - 触发：`goApp` 新建干净协程，只写 `_sys_cron_*` 与 `x-trace-id` 系统字段
+                - 业务数据：用注册时的 `$params` 显式传入
+                这和 `goApp` 不同：`goApp` 跟请求同生共灭，适合短期并发；Cron 会跨大量请求存活，不能背请求身份
+             */
+            $timerId = \Swoole\Timer::tick($expression * 1000, function ($timerId, $expression) use ($func, $cronName, $class, $callPreFn, $callback) {
                 goApp(function () use ($expression, $func, $cronName, $class, $callPreFn, $callback) {
+                    // 每次触发仅写入系统字段（含独立 trace id，便于日志排查）
+                    Context::set(Tick::CTX_SYS_CRON_NAME, $cronName);
+                    Context::set(Tick::CTX_SYS_CRON_TRIGGER_TIME, time());
+                    Context::set(Tick::CTX_X_TRACE_ID, Helper::UUid());
+                    $isNext = true;
                     try {
                         if (is_callable($callPreFn)) {
                             $isNext = call_user_func($callPreFn);
@@ -89,7 +98,7 @@ class CrontabManager
 
                         if ($func instanceof \Closure) {
                             call_user_func($func, $expression, $cronName);
-                        }else if (is_array($func)) {
+                        } else if (is_array($func)) {
                             /**
                              * @var AbstractCronController $cronControllerInstance
                              */
@@ -112,15 +121,13 @@ class CrontabManager
 
         }else {
             if (is_array($func)) {
-                $timerId = \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($class, $cronName, &$arrayCopy, $callPreFn, $callback) {
-                    foreach ($arrayCopy as $key=>$value) {
-                        if (is_object($value)) {
-                            continue;
-                        }
-                        Context::set($key, $value);
-                    }
-                    unset($arrayCopy);
+                $timerId = \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($class, $cronName, $callPreFn, $callback) {
                     goApp(function () use ($timerId, $expression, $class, $cronName, $callPreFn, $callback) {
+                        // 每次触发仅写入系统字段（含独立 trace id，便于日志排查）
+                        Context::set(Tick::CTX_SYS_CRON_NAME, $cronName);
+                        Context::set(Tick::CTX_SYS_CRON_TRIGGER_TIME, time());
+                        Context::set(Tick::CTX_X_TRACE_ID, Helper::UUid());
+                        $isNext = true;
                         try {
                             if (is_callable($callPreFn)) {
                                 $isNext = call_user_func($callPreFn);
@@ -148,11 +155,13 @@ class CrontabManager
                     });
                 }, $expression);
             } else {
-                $timerId = \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($func, $cronName, $arrayCopy, $callPreFn, $callback) {
-                    foreach ($arrayCopy as $key=>$value) {
-                        Context::set($key, $value);
-                    }
+                $timerId = \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($func, $cronName, $callPreFn, $callback) {
                     goApp(function () use($timerId, $expression, $func, $cronName, $callPreFn, $callback) {
+                        // 每次触发仅写入系统字段（含独立 trace id，便于日志排查）
+                        Context::set(Tick::CTX_SYS_CRON_NAME, $cronName);
+                        Context::set(Tick::CTX_SYS_CRON_TRIGGER_TIME, time());
+                        Context::set(Tick::CTX_X_TRACE_ID, Helper::UUid());
+                        $isNext = true;
                         try {
                             if (is_callable($callPreFn)) {
                                 $isNext = call_user_func($callPreFn);

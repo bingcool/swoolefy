@@ -106,7 +106,7 @@ class WebsocketPushStreamConsumerProcess extends AbstractProcess
         };
 
         // SIGTERM 非协程上下文：同步 registerApp，投递时 Redis 索引查询走协程单例
-        (new EventApp())->registerApp(function () use ($handler) {
+        EventApp::run(function () use ($handler) {
             $this->drainStreamConsumer($handler);
         });
     }

@@ -29,9 +29,9 @@ class IndexController extends BController
      *
      * Route: GET /index/index
      *
-     * ```bash
-     * curl -X GET 'http://127.0.0.1:9501/index/index'
-     * ```
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/index/index'
+     ```
      */
     #[ApiOperation(description: '测试首页入口：协程写日志、环境变量与欢迎页')]
     public function index(RequestInput $request): string
@@ -72,20 +72,21 @@ class IndexController extends BController
     }
 
     /**
-     * 测试 Application 日志组件、sql_log 与 afterRequest 回调。
+     * 测试进程级日志组件、sql_log 与 afterRequest 回调。
      *
      * Route: GET /api/index/testLog
      *
-     * ```bash
-     * curl -X GET 'http://127.0.0.1:9501/api/index/testLog' \
-     *   -H 'Accept: application/json'
-     * ```
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/index/testLog' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试日志组件写入与 afterRequest 回调注册')]
     public function testLog(RequestInput $requestInput): array
     {
+        // 进程级日志（非 Application 协程单例）；get() 缺组件会返回 false
         /** @var \Swoolefy\Util\Log $log */
-        $log = Application::getApp()->get('log');
+        $log = LogManager::getInstance()->getLogger('info_log');
         $formatter = new LineFormatter("%message%\n");
         $log->setFormatter($formatter);
         $log->setLogFilePath($log->getLogFilePath());
@@ -119,10 +120,10 @@ class IndexController extends BController
      *
      * Route: GET /api/index/testLog1
      *
-     * ```bash
-     * curl -X GET 'http://127.0.0.1:9501/api/index/testLog1' \
-     *   -H 'Accept: application/json'
-     * ```
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/index/testLog1' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试 RunLog 业务日志写入')]
     public function testLog1(RequestInput $requestInput): array
@@ -140,10 +141,10 @@ class IndexController extends BController
      *
      * Route: GET /user/testAddUser
      *
-     * ```bash
-     * curl -X GET 'http://127.0.0.1:9501/user/testAddUser' \
-     *   -H 'Accept: application/json'
-     * ```
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/user/testAddUser' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试插入用户表（含协程内再次插入）')]
     public function testAddUser(): array
@@ -176,10 +177,10 @@ class IndexController extends BController
      *
      * Route: GET /api/index/testUserList
      *
-     * ```bash
-     * curl -X GET 'http://127.0.0.1:9501/api/index/testUserList' \
-     *   -H 'Accept: application/json'
-     * ```
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/index/testUserList' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试查询用户列表与总数')]
     public function testUserList(): array
@@ -201,10 +202,10 @@ class IndexController extends BController
      *
      * Route: GET /user/testTransactionAddOrder
      *
-     * ```bash
-     * curl -X GET 'http://127.0.0.1:9501/user/testTransactionAddOrder' \
-     *   -H 'Accept: application/json'
-     * ```
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/user/testTransactionAddOrder' \
+       -H 'Accept: application/json'
+     ```
      */
     #[ApiOperation(description: '测试事务与协程场景下插入订单')]
     public function testTransactionAddOrder(): array

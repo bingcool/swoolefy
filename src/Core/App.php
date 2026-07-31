@@ -73,6 +73,18 @@ class App extends \Swoolefy\Core\Component
     protected bool $isDefer = false;
 
     /**
+     * 是否已进入请求处理（setApp 之后），用于 finally 决定是否执行 after Hook
+     * @var bool
+     */
+    protected bool $requestProcessing = false;
+
+    /**
+     * afterRequest Hook 是否已执行（最多一次）
+     * @var bool
+     */
+    protected bool $afterRequestCalled = false;
+
+    /**
      * __construct
      * @param array $appConf
      * @return void
@@ -130,18 +142,21 @@ class App extends \Swoolefy\Core\Component
             $this->responseOutput = new ResponseOutput($this->swooleRequest, $this->swooleResponse);
             Application::setApp($this);
             $this->defer();
+            // 已进入请求处理：异常路径也须保证 after Hook 最多执行一次
+            $this->requestProcessing = true;
             $this->_init();
             $this->_bootstrap();
             if (!$this->catchAll()) {
                 $route = new HttpRoute($this->requestInput, $this->responseOutput, $extendData);
                 $route->dispatch();
             }
-            $this->onAfterRequest();
         } catch (\Throwable $throwable) {
             /** @var SwoolefyException $exceptionHandle */
             $exceptionHandle = $this->getExceptionClass();
             $exceptionHandle::response($this, $throwable);
         } finally {
+            // after Hook 在 end 之前、且每个请求最多一次；Hook 异常不覆盖业务响应
+            $this->onAfterRequest();
             if (!$this->isDefer) {
                 $this->end();
             }
@@ -276,8 +291,16 @@ class App extends \Swoolefy\Core\Component
      */
     protected function onAfterRequest()
     {
-        // call hook callable
-        Hook::callHook(Hook::HOOK_AFTER_REQUEST);
+        if (!$this->requestProcessing || $this->afterRequestCalled) {
+            return;
+        }
+        $this->afterRequestCalled = true;
+        try {
+            // call hook callable（含 Session 保存等），异常只记日志
+            Hook::callHook(Hook::HOOK_AFTER_REQUEST);
+        } catch (\Throwable $throwable) {
+            BaseServer::catchException($throwable);
+        }
     }
 
     /**

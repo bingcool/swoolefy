@@ -110,7 +110,7 @@ abstract class WebsocketServer extends BaseServer
         $this->webServer->on('ManagerStart', function (\Swoole\WebSocket\Server $server) {
             try {
                 self::setManagerProcessName(self::$config['manager_process_name']);
-                (new EventApp())->registerApp(function () use ($server) {
+                EventApp::run(function () use ($server) {
                     $this->startCtrl->managerStart($server);
                 });
             } catch (\Throwable $e) {
@@ -123,7 +123,7 @@ abstract class WebsocketServer extends BaseServer
          */
         $this->webServer->on('ManagerStop', function (\Swoole\WebSocket\Server $server) {
             try {
-                (new EventApp())->registerApp(function () use ($server) {
+                EventApp::run(function () use ($server) {
                     $this->startCtrl->managerStop($server);
                 });
             } catch (\Throwable $e) {
@@ -303,7 +303,7 @@ abstract class WebsocketServer extends BaseServer
             try {
                 $params = unserialize($data, ['allowed_classes' => false]);
                 list($data, $contextData) = $params;
-                (new EventApp())->registerApp(function () use ($server, $task_id, $data, $contextData) {
+                EventApp::run(function () use ($server, $task_id, $data, $contextData) {
                     foreach ($contextData as $key=>$value) {
                         SwooleContext::set($key, $value);
                     }
@@ -320,7 +320,7 @@ abstract class WebsocketServer extends BaseServer
          */
         $this->webServer->on('pipeMessage', function (\Swoole\WebSocket\Server $server, $from_worker_id, $message) {
             try {
-                (new EventApp())->registerApp(function () use ($server, $from_worker_id, $message) {
+                EventApp::run(function () use ($server, $from_worker_id, $message) {
                     static::onPipeMessage($server, $from_worker_id, $message);
                 });
                 return true;
@@ -366,7 +366,7 @@ abstract class WebsocketServer extends BaseServer
                         if (!empty($websocketConfig['socketio']['enable'])
                             && SocketIO\SocketIOHandler::isSocketIOPollingRequest($request)
                             && SocketIO\SocketIOHandler::isPollingEnabled($websocketConfig)) {
-                            (new EventApp())->registerApp(function () use ($request, $response, $websocketConfig) {
+                            EventApp::run(function () use ($request, $response, $websocketConfig) {
                                 SocketIO\SocketIOPollingHandler::handleHttp($request, $response, $websocketConfig);
                             });
 
@@ -403,7 +403,7 @@ abstract class WebsocketServer extends BaseServer
                             }
                         }
                     }
-                    (new EventApp())->registerApp(function () use ($server, $worker_id) {
+                    EventApp::run(function () use ($server, $worker_id) {
                         $this->startCtrl->workerStop($server, $worker_id);
                     });
                 } catch (\Throwable $e) {
@@ -418,7 +418,7 @@ abstract class WebsocketServer extends BaseServer
         $this->webServer->on('WorkerExit', function (\Swoole\WebSocket\Server $server, $worker_id) {
             \Swoole\Coroutine::create(function () use ($server, $worker_id) {
                 try {
-                    (new EventApp())->registerApp(function () use ($server, $worker_id) {
+                    EventApp::run(function () use ($server, $worker_id) {
                         $this->startCtrl->workerExit($server, $worker_id);
                     });
                 } catch (\Throwable $e) {

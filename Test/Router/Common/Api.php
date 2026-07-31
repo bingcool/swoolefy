@@ -31,6 +31,7 @@ namespace Test\Router;
  *   - Pg.php             PgController
  *   - Amqp.php           AmqpController
  *   - Exception.php      ExceptionController
+ *   - Log.php            LogController（info/error/system_error/goApp 日志场景）
  *   - UserOrder.php      Module\\Order\\UserOrderController（Db 综合测试）
  *   - OrderLog.php       Module\\Order\\LogOrderController
  *

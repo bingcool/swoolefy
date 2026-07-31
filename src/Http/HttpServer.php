@@ -135,7 +135,7 @@ abstract class HttpServer extends BaseServer
         $this->webServer->on('ManagerStart', function (\Swoole\Http\Server $server) {
             try {
                 self::setManagerProcessName(self::$config['manager_process_name']);
-                (new EventApp())->registerApp(function () use ($server) {
+                EventApp::run(function () use ($server) {
                     $this->startCtrl->managerStart($server);
                 });
             } catch (\Throwable $e) {
@@ -148,7 +148,7 @@ abstract class HttpServer extends BaseServer
          */
         $this->webServer->on('ManagerStop', function (\Swoole\Http\Server $server) {
             try {
-                (new EventApp())->registerApp(function () use ($server) {
+                EventApp::run(function () use ($server) {
                     $this->startCtrl->managerStop($server);
                 });
             } catch (\Throwable $e) {
@@ -268,7 +268,7 @@ abstract class HttpServer extends BaseServer
             try {
                 $params = unserialize($data, ['allowed_classes' => false]);
                 list($data, $contextData) = $params;
-                (new EventApp())->registerApp(function () use ($server, $task_id, $data, $contextData) {
+                EventApp::run(function () use ($server, $task_id, $data, $contextData) {
                     foreach ($contextData as $key=>$value) {
                         \Swoolefy\Core\Coroutine\Context::set($key, $value);
                     }
@@ -285,7 +285,7 @@ abstract class HttpServer extends BaseServer
          */
         $this->webServer->on('pipeMessage', function (\Swoole\Http\Server $server, $from_worker_id, $message) {
             try {
-                (new EventApp())->registerApp(function () use ($server, $from_worker_id, $message) {
+                EventApp::run(function () use ($server, $from_worker_id, $message) {
                     static::onPipeMessage($server, $from_worker_id, $message);
                 });
                 return true;
@@ -300,7 +300,7 @@ abstract class HttpServer extends BaseServer
         $this->webServer->on('WorkerStop', function (\Swoole\Http\Server $server, $worker_id) {
             \Swoole\Coroutine::create(function () use ($server, $worker_id) {
                 try {
-                    (new EventApp())->registerApp(function () use ($server, $worker_id) {
+                    EventApp::run(function () use ($server, $worker_id) {
                         $this->startCtrl->workerStop($server, $worker_id);
                     });
                 } catch (\Throwable $e) {
@@ -315,7 +315,7 @@ abstract class HttpServer extends BaseServer
         $this->webServer->on('WorkerExit', function (\Swoole\Http\Server $server, $worker_id) {
             \Swoole\Coroutine::create(function () use ($server, $worker_id) {
                 try {
-                    (new EventApp())->registerApp(function () use ($server, $worker_id) {
+                    EventApp::run(function () use ($server, $worker_id) {
                         $this->startCtrl->workerExit($server, $worker_id);
                     });
                 } catch (\Throwable $e) {
@@ -330,7 +330,7 @@ abstract class HttpServer extends BaseServer
          */
         $this->webServer->on('WorkerError', function (\Swoole\Http\Server $server, $worker_id, $worker_pid, $exit_code, $signal) {
             try {
-                (new EventApp())->registerApp(function () use ($server, $worker_id, $worker_pid, $exit_code, $signal) {
+                EventApp::run(function () use ($server, $worker_id, $worker_pid, $exit_code, $signal) {
                     $this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
                 });
             } catch (\Throwable $e) {

@@ -318,7 +318,23 @@ trait ComponentTrait
      */
     public function __unset(string $name)
     {
-        unset($this->$name);
+        // 直接操作 containers，禁止魔术方法内再次访问同名魔术属性造成递归
+        if (!isset($this->containers[$name])) {
+            return;
+        }
+        // 池化组件先归还再删除，与 end() 释放协议一致
+        if (!empty($this->componentPools) && in_array($name, $this->componentPools, true)) {
+            $obj = $this->containers[$name];
+            if (is_object($obj)) {
+                $objId = spl_object_id($obj);
+                $key = array_search($objId, $this->componentPoolsObjIds, true);
+                if ($key !== false) {
+                    CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
+                    unset($this->componentPoolsObjIds[$key]);
+                }
+            }
+        }
+        unset($this->containers[$name]);
     }
 
     /**
@@ -328,7 +344,8 @@ trait ComponentTrait
      */
     public function __isset(string $name): bool
     {
-        return isset($this->$name);
+        // 直接检查容器项，避免 isset($this->$name) 再次触发魔术方法
+        return isset($this->containers[$name]);
     }
 
     /**

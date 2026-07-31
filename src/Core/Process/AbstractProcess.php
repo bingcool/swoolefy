@@ -217,7 +217,7 @@ abstract class AbstractProcess
         static::$processInstance = $this;
 
         try {
-            (new \Swoolefy\Core\EventApp)->registerApp(function () {
+            \Swoolefy\Core\EventApp::run(function () {
                 $this->init();
                 $this->run();
             });
