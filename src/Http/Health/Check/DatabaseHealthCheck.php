@@ -32,12 +32,14 @@ use Throwable;
 final class DatabaseHealthCheck implements HealthCheckInterface
 {
     /**
-     * @param string $component Application 组件名（默认 `db`）
-     * @param string $name      JSON checks[].name
+     * @param string $component      Application 组件名（默认 `db`）
+     * @param string $name           JSON checks[].name
+     * @param float  $timeoutSeconds 客户端超时（秒）；与探针 TimeoutGuard 对齐
      */
     public function __construct(
         private readonly string $component = 'db',
         private readonly string $name = 'database',
+        private readonly float $timeoutSeconds = 2.0,
     ) {
     }
 
@@ -47,34 +49,49 @@ final class DatabaseHealthCheck implements HealthCheckInterface
     }
 
     /**
-     * 执行 SELECT 1；异常 → ok=false（不抛出）。
+     * 执行 SELECT 1；异常 → ok=false，响应不含 DSN/凭证。
      */
     public function check(): HealthCheckResult
     {
         $started = microtime(true);
         try {
             $db = $this->resolveDb();
+            $this->applyClientTimeout($db);
             $this->ping($db);
 
             return new HealthCheckResult(
                 name: $this->name(),
                 ok: true,
-                message: 'select 1 ok',
+                message: 'up',
                 meta: [
-                    'component' => $this->component,
-                    'latency_ms' => round((microtime(true) - $started) * 1000, 2),
+                    'duration_ms' => round((microtime(true) - $started) * 1000, 2),
+                    'error_category' => 'ok',
                 ],
             );
-        } catch (Throwable $e) {
+        } catch (Throwable) {
             return new HealthCheckResult(
                 name: $this->name(),
                 ok: false,
-                message: $e->getMessage(),
+                message: 'dependency_error',
                 meta: [
-                    'component' => $this->component,
-                    'latency_ms' => round((microtime(true) - $started) * 1000, 2),
+                    'duration_ms' => round((microtime(true) - $started) * 1000, 2),
+                    'error_category' => 'dependency_error',
                 ],
             );
+        }
+    }
+
+    /**
+     * 尽量为 PDO 设置 ATTR_TIMEOUT（连接/驱动相关；上层仍有 TimeoutGuard）。
+     */
+    private function applyClientTimeout(object $db): void
+    {
+        if ($this->timeoutSeconds <= 0) {
+            return;
+        }
+        $seconds = (int) max(1, (int) ceil($this->timeoutSeconds));
+        if ($db instanceof \PDO) {
+            $db->setAttribute(\PDO::ATTR_TIMEOUT, $seconds);
         }
     }
 

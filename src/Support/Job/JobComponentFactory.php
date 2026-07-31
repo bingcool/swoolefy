@@ -27,7 +27,7 @@ final class JobComponentFactory
     {
         $config ??= self::config();
 
-        // timeoutSeconds 已预留；真正 TimeoutGuard 接入见 Phase 3
+        // handler_timeout_seconds → TimeoutGuard（协程内强制；阻塞扩展须自配网络超时）
         return new JobRunner(
             $config->retryPolicy(),
             $config->handlerTimeoutSeconds(),

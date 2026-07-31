@@ -162,6 +162,30 @@ final class HealthConfig
     }
 
     /**
+     * 单项检查独立短超时（秒）。默认 2；须 > 0（支持小数）。
+     *
+     * env: `HEALTH_CHECK_TIMEOUT_SECONDS`
+     * 单条 def 可用 `timeout_seconds` 覆盖。
+     */
+    public function checkTimeoutSeconds(): float
+    {
+        $section = $this->section();
+        $env = env('HEALTH_CHECK_TIMEOUT_SECONDS');
+        if ($env !== null && $env !== '' && is_numeric($env)) {
+            $seconds = (float) $env;
+
+            return $seconds > 0 ? $seconds : 2.0;
+        }
+        if (isset($section['check_timeout_seconds']) && is_numeric($section['check_timeout_seconds'])) {
+            $seconds = (float) $section['check_timeout_seconds'];
+
+            return $seconds > 0 ? $seconds : 2.0;
+        }
+
+        return 2.0;
+    }
+
+    /**
      * 响应是否包含 `checks` 明细。
      *
      * - 非生产：默认 true，便于本地排障

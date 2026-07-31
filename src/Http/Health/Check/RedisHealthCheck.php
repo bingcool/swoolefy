@@ -32,12 +32,14 @@ use Throwable;
 final class RedisHealthCheck implements HealthCheckInterface
 {
     /**
-     * @param string $component Application 组件名（默认 `redis`）
-     * @param string $name      出现在 JSON checks[].name（可与 component 不同）
+     * @param string $component      Application 组件名（默认 `redis`）
+     * @param string $name           出现在 JSON checks[].name（可与 component 不同）
+     * @param float  $timeoutSeconds 客户端读超时（秒）；与探针 TimeoutGuard 对齐
      */
     public function __construct(
         private readonly string $component = 'redis',
         private readonly string $name = 'redis',
+        private readonly float $timeoutSeconds = 2.0,
     ) {
     }
 
@@ -47,13 +49,14 @@ final class RedisHealthCheck implements HealthCheckInterface
     }
 
     /**
-     * PING Redis；记录 latency_ms 便于发现慢依赖。
+     * PING Redis；异常只返回错误分类，不暴露 DSN/凭证。
      */
     public function check(): HealthCheckResult
     {
         $started = microtime(true);
         try {
             $redis = $this->resolveRedis();
+            $this->applyReadTimeout($redis);
             // 经 Redis / Predis 的 __call 转发到扩展客户端
             $pong = $redis->ping();
             $ok = $pong === true
@@ -64,23 +67,37 @@ final class RedisHealthCheck implements HealthCheckInterface
             return new HealthCheckResult(
                 name: $this->name(),
                 ok: $ok,
-                message: $ok ? 'pong' : 'unexpected ping response',
+                message: $ok ? 'up' : 'unexpected_ping',
                 meta: [
-                    'component' => $this->component,
-                    'latency_ms' => round((microtime(true) - $started) * 1000, 2),
-                    'response' => is_scalar($pong) ? $pong : get_debug_type($pong),
+                    'duration_ms' => round((microtime(true) - $started) * 1000, 2),
+                    'error_category' => $ok ? 'ok' : 'unexpected_response',
                 ],
             );
-        } catch (Throwable $e) {
+        } catch (Throwable) {
+            // 不把连接串/异常原文写入响应
             return new HealthCheckResult(
                 name: $this->name(),
                 ok: false,
-                message: $e->getMessage(),
+                message: 'dependency_error',
                 meta: [
-                    'component' => $this->component,
-                    'latency_ms' => round((microtime(true) - $started) * 1000, 2),
+                    'duration_ms' => round((microtime(true) - $started) * 1000, 2),
+                    'error_category' => 'dependency_error',
                 ],
             );
+        }
+    }
+
+    /**
+     * 尽量为底层客户端设置读超时，避免挂死（TimeoutGuard 仍是上层硬预算）。
+     */
+    private function applyReadTimeout(object $redis): void
+    {
+        if ($this->timeoutSeconds <= 0) {
+            return;
+        }
+        $seconds = (int) max(1, (int) ceil($this->timeoutSeconds));
+        if ($redis instanceof \Redis && defined('Redis::OPT_READ_TIMEOUT')) {
+            $redis->setOption(\Redis::OPT_READ_TIMEOUT, $seconds);
         }
     }
 

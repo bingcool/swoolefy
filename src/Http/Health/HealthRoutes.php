@@ -45,12 +45,20 @@ final class HealthRoutes
         if (self::$registered) {
             return;
         }
-        self::$registered = true;
 
         $config ??= HealthConfig::load();
         if (!$config->enabled()) {
+            self::$registered = true;
+
             return;
         }
+
+        // 先校验再置位：未知 type 抛异常时允许修复配置后重试注册
+        $timeout = $config->checkTimeoutSeconds();
+        CheckFactory::assertDefsValid($config->livenessCheckDefs(), $timeout);
+        CheckFactory::assertDefsValid($config->readinessCheckDefs(), $timeout);
+
+        self::$registered = true;
 
         // 每个 path 独立 Route::get；别名与主路径指向同一 Controller action
         foreach ($config->livenessPaths() as $path) {

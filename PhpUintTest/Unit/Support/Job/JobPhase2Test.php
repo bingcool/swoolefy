@@ -143,6 +143,8 @@ final class JobPhase2Test extends TestCase
 
         $runner = JobComponentFactory::runner($config);
         $this->assertTrue($runner->policy()->maxAttempts === 7, 'factory runner');
+        // handler_timeout_seconds 贯通到 JobRunner（TimeoutGuard 预算）
+        $this->assertTrue($runner->timeoutSeconds() === 60.0, 'timeout seconds');
     }
 
     /**

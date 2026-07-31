@@ -54,8 +54,8 @@ return [
         'max_delay_ms' => (int) env('JOB_MAX_DELAY_MS', 300000),
 
         /**
-         * Handler 执行超时（秒）。已写入 JobRunner 构造参数；
-         * TimeoutGuard 真正接入见后续增强，当前主要用于预留与工厂装配。
+         * Handler 执行超时（秒）。JobRunner 经 TimeoutGuard 在协程内强制执行；
+         * 超时走 retry/dead-letter。注意：只能中断可协作协程 IO，阻塞扩展须自配网络超时。
          * env: JOB_HANDLER_TIMEOUT_SECONDS
          */
         'handler_timeout_seconds' => (int) env('JOB_HANDLER_TIMEOUT_SECONDS', 120),

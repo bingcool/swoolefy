@@ -31,12 +31,19 @@ return [
         'include_details' => env('HEALTH_INCLUDE_DETAILS', true),
         'include_details_in_prd' => env('HEALTH_INCLUDE_DETAILS_IN_PRD', false),
 
+        /**
+         * 单项检查独立短超时（秒）。须 > 0；单条 def 可用 timeout_seconds 覆盖。
+         * 探针 TimeoutGuard + 底层客户端读超时共用此预算。
+         * env: HEALTH_CHECK_TIMEOUT_SECONDS
+         */
+        'check_timeout_seconds' => (int) env('HEALTH_CHECK_TIMEOUT_SECONDS', 2),
+
         // liveness：空数组 = 仅进程存活（推荐，避免依赖抖动杀 Pod）
         'liveness_checks' => [
             // ['type' => 'process'],
         ],
 
-        // readiness：接流量前检查依赖（按环境裁剪）
+        // readiness：接流量前检查依赖（按环境裁剪）；未知 type 启动失败
         'readiness_checks' => [
             ['type' => 'redis', 'component' => 'redis', 'name' => 'redis'],
             // ['type' => 'database', 'component' => 'db', 'name' => 'database'],

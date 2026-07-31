@@ -12,9 +12,10 @@ use Swoolefy\Http\Health\HealthCheckResult;
 use Swoolefy\Http\Health\HealthConfig;
 use Swoolefy\Http\Health\HealthProbe;
 use Swoolefy\Http\Health\HealthRoutes;
+use Swoolefy\Http\Health\InvalidHealthCheckConfigException;
 
 /**
- * K8s HTTP 探针（不依赖 Redis/DB）。
+ * K8s HTTP 探针单元测试（阶段六 8.4：未知类型 fail closed、响应脱敏）。
  */
 final class HealthProbeTest extends TestCase
 {
@@ -58,7 +59,7 @@ final class HealthProbeTest extends TestCase
 
             public function check(): HealthCheckResult
             {
-                return new HealthCheckResult('fake-down', false, 'boom');
+                return new HealthCheckResult('fake-down', false, 'boom password=secret dsn=mysql://u:p@h/db');
             }
         };
 
@@ -66,6 +67,15 @@ final class HealthProbeTest extends TestCase
         $this->assertFalse($report->ok);
         $this->assertSame('unavailable', $report->toArray()['status']);
         $this->assertCount(2, $report->checks);
+
+        // 响应不得暴露 DSN / 凭证；仅名称、状态、耗时、错误分类
+        $downRow = $report->checks[1]->toArray(true);
+        $this->assertSame('fake-down', $downRow['name']);
+        $this->assertSame('down', $downRow['status']);
+        $this->assertStringNotContainsString('password', $downRow['message']);
+        $this->assertStringNotContainsString('mysql://', $downRow['message']);
+        $this->assertArrayHasKey('error_category', $downRow['meta'] ?? []);
+        $this->assertArrayHasKey('duration_ms', $downRow['meta'] ?? []);
     }
 
     /**
@@ -89,19 +99,47 @@ final class HealthProbeTest extends TestCase
     }
 
     /**
-     * 验证：CheckFactory 识别内置 type。
+     * 验证：CheckFactory 识别内置 type；未知 type 抛配置异常（启动 fail closed）。
      */
     public function testCheckFactoryBuildsProcessAndRedisDefs(): void
     {
         $checks = CheckFactory::fromDefs([
             ['type' => 'process'],
             ['type' => 'redis', 'component' => 'redis', 'name' => 'cache-redis'],
-            ['type' => 'unknown'],
         ]);
 
         $this->assertCount(2, $checks);
         $this->assertSame('process', $checks[0]->name());
         $this->assertSame('cache-redis', $checks[1]->name());
+    }
+
+    /**
+     * 验证：未知 health check type 抛 InvalidHealthCheckConfigException。
+     */
+    public function testUnknownCheckTypeThrowsAtFactory(): void
+    {
+        $this->expectException(InvalidHealthCheckConfigException::class);
+        $this->expectExceptionMessage('unknown health check type');
+        CheckFactory::fromDefs([
+            ['type' => 'process'],
+            ['type' => 'unknown'],
+        ]);
+    }
+
+    /**
+     * 验证：HealthRoutes::register 在未知 type 时启动失败（不注册路由）。
+     */
+    public function testRegisterFailsOnUnknownCheckType(): void
+    {
+        $this->expectException(InvalidHealthCheckConfigException::class);
+        HealthRoutes::register(HealthConfig::fromArray([
+            'health' => [
+                'enabled' => true,
+                'readiness_checks' => [
+                    ['type' => 'not_a_real_check'],
+                ],
+            ],
+        ]));
     }
 
     /**
@@ -123,5 +161,25 @@ final class HealthProbeTest extends TestCase
         $this->assertCount(2, $checks);
         $this->assertSame('storage-oss', $checks[0]->name());
         $this->assertSame('file_storage', $checks[1]->name());
+    }
+
+    /**
+     * 验证：check_timeout_seconds 配置可读，非法值回落默认 2。
+     */
+    public function testCheckTimeoutSecondsDefault(): void
+    {
+        $config = HealthConfig::fromArray([
+            'health' => [
+                'check_timeout_seconds' => 3,
+            ],
+        ]);
+        $this->assertSame(3.0, $config->checkTimeoutSeconds());
+
+        $fallback = HealthConfig::fromArray([
+            'health' => [
+                'check_timeout_seconds' => 0,
+            ],
+        ]);
+        $this->assertSame(2.0, $fallback->checkTimeoutSeconds());
     }
 }

@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Swoolefy\Support\Job;
 
 use Swoolefy\Support\SupportLog;
+use Swoolefy\Support\Workflow\Engine\TimeoutGuard;
+use Swoolefy\Support\Workflow\Exception\WorkflowTimeoutException;
 use Throwable;
 
 /**
@@ -45,6 +47,9 @@ final class JobRunner
      * 本方法**不**直接操作 Redis/AMQP/Kafka；传输层 ACK、延迟投递、死信落盘
      * 全部由调用方（自定义进程）通过 $requeue / $dead 注入，保证自由度在进程侧。
      *
+     * Handler 经 {@see TimeoutGuard} 包裹：`handler_timeout_seconds` 在协程内生效。
+     * 注意：超时只能中断可协作的协程 IO；阻塞扩展须自行配置网络超时。
+     *
      * @param JobHandlerInterface $handler 业务处理器
      * @param JobEnvelope $job 当前投递的信封（含 attempt / maxAttempts）
      * @param callable(JobEnvelope $next, int $delayMs): void $requeue
@@ -59,7 +64,8 @@ final class JobRunner
      *        最终失败时调用，触发场景：
      *        1) Handler 返回 FAIL（业务不可恢复）
      *        2) Handler 返回 RETRY 但 attempt 已达 maxAttempts
-     *        3) runRegistered 时 jobType 未注册（见下方）
+     *        3) Handler 超时且重试耗尽
+     *        4) runRegistered 时 jobType 未注册（见下方）
      *        - $failed：失败时的信封（一般为当前 attempt，未再 +1）
      *        - $error：失败原因文案
      *        进程侧典型实现：RedisDeadLetter::push / 写日志 / 依赖 AMQP DLX / Kafka 旁路 topic。
@@ -84,7 +90,19 @@ final class JobRunner
         );
 
         try {
-            $result = $handler->handle($job);
+            // TimeoutGuard：协程内按 timeoutSeconds 超时；非协程环境不强制超时
+            $result = TimeoutGuard::run(
+                fn (): JobResult => $handler->handle($job),
+                $this->timeoutSeconds,
+            );
+        } catch (WorkflowTimeoutException $e) {
+            // 超时记失败（走 retry/dead），日志不含 payload
+            SupportLog::warning('job', 'job.timeout', [
+                'jobId' => $job->jobId,
+                'handler' => $handler::class,
+                'timeout' => $this->timeoutSeconds,
+            ]);
+            $result = JobResult::retry($e->getMessage());
         } catch (Throwable $e) {
             // 未捕获异常按可重试处理，交给下方 RETRY 分支
             $result = JobResult::retry($e->getMessage());
