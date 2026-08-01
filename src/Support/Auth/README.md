@@ -147,9 +147,9 @@ composer test:auth
 
 | 套件 | 用例 |
 |------|------|
-| Unit | `PhpUintTest/Unit/Support/Auth/AuthModuleTest` |
-| Coroutine | `PhpUintTest/Coroutine/Support/Auth/AuthContextGoAppTest` |
-| Http | `PhpUintTest/Unit/Controller/AuthUserControllerTest`（无 Bearer → 401） |
+| Unit | `PHPUintTest/Unit/Support/Auth/AuthModuleTest` |
+| Coroutine | `PHPUintTest/Coroutine/Support/Auth/AuthContextGoAppTest` |
+| Http | `PHPUintTest/Unit/Controller/AuthUserControllerTest`（无 Bearer → 401） |
 
 ---
 

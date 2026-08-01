@@ -1141,9 +1141,9 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 | 创建应用模板 | `src/Cmd/CreateCmd.php` |
 | 配置模板 | `src/Stubs/websocket.conf.stub.php`、`socketio.conf.stub.php` |
 | 示例应用 | `WebsocketService/` |
-| 冒烟测试 | `PhpUintTest/Websocket/WebsocketSmokeTest.php`（`composer test:websocket -- --group smoke`） |
-| 分片帧测试 | `PhpUintTest/Websocket/WebsocketFrameAssemblerTest.php` |
-| 集群测试 | `PhpUintTest/Websocket/WebsocketClusterTest.php` |
+| 冒烟测试 | `PHPUintTest/Websocket/WebsocketSmokeTest.php`（`composer test:websocket -- --group smoke`） |
+| 分片帧测试 | `PHPUintTest/Websocket/WebsocketFrameAssemblerTest.php` |
+| 集群测试 | `PHPUintTest/Websocket/WebsocketClusterTest.php` |
 | 浏览器测试 | `src/Websocket/Tests/socketio-client.html` |
 | Chat 示例 | `src/Stubs/ChatService.stub.php` |
 

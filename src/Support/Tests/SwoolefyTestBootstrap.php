@@ -27,7 +27,7 @@ declare(strict_types=1);
  * | 进程类型 helper | 一律按「非 Worker CLI」返回，避免误走守护进程分支 |
  *
  * ## 谁会 require
- * - {@see PhaseCProductionTest.php}（协程 / GoWaitGroup）
+ * - {@see CoroutineTestCase} 及协程单测（GoWaitGroup / Context 等）
  * - {@see SupportLogIntegrationTest.php}（Util\Log 写盘探测）
  *
  * 幂等：常量与函数均用 `defined` / `function_exists` 保护，可重复 require。

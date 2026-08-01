@@ -144,7 +144,7 @@ src/Support/Auth/
   AuthException.php            # extends SystemException；code=401（等）
   AuthGuardInterface.php       # authenticate + generateToken
   JwtAuthGuard.php             # 默认 JWT 实现
-  Tests/                        # 已迁入 PhpUintTest/Unit/Support/Auth/
+  Tests/                        # 已迁入 PHPUintTest/Unit/Support/Auth/
 
 src/Support/FrameworkContext.php
 src/Http/Middleware/AuthenticateMiddleware.php           # 强制 Bearer；零参

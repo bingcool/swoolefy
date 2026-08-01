@@ -51,7 +51,7 @@
 - [二十三、📬 Job 异步任务](#nav-23-job)
 - [🔐 Auth 统一身份](#nav-auth)
 - [🌐 I18n 国际化](#nav-i18n)
-- [🧪 PHPUnit / PhpUintTest](#nav-phpunit)
+- [🧪 PHPUnit / PHPUintTest](#nav-phpunit)
 
 ---
 
@@ -70,9 +70,9 @@
 | **Job** | 统一信封 / Handler / Registry / 重试退避 / Redis 死信；对接现有 Redis·AMQP·Kafka 自定义进程（零建表） |
 | **AI 一体化** | Neuron LLM、Workflow DAG、AINode 流式、六种 Agent 路由、RAG（租户隔离）、MCP、**DocumentOcr**（DOCX / 图片 / PDF → Markdown → RAG） |
 | **生产级工作流** | 条件边 AI 决策、人机协同 HITL、节点超时、Saga、快照恢复、Provider Fallback |
-| **测试** | PHPUnit 11 单轨：`PhpUintTest/`（Unit / Coroutine / Http / Websocket）；`composer test` 默认绿灯 |
+| **测试** | PHPUnit 11 单轨：`PHPUintTest/`（Unit / Coroutine / Http / Websocket）；`composer test` 默认绿灯 |
 
-实用主义优先：高频能力收敛进框架，编排交给 Workflow / Agent，身份走 Auth，异步走 Job，回归走 PhpUintTest。
+实用主义优先：高频能力收敛进框架，编排交给 Workflow / Agent，身份走 Auth，异步走 Job，回归走 PHPUintTest。
 
 #### 模块速览
 
@@ -92,8 +92,8 @@
 | **I18n** | `LocaleMiddleware` 协商 locale + Symfony `translator` 组件 | [I18n](docs/I18n.md) |
 | **Nacos** | 配置监听、服务注册/发现、SDK `base_uri` 解析 | [Support/Nacos](src/Support/Nacos/README.md) · [二十](#nav-20-nacos) |
 | **Mqtt** | MQTT 协议服务与优雅停机 | [src/Mqtt](src/Mqtt/README.md) |
-| **Websocket** | 推送、离线、Cluster、Socket.IO 等 | [架构/协议](#nav-arch) · 测试见 PhpUintTest |
-| **PhpUintTest** | PHPUnit 11 单轨；Unit / Coroutine / Http / Websocket | [PHPUnitTest](docs/PHPUnitTest.md) · [简介](#nav-phpunit) |
+| **Websocket** | 推送、离线、Cluster、Socket.IO 等 | [架构/协议](#nav-arch) · 测试见 PHPUintTest |
+| **PHPUintTest** | PHPUnit 11 单轨；Unit / Coroutine / Http / Websocket | [PHPUnitTest](docs/PHPUnitTest.md) · [简介](#nav-phpunit) |
 | **Health** | K8s `/health`·`/ready` 探针（与 CLI `ProductionHealthCheck` 互补） | [Http/Health](src/Http/Health/README.md) · Config/health.php |
 | **library** | 协程组件库（DB / Redis / Queue / Jwt …） | [bingcool/library](https://github.com/bingcool/library) · [五](#nav-5-library) |
 
@@ -133,8 +133,8 @@
 - 📬 **Job 异步任务**（`src/Support/Job/`）:
   - 统一信封 + Handler + Registry + 重试/退避 + Redis 死信重放
   - 对接现有 Redis / AMQP / Kafka 自定义进程，**不新建 SQL 表**、不替换 `ProcessManager`（详见 [二十三](#nav-23-job)、[docs/Job.md](docs/Job.md)）
-- 🧪 **PHPUnit / PhpUintTest**:
-  - 唯一推荐运行器：PHPUnit 11；用例目录 `PhpUintTest/`（Unit · Coroutine · Http · Websocket）
+- 🧪 **PHPUnit / PHPUintTest**:
+  - 唯一推荐运行器：PHPUnit 11；用例目录 `PHPUintTest/`（Unit · Coroutine · Http · Websocket）
   - 默认 `composer test` = unit + coroutine；Http / Websocket / Redis 等独立 suite 或 `@group`
   - 方案与命令：[docs/PHPUnitTest.md](docs/PHPUnitTest.md)
 
@@ -167,9 +167,9 @@ echo $t->trans('hello');
 
 <a id="nav-phpunit"></a>
 
-### 🧪 PHPUnit / PhpUintTest（简介）
+### 🧪 PHPUnit / PHPUintTest（简介）
 
-测试已单轨迁入 **`PhpUintTest/`**（命名空间 `PhpUintTest\`），由 `phpunit.xml.dist` 按 suite 分层；旧 `src/**/Tests` 脚本式回归已删除。
+测试已单轨迁入 **`PHPUintTest/`**（命名空间 `PHPUintTest\`），由 `phpunit.xml.dist` 按 suite 分层；旧 `src/**/Tests` 脚本式回归已删除。
 
 | 命令 | 说明 |
 |------|------|

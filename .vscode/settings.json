@@ -2,7 +2,7 @@
   "intelephense.environment.includePaths": [
     "src",
     "Test",
-    "PhpUintTest",
+    "PHPUintTest",
     "vendor"
   ],
   "intelephense.diagnostics.namespaceCompatibility": true

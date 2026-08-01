@@ -510,7 +510,7 @@ When the user asks about weather for a city:
   - 测试环境 `skills.paths`。
 - `src/Stubs/neuron_ai.conf.stub.php`
   - 生产配置模板和空 paths 默认行为。
-- `PhpUintTest/Unit/Support/Neuron/SkillModuleTest.php`
+- `PHPUintTest/Unit/Support/Neuron/SkillModuleTest.php`
   - 解析、扫描、缓存、异常、Tool 结果和 prompt 注入测试。
 - `docs/CapabilityTool.md`
   - Capability Registry、Resolver、Materializer 与 Tool 筛选细节。

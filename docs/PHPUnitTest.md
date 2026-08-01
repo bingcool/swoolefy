@@ -7,10 +7,10 @@
 | 问题 | 改造前 | 现状 |
 |------|--------|------|
 | 无标准测试框架 | 无 PHPUnit / `TestCase` | PHPUnit 11 + `phpunit.xml.dist` |
-| 脚本式回归 | `src/**/Tests/*Test.php` 手写 assert | 已迁入 `PhpUintTest/`，单轨 PHPUnit |
+| 脚本式回归 | `src/**/Tests/*Test.php` 手写 assert | 已迁入 `PHPUintTest/`，单轨 PHPUnit |
 | CI 难接入 | `@php file.php` 串联 | `composer test` / suite / group；可选 `test:coverage` |
 | 分层缺失 | Unit/协程/HTTP/Redis 混跑 | suite 分层 + `@group` 横切 exclude |
-| HTTP 靠人工 curl | 先启服再手测 | `PhpUintTest/Http` + Controller curl 黄金路径 |
+| HTTP 靠人工 curl | 先启服再手测 | `PHPUintTest/Http` + Controller curl 黄金路径 |
 | 协程难回归 | 无统一基类 | `CoroutineTestCase` + 可选泄漏断言 |
 
 ### 1.2 改造目标
@@ -49,7 +49,7 @@
 | `test:job` / `test:agent` / `test:ai` / `test:mcp` / … | 各 Support 模块 |
 | `test:phase-a` … `test:phase-d` | 生产加固 |
 | `test:support` | 聚合 Support 相关 filter |
-| `test:module-workflows` / `test:*-workflow` | `PhpUintTest/Unit/Module/*`（含 Contract） |
+| `test:module-workflows` / `test:*-workflow` | `PHPUintTest/Unit/Module/*`（含 Contract） |
 
 **未进默认 `composer test`：** Http / Websocket suite；`@group redis|db|slow|smoke`（含 `RedisRunStoreCasTest`、MQTT/WS 可选 smoke）。
 
@@ -79,7 +79,7 @@ foreach ($tests as $name => $fn) {
 | `assertTrue($c, $msg)` | `$this->assertTrue($c, $msg)` 或更具体的 `assertSame` |
 | `pass($name)` | 删除（PHPUnit 报告替代） |
 | 文件尾 `foreach` | 删除（发现机制替代） |
-| 文件级 `require autoload` | `PhpUintTest/bootstrap.php`（composer 仅 Swoolefy；`Test\` / `PhpUintTest\` 各自 autoloader） |
+| 文件级 `require autoload` | `PHPUintTest/bootstrap.php`（composer 仅 Swoolefy；`Test\` / `PHPUintTest\` 各自 autoloader） |
 | 顶部业务注释「覆盖范围」 | 类 PHPDoc 保留 |
 
 ### 2.3 已有可复用基建
@@ -87,7 +87,7 @@ foreach ($tests as $name => $fn) {
 | 资产 | 路径 | 改造中的角色 |
 |------|------|--------------|
 | Support 协程 stub | [`src/Support/Tests/SwoolefyTestBootstrap.php`](../src/Support/Tests/SwoolefyTestBootstrap.php) | `CoroutineTestCase::setUp` 必引 |
-| WS 探活 | [`PhpUintTest/Websocket/Support/SmokeTestSupport.php`](../PhpUintTest/Websocket/Support/SmokeTestSupport.php) | Http/Ws `*ServerManager` 范本 |
+| WS 探活 | [`PHPUintTest/Websocket/Support/SmokeTestSupport.php`](../PHPUintTest/Websocket/Support/SmokeTestSupport.php) | Http/Ws `*ServerManager` 范本 |
 | HTTP Demo + curl | [`Test/Module/`](../Test/Module/)、[`docs/AI-WORKFLOW.md`](AI-WORKFLOW.md) | HttpIntegration 用例来源 |
 | Auth 验收 | [`docs/Auth.md`](Auth.md) | CoroutineUnit（goApp 透传）+ Http（Bearer） |
 | Guzzle | `composer.json` require | Http 客户端，无需新增依赖（PHPUnit 除外） |
@@ -115,7 +115,7 @@ flowchart TB
     H[testsuite http]
     W[testsuite websocket]
   end
-  New["PhpUintTest/ 单轨入口"]
+  New["PHPUintTest/ 单轨入口"]
   runner --> New
   H --> Srv["cli.php start Test :9501 或 AUTO_START"]
   W --> WsSrv["WebsocketService"]
@@ -125,10 +125,10 @@ flowchart TB
 
 | 层 | 目录 | 基类 | 依赖 | 默认 CI |
 |----|------|------|------|---------|
-| **Unit** | `PhpUintTest/Unit/` | `PhpUintTest\TestCase` | 无协程调度、无网络 | 是 |
-| **CoroutineUnit** | `PhpUintTest/Coroutine/` | `CoroutineTestCase` | `ext-swoole`、`SwoolefyTestBootstrap` | 是 |
-| **HttpIntegration** | `PhpUintTest/Http/` | `HttpIntegrationTestCase` | 真 HTTP 服务 | 否（独立 suite `http`） |
-| **Websocket** | `PhpUintTest/Websocket/` | 复用探活 | WebsocketService | 否（独立 suite `websocket`） |
+| **Unit** | `PHPUintTest/Unit/` | `PHPUintTest\TestCase` | 无协程调度、无网络 | 是 |
+| **CoroutineUnit** | `PHPUintTest/Coroutine/` | `CoroutineTestCase` | `ext-swoole`、`SwoolefyTestBootstrap` | 是 |
+| **HttpIntegration** | `PHPUintTest/Http/` | `HttpIntegrationTestCase` | 真 HTTP 服务 | 否（独立 suite `http`） |
+| **Websocket** | `PHPUintTest/Websocket/` | 复用探活 | WebsocketService | 否（独立 suite `websocket`） |
 | **Redis/DB** | 任意层，标 `@group redis`/`db` | — | 中间件 | 默认 **group exclude**（横切） |
 
 **隔离约定（已定）：**
@@ -145,7 +145,7 @@ flowchart TB
 
 ```text
 phpunit.xml.dist
-PhpUintTest/
+PHPUintTest/
   bootstrap.php
   TestCase.php
   CoroutineTestCase.php
@@ -166,10 +166,10 @@ PhpUintTest/
     Module/                          # Outdoor|Order|Research|Rag|Contract|Knowledge|Workflow
   Coroutine/
     Support/Auth/AuthContextGoAppTest.php
-    …                                # PhaseC 等
+    …                                # 协程生命周期等
   Websocket/                         # suite websocket；Smoke @group smoke
 
-# 单轨：PhpUintTest/ 为唯一测试入口；src/**/Tests 仅 Fixtures/Bootstrap
+# 单轨：PHPUintTest/ 为唯一测试入口；src/**/Tests 仅 Fixtures/Bootstrap
 ```
 
 composer 仅映射框架本体；Demo / PHPUnit 命名空间各自注册：
@@ -188,7 +188,7 @@ composer 仅映射框架本体；Demo / PHPUnit 命名空间各自注册：
 |----------|----------|
 | `Swoolefy\` | `vendor/autoload.php`（composer `autoload.psr-4`） |
 | `Test\` | `Test\Autoloader`（`Test/Autoloader.php`；cli.php `registerNamespace`；PHPUnit/PhpStorm 经 `autoload-dev.files`） |
-| `PhpUintTest\` | `PhpUintTest\Autoloader`（经 `PhpUintTest/register_dev_autoload.php` → `autoload-dev.files`） |
+| `PHPUintTest\` | `PHPUintTest\Autoloader`（经 `PHPUintTest/register_dev_autoload.php` → `autoload-dev.files`） |
 | 业务应用 `App\` 等 | `\<AppName>\Autoloader`（create 自根目录 `Autoloader.php` 模板复制） |
 
 PhpStorm 单独 Run method 时若只挂 `vendor/autoload.php`，依赖上述 `autoload-dev.files`；改完后执行一次 `composer dump-autoload`。也可在 PHPUnit 配置里指定 Default configuration file = `phpunit.xml.dist`。
@@ -200,7 +200,7 @@ PhpStorm 单独 Run method 时若只挂 `vendor/autoload.php`，依赖上述 `au
 ### 4.1 TestCase
 
 ```php
-namespace PhpUintTest;
+namespace PHPUintTest;
 
 use PHPUnit\Framework\TestCase as BaseTestCase;
 
@@ -213,7 +213,7 @@ abstract class TestCase extends BaseTestCase
 ### 4.2 CoroutineTestCase
 
 ```php
-namespace PhpUintTest;
+namespace PHPUintTest;
 
 use Swoole\Coroutine;
 use Swoole\Runtime;
@@ -252,10 +252,10 @@ abstract class CoroutineTestCase extends TestCase
 ### 4.3 HttpIntegrationTestCase（curl → PHPUnit）
 
 ```php
-namespace PhpUintTest\Http;
+namespace PHPUintTest\Http;
 
 use GuzzleHttp\Client;
-use PhpUintTest\TestCase;
+use PHPUintTest\TestCase;
 
 /**
  * Http 全流程基类。
@@ -353,7 +353,7 @@ curl -s -X POST "http://127.0.0.1:9501/api/v1/outdoor/workflow/cycling" \
 **改造后（PHPUnit）：**
 
 ```php
-namespace PhpUintTest\Http;
+namespace PHPUintTest\Http;
 
 /** @group outdoor */
 final class OutdoorWorkflowHttpTest extends HttpIntegrationTestCase
@@ -414,7 +414,7 @@ $res = $this->postJson('/api/v1/...', $body, [
 |--------|------|------|
 | P0 | Outdoor | ✅ `OutdoorWorkflowHttpTest`：sunny / rainy / status 缺 runId |
 | P0 | Workflow | ✅ `WorkflowHttpTest`：list；`contract_review` run；resume（共享 Store）；status 缺 runId |
-| P0 | Auth / Common Controller | ✅ `PhpUintTest/Unit/Controller/*`（suite=http）；Redis/Cache 标 `redis` |
+| P0 | Auth / Common Controller | ✅ `PHPUintTest/Unit/Controller/*`（suite=http）；Redis/Cache 标 `redis` |
 | P1 | HITL curl | ✅ 错 Key → 403（`SWOOLEFY_HTTP_HITL_AUTH=1` + 服务端 `WORKFLOW_HITL_AUTH_ENABLED=1`；status 主路径；resume 另需共享 Store） |
 | P2 | Order saga demo | ✅ `OrderWorkflowHttpTest`：process mock 批准；saga → 400；status 缺 runId |
 
@@ -435,10 +435,10 @@ Http:  /api/v1/outdoor/workflow/cycling         ← 少而稳（黄金路径）
 
 ### 6.1 单文件改造步骤（Checklist）
 
-1. 新建 `PhpUintTest/Unit/Support/{Module}/{Name}Test.php`，`extends TestCase`。
+1. 新建 `PHPUintTest/Unit/Support/{Module}/{Name}Test.php`，`extends TestCase`。
 2. 将每个 `function testXxx()` 变为类方法；`assertTrue` → `$this->assert*`。
 3. 删除文件级 `assertTrue` / `pass` / 尾部 `foreach`。
-4. Stub / Fake 类移入同文件 private class 或 `PhpUintTest/Unit/Support/{Module}/Fixture/`。
+4. Stub / Fake 类移入同文件 private class 或 `PHPUintTest/Unit/Support/{Module}/Fixture/`。
 5. 删除旧 `src/**/Tests/*Test.php` 转发脚本；`composer test:{module}` → `phpunit --testsuite unit --filter X`。
 
 6. 跑通：`./vendor/bin/phpunit --filter JobPhase1Test` 与旧脚本结果一致后合并。
@@ -453,11 +453,11 @@ Http:  /api/v1/outdoor/workflow/cycling         ← 少而稳（黄金路径）
 | 4 | Phase A–D、SupportLog | 注意部分需 Coroutine |
 | 5 | Websocket 离线单测 → Unit；Smoke → Websocket suite | |
 | 6 | RedisRunStoreCas、Cluster → `#[Group('redis')]` | ✅ |
-| 7 | `Test/Module/*` Demo 工作流 → `PhpUintTest/Unit/Module` | ✅ |
+| 7 | `Test/Module/*` Demo 工作流 → `PHPUintTest/Unit/Module` | ✅ |
 
-### 6.3 PhaseC / 协程脚本
+### 6.3 协程单测迁入规范
 
-凡内部已有 `Coroutine\run` 的，迁入 `PhpUintTest/Coroutine/`，外层用 `runInCoroutine` **单层**调度：
+凡内部已有 `Coroutine\run` 的，迁入 `PHPUintTest/Coroutine/`，外层用 `runInCoroutine` **单层**调度：
 
 - 脚本原文若已包一层 `Coroutine\run`，迁入时去掉内层，只保留 `runInCoroutine(fn…)`。
 - 禁止 `runInCoroutine` 里再调 `Coroutine\run`（双重嵌套在部分 Swoole 版本上行为不稳定）。
@@ -475,23 +475,23 @@ Http:  /api/v1/outdoor/workflow/cycling         ← 少而稳（黄金路径）
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         bootstrap="PhpUintTest/bootstrap.php"
+         bootstrap="PHPUintTest/bootstrap.php"
          colors="true"
          cacheDirectory=".phpunit.cache"
          failOnWarning="false">
     <!-- 过渡期 failOnWarning=false，避免 Swoole/扩展 notice 误伤；稳定后可改 true -->
     <testsuites>
         <testsuite name="unit">
-            <directory>PhpUintTest/Unit</directory>
+            <directory>PHPUintTest/Unit</directory>
         </testsuite>
         <testsuite name="coroutine">
-            <directory>PhpUintTest/Coroutine</directory>
+            <directory>PHPUintTest/Coroutine</directory>
         </testsuite>
         <testsuite name="http">
-            <directory>PhpUintTest/Http</directory>
+            <directory>PHPUintTest/Http</directory>
         </testsuite>
         <testsuite name="websocket">
-            <directory>PhpUintTest/Websocket</directory>
+            <directory>PHPUintTest/Websocket</directory>
         </testsuite>
     </testsuites>
     <groups>
@@ -581,14 +581,14 @@ composer test:coverage
 
 | Phase | 内容 | 状态 |
 |-------|------|------|
-| **P0 脚手架** | `phpunit/phpunit`；`phpunit.xml.dist`（suite 隔离）；`PhpUintTest/bootstrap` + 三基类 | ✅ |
-| **P1 样板迁移** | JobPhase1 + WorkflowHitlAuth → `PhpUintTest/Unit`；旧脚本 deprecate 转发 | ✅ |
-| **P2 Coroutine** | `CoroutineTestCase` + Auth goApp / Context array；PhaseC | ✅ |
+| **P0 脚手架** | `phpunit/phpunit`；`phpunit.xml.dist`（suite 隔离）；`PHPUintTest/bootstrap` + 三基类 | ✅ |
+| **P1 样板迁移** | JobPhase1 + WorkflowHitlAuth → `PHPUintTest/Unit`；旧脚本 deprecate 转发 | ✅ |
+| **P2 Coroutine** | `CoroutineTestCase` + Auth goApp / Context array | ✅ |
 | **P3 Http** | Auth `/api/auth-user/me` 401 + Outdoor cycling + Workflow list/run/status/resume | ✅ |
-| **P4 批量 Support** | `test:support` 模块迁入 `PhpUintTest/`；composer `test:*` 切 phpunit | ✅ |
-| **P4+ Module + Redis CAS** | `Test/Module/*` → `PhpUintTest/Unit/Module`；`RedisRunStoreCas` + `#[Group('redis')]` | ✅ |
-| **P5 Websocket** | Offline + Smoke → `PhpUintTest/Websocket` | ✅ |
-| **P5 单轨** | 删除 deprecate wrapper；Mqtt → `PhpUintTest/Unit/Mqtt`；`composer test:mqtt` | ✅ |
+| **P4 批量 Support** | `test:support` 模块迁入 `PHPUintTest/`；composer `test:*` 切 phpunit | ✅ |
+| **P4+ Module + Redis CAS** | `Test/Module/*` → `PHPUintTest/Unit/Module`；`RedisRunStoreCas` + `#[Group('redis')]` | ✅ |
+| **P5 Websocket** | Offline + Smoke → `PHPUintTest/Websocket` | ✅ |
+| **P5 单轨** | 删除 deprecate wrapper；Mqtt → `PHPUintTest/Unit/Mqtt`；`composer test:mqtt` | ✅ |
 | **P6** | `HttpRequestHarness`（RequestInput）；`composer test:http:ci`；`test:coverage`（无强制 min %） | ✅ |
 | **P6 非目标** | 完整伪造 `onRequest` 路由链；覆盖率百分比门禁 | 不做 |
 
@@ -607,7 +607,7 @@ composer test:job
 
 ## 10. 验收标准
 
-1. 无 HTTP 服务时，`composer test`（`--testsuite unit,coroutine`）**全部通过**，且**不会**执行 `PhpUintTest/Http`。
+1. 无 HTTP 服务时，`composer test`（`--testsuite unit,coroutine`）**全部通过**，且**不会**执行 `PHPUintTest/Http`。
 2. 服务未启 + `SWOOLEFY_HTTP_SKIP_IF_DOWN=1` → `composer test:http` **skip**，进程 exit 0。
 3. `start Test` 后 Outdoor sunny cycling：`status=200` 且存在 `runId`。
 4. `GET /api/auth-user/me` 无 Bearer → HTTP **401**；HITL 错误 API Key → **403**（需 `WORKFLOW_HITL_AUTH_ENABLED=1` + `SWOOLEFY_HTTP_HITL_AUTH=1`）。
@@ -655,7 +655,7 @@ composer test:job
 | [docs/PHPUnitTest.md](PHPUnitTest.md) | 本文：PHPUnit 改造方案 |
 | [composer.json](../composer.json) | 现有 `test:*` |
 | [src/Support/Tests/SwoolefyTestBootstrap.php](../src/Support/Tests/SwoolefyTestBootstrap.php) | 协程 stub |
-| [PhpUintTest/Websocket/Support/SmokeTestSupport.php](../PhpUintTest/Websocket/Support/SmokeTestSupport.php) | 活服务探活 |
+| [PHPUintTest/Websocket/Support/SmokeTestSupport.php](../PHPUintTest/Websocket/Support/SmokeTestSupport.php) | 活服务探活 |
 | [docs/AI-WORKFLOW.md](AI-WORKFLOW.md) | curl → Http 用例来源 |
 | [docs/Auth.md](Auth.md) | Auth / goApp / Bearer / `/api/auth-user/me` |
 | [docs/CapabilityTool.md](CapabilityTool.md) | Capability 单测迁入 Unit |
@@ -666,7 +666,7 @@ composer test:job
 
 **与 Auth：** CoroutineUnit 覆盖 `setUser` array 透传；HttpIntegration 覆盖 Bearer 与缺 token 401。  
 **与 Workflow：** 引擎/HITL 逻辑 → Unit；`/api/v1/workflow/*` → Http。  
-**入口：** `PhpUintTest/` + `composer test:*` 单轨；`src/**/Tests` 仅保留 Fixtures / Bootstrap / SchemaInstaller。
+**入口：** `PHPUintTest/` + `composer test:*` 单轨；`src/**/Tests` 仅保留 Fixtures / Bootstrap / SchemaInstaller。
 
 ---
 
@@ -684,6 +684,6 @@ composer test:job
 ### 落地状态（P0–P6）
 
 1. ✅ PHPUnit 11 + suite 隔离 + 三基类 / Http 基类  
-2. ✅ Support / Module（含 Contract）/ Mqtt / Websocket 单轨 `PhpUintTest/`  
+2. ✅ Support / Module（含 Contract）/ Mqtt / Websocket 单轨 `PHPUintTest/`  
 3. ✅ Http 黄金路径（Outdoor / Workflow / Order / Controller）+ HITL 错 Key（gated）  
 4. ✅ P6：`HttpRequestHarness`、`test:http:ci`、`test:coverage`（无强制门槛）  

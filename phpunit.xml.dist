@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
-         bootstrap="PhpUintTest/bootstrap.php"
+         bootstrap="PHPUintTest/bootstrap.php"
          colors="true"
          cacheDirectory=".phpunit.cache"
          failOnWarning="false">
@@ -9,26 +9,28 @@
     <testsuites>
         <testsuite name="unit">
             <!-- 不含 Unit/Controller：curl 黄金路径归 http suite -->
-            <directory>PhpUintTest/Unit/Support</directory>
-            <directory>PhpUintTest/Unit/Module</directory>
-            <directory>PhpUintTest/Unit/Mqtt</directory>
-            <directory>PhpUintTest/Unit/Http</directory>
-            <directory>PhpUintTest/Unit/Library</directory>
-            <directory>PhpUintTest/Unit/Script</directory>
-            <directory>PhpUintTest/Unit/Cmd</directory>
-            <directory>PhpUintTest/Unit/Rpc</directory>
-            <directory>PhpUintTest/Unit/Worker</directory>
-            <directory>PhpUintTest/Unit/Core</directory>
+            <directory>PHPUintTest/Unit/Support</directory>
+            <directory>PHPUintTest/Unit/Module</directory>
+            <directory>PHPUintTest/Unit/Mqtt</directory>
+            <directory>PHPUintTest/Unit/Http</directory>
+            <directory>PHPUintTest/Unit/Library</directory>
+            <directory>PHPUintTest/Unit/Script</directory>
+            <directory>PHPUintTest/Unit/Cmd</directory>
+            <directory>PHPUintTest/Unit/Rpc</directory>
+            <directory>PHPUintTest/Unit/Worker</directory>
+            <directory>PHPUintTest/Unit/Core</directory>
+            <!-- 9.4：Util 单测此前未纳入 unit suite -->
+            <directory>PHPUintTest/Unit/Util</directory>
         </testsuite>
         <testsuite name="coroutine">
-            <directory>PhpUintTest/Coroutine</directory>
+            <directory>PHPUintTest/Coroutine</directory>
         </testsuite>
         <testsuite name="http">
-            <directory>PhpUintTest/Http</directory>
-            <directory>PhpUintTest/Unit/Controller</directory>
+            <directory>PHPUintTest/Http</directory>
+            <directory>PHPUintTest/Unit/Controller</directory>
         </testsuite>
         <testsuite name="websocket">
-            <directory>PhpUintTest/Websocket</directory>
+            <directory>PHPUintTest/Websocket</directory>
         </testsuite>
     </testsuites>
     <groups>

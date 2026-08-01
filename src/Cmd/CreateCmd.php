@@ -512,14 +512,15 @@ class CreateCmd extends BaseCmd
      *
      * @throws IOException
      */
-    protected function commonHandleFile(?string $appPathDir = null)
+    protected function commonHandleFile(?string $appPathDir = null, ?string $appName = null)
     {
         $appPathDir = $appPathDir ?? APP_PATH;
+        $appName = $appName ?? APP_NAME;
         $eventServerFile = $appPathDir . '/Event.php';
         if (!file_exists($eventServerFile)) {
             $fileContentString = $this->readFile(SRC_DIR_ROOT . '/Stubs/event_handle.stub.php');
             $count = 1;
-            $fileContentString = str_replace('protocol\\event', APP_NAME, $fileContentString, $count);
+            $fileContentString = str_replace('protocol\\event', $appName, $fileContentString, $count);
             $this->writeFile($eventServerFile, $fileContentString);
         }
 
@@ -528,7 +529,7 @@ class CreateCmd extends BaseCmd
             $fileContentString = $this->readFile(dirname(SRC_DIR_ROOT) . '/Autoloader.php');
             $fileContentString = str_replace(
                 ['__APP_NAMESPACE__', '<{APP_NAME}>'],
-                [APP_NAME, APP_NAME],
+                [$appName, $appName],
                 $fileContentString
             );
             $this->writeFile($autoloaderFile, $fileContentString);
@@ -545,7 +546,7 @@ class CreateCmd extends BaseCmd
     protected function copyServerFile($appName, $protocol, ?string $appPathDir = null)
     {
         $appPathDir = $appPathDir ?? APP_PATH;
-        $this->commonHandleFile($appPathDir);
+        $this->commonHandleFile($appPathDir, $appName);
         $protocolInfo = $this->protocolMap[$protocol] ?? [];
         if (empty($protocolInfo)) {
             $namespace = 'protocol\\http';

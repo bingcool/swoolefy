@@ -354,7 +354,7 @@ Oauth **不**依赖 Auth；Auth **不**内置 Oauth。
 | 单元 | `weixin_oa` 门面映射（可用 Fake 或反射断言 driver） | 否 |
 | 集成 | 真平台联调 | **需要**，本期不跑 |
 
-测试落在 `swoolefy/PhpUintTest/Unit/Library/Oauth/`，与 FileStorage 一致。  
+测试落在 `swoolefy/PHPUintTest/Unit/Library/Oauth/`，与 FileStorage 一致。  
 **按需求：用例写好后先不执行。**
 
 ---
@@ -388,7 +388,7 @@ swoolefy/
   docs/Oauth.md
   src/Stubs/oauth.conf.stub.php
   src/Stubs/oauth.component.stub.php
-  PhpUintTest/Unit/Library/Oauth/*.php
+  PHPUintTest/Unit/Library/Oauth/*.php
 ```
 
 CreateCmd：新建应用时复制 conf + component（同 file_storage / auth）。
