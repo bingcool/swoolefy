@@ -24,6 +24,7 @@ declare(strict_types=1);
  * | 项 | 行为 |
  * |----|------|
  * | 路径常量 | 指向仓库内 `Test/` 应用根（含 CONFIG_PATH→Config/），便于读到 demo conf |
+ * | 日志组件 | 注册 Test/Config/component/log.php（含 system_error_log），与 EventCtrl::init 一致 |
  * | 进程类型 helper | 一律按「非 Worker CLI」返回，避免误走守护进程分支 |
  *
  * ## 谁会 require
@@ -96,4 +97,29 @@ if (!\function_exists('isDaemon')) {
     {
         return false;
     }
+}
+
+\defined('SWOOLEFY_DEV') or \define('SWOOLEFY_DEV', 'dev');
+\defined('SWOOLEFY_TEST') or \define('SWOOLEFY_TEST', 'test');
+\defined('SWOOLEFY_GRA') or \define('SWOOLEFY_GRA', 'gra');
+\defined('SWOOLEFY_PRD') or \define('SWOOLEFY_PRD', 'prd');
+if (!\defined('SWOOLEFY_ENV')) {
+    $cliEnv = getenv('SWOOLEFY_CLI_ENV');
+    \define('SWOOLEFY_ENV', \is_string($cliEnv) && $cliEnv !== '' ? $cliEnv : SWOOLEFY_DEV);
+}
+
+// 与 EventCtrl::init 一致：全量 suite 中若先加载了 Test/Protocol/conf.php（exception_handler），
+// 后续协程/App 测试触发 ExceptionHandle::shutHalt 时须能解析 system_error_log。
+static $swoolefyTestLogsRegistered = false;
+if (!$swoolefyTestLogsRegistered) {
+    $server = new \stdClass();
+    $server->taskworker = false;
+    $server->worker_id = -1;
+    \Swoolefy\Core\Swfy::setSwooleServer($server);
+
+    if (!is_dir(LOG_PATH)) {
+        @mkdir(LOG_PATH, 0777, true);
+    }
+    \Swoolefy\Core\SystemEnv::registerLogComponents();
+    $swoolefyTestLogsRegistered = true;
 }
