@@ -239,13 +239,6 @@ class CreateCmd extends BaseCmd
                     switch ($protocol) {
                         case self::HTTP_PROTOCOL:
                             $this->copyFile(SRC_DIR_ROOT . '/Http/conf.stub.php', $confFile);
-                            $confContent = $this->readFile($confFile);
-                            $confContent = str_replace(
-                                "'application_bootstrap'    => '',",
-                                "'application_bootstrap'    => \\{$appName}\\Bootstrap::class,",
-                                $confContent
-                            );
-                            $this->writeFile($confFile, $confContent);
                             break;
                         case self::RPC_PROTOCOL:
                             $this->copyFile(SRC_DIR_ROOT . '/Rpc/conf.stub.php', $confFile);
@@ -268,6 +261,10 @@ class CreateCmd extends BaseCmd
                                 $confFile
                             );
                     }
+                    // 各协议 conf 的 event_handler 必须指向应用 Event，而非框架默认 Handler
+                    $confContent = $this->readFile($confFile);
+                    $confContent = $this->personalizeProtocolConf($confContent, $appName, $protocol);
+                    $this->writeFile($confFile, $confContent);
                     break;
                 }
                 case 'Middleware':
@@ -488,6 +485,26 @@ class CreateCmd extends BaseCmd
                 $this->copyFile(SRC_DIR_ROOT . '/Stubs/' . $stub, $messagesFile);
             }
         }
+    }
+
+    /**
+     * 将协议 conf 模板中的占位项替换为当前应用命名空间
+     */
+    protected function personalizeProtocolConf(string $confContent, string $appName, string $protocol): string
+    {
+        $confContent = str_replace(
+            "'event_handler'            => \\Swoolefy\\Core\\EventHandler::class,",
+            "'event_handler'            => \\{$appName}\\Event::class,",
+            $confContent
+        );
+        if ($protocol === self::HTTP_PROTOCOL) {
+            $confContent = str_replace(
+                "'application_bootstrap'    => '',",
+                "'application_bootstrap'    => \\{$appName}\\Bootstrap::class,",
+                $confContent
+            );
+        }
+        return $confContent;
     }
 
     /**
