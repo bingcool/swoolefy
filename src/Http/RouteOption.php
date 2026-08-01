@@ -52,6 +52,36 @@ class RouteOption extends \stdClass
     protected $runAfterMiddleware;
 
     /**
+     * 是否对该路由启用 OpenTelemetry 采集。
+     * 全局开关见 `.env` 的 OTEL_PHP_AUTOLOAD_ENABLED；本项为 false 时即使全局开启也不采集。
+     *
+     * @var bool
+     */
+    protected bool $enableOpenTelemetry = true;
+
+    /**
+     * 路由级 OpenTelemetry 采集开关（默认开启；设 false 关闭该路由采集）。
+     *
+     * 语义：全局开 + 路由未关 → 采集；全局开 + 路由 false → 不采集；全局关 → 不采集。
+     *
+     * @param bool $enable
+     * @return $this
+     */
+    public function enableOpenTelemetry(bool $enable = true)
+    {
+        $this->enableOpenTelemetry = $enable;
+        return $this;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isEnableOpenTelemetry(): bool
+    {
+        return $this->enableOpenTelemetry;
+    }
+
+    /**
      * 路由动态开启DB的debug
      * @param bool $debug
      * @return $this

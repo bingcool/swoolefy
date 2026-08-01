@@ -17,14 +17,14 @@ use Swoolefy\Http\Middleware\CorsMiddlewareInterface;
 class Route
 {
     /**
-     * @var array
+     * @var array|null
      */
     protected static $routeMap;
 
     /**
-     * @var string
+     * @var string|null 延迟解析，避免 Unit 未定义 APP_PATH 时类加载失败
      */
-    protected static $routeRootDir = APP_PATH.DIRECTORY_SEPARATOR.'Router';
+    protected static $routeRootDir;
 
     /**
      * http methods
@@ -279,11 +279,51 @@ class Route
     public static function loadRouteFile(bool $force = false): array
     {
         if (empty(self::$routeMap) || $force) {
-            self::scanRouteFiles(self::$routeRootDir);
+            self::scanRouteFiles(self::routeRootDir());
             return self::$routeMap ?? [];
         }else {
             return self::$routeMap;
         }
+    }
+
+    /**
+     * 按 URI + Method 查找路由的 RouteOption（供 OTEL 等在 dispatch 前读取）。
+     * 路由未注册或无 option 时返回 null（视为未关闭采集）。
+     */
+    public static function findRouteOption(string $uri, string $method): ?RouteOption
+    {
+        $uri = rtrim(DIRECTORY_SEPARATOR . trim($uri, DIRECTORY_SEPARATOR), DIRECTORY_SEPARATOR);
+        $method = strtoupper($method);
+
+        $routerMap = self::$routeMap ?? [];
+        if (empty($routerMap)) {
+            if (!\defined('APP_PATH')) {
+                return null;
+            }
+            $routerMap = self::loadRouteFile();
+        }
+
+        $option = $routerMap[$uri][$method]['route_option'] ?? null;
+
+        return $option instanceof RouteOption ? $option : null;
+    }
+
+    /**
+     * Router 根目录：APP_PATH/Router。
+     */
+    protected static function routeRootDir(): string
+    {
+        if (self::$routeRootDir !== null && self::$routeRootDir !== '') {
+            return self::$routeRootDir;
+        }
+
+        if (!\defined('APP_PATH') || (string) \APP_PATH === '') {
+            return '';
+        }
+
+        self::$routeRootDir = rtrim((string) \APP_PATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'Router';
+
+        return self::$routeRootDir;
     }
 
     /**
@@ -292,7 +332,7 @@ class Route
      */
     protected static function scanRouteFiles(string $routeRootDir)
     {
-        if (!is_dir($routeRootDir)) {
+        if ($routeRootDir === '' || !is_dir($routeRootDir)) {
             return;
         }
         $handle = opendir($routeRootDir);

@@ -16,10 +16,11 @@ use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Task\TaskController;
+use Swoolefy\Http\OpenTelemetry\OpenTelemetryConfig;
+use Swoolefy\Http\OpenTelemetry\OpenTelemetryHttpCollector;
 use Swoolefy\Library\OpenTelemetry\API\Globals;
 use Swoolefy\Library\OpenTelemetry\API\Trace\SpanKind;
 use Swoolefy\Library\OpenTelemetry\API\Trace\StatusCode;
-use Swoolefy\Library\OpenTelemetry\SemConv\TraceAttributes;
 use Swoolefy\Library\OpenTelemetry\Contrib\Context\Swoole\SwooleContextScope;
 use Swoolefy\Library\OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
 
@@ -64,17 +65,19 @@ abstract class HttpAppServer extends HttpServer
      */
     protected function startOpenTelemetry(Request $request)
     {
-        if (!env('OTEL_PHP_AUTOLOAD_ENABLED', false)) {
+        $globalEnabled = (bool) env('OTEL_PHP_AUTOLOAD_ENABLED', false);
+        $route = $request->server['path_info'] ?? '';
+        $method = $request->server['request_method'] ?? '';
+        $routeOption = Route::findRouteOption((string) $route, (string) $method);
+        if (!OpenTelemetryHttpCollector::shouldCollect($globalEnabled, $routeOption)) {
             return [null, null, null, null];
         }
         /**
          * @var \Swoolefy\Library\OpenTelemetry\SDK\Trace\Tracer $tracer
          */
         $tracer = Globals::tracerProvider()->getTracer(env('OTEL_TRACING_NAME','swoolefy-http-request'), '1.0.0');
-        $route = $request->server['path_info'] ?? '';
-        $method = $request->server['request_method'] ?? '';
         $inputBody = [];
-        $queryString = "";
+        $queryParams = [];
         $carrier = $this->normalizeHeaderKeys($request->header ?? []);
         $contentType = $this->getHeaderValue($carrier, 'content-type', '');
         if (in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
@@ -86,29 +89,30 @@ abstract class HttpAppServer extends HttpServer
                 $input = [];
             }
             $inputBody = array_merge($post, $input);
-        }else if ($method == 'GET') {
+        } elseif ($method === 'GET') {
             $queryParams = $request->get ?? [];
-            foreach ($queryParams as $key => $value) {
-                $queryString .= $key . "=" . $value . "&";
-            }
-            $queryString = rtrim($queryString, "&");
         }
+        $otelConfig = OpenTelemetryConfig::load();
+        $attributes = OpenTelemetryHttpCollector::buildAttributes(
+            (string) $method,
+            (string) $route,
+            $carrier,
+            $inputBody,
+            $queryParams,
+            $otelConfig,
+            \Swoole\Coroutine::getCid(),
+            (string) gethostname(),
+        );
         $parentContext = TraceContextPropagator::getInstance()->extract($carrier);
-        $userAgent = $this->getHeaderValue($carrier, 'user-agent', 'unknown');
         $spanName = $route ? sprintf("%s %s %s (server)", "HTTP", $method, $route) : sprintf("%s %s %s (server)", "HTTP", $method, "/");
-        $rootSpan = $tracer->spanBuilder($spanName)
+        $spanBuilder = $tracer->spanBuilder($spanName)
             ->setSpanKind(SpanKind::KIND_SERVER)
             ->setParent($parentContext)
-            ->startSpan()
-            ->setAttribute(TraceAttributes::COROUTINE_ID, \Swoole\Coroutine::getCid())
-            ->setAttribute(TraceAttributes::HTTP_REQUEST_METHOD, $method)
-            ->setAttribute(TraceAttributes::URL_PATH, $route)
-            ->setAttribute(TraceAttributes::HTTP_REQUEST_BODY, json_encode($inputBody, JSON_UNESCAPED_UNICODE))
-            ->setAttribute(TraceAttributes::HTTP_REQUEST_HEADERS, json_encode($carrier, JSON_UNESCAPED_UNICODE))
-            ->setAttribute(TraceAttributes::HTTP_REQUEST_QUERY_PARAMS, $queryString)
-            ->setAttribute(TraceAttributes::HTTP_USER_AGENT, $userAgent)
-            ->setAttribute(TraceAttributes::SERVER_ADDRESS, gethostname())
-        ;
+            ->startSpan();
+        foreach ($attributes as $key => $value) {
+            $spanBuilder->setAttribute($key, $value);
+        }
+        $rootSpan = $spanBuilder;
         $scope   = $rootSpan->activate();
         $traceId = $rootSpan->getContext()->getTraceId();
         $traceparent = $this->getHeaderValue($carrier, TraceContextPropagator::TRACEPARENT);

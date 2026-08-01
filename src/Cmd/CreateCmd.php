@@ -171,6 +171,7 @@ class CreateCmd extends BaseCmd
                     $this->copyFile(SRC_DIR_ROOT . '/Stubs/job.conf.stub.php', $appPathDir . '/' . $dir . '/job.php');
                     $this->copyFile(SRC_DIR_ROOT . '/Stubs/rate_limit.conf.stub.php', $appPathDir . '/' . $dir . '/rate_limit.php');
                     $this->copyFile(SRC_DIR_ROOT . '/Stubs/health.conf.stub.php', $appPathDir . '/' . $dir . '/health.php');
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/otel.conf.stub.php', $appPathDir . '/' . $dir . '/otel.php');
                     $this->copyFile(SRC_DIR_ROOT . '/Stubs/apidoc.conf.stub.php', $appPathDir . '/' . $dir . '/apidoc.php');
                     $this->copyFile(SRC_DIR_ROOT . '/Stubs/file_storage_system.conf.stub.php', $appPathDir . '/' . $dir . '/file_storage_system.php');
                     $this->copyFile(SRC_DIR_ROOT . '/Stubs/oauth.conf.stub.php', $appPathDir . '/' . $dir . '/oauth.php');
@@ -695,6 +696,12 @@ REDIS_DB=1
 
 # OpenTelemetry
 OTEL_PHP_AUTOLOAD_ENABLED=false
+# HTTP 最小采集：敏感字段脱敏(默认开)
+OTEL_ATTRIBUTE_SANITIZE_ENABLED=true
+# attribute 最大长度(字节)（空=不限制）
+OTEL_ATTRIBUTE_MAX_LENGTH=512
+# 默认开启采集body
+OTEL_COLLECT_REQUEST_BODY=true
 OTEL_RESOURCE_SERVICE_NAME="swoolefy-service"
 OTEL_TRACING_NAME="swoolefy-http-request"
 # 阿里云腾讯云的Authentication token
