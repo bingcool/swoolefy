@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PhpUintTest\Http\Support;
+namespace PHPUintTest\Http\Support;
 
 use RuntimeException;
 
