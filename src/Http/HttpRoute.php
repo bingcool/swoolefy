@@ -24,6 +24,7 @@ use Swoolefy\Core\RouteMiddlewareInterface;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Exception\CorsRespException;
 use Swoolefy\Exception\DispatchException;
+use Swoolefy\Exception\InvalidMiddlewareException;
 use Swoolefy\Exception\SystemException;
 use Swoolefy\Util\CovertProperty;
 use Swoolefy\Http\Middleware\CorsMiddlewareInterface;
@@ -376,9 +377,11 @@ class HttpRoute extends AppDispatch
                 continue;
             }
 
-            if (!is_string($middleware) || !class_exists($middleware)) {
-                continue;
+            if (!is_string($middleware)) {
+                throw new InvalidMiddlewareException('route middleware must be a class name string or Closure');
             }
+
+            self::assertMiddlewareCallable($middleware);
 
             $middlewareEntity = new $middleware();
             // cors middleware 一次调用即可，避免重复执行 handle()
@@ -404,6 +407,172 @@ class HttpRoute extends AppDispatch
                 }
             }
         }
+    }
+
+    /**
+     * 启动期校验路由表内全部中间件类（fail closed）。
+     *
+     * @param array $routeMap
+     * @return void
+     *
+     * @throws InvalidMiddlewareException
+     */
+    public static function assertRouteMapMiddlewareValid(array $routeMap): void
+    {
+        foreach ($routeMap as $uri => $methods) {
+            if (!is_array($methods)) {
+                continue;
+            }
+
+            foreach ($methods as $method => $routeInfo) {
+                if (!is_array($routeInfo)) {
+                    continue;
+                }
+
+                $routeName = $uri . ' [' . $method . ']';
+
+                foreach ($routeInfo['group_meta']['middleware'] ?? [] as $middleware) {
+                    self::assertMiddlewareEntry($middleware, $routeName);
+                }
+
+                foreach ($routeInfo['route_meta'] ?? [] as $alias => $handle) {
+                    if ($alias === self::DISPATCH_ROUTE) {
+                        continue;
+                    }
+                    self::assertMiddlewareHandle($handle, $routeName);
+                }
+
+                $routeOption = $routeInfo['route_option'] ?? null;
+                if ($routeOption instanceof RouteOption) {
+                    $rateLimiterMiddleware = $routeOption->getRateLimiterMiddleware();
+                    if (is_string($rateLimiterMiddleware) && $rateLimiterMiddleware !== '') {
+                        self::assertMiddlewareCallable($rateLimiterMiddleware, $routeName);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * @param mixed $middleware
+     * @param string $routeName
+     * @return void
+     *
+     * @throws InvalidMiddlewareException
+     */
+    private static function assertMiddlewareEntry($middleware, string $routeName): void
+    {
+        if ($middleware instanceof \Closure) {
+            return;
+        }
+
+        if (is_array($middleware)) {
+            foreach ($middleware as $item) {
+                self::assertMiddlewareEntry($item, $routeName);
+            }
+
+            return;
+        }
+
+        if (!is_string($middleware) || $middleware === '') {
+            throw self::middlewareException('middleware must be a non-empty class name', $routeName, (string) $middleware);
+        }
+
+        self::assertMiddlewareCallable($middleware, $routeName);
+    }
+
+    /**
+     * @param mixed $handle
+     * @param string $routeName
+     * @return void
+     *
+     * @throws InvalidMiddlewareException
+     */
+    private static function assertMiddlewareHandle($handle, string $routeName): void
+    {
+        if ($handle instanceof \Closure) {
+            return;
+        }
+
+        if (is_array($handle)) {
+            foreach ($handle as $item) {
+                self::assertMiddlewareEntry($item, $routeName);
+            }
+
+            return;
+        }
+
+        if (!is_string($handle) || $handle === '') {
+            return;
+        }
+
+        self::assertMiddlewareCallable($handle, $routeName);
+    }
+
+    /**
+     * @param string $middlewareClass
+     * @param string $routeName
+     * @return void
+     *
+     * @throws InvalidMiddlewareException
+     */
+    public static function assertMiddlewareCallable(string $middlewareClass, string $routeName = ''): void
+    {
+        if ($middlewareClass === '') {
+            throw self::middlewareException('middleware class name must not be empty', $routeName, $middlewareClass);
+        }
+
+        if (!class_exists($middlewareClass)) {
+            throw self::middlewareException('middleware class not found', $routeName, $middlewareClass);
+        }
+
+        if (
+            !is_subclass_of($middlewareClass, RouteMiddlewareInterface::class)
+            && !self::isInvokableMiddlewareClass($middlewareClass)
+        ) {
+            throw self::middlewareException(
+                'middleware must implement RouteMiddlewareInterface or be invokable',
+                $routeName,
+                $middlewareClass
+            );
+        }
+    }
+
+    /**
+     * @param class-string $middlewareClass
+     */
+    private static function isInvokableMiddlewareClass(string $middlewareClass): bool
+    {
+        if (!method_exists($middlewareClass, '__invoke')) {
+            return false;
+        }
+
+        $invoke = new \ReflectionMethod($middlewareClass, '__invoke');
+
+        return $invoke->isPublic();
+    }
+
+    /**
+     * @param string $reason
+     * @param string $routeName
+     * @param string $middlewareClass
+     * @return InvalidMiddlewareException
+     */
+    private static function middlewareException(
+        string $reason,
+        string $routeName,
+        string $middlewareClass
+    ): InvalidMiddlewareException {
+        if ($routeName !== '') {
+            return new InvalidMiddlewareException(sprintf(
+                '%s for route %s: %s',
+                $reason,
+                $routeName,
+                $middlewareClass
+            ));
+        }
+
+        return new InvalidMiddlewareException(sprintf('%s: %s', $reason, $middlewareClass));
     }
 
     /**
@@ -822,7 +991,8 @@ class HttpRoute extends AppDispatch
             if ($rateLimiterMiddleware && empty($runAfterMiddleware)) {
                 // 放在Group Middleware最前面执行
                 array_unshift($groupMiddlewares, $rateLimiterMiddleware);
-            } else if ($rateLimiterMiddleware && class_exists($rateLimiterMiddleware)) {
+            } else if ($rateLimiterMiddleware) {
+                self::assertMiddlewareCallable($rateLimiterMiddleware, $uri . ' [' . $method . ']');
                 $tempGroupMiddlewares = [];
                 $isMatch = self::parseLateMiddleware($groupMiddlewares, $rateLimiterMiddleware, $runAfterMiddleware,$tempGroupMiddlewares);
                 $groupMiddlewares = $tempGroupMiddlewares;

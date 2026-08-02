@@ -22,6 +22,13 @@ class Route
     protected static $routeMap;
 
     /**
+     * 路由中间件是否已在当前 routeMap 上完成 fail-closed 校验。
+     *
+     * @var bool
+     */
+    private static bool $routeMiddlewareValidated = false;
+
+    /**
      * @var string|null 延迟解析，避免 Unit 未定义 APP_PATH 时类加载失败
      */
     protected static $routeRootDir;
@@ -280,10 +287,26 @@ class Route
     {
         if (empty(self::$routeMap) || $force) {
             self::scanRouteFiles(self::routeRootDir());
-            return self::$routeMap ?? [];
-        }else {
-            return self::$routeMap;
+            self::$routeMiddlewareValidated = false;
         }
+
+        $routeMap = self::$routeMap ?? [];
+        if ($routeMap !== [] && !self::$routeMiddlewareValidated) {
+            HttpRoute::assertRouteMapMiddlewareValid($routeMap);
+            self::$routeMiddlewareValidated = true;
+        }
+
+        return $routeMap;
+    }
+
+    /**
+     * 单测重置中间件校验标志（生产勿调用）。
+     *
+     * @internal
+     */
+    public static function resetRouteMiddlewareValidatedFlag(): void
+    {
+        self::$routeMiddlewareValidated = false;
     }
 
     /**
