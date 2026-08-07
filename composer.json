@@ -57,7 +57,7 @@
     },
     "autoload-dev": {
         "files": [
-            "PhpUintTest/register_dev_autoload.php"
+            "PHPUintTest/register_dev_autoload.php"
         ]
     },
     "require-dev": {
@@ -67,13 +67,13 @@
         "phpunit/phpunit": "^11.5"
     },
     "scripts": {
-        "test": "phpunit --testsuite unit,coroutine",
-        "test:unit": "phpunit --testsuite unit",
-        "test:coroutine": "phpunit --testsuite coroutine",
-        "test:http": "phpunit --testsuite http",
-        "test:http:ci": "SWOOLEFY_HTTP_AUTO_START=1 SWOOLEFY_HTTP_SKIP_IF_DOWN=0 phpunit --testsuite http",
-        "test:websocket": "phpunit --testsuite websocket",
-        "test:coverage": "phpunit --testsuite unit,coroutine --coverage-text",
+        "test": "@php PHPUintTest/run-phpunit.php --testsuite unit,coroutine",
+        "test:unit": "@php PHPUintTest/run-phpunit.php --testsuite unit",
+        "test:coroutine": "@php PHPUintTest/run-phpunit.php --testsuite coroutine",
+        "test:http": "@php vendor/bin/phpunit --testsuite http",
+        "test:http:ci": "SWOOLEFY_HTTP_AUTO_START=1 SWOOLEFY_HTTP_SKIP_IF_DOWN=0 @php vendor/bin/phpunit --testsuite http",
+        "test:websocket": "@php vendor/bin/phpunit --testsuite websocket",
+        "test:coverage": "@php vendor/bin/phpunit --testsuite unit,coroutine --coverage-text",
         "test:workflow": [
             "@php vendor/bin/phpunit --testsuite unit --filter WorkflowPhase1Test",
             "@php vendor/bin/phpunit --testsuite unit --filter WorkflowPhase2Test",
@@ -123,7 +123,6 @@
         "test:application-config": "@php vendor/bin/phpunit --testsuite unit --filter ApplicationConfigTest",
         "test:support-log": "@php vendor/bin/phpunit --testsuite unit --filter SupportLogIntegrationTest",
         "test:phase-b": "@php vendor/bin/phpunit --testsuite unit --filter PhaseBProductionTest",
-        "test:phase-c": "@php vendor/bin/phpunit --testsuite coroutine --filter PhaseCProductionTest",
         "test:phase-d": "@php vendor/bin/phpunit --testsuite unit --filter PhaseDTenantIsolationTest",
         "test:support": [
             "@test:agent",
@@ -139,7 +138,6 @@
             "@test:application-config",
             "@test:support-log",
             "@test:phase-b",
-            "@test:phase-c",
             "@test:phase-d",
             "@test:workflow"
         ]
