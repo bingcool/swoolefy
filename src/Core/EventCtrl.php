@@ -12,6 +12,7 @@
 namespace Swoolefy\Core;
 
 use Swoole\Server;
+use Swoolefy\Cmd\Infrastructure\PidFileManager;
 use Swoolefy\Http\Route;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Coroutine\CoroutinePools;
@@ -25,6 +26,12 @@ use Symfony\Component\Console\Output\ConsoleOutput;
 
 class EventCtrl implements EventCtrlInterface
 {
+    /*
+     * Server master pid
+     * @var int
+     */
+    private int $masterId = 0;
+
     /**
      * init run in before start method
      * @return void
@@ -37,7 +44,7 @@ class EventCtrl implements EventCtrlInterface
         // log register
         if (SystemEnv::isDaemonService() || SystemEnv::isCronService() || SystemEnv::cronScheduleScriptModel()) {
             \Swoolefy\Worker\AbstractWorkerProcess::registerLogComponents();
-        }else {
+        } else {
             SystemEnv::registerLogComponents();
         }
 
@@ -216,11 +223,11 @@ class EventCtrl implements EventCtrlInterface
 
             if (SystemEnv::isDaemonService()) {
                 $curlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'curl_daemon.log';
-            }else if (SystemEnv::isCronService()) {
+            } else if (SystemEnv::isCronService()) {
                 $curlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'curl_cron.log';
-            }else if (SystemEnv::isScriptService()) {
+            } else if (SystemEnv::isScriptService()) {
                 $curlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'curl_script.log';
-            }else {
+            } else {
                 $curlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'curl_cli.log';
             }
 
@@ -259,6 +266,7 @@ class EventCtrl implements EventCtrlInterface
      */
     public function start($server)
     {
+        $this->masterId = $server->master_pid;
         static::onStart($server);
     }
 
@@ -279,10 +287,17 @@ class EventCtrl implements EventCtrlInterface
      */
     public function workerStart($server, $worker_id)
     {
-        if(!SystemEnv::isWorkerService()) {
+        if (!SystemEnv::isWorkerService()) {
             $this->registerComponentPools();
         }
+
         $this->registerGcMemCaches();
+
+        // worker0->定时保存master进程pid
+        if ($worker_id == 0) {
+            $this->registerSaveMasterPid();
+        }
+
         static::onWorkerStart($server, $worker_id);
     }
 
@@ -395,6 +410,41 @@ class EventCtrl implements EventCtrlInterface
                 }
             }
         }
+    }
+
+    /**
+     * 定时保存 registerSaveMasterPid
+     * @param Server $server
+     * @return void
+     */
+    protected function registerSaveMasterPid()
+    {
+        if (SystemEnv::isWorkerService()) {
+            return;
+        }
+
+        $conf = BaseServer::getConf();
+        $pidFile = $conf['setting']['pid_file'];
+
+        $masterPid = 0;
+        if (PidFileManager::isRunning($pidFile)) {
+            $masterPid = PidFileManager::read($pidFile);
+        }
+
+        if (empty($masterPid)) {
+            fmtPrintWarning("[RegisterSaveMasterPid] Error: Not Found master pid.");
+            return;
+        }
+
+        $this->masterId = $masterPid;
+        $tickTime = $conf['tick_save_master_pid_time'] ?? 60 * 1000;
+        \Swoole\Timer::tick($tickTime, function () use ($pidFile) {
+            try {
+                PidFileManager::saveMasterPid($this->masterId, $pidFile);
+            } catch (\Throwable $e) {
+                fmtPrintError("[RegisterSaveMasterPid] Error: ".$e->getMessage());
+            }
+        });
     }
 
     /**

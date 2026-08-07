@@ -117,4 +117,18 @@ final class PidFileManager
         $pid = self::read($pidFile);
         return $pid > 0 && ProcessTreeTerminator::isAlive($pid);
     }
+
+    /**
+     * 保存主进程 PID 到 PID 文件。
+     *
+     * @param int $pid 主进程 PID
+     * @return bool 保存成功时返回 true
+     */
+    public static function saveMasterPid(int $pid, string $pidFile): bool
+    {
+        if ($pid > 0 && ProcessTreeTerminator::isAlive($pid)) {
+            return file_put_contents($pidFile, $pid) >= 0;
+        }
+        return false;
+    }
 }
