@@ -164,8 +164,8 @@ class App extends \Swoolefy\Core\Component
     }
 
     /**
-     * 集中规范化 server/header 键名：server 全部转大写，header 同步为 HTTP_*。
-     * path()/限流等必须读 PATH_INFO 等大写键，禁止再依赖 Swoole 原始小写 path_info。
+     * 集中规范化 server/header 键名：server 全部转大写
+     * path()/限流等必须读 PATH_INFO 等大写键，禁止再依赖 Swoole 原始小写 path_info
      *
      * @param SwooleRequest $request
      * @return void
@@ -181,7 +181,6 @@ class App extends \Swoolefy\Core\Component
         foreach ($request->header as $key => $value) {
             $_key = 'HTTP_' . strtoupper(str_replace('-', '_', $key));
             $request->server[$_key] = $value;
-            $request->header[$_key] = $value;
         }
     }
 
@@ -343,7 +342,7 @@ class App extends \Swoolefy\Core\Component
         $this->removeControllerInstance();
         // end request
         if (!$this->isEnd) {
-            if($this->swooleResponse->isWritable()) {
+            if ($this->swooleResponse->isWritable()) {
                 @$this->swooleResponse->end();
             }
         }

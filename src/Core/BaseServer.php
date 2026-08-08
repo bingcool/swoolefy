@@ -215,8 +215,8 @@ class BaseServer
      */
     public static function checkVersion()
     {
-        if (version_compare(phpversion(), '7.2.0', '<')) {
-            throw new \Exception("php version must be >= 7.2.0, we suggest use php7.2+ version", 1);
+        if (version_compare(phpversion(), '8.4.0', '<')) {
+            throw new \Exception("php version must be >= 8.4.0, we suggest use php8.4+ version", 1);
         }
 
         if (!extension_loaded('swoole')) {
@@ -387,8 +387,13 @@ class BaseServer
         if ($workerUser) {
             $userInfo = posix_getpwnam($workerUser);
             if ($userInfo) {
-                posix_setuid($userInfo['uid']);
-                posix_setgid($userInfo['gid']);
+                if (!posix_setgid($userInfo['gid'])) {
+                    throw new \RuntimeException("setWorkerUserGroup posix_setgid() error");
+                }
+
+                if (!posix_setuid($userInfo['uid'])) {
+                    throw new \RuntimeException("setWorkerUserGroup posix_setuid() error");
+                }
             }
         }
     }
