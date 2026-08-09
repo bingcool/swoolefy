@@ -21,6 +21,14 @@ return [
             'max_pop_timeout' => 1,
             'max_life_timeout' => 10,
             'enable_tick_clear_pool' => 0
+        ],
+
+        'predis' => [
+            'max_pool_num' => 2,
+            'max_push_timeout' => 2,
+            'max_pop_timeout' => 5,
+            'max_life_timeout' => 100,
+            'enable_tick_clear_pool' => 0
         ]
     ],
 
