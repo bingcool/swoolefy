@@ -41,14 +41,8 @@ class RedisController extends BController
     public function testPredis():  array
     {
         $predis = App::getPredis();
-        $predis->set('predis-name','bingcool-'.rand(1,1000));
+        $predis->set('predis-name','bingcool-objectId='.spl_object_id($predis));
         $value = $predis->get('predis-name');
-
-        var_dump(spl_object_id($predis));
-
-        $predis1 = App::getPredis();
-        var_dump(spl_object_id($predis1));
-
         return ['value' => $value];
     }
 }
