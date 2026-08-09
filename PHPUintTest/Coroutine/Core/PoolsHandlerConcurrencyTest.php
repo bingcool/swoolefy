@@ -115,23 +115,41 @@ final class PoolsHandlerConcurrencyTest extends CoroutineTestCase
                     return new TestPoolResource();
                 });
                 $completed = 0;
+                $finished = 0;
+                $errors = new Channel($coroutines);
 
                 for ($i = 0; $i < $coroutines; ++$i) {
-                    go(function () use ($pool, &$completed): void {
-                        $object = $pool->fetchObj();
-                        if (!is_object($object)) {
-                            throw new RuntimeException('Pool starvation.');
+                    go(function () use ($pool, &$completed, &$finished, $errors): void {
+                        try {
+                            $object = $pool->fetchObj();
+                            if (!is_object($object)) {
+                                throw new RuntimeException('Pool starvation.');
+                            }
+                            Coroutine::sleep(0.001);
+                            $pool->pushObj($object);
+                            ++$completed;
+                        } catch (Throwable $exception) {
+                            $errors->push($exception);
+                        } finally {
+                            ++$finished;
                         }
-                        Coroutine::sleep(0.001);
-                        $pool->pushObj($object);
-                        ++$completed;
                     });
                 }
 
                 $this->waitFor(
-                    static fn (): bool => $completed === $coroutines,
-                    sprintf('capacity=%d 的协程池发生永久等待', $capacity),
+                    static fn (): bool => $finished === $coroutines,
+                    sprintf(
+                        'capacity=%d 的协程池发生永久等待：finished=%d, completed=%d, errors=%d, callCount=%d, channel=%d, objectCount=%d',
+                        $capacity,
+                        $finished,
+                        $completed,
+                        $errors->length(),
+                        $this->readCounter($pool, 'callCount'),
+                        $pool->getCurrentNum(),
+                        $this->readCounter($pool, 'objectCount'),
+                    ),
                 );
+                self::assertSame($coroutines, $completed, sprintf('capacity=%d 出现 %d 个 fetch/release 失败', $capacity, $errors->length()));
                 $this->waitForPoolRecovery($pool, $capacity);
                 self::assertFalse(TestPoolResource::$overflowDetected);
                 self::assertLessThanOrEqual($capacity, TestPoolResource::$peakActive);
