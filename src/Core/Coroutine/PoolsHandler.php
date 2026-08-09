@@ -23,7 +23,20 @@ use Swoolefy\Exception\SystemException;
  * ## 计数约定
  * - channel.length：空闲对象数
  * - callCount：已借出、尚未归还的对象数
+ * - objectCount：已创建或已预留创建的对象数（空闲 + 借出 + 归还中 + 创建中）
  * - poolsNum：池容量上限（空闲 + 借出 不宜长期超过该值）
+ *
+ * ## 并发不变量
+ * - 0 <= callCount
+ * - 0 <= channel.length() <= poolsNum
+ * - 0 <= objectCount <= poolsNum
+ * - 空闲 + 借出 + 归还中 + 创建中 <= poolsNum
+ *
+ * objectCount 的预留在调用构造器前完成。构造器可能发生协程让出，
+ * 因而不能仅以 callCount 或 channel.length() 判断是否还能创建对象。
+ * 借出对象另由 borrowedObjects 记录“对象身份 + 所属协程”；归还时先在调用
+ * pushObj 的协程内原子认领并撤销旧句柄，再异步发布一个新容器句柄，杜绝重复
+ * 归还、跨协程归还以及旧引用与下一次借用发生 ABA 混淆。
  *
  * ## 取对象策略（{@see getObj()}）
  * 1. 空池 warm-up：首次借出且 channel 为空时一次性 make(poolsNum)
@@ -77,6 +90,27 @@ class PoolsHandler
      * @var int
      */
     protected $callCount = 0;
+
+    /**
+     * 已创建或已预留创建的资源数量。
+     *
+     * 该值覆盖空闲、借出和正在执行用户构造器的资源。check + ++ 必须处于
+     * 不会发生协程让出的连续代码段，避免多个协程基于同一旧状态重复创建。
+     *
+     * @var int
+     */
+    protected $objectCount = 0;
+
+    /**
+     * 当前借出对象的所有权表。
+     *
+     * 键为容器对象 ID，值同时保存对象引用与借用协程 ID。保存对象引用不是为了
+     * 延长业务资源生命周期，而是为了防止 spl_object_id 被复用后误认另一个对象。
+     * 归还一经合法认领即同步移除，异步 Channel::push 不再持有“借出所有权”。
+     *
+     * @var array<int, array{object: ContainerObjectDto, ownerCoroutineId: int}>
+     */
+    protected array $borrowedObjects = [];
 
     /**
      * @var int
@@ -213,50 +247,74 @@ class PoolsHandler
     /**
      * 归还对象到 channel。
      *
-     * 过期、池已满或 push 超时：丢弃并 decreaseCallCount，再按需补建 1 个空闲对象，
-     * 避免 callCount 虚高导致长期无法懒创建、命中率下降。
+     * 所有权校验和“借出 -> 归还中”状态迁移在创建异步协程之前同步完成，中间没有
+     * 任何协程让出点。非本池对象、非持有协程、重复归还均直接忽略，不会修改
+     * callCount/objectCount，也不会把仍由其他协程持有的连接发布到 Channel。
+     *
+     * 合法归还会把底层资源转移到新的 ContainerObjectDto，并立即清空调用方旧容器。
+     * 这样即使旧引用稍后再次 push，也无法命中下一轮借用，避免对象 ID/同协程 ABA。
+     * 过期、池已满、Channel 关闭或 push 超时则丢弃并按需补建空闲对象。
      *
      * @param object $obj
      * @return void
      */
     public function pushObj($obj)
     {
-        \Swoole\Coroutine::create(function () use ($obj) {
-            $isPush = true;
-            // 超过生命周期的对象不再回池，防止陈旧连接长期复用
-            if (!is_null($obj->__objExpireTime) && time() > $obj->__objExpireTime) {
-                $isPush = false;
-            }
+        $returningObject = $this->claimObjectForReturn($obj);
+        if (!$returningObject instanceof ContainerObjectDto) {
+            return;
+        }
 
-            $length = $this->channel->length();
-            if ($length >= $this->poolsNum) {
-                $isPush = false;
-            }
-
-            $targetObj = $obj->getObject();
-            if ($targetObj instanceof PDOConnection) {
-                // 恢复默认false
-                $targetObj->dynamicDebug = false;
-            }
-
-            if ($isPush) {
-                $pushed = $this->channel->push($obj, $this->pushTimeout);
-                if ($pushed) {
-                    // 归还成功：借出计数 -1，供其他协程 pop 到
-                    $this->decreaseCallCount();
-                } else {
-                    // push 超时：对象丢弃，仍须扣减借出计数，并尝试补槽
-                    unset($obj);
-                    $this->decreaseCallCount();
-                    $this->refillOneIfNeeded();
+        $release = function () use ($returningObject): void {
+            $published = false;
+            try {
+                $isPush = true;
+                // 超过生命周期的对象不再回池，防止陈旧连接长期复用
+                if (!is_null($returningObject->__objExpireTime) && time() > $returningObject->__objExpireTime) {
+                    $isPush = false;
                 }
-            } else {
-                // 过期或池已满：丢弃 + 扣计数 + 有空位则补建
-                unset($obj);
-                $this->decreaseCallCount();
+
+                $length = $this->channel->length();
+                if ($length >= $this->poolsNum) {
+                    $isPush = false;
+                }
+
+                $targetObj = $returningObject->getObject();
+                if ($targetObj instanceof PDOConnection) {
+                    // 恢复默认false
+                    $targetObj->dynamicDebug = false;
+                }
+
+                if ($isPush) {
+                    $published = (bool) $this->channel->push($returningObject, $this->pushTimeout);
+                }
+            } catch (\Throwable $throwable) {
+                // Channel 关闭、push 异常或连接清理异常统一视为未发布，进入同一丢弃路径。
+                $published = false;
+            }
+
+            if (!$published) {
+                // 未发布资源已脱离池，只能释放一次容量槽，再通过 reservation 补池。
+                unset($returningObject);
+                $this->releaseObjectSlot();
                 $this->refillOneIfNeeded();
             }
-        });
+        };
+
+        try {
+            $coroutineId = \Swoole\Coroutine::create($release);
+            if ($coroutineId === false) {
+                // 调度失败时对象已不再归业务持有，按丢弃路径回收容量，不能留下幽灵槽位。
+                unset($returningObject);
+                $this->releaseObjectSlot();
+                $this->refillOneIfNeeded();
+            }
+        } catch (\Throwable $throwable) {
+            // 创建归还协程失败不应破坏调用方既有 void API；容量必须在本协程内收敛。
+            unset($returningObject);
+            $this->releaseObjectSlot();
+            $this->refillOneIfNeeded();
+        }
     }
 
     /**
@@ -270,8 +328,8 @@ class PoolsHandler
         try {
             $obj = $this->getObj();
             if (is_object($obj)) {
-                // 仅在真正取到对象时记为借出，避免 null 污染 callCount
-                $this->callCount++;
+                // 注册所有权与计数递增之间没有 yield；对象交给业务前即拥有唯一持有者。
+                $this->registerBorrowedObject($obj);
                 $targetObj = $obj->getObject();
             }
             // 动态设置是否动态调试输出sql
@@ -304,8 +362,8 @@ class PoolsHandler
             return null;
         }
 
-        // 1) 空池 warm-up：首次借出时一次性填满，降低并发冷启动风暴
-        if ($this->callCount === 0 && $this->channel->isEmpty() && $this->poolsNum > 0) {
+        // 1) 空池 warm-up：objectCount 的 reservation 会阻止并发冷启动重复填池。
+        if ($this->objectCount === 0 && $this->channel->isEmpty() && $this->poolsNum > 0) {
             $this->make($this->poolsNum);
             return $this->pop();
         }
@@ -318,8 +376,8 @@ class PoolsHandler
             }
         }
 
-        // 3) 未满懒创建：仍有容量预算时补 1 个，缓解「池未建满但并发已到」
-        if ($this->callCount < $this->poolsNum) {
+        // 3) 未满懒创建：make() 内部原子预留容量，外层不再依据过期的快照判断。
+        if ($this->objectCount < $this->poolsNum) {
             $this->make(1);
             $obj = $this->pop();
             if (is_object($obj)) {
@@ -335,7 +393,7 @@ class PoolsHandler
 
         // 5) 超时边界短重试：覆盖 push 刚完成 / pop 刚超时的竞态；用 0.05s 而非再次完整 popTimeout
         for ($i = 0; $i < 2; $i++) {
-            if ($this->callCount < $this->poolsNum && $this->channel->isEmpty()) {
+            if ($this->objectCount < $this->poolsNum && $this->channel->isEmpty()) {
                 $this->make(1);
             }
             $obj = $this->pop(0.05);
@@ -359,11 +417,88 @@ class PoolsHandler
     }
 
     /**
+     * 为刚从 Channel 取出的对象登记唯一借用所有权。
+     *
+     * 本方法只执行内存读写，不包含任何可让出操作，因此 owner 写入、所有权表写入和
+     * callCount++ 对其他协程表现为一个连续状态迁移。若同一容器仍有借用记录，说明
+     * 内部不变量已损坏，禁止把同一连接再次交给业务。
+     *
+     * @param ContainerObjectDto|mixed $obj
+     * @throws SystemException
+     */
+    protected function registerBorrowedObject($obj): void
+    {
+        $objectId = spl_object_id($obj);
+        if (isset($this->borrowedObjects[$objectId])) {
+            throw new SystemException("Pools of {$this->poolName} object is already borrowed");
+        }
+
+        $ownerCoroutineId = \Swoole\Coroutine::getCid();
+        $obj->__coroutineId = $ownerCoroutineId;
+        $this->borrowedObjects[$objectId] = [
+            'object' => $obj,
+            'ownerCoroutineId' => $ownerCoroutineId,
+        ];
+        ++$this->callCount;
+    }
+
+    /**
+     * 校验并原子认领一次归还，返回用于异步发布的新容器句柄。
+     *
+     * 关键顺序固定为：验证对象身份与 owner -> 移除借用记录 -> callCount-- ->
+     * 转移底层对象并使旧句柄失效。整个区间没有 Channel/IO/协程创建等让出点，
+     * 所以多个协程同时归还时最多一个调用能成功；错误协程和重复调用均为只读失败。
+     *
+     * 新建容器用于隔离前后两次 lease：即使原持有协程保留旧 PHP 引用，下一次借用
+     * 也对应不同容器身份，旧引用无法归还或代理访问已转移的底层连接。
+     *
+     * @param mixed $obj
+     * @return ContainerObjectDto|null
+     */
+    protected function claimObjectForReturn($obj): ?ContainerObjectDto
+    {
+        if (!$obj instanceof ContainerObjectDto) {
+            return null;
+        }
+
+        $objectId = spl_object_id($obj);
+        $lease = $this->borrowedObjects[$objectId] ?? null;
+        if (
+            !is_array($lease)
+            || ($lease['object'] ?? null) !== $obj
+            || ($lease['ownerCoroutineId'] ?? null) !== \Swoole\Coroutine::getCid()
+        ) {
+            return null;
+        }
+
+        $targetObject = $obj->getObject();
+        if (!is_object($targetObject)) {
+            return null;
+        }
+
+        unset($this->borrowedObjects[$objectId]);
+        $this->decreaseCallCount();
+
+        $returningObject = new ContainerObjectDto();
+        $returningObject->__coroutineId = -1;
+        $returningObject->__objInitTime = $obj->__objInitTime;
+        $returningObject->__objExpireTime = $obj->__objExpireTime;
+        $returningObject->__object = $targetObject;
+        $returningObject->__comAliasName = $obj->__comAliasName;
+
+        // 所有权已转移，立即撤销旧代理，防止调用方在 pushObj 返回后继续使用连接。
+        $obj->__coroutineId = -1;
+        $obj->__object = null;
+
+        return $returningObject;
+    }
+
+    /**
      * 丢弃对象后若 channel 未满，异步补建 1 个空闲对象，维持池水位。
      */
     protected function refillOneIfNeeded(): void
     {
-        if ($this->channel !== null && $this->channel->length() < $this->poolsNum) {
+        if ($this->channel !== null && $this->objectCount < $this->poolsNum) {
             \Swoolefy\Core\EventApp::run(function () {
                 $this->make(1);
             });
@@ -371,6 +506,9 @@ class PoolsHandler
     }
 
     /**
+     * 所有资源创建均必须经过本方法。每轮先预留 objectCount，再执行可能 yield
+     * 的用户构造器；构造失败或 Channel 发布失败时在同一轮回滚预留。
+     *
      * @param int $num
      * @throws SystemException
      */
@@ -381,14 +519,59 @@ class PoolsHandler
         }
 
         for ($i = 0; $i < $num; $i++) {
-            $obj = call_user_func($this->callable, $this->poolName);
-            if (!is_object($obj)) {
-                throw new SystemException("Pools of {$this->poolName} build instance must return object");
+            if (!$this->reserveCreateSlot()) {
+                return;
             }
 
-            $containerObject = $this->buildContainerObject($obj, $this->poolName);
-            $this->channel->push($containerObject, $this->pushTimeout);
-            unset($obj);
+            try {
+                // 此处允许构造器 yield；容量已预留，其他协程不能超额创建。
+                $obj = call_user_func($this->callable, $this->poolName);
+                if (!is_object($obj)) {
+                    throw new SystemException("Pools of {$this->poolName} build instance must return object");
+                }
+
+                $containerObject = $this->buildContainerObject($obj, $this->poolName);
+                $pushed = $this->channel->push($containerObject, $this->pushTimeout);
+                if (!$pushed) {
+                    // 发布失败意味着这个新对象没有进入池，必须撤销此前的预留。
+                    unset($containerObject, $obj);
+                    $this->releaseObjectSlot();
+                } else {
+                    unset($obj);
+                }
+            } catch (\Throwable $throwable) {
+                // 构造器、封装或发布异常均不能遗留虚假的创建中容量。
+                $this->releaseObjectSlot();
+                throw $throwable;
+            }
+        }
+    }
+
+    /**
+     * 原子预留一个创建槽位。
+     *
+     * Swoole 协程只会在可让出的操作处切换；本方法中只有比较与自增，
+     * 故 check + reservation 是一个不可分割的容量判定单元。
+     */
+    protected function reserveCreateSlot(): bool
+    {
+        if ($this->objectCount >= $this->poolsNum) {
+            return false;
+        }
+
+        ++$this->objectCount;
+        return true;
+    }
+
+    /**
+     * 释放一个已丢弃或创建失败资源对应的容量槽位。
+     *
+     * 防御性下限保护与 callCount 的处理一致，避免异常清理路径造成负计数。
+     */
+    protected function releaseObjectSlot(): void
+    {
+        if ($this->objectCount > 0) {
+            --$this->objectCount;
         }
     }
 
@@ -411,7 +594,8 @@ class PoolsHandler
     /**
      * 从 channel 弹出对象；可指定等待秒数（null 则用 popTimeout）。
      *
-     * 弹出后若已过期：丢弃并 make(1) 再 pop 一次，避免把失效连接交给业务。
+     * 弹出后若已过期：先释放该对象的容量账本，再通过 make(1) 重建并取出，
+     * 避免失效对象占用 objectCount 导致池永久无法补足。
      *
      * @param float|null $timeout
      * @return object|null
@@ -421,8 +605,9 @@ class PoolsHandler
         $timeout ??= (float) $this->popTimeout;
         $containerObject = $this->channel->pop($timeout);
         if (is_object($containerObject) && !is_null($containerObject->__objExpireTime) && time() > $containerObject->__objExpireTime) {
-            // 过期对象重建后再取，保持池内可用实例数
+            // 过期对象已离开 channel，必须先归还容量再进行新的 reservation。
             unset($containerObject);
+            $this->releaseObjectSlot();
             $this->make(1);
             $containerObject = $this->channel->pop($timeout);
         }
@@ -430,12 +615,21 @@ class PoolsHandler
         return is_object($containerObject) ? $containerObject : null;
     }
 
+    /**
+     * 清理当前所有空闲对象。
+     *
+     * 借出对象不会被本方法触碰；每个成功移除的空闲对象都同步释放一个容量槽位，
+     * 从而保证定时清理后后续 fetch 可以按需重建资源。
+     */
     public function clearPool()
     {
         if (($length = $this->channel->length()) > 0) {
             for ($i=0; $i<$length; $i++) {
                 $obj = $this->channel->pop(0.01);
-                unset($obj);
+                if (is_object($obj)) {
+                    unset($obj);
+                    $this->releaseObjectSlot();
+                }
             }
         }
     }
