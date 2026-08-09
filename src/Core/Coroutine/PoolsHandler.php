@@ -49,6 +49,18 @@ use Swoolefy\Exception\SystemException;
  * - 未过期且未满：push 成功后安全递减 callCount
  * - push 超时 / 已过期 / 池已满：丢弃对象并 decreaseCallCount，必要时 refillOne 补回空闲槽
  *
+ * 高并发下已实现功能：
+ * 创建连接前同步预占容量，保证 objectCount <= poolsNum。
+ * 借出时记录对象标识和所属协程。
+ * 异步归还前同步声明归还权，消除归还竞争窗口。
+ * 错误协程归还、重复归还均安全忽略。
+ * 旧连接句柄立即失效，防止 ABA 和过期句柄再次归还。
+ * 构造失败、超时、过期、Channel 关闭及清池路径均只回收一次容量。
+ *
+ * 因此，多个协程同时 yield 时：
+ * 不会再超额创建连接；
+ * 不会因重复归还破坏计数；
+ * 不会允许其他协程归还不属于自己的连接。
  * 取不到对象时返回 null，上层 ComponentTrait 可降级 creatObject。
  */
 class PoolsHandler
@@ -476,7 +488,9 @@ class PoolsHandler
             return null;
         }
 
-        unset($this->borrowedObjects[$objectId]);
+        if (isset($this->borrowedObjects[$objectId])) {
+            unset($this->borrowedObjects[$objectId]);
+        }
         $this->decreaseCallCount();
 
         $returningObject = new ContainerObjectDto();
@@ -555,7 +569,7 @@ class PoolsHandler
      */
     protected function reserveCreateSlot(): bool
     {
-        if ($this->objectCount >= $this->poolsNum) {
+        if ($this->objectCount >= $this->poolsNum || $this->channel->length() >= $this->poolsNum) {
             return false;
         }
 
