@@ -186,7 +186,7 @@ class PoolsHandler
      */
     public function getCapacity()
     {
-        return $this->channel->capacity;
+        return $this->channel?->capacity ?? 0;
     }
 
     /**
@@ -194,7 +194,7 @@ class PoolsHandler
      */
     public function getCurrentNum()
     {
-        return $this->channel->length();
+        return $this->channel?->length() ?? 0;
     }
 
     /**
@@ -232,8 +232,19 @@ class PoolsHandler
     /**
      * 归还对象到 channel。
      *
-     * 过期、池已满或 push 超时：丢弃、释放容量账本并 decreaseCallCount，再按需补建。
-     * 同一 ContainerObjectDto 只能由借出它的协程归还，避免重复/陈旧归还污染池状态。
+     * 过期、池已满、channel 已关闭或 push 超时：丢弃、释放容量账本并 decreaseCallCount，再按需补建。
+     *
+     * 注意：归还仍异步执行，但“接受归还”必须在当前协程同步完成。否则同一对象在
+     * Coroutine::create() 尚未运行的窗口内可被重复 push，形成两个异步归还任务，
+     * 其中一个任务会错误地丢弃或重复结算同一借出额度。
+     *
+     * ContainerObjectDto 的 __coroutineId 仅保存当前租约的所属协程：
+     * - fetchObj() 成功后写入当前 cid；
+     * - 本方法接受归还后立即改为 -1；
+     * - -1 表示已归还/正在归还，拒绝重复、跨协程和陈旧归还。
+     *
+     * 这里不保存对象到额外数组，异步闭包最多临时持有一个已经接受归还的对象；
+     * 池自身最多同时存在 poolsNum 个对象，不会引入无界强引用。
      *
      * @param object $obj
      * @return void
@@ -244,53 +255,70 @@ class PoolsHandler
             return;
         }
 
-        $cid = Coroutine::getCid();
-        if ($obj->__coroutineId !== $cid) {
+        if (!$this->isChannelOpen() || $obj->__coroutineId !== Coroutine::getCid()) {
+            unset($obj);
             return;
         }
 
         /*
-         * 在创建异步归还协程前立即撤销借出标记。这里没有 yield：
-         * 重复 push 会被拒绝；对象重新借出后，旧协程的 cid 也无法归还新租约。
+         * 这是无 yield 的“校验归属 + 消费租约”连续区间。必须在 create() 前执行，
+         * 因为 create() 只负责调度，不能作为重复归还的互斥边界。
          */
-        \Swoole\Coroutine::create(function () use ($obj) {
-            $isPush = true;
-            // 超过生命周期的对象不再回池，防止陈旧连接长期复用
-            if (!is_null($obj->__objExpireTime) && time() > $obj->__objExpireTime) {
-                $isPush = false;
-            }
 
-            $length = $this->channel->length();
-            if ($length >= $this->poolsNum) {
-                $isPush = false;
-            }
+        $release = function () use ($obj): void {
+            $this->releaseBorrowedObject($obj);
+        };
 
+        /*
+         * create() 极少数情况下会因运行时资源不足而失败。不能因此遗失已经消费的
+         * 租约和 callCount；当前协程同步执行相同结算逻辑，保持账本可恢复。
+         */
+        if (\Swoole\Coroutine::create($release) === false) {
+            $release();
+        }
+    }
+
+    /**
+     * 结算一个已经被 pushObj() 同步接受的借出对象。
+     *
+     * 无论 channel push 是否成功，finally 都恰好结算一次 callCount；失败路径还要
+     * 释放 objectCount，并通过 make() 的预占协议补槽。这样 close、timeout、过期和
+     * pool 已满不会造成“借出数不减”或“容量槽永久丢失”。
+     *
+     * @param ContainerObjectDto $obj
+     */
+    protected function releaseBorrowedObject(ContainerObjectDto $obj): void
+    {
+        $pushed = false;
+        try {
             $targetObj = $obj->getObject();
             if ($targetObj instanceof PDOConnection) {
-                // 恢复默认false
+                // 恢复默认 false，避免上一次借用的动态 SQL 调试泄漏到下一次借用。
                 $targetObj->dynamicDebug = false;
             }
 
-            if ($isPush) {
-                // 归还对象，设置当前组件不属于任何协程
+            $isExpired = !is_null($obj->__objExpireTime) && time() > $obj->__objExpireTime;
+            if (!$isExpired && $this->isChannelOpen() && $this->channel->length() < $this->poolsNum) {
+                // 放回channel,不绑定任何协程
                 $obj->__coroutineId = -1;
                 $pushed = $this->channel->push($obj, $this->pushTimeout);
-                if ($pushed) {
-                    // 归还成功：借出计数 -1，供其他协程 pop 到
-                    $this->decreaseCallCount();
-                } else {
-                    // push 超时：对象离开池，先释放容量账本，再按需补槽
-                    $this->discardObject($obj);
-                    $this->decreaseCallCount();
-                    $this->refillOneIfNeeded();
-                }
-            } else {
-                // 过期或池已满：丢弃 + 释放容量账本 + 扣计数 + 按需补建
+            }
+        } catch (\Throwable $exception) {
+            // detached release coroutine 不能让 channel 异常逃逸并中断后续账本结算。
+            $pushed = false;
+        } finally {
+            if (!$pushed) {
+                // 对象未回到 channel，已不属于池，必须释放容量后才允许重建。
                 $this->discardObject($obj);
-                $this->decreaseCallCount();
+            }
+
+            // 已接受租约保证该分支对每次借出仅执行一次。
+            $this->decreaseCallCount();
+
+            if (!$pushed) {
                 $this->refillOneIfNeeded();
             }
-        });
+        }
     }
 
     /**
@@ -336,7 +364,7 @@ class PoolsHandler
      */
     protected function getObj()
     {
-        if ($this->channel === null) {
+        if (!$this->isChannelOpen()) {
             return null;
         }
 
@@ -399,10 +427,12 @@ class PoolsHandler
      */
     protected function refillOneIfNeeded(): void
     {
-        if ($this->channel !== null && $this->objectCount < $this->poolsNum) {
-            \Swoolefy\Core\EventApp::run(function () {
-                $this->make(1);
-            });
+        if ($this->isChannelOpen() && $this->objectCount < $this->poolsNum) {
+            /*
+             * 当前调用方已经是异步归还协程。直接调用可确保 discard -> reserve -> make
+             * 处于同一条可审计的路径，且不会因 EventApp 上下文冲突丢失补槽。
+             */
+            $this->make(1);
         }
     }
 
@@ -417,6 +447,10 @@ class PoolsHandler
         }
 
         for ($i = 0; $i < $num; $i++) {
+            if (!$this->isChannelOpen()) {
+                return;
+            }
+
             /*
              * 预占必须发生在 callable 之前。callable / channel->push 都可能 yield；
              * 其他协程只能看到已预占的 objectCount，不能基于旧状态重复创建。
@@ -481,6 +515,15 @@ class PoolsHandler
     }
 
     /**
+     * channel 可能被外部调用 getChannel()->close() 关闭。关闭后不能再 pop、push 或
+     * refill；归还路径会改为丢弃并释放账本。这个判断不持有对象，仅保护通道生命周期。
+     */
+    protected function isChannelOpen(): bool
+    {
+        return $this->channel instanceof Channel;
+    }
+
+    /**
      * @param object $object
      * @param string $poolName
      * @return ContainerObjectDto
@@ -507,6 +550,10 @@ class PoolsHandler
      */
     protected function pop(?float $timeout = null)
     {
+        if (!$this->isChannelOpen()) {
+            return null;
+        }
+
         $timeout ??= (float) $this->popTimeout;
         $containerObject = $this->channel->pop($timeout);
         if (is_object($containerObject) && !is_null($containerObject->__objExpireTime) && time() > $containerObject->__objExpireTime) {
@@ -521,7 +568,7 @@ class PoolsHandler
 
     public function clearPool()
     {
-        if ($this->channel === null) {
+        if (!$this->isChannelOpen()) {
             return;
         }
 
