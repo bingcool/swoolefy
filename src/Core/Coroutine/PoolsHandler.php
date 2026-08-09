@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Core\Coroutine;
 
+use Swoole\Coroutine;
 use Swoolefy\Library\Db\PDOConnection;
 use Swoole\Coroutine\Channel;
 use Swoolefy\Core\Dto\ContainerObjectDto;
@@ -240,6 +241,8 @@ class PoolsHandler
             }
 
             if ($isPush) {
+                // 归还对象，设置当前组件不属于任何协程
+                $obj->__coroutineId = -1;
                 $pushed = $this->channel->push($obj, $this->pushTimeout);
                 if ($pushed) {
                     // 归还成功：借出计数 -1，供其他协程 pop 到
@@ -278,6 +281,8 @@ class PoolsHandler
             if (isset($targetObj) && $targetObj instanceof PDOConnection) {
                 $targetObj->enableDynamicDebug();
             }
+            // 出channel对象，对象绑定到当前协程
+            $obj->__coroutineId = Coroutine::getCid();
             return $obj;
         } catch (\Throwable $exception) {
             $msg = sprintf("fetchObj from pool=[%s] failed, error:%s", $this->poolName, $exception->getMessage());
@@ -400,7 +405,8 @@ class PoolsHandler
     private function buildContainerObject(object $object, string $poolName)
     {
         $containerObjectDto                  = new ContainerObjectDto();
-        $containerObjectDto->__coroutineId   = \Swoole\Coroutine::getCid();
+        // 默认创建的对象，默认无协程绑定，直接存在channel中，出channel时在绑定协程ID
+        $containerObjectDto->__coroutineId   = -1;
         $containerObjectDto->__objInitTime   = time();
         $containerObjectDto->__object        = $object;
         $containerObjectDto->__comAliasName  = $poolName;
