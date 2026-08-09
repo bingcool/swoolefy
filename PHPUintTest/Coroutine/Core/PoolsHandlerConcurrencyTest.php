@@ -243,7 +243,7 @@ final class PoolsHandlerConcurrencyTest extends CoroutineTestCase
             }
             $this->awaitCompleted($completed, $capacity);
             $this->assertRecovered($pool, $capacity);
-            self::assertSame(0, $this->getProtectedArrayCount($pool, 'borrowedObjects'));
+            self::assertSame(0, $this->getProtectedRegistryCount($pool, 'borrowedHandles'));
             self::assertSame($capacity, $this->getProtectedInt($pool, 'objectCount'));
         });
     }
@@ -287,7 +287,7 @@ final class PoolsHandlerConcurrencyTest extends CoroutineTestCase
             $this->awaitCompleted($attackCompleted, 2);
 
             self::assertSame(1, $this->getProtectedInt($pool, 'callCount'));
-            self::assertSame(1, $this->getProtectedArrayCount($pool, 'borrowedObjects'));
+            self::assertSame(1, $this->getProtectedRegistryCount($pool, 'borrowedHandles'));
             self::assertSame(0, $pool->getCurrentNum());
             self::assertIsObject($borrowed->getObject());
             // owner 尚未释放时没有空闲资源，错误归还不能让另一协程复用该连接。
@@ -296,7 +296,7 @@ final class PoolsHandlerConcurrencyTest extends CoroutineTestCase
             $ownerRelease->push(true);
             self::assertTrue((bool) $ownerCompleted->pop(5.0));
             $this->assertRecovered($pool, 1);
-            self::assertSame(0, $this->getProtectedArrayCount($pool, 'borrowedObjects'));
+            self::assertSame(0, $this->getProtectedRegistryCount($pool, 'borrowedHandles'));
         });
     }
 
@@ -316,7 +316,7 @@ final class PoolsHandlerConcurrencyTest extends CoroutineTestCase
             $pool->pushObj($firstHandle);
             self::assertNull($firstHandle->getObject());
             self::assertSame(0, $this->getProtectedInt($pool, 'callCount'));
-            self::assertSame(0, $this->getProtectedArrayCount($pool, 'borrowedObjects'));
+            self::assertSame(0, $this->getProtectedRegistryCount($pool, 'borrowedHandles'));
             $this->assertRecovered($pool, 1);
 
             $secondHandle = $pool->fetchObj();
@@ -327,7 +327,7 @@ final class PoolsHandlerConcurrencyTest extends CoroutineTestCase
             // 旧句柄在新 lease 建立后再次归还，也不能删除或结算新 owner 的记录。
             $pool->pushObj($firstHandle);
             self::assertSame(1, $this->getProtectedInt($pool, 'callCount'));
-            self::assertSame(1, $this->getProtectedArrayCount($pool, 'borrowedObjects'));
+            self::assertSame(1, $this->getProtectedRegistryCount($pool, 'borrowedHandles'));
             $pool->pushObj($secondHandle);
             $this->assertRecovered($pool, 1);
         });
@@ -350,7 +350,7 @@ final class PoolsHandlerConcurrencyTest extends CoroutineTestCase
             while (
                 $this->getProtectedInt($pool, 'callCount') !== 0
                 || $this->getProtectedInt($pool, 'objectCount') !== 0
-                || $this->getProtectedArrayCount($pool, 'borrowedObjects') !== 0
+                || $this->getProtectedRegistryCount($pool, 'borrowedHandles') !== 0
             ) {
                 if (microtime(true) >= $deadline) {
                     self::fail('Channel 关闭后的归还状态未收敛。');
@@ -386,7 +386,7 @@ final class PoolsHandlerConcurrencyTest extends CoroutineTestCase
             while (
                 $this->getProtectedInt($pool, 'callCount') !== 0
                 || $this->getProtectedInt($pool, 'objectCount') !== 0
-                || $this->getProtectedArrayCount($pool, 'borrowedObjects') !== 0
+                || $this->getProtectedRegistryCount($pool, 'borrowedHandles') !== 0
             ) {
                 if (microtime(true) >= $deadline) {
                     self::fail('push timeout 后容量账本未收敛。');
@@ -404,6 +404,47 @@ final class PoolsHandlerConcurrencyTest extends CoroutineTestCase
             $pool->pushObj($replacement);
             $this->assertRecovered($pool, 1);
             self::assertSame(1, $this->getProtectedInt($pool, 'objectCount'));
+        });
+    }
+
+    /**
+     * 业务遗失最后一个借用句柄时，Pool 不能以强引用阻止句柄和底层资源被 GC；
+     * 下一次 fetch 应根据 WeakMap 存活数回收旧槽位并正常补建。
+     */
+    public function testAbandonedHandleCanBeCollectedAndCapacityRecoversOnNextFetch(): void
+    {
+        PoolHandlerTestResource::reset();
+        $this->runInCoroutine(function (): void {
+            $pool = $this->createPool(1, static fn (): PoolHandlerTestResource => new PoolHandlerTestResource());
+            self::assertInstanceOf(\WeakMap::class, $this->getProtectedValue($pool, 'borrowedHandles'));
+
+            for ($round = 0; $round < 50; ++$round) {
+                $abandoned = $pool->fetchObj();
+                self::assertIsObject($abandoned);
+                self::assertSame(1, $this->getProtectedRegistryCount($pool, 'borrowedHandles'));
+
+                $weakHandle = \WeakReference::create($abandoned);
+                unset($abandoned);
+                gc_collect_cycles();
+
+                self::assertNull($weakHandle->get(), 'PoolsHandler 不应强引用已遗失的借用句柄。');
+                self::assertSame(0, $this->getProtectedRegistryCount($pool, 'borrowedHandles'));
+                self::assertSame(0, PoolHandlerTestResource::$alive);
+            }
+
+            // fetch 开始时收敛 callCount/objectCount，再按容量 reservation 创建替代资源。
+            $replacement = $pool->fetchObj();
+            self::assertIsObject($replacement);
+            self::assertSame(1, $this->getProtectedInt($pool, 'callCount'));
+            self::assertSame(1, $this->getProtectedInt($pool, 'objectCount'));
+            self::assertSame(1, $this->getProtectedRegistryCount($pool, 'borrowedHandles'));
+            self::assertSame(51, PoolHandlerTestResource::$created);
+            self::assertSame(1, PoolHandlerTestResource::$alive);
+            self::assertSame(1, PoolHandlerTestResource::$peakAlive);
+
+            $pool->pushObj($replacement);
+            $this->assertRecovered($pool, 1);
+            self::assertSame(0, $this->getProtectedRegistryCount($pool, 'borrowedHandles'));
         });
     }
 
@@ -472,14 +513,26 @@ final class PoolsHandlerConcurrencyTest extends CoroutineTestCase
     }
 
     /**
-     * 读取内部所有权表数量，验证 lease 最终没有泄漏或被错误删除。
+     * 读取内部弱租约集合数量，验证 lease 最终没有泄漏或被错误删除。
      */
-    private function getProtectedArrayCount(PoolsHandler $pool, string $property): int
+    private function getProtectedRegistryCount(PoolsHandler $pool, string $property): int
+    {
+        $value = $this->getProtectedValue($pool, $property);
+
+        return is_countable($value) ? count($value) : 0;
+    }
+
+    /**
+     * 获取测试所需的 protected 内部值，不为生产代码增加观测 API。
+     *
+     * @return mixed
+     */
+    private function getProtectedValue(PoolsHandler $pool, string $property)
     {
         $reflection = new ReflectionProperty($pool, $property);
         $reflection->setAccessible(true);
 
-        return count((array) $reflection->getValue($pool));
+        return $reflection->getValue($pool);
     }
 }
 

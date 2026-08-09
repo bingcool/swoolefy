@@ -34,9 +34,10 @@ use Swoolefy\Exception\SystemException;
  *
  * objectCount 的预留在调用构造器前完成。构造器可能发生协程让出，
  * 因而不能仅以 callCount 或 channel.length() 判断是否还能创建对象。
- * 借出对象另由 borrowedObjects 记录“对象身份 + 所属协程”；归还时先在调用
- * pushObj 的协程内原子认领并撤销旧句柄，再异步发布一个新容器句柄，杜绝重复
- * 归还、跨协程归还以及旧引用与下一次借用发生 ABA 混淆。
+ * 借用 owner/marker/active 状态保存在 ContainerObjectDto 句柄自身；PoolsHandler
+ * 仅以 WeakMap 弱键跟踪仍存活的借用句柄，不反向延长句柄或底层资源生命周期。
+ * 归还时先在调用 pushObj 的协程内原子认领并撤销旧句柄，再异步发布一个新容器
+ * 句柄，杜绝重复归还、跨协程归还以及旧引用与下一次借用发生 ABA 混淆。
  *
  * ## 取对象策略（{@see getObj()}）
  * 1. 空池 warm-up：首次借出且 channel 为空时一次性 make(poolsNum)
@@ -114,15 +115,25 @@ class PoolsHandler
     protected $objectCount = 0;
 
     /**
-     * 当前借出对象的所有权表。
+     * 当前仍存活的借用句柄弱集合。
      *
-     * 键为容器对象 ID，值同时保存对象引用与借用协程 ID。保存对象引用不是为了
-     * 延长业务资源生命周期，而是为了防止 spl_object_id 被复用后误认另一个对象。
-     * 归还一经合法认领即同步移除，异步 Channel::push 不再持有“借出所有权”。
+     * WeakMap 的键不会阻止 ContainerObjectDto 和底层资源被 GC；值中也不得保存
+     * 键对象。owner/active 等权威租约状态位于句柄自身，本集合只用于发现业务
+     * 丢弃但未归还的句柄，并在下一次 fetch 时修正容量账本。
      *
-     * @var array<int, array{object: ContainerObjectDto, ownerCoroutineId: int}>
+     * @var \WeakMap<ContainerObjectDto, true>
      */
-    protected array $borrowedObjects = [];
+    protected \WeakMap $borrowedHandles;
+
+    /**
+     * 本池私有租约标识。
+     *
+     * 使用对象身份而非 spl_object_id：对象 ID 在销毁后允许复用，而 marker 的
+     * 强引用贯穿 PoolsHandler 生命周期，不存在旧租约误命中新租约的 ABA 风险。
+     *
+     * @var object
+     */
+    protected object $leaseMarker;
 
     /**
      * @var int
@@ -133,6 +144,12 @@ class PoolsHandler
      * @var \Closure
      */
     protected $callable = null;
+
+    public function __construct()
+    {
+        $this->borrowedHandles = new \WeakMap();
+        $this->leaseMarker = new \stdClass();
+    }
 
     /**
      * @param int $poolsNum
@@ -260,8 +277,9 @@ class PoolsHandler
      * 归还对象到 channel。
      *
      * 所有权校验和“借出 -> 归还中”状态迁移在创建异步协程之前同步完成，中间没有
-     * 任何协程让出点。非本池对象、非持有协程、重复归还均直接忽略，不会修改
-     * callCount/objectCount，也不会把仍由其他协程持有的连接发布到 Channel。
+     * 任何协程让出点。租约状态由句柄自身保存，非本池对象、非持有协程、重复归还
+     * 均直接忽略，不会修改 callCount/objectCount，也不会把仍由其他协程持有的
+     * 连接发布到 Channel。
      *
      * 合法归还会把底层资源转移到新的 ContainerObjectDto，并立即清空调用方旧容器。
      * 这样即使旧引用稍后再次 push，也无法命中下一轮借用，避免对象 ID/同协程 ABA。
@@ -338,6 +356,8 @@ class PoolsHandler
     public function fetchObj()
     {
         try {
+            // WeakMap 会自动删除已 GC 的借用句柄；新一轮取用前收敛其容量账本。
+            $this->reconcileCollectedBorrowers();
             $obj = $this->getObj();
             if (is_object($obj)) {
                 // 注册所有权与计数递增之间没有 yield；对象交给业务前即拥有唯一持有者。
@@ -429,35 +449,33 @@ class PoolsHandler
     }
 
     /**
-     * 为刚从 Channel 取出的对象登记唯一借用所有权。
+     * 为刚从 Channel 取出的对象建立唯一借用租约。
      *
-     * 本方法只执行内存读写，不包含任何可让出操作，因此 owner 写入、所有权表写入和
-     * callCount++ 对其他协程表现为一个连续状态迁移。若同一容器仍有借用记录，说明
-     * 内部不变量已损坏，禁止把同一连接再次交给业务。
+     * 本方法只执行内存读写，不包含任何可让出操作，因此句柄状态、弱键登记和
+     * callCount++ 对其他协程表现为一个连续状态迁移。若同一容器已有活动租约，
+     * 说明内部不变量已损坏，禁止把同一连接再次交给业务。
      *
      * @param ContainerObjectDto|mixed $obj
      * @throws SystemException
      */
     protected function registerBorrowedObject($obj): void
     {
-        $objectId = spl_object_id($obj);
-        if (isset($this->borrowedObjects[$objectId])) {
+        if (
+            !$obj instanceof ContainerObjectDto
+            || !$obj->beginPoolLease($this->leaseMarker, \Swoole\Coroutine::getCid())
+        ) {
             throw new SystemException("Pools of {$this->poolName} object is already borrowed");
         }
 
-        $ownerCoroutineId = \Swoole\Coroutine::getCid();
-        $obj->__coroutineId = $ownerCoroutineId;
-        $this->borrowedObjects[$objectId] = [
-            'object' => $obj,
-            'ownerCoroutineId' => $ownerCoroutineId,
-        ];
+        // WeakMap 只弱持有句柄；业务丢弃最后一个引用后，该条目可由 GC 自动移除。
+        $this->borrowedHandles[$obj] = true;
         ++$this->callCount;
     }
 
     /**
      * 校验并原子认领一次归还，返回用于异步发布的新容器句柄。
      *
-     * 关键顺序固定为：验证对象身份与 owner -> 移除借用记录 -> callCount-- ->
+     * 关键顺序固定为：验证 marker/owner/active -> 移除弱键 -> callCount-- ->
      * 转移底层对象并使旧句柄失效。整个区间没有 Channel/IO/协程创建等让出点，
      * 所以多个协程同时归还时最多一个调用能成功；错误协程和重复调用均为只读失败。
      *
@@ -473,23 +491,13 @@ class PoolsHandler
             return null;
         }
 
-        $objectId = spl_object_id($obj);
-        $lease = $this->borrowedObjects[$objectId] ?? null;
-        if (
-            !is_array($lease)
-            || ($lease['object'] ?? null) !== $obj
-            || ($lease['ownerCoroutineId'] ?? null) !== \Swoole\Coroutine::getCid()
-        ) {
+        if (!$obj->claimPoolLease($this->leaseMarker, \Swoole\Coroutine::getCid())) {
             return null;
         }
 
         $targetObject = $obj->getObject();
-        if (!is_object($targetObject)) {
-            return null;
-        }
-
-        if (isset($this->borrowedObjects[$objectId])) {
-            unset($this->borrowedObjects[$objectId]);
+        if (isset($this->borrowedHandles[$obj])) {
+            unset($this->borrowedHandles[$obj]);
         }
         $this->decreaseCallCount();
 
@@ -505,6 +513,30 @@ class PoolsHandler
         $obj->__object = null;
 
         return $returningObject;
+    }
+
+    /**
+     * 回收“句柄已被业务丢弃且已由 GC 销毁”的容量账本。
+     *
+     * WeakMap 只保留仍存活的活动租约；正常归还会同步删除弱键并递减 callCount，
+     * 因此 callCount 与弱键数之间的正差只可能来自未调用 pushObj 的已回收句柄。
+     * 对应底层资源已随容器析构，不再占用池容量，故 objectCount 也必须逐个释放。
+     *
+     * 整段只有计数和 WeakMap 读写，没有协程让出点。若句柄仍被业务强引用，则弱键
+     * 仍存在，不会被误回收；下一次 fetch 会按统一 reservation 路径补足资源。
+     */
+    protected function reconcileCollectedBorrowers(): void
+    {
+        $liveBorrowers = count($this->borrowedHandles);
+        if ($liveBorrowers >= $this->callCount) {
+            return;
+        }
+
+        $collectedBorrowers = $this->callCount - $liveBorrowers;
+        $this->callCount = $liveBorrowers;
+        for ($i = 0; $i < $collectedBorrowers; ++$i) {
+            $this->releaseObjectSlot();
+        }
     }
 
     /**
