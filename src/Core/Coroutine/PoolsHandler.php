@@ -391,6 +391,10 @@ class PoolsHandler
                 throw new SystemException("Pools of {$this->poolName} build instance must return object");
             }
 
+            if ($this->channel->length() >= $this->poolsNum) {
+                continue;
+            }
+
             $containerObject = $this->buildContainerObject($obj, $this->poolName);
             $this->channel->push($containerObject, $this->pushTimeout);
             unset($obj);
