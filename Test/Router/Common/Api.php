@@ -34,6 +34,7 @@ namespace Test\Router;
  *   - Log.php            LogController（info/error/system_error/goApp 日志场景）
  *   - UserOrder.php      Module\\Order\\UserOrderController（Db 综合测试）
  *   - OrderLog.php       Module\\Order\\LogOrderController
+ *   - Runtime.php        RuntimeController
  *
  * Module/（对应 Test\\Module）
  *   - Rag.php / Research.php / Outdoor.php / OrderWorkflow.php

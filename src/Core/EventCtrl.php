@@ -309,6 +309,8 @@ class EventCtrl implements EventCtrlInterface
      */
     public function workerStop($server, $worker_id)
     {
+        // 在自定义 Worker 关闭代码退出前停止监控定时器。
+        \Swoolefy\Core\Runtime\RuntimeRegistry::reset();
         static::onWorkerStop($server, $worker_id);
     }
 
@@ -334,6 +336,9 @@ class EventCtrl implements EventCtrlInterface
      */
     public function workerExit($server, $worker_id)
     {
+        // 通常由 WorkerStop 处理；为未完整触发 WorkerStop 就进入 WorkerExit 的
+        // 运行时保留幂等的兜底处理。
+        \Swoolefy\Core\Runtime\RuntimeRegistry::reset();
         static::onWorkerExit($server, $worker_id);
     }
 

@@ -12,6 +12,7 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Library\OpenTelemetry\HttpEntryInstrumentation;
+use Swoolefy\Core\Runtime\RuntimeRegistry;
 use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Core\Memory\AtomicManager;
 use Swoolefy\Script\AbstractKernel;
@@ -198,6 +199,8 @@ class BaseServer
             if (env("OTEL_PHP_AUTOLOAD_ENABLED", false)) {
                 HttpEntryInstrumentation::register(true);
             }
+            // 在用户 WorkerStart 钩子之前初始化 Worker 本地可观测性组件。
+            RuntimeRegistry::initialize(self::$config['runtime_observability'] ?? []);
         }catch(\Throwable $throwable) {
             self::catchException($throwable);
         }

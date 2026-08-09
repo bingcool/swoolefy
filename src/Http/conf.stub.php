@@ -29,6 +29,23 @@ return [
     'include_files'            => [],
     'runtime_enable_coroutine' => true,
 
+    // Worker 本地可观测性：固定指标、按需诊断及有界内存趋势采样。
+    'runtime_observability' => [
+        'metrics' => ['enable' => true],
+        'diagnostics' => ['enable' => true],
+        'memory' => [
+            'enable' => true,
+            'sample_interval' => 10000,
+            'history_size' => 180,
+            'warmup_samples' => 6,
+            'warning_growth' => 64 * 1024 * 1024,
+            'critical_memory' => 0,
+            'critical_rss' => 0,
+            'positive_growth_ratio' => 0.7,
+            'min_samples' => 12,
+        ],
+    ],
+
     'setting' => [
         'reactor_num'            => 4,
         'worker_num'             => 8,

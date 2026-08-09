@@ -13,6 +13,7 @@ namespace Swoolefy\Core;
 
 use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Dto\ContainerObjectDto;
+use Swoolefy\Core\Runtime\RuntimeRegistry;
 use Swoolefy\Exception\SystemException;
 
 trait ComponentTrait
@@ -247,7 +248,19 @@ trait ComponentTrait
                 /** @var \Swoolefy\Core\Coroutine\PoolsHandler $poolHandler */
                 $poolHandler = CoroutinePools::getInstance()->getPool($name);
                 if (is_object($poolHandler)) {
-                    $this->containers[$name] = $poolHandler->fetchObj();
+                    try {
+                        $this->containers[$name] = $poolHandler->fetchObj();
+                    } catch (\Throwable $throwable) {
+                        // 保持连接池原有的失败语义，同时记录此次获取失败。
+                        RuntimeRegistry::metrics()?->poolFetchError($name);
+                        throw $throwable;
+                    }
+                    // 仅在实际连接池操作后观测；指标不得阻塞连接池流程。
+                    if (isset($this->containers[$name]) && is_object($this->containers[$name])) {
+                        RuntimeRegistry::metrics()?->poolFetched($name);
+                    } else {
+                        RuntimeRegistry::metrics()?->poolFetchError($name);
+                    }
                 }
                 // 若没有设置进程池处理实例,则降级到创建实例模式
                 if (isset($this->containers[$name]) && is_object($this->containers[$name])) {
@@ -295,6 +308,8 @@ trait ComponentTrait
                     $key = array_search($objId, $this->componentPoolsObjIds);
                     if ($key !== false) {
                         CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
+                        // 仅在已确认的池化对象归还后计数。
+                        RuntimeRegistry::metrics()?->poolReleased($name);
                         unset($this->containers[$name], $this->componentPoolsObjIds[$key]);
                     }
                 }
@@ -330,6 +345,7 @@ trait ComponentTrait
                 $key = array_search($objId, $this->componentPoolsObjIds, true);
                 if ($key !== false) {
                     CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
+                    RuntimeRegistry::metrics()?->poolReleased($name);
                     unset($this->componentPoolsObjIds[$key]);
                 }
             }

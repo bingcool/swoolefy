@@ -18,6 +18,7 @@ use Swoole\Http\Request as SwooleRequest;
 use Swoole\Http\Response as SwooleResponse;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\Coroutine\CoroutineManager;
+use Swoolefy\Core\Runtime\RuntimeRegistry;
 
 class App extends \Swoolefy\Core\Component
 {
@@ -133,6 +134,10 @@ class App extends \Swoolefy\Core\Component
      */
     public function run(SwooleRequest $swooleRequest, SwooleResponse $swooleResponse, $extendData = null)
     {
+        // 注册表为 Worker 本地组件且可能被禁用；禁用时避免计时开销。
+        $runtimeMetrics = RuntimeRegistry::metrics();
+        $startNs = $runtimeMetrics !== null ? hrtime(true) : null;
+        $runtimeMetrics?->requestStarted();
         try {
             $this->parseHeaders($swooleRequest);
             $this->initCoreComponent();
@@ -151,10 +156,19 @@ class App extends \Swoolefy\Core\Component
                 $route->dispatch();
             }
         } catch (\Throwable $throwable) {
+            // 仅未捕获的应用异常计入框架 5xx 错误。
+            $runtimeMetrics?->requestError();
             /** @var SwoolefyException $exceptionHandle */
             $exceptionHandle = $this->getExceptionClass();
             $exceptionHandle::response($this, $throwable);
         } finally {
+            try {
+                if ($runtimeMetrics !== null && $startNs !== null) {
+                    $runtimeMetrics->requestDuration((hrtime(true) - $startNs) / 1_000_000_000);
+                    $runtimeMetrics->requestFinished();
+                }
+            } catch (\Throwable $e) {}
+
             // after Hook 在 end 之前、且每个请求最多一次；Hook 异常不覆盖业务响应
             $this->onAfterRequest();
             if (!$this->isDefer) {

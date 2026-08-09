@@ -28,6 +28,22 @@ return [
     'swoole_process_mode'      => SWOOLE_PROCESS,
     'include_files'            => [],
     'runtime_enable_coroutine' => true,
+    // 与生产默认配置保持一致，同时在测试服务端保持 Worker 本地隔离。
+    'runtime_observability' => [
+        'metrics' => ['enable' => true],
+        'diagnostics' => ['enable' => true],
+        'memory' => [
+            'enable' => true,
+            'sample_interval' => 10000,
+            'history_size' => 180,
+            'warmup_samples' => 6,
+            'warning_growth' => 64 * 1024 * 1024,
+            'critical_memory' => 0,
+            'critical_rss' => 0,
+            'positive_growth_ratio' => 0.7,
+            'min_samples' => 12,
+        ],
+    ],
 
     'setting' => [
         'reactor_num'            => 2,
