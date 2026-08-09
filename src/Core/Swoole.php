@@ -367,16 +367,40 @@ class Swoole extends BaseObject
      */
     public function end()
     {
-        // log handle
-        $this->handleLog();
-        // remove
-        ZFactory::removeInstance();
+        // handle log
+        try {
+            $this->handleLog();
+        } catch (\Throwable $exception) {
+            BaseServer::catchException($exception);
+        }
+
+        // remove Instance
+        try {
+            ZFactory::removeInstance();
+        } catch (\Throwable $exception) {
+            BaseServer::catchException($exception);
+        }
+
         // push obj pools
-        $this->pushComponentPools();
+        try {
+            $this->pushComponentPools();
+        }catch (\Throwable $exception) {
+            BaseServer::catchException($exception);
+        }
+
         // remove all component
-        $this->clearComponent(null, true);
+        try {
+            $this->clearComponent(null, true);
+        }catch (\Throwable $exception) {
+            BaseServer::catchException($exception);
+        }
+
         // remove App Instance
-        Application::removeApp();
+        try {
+            Application::removeApp($this->coroutineId);
+        }catch (\Throwable $exception) {
+            BaseServer::catchException($exception);
+        }
     }
 
 }

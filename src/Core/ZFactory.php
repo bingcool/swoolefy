@@ -68,7 +68,7 @@ class ZFactory
             if (isset(static::$_instances[$cid][$class])) {
                 unset(static::$_instances[$cid][$class]);
             }
-        }else if (isset(static::$_instances[$cid])) {
+        } else if (isset(static::$_instances[$cid])) {
             unset(static::$_instances[$cid]);
         }
 

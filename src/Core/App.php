@@ -342,23 +342,51 @@ class App extends \Swoolefy\Core\Component
      */
     public function end()
     {
-        // log handle
-        $this->handleLog();
-        // remove coroutine instance
-        ZFactory::removeInstance();
-        // push obj pools
-        $this->pushComponentPools();
-        // remove all component
-        $this->clearComponent(null, true);
-        // remove App Instance
-        Application::removeApp();
-        // unset controllerInstance
-        $this->removeControllerInstance();
+        // handle log
+        try {
+            $this->handleLog();
+        } catch (\Throwable $e) {
+            BaseServer::catchException($e);
+        }
+
+        // remove Instance
+        try {
+            ZFactory::removeInstance();
+        } catch (\Throwable $e) {
+            BaseServer::catchException($e);
+        }
+
+        // pushComponent to Pools
+        try {
+            $this->pushComponentPools();
+        } catch (\Throwable $e) {
+            BaseServer::catchException($e);
+        }
+
+        // clear all Component
+        try {
+            $this->clearComponent(null, true);
+        } catch (\Throwable $e) {
+            BaseServer::catchException($e);
+        }
+
+        // removeApp
+        try {
+            Application::removeApp();
+        } catch (\Throwable $e) {
+            BaseServer::catchException($e);
+        }
+
+        // removeControllerInstance
+        try {
+            $this->removeControllerInstance();
+        } catch (\Throwable $e) {
+            BaseServer::catchException($e);
+        }
+
         // end request
-        if (!$this->isEnd) {
-            if ($this->swooleResponse->isWritable()) {
-                @$this->swooleResponse->end();
-            }
+        if (!$this->isEnd && $this->swooleResponse->isWritable()) {
+            $this->swooleResponse->end();
         }
     }
 

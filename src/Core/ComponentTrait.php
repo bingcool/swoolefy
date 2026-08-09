@@ -307,10 +307,25 @@ trait ComponentTrait
                     $objId = spl_object_id($obj);
                     $key = array_search($objId, $this->componentPoolsObjIds);
                     if ($key !== false) {
-                        CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
-                        // 仅在已确认的池化对象归还后计数。
-                        RuntimeRegistry::metrics()?->poolReleased($name);
-                        unset($this->containers[$name], $this->componentPoolsObjIds[$key]);
+                        try {
+                            CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
+                            // 仅在已确认的池化对象归还后计数。
+                            try {
+                                RuntimeRegistry::metrics()?->poolReleased($name);
+                            } catch (\Throwable $throwable) {
+                                // 忽略异常
+                            }
+                            unset($this->containers[$name], $this->componentPoolsObjIds[$key]);
+                        } catch (\Throwable $throwable) {
+                            BaseServer::catchException($throwable);
+                        } finally {
+                            if (isset($this->containers[$name])) {
+                                unset($this->containers[$name]);
+                            }
+                            if (isset($this->componentPoolsObjIds[$key])) {
+                                unset($this->componentPoolsObjIds[$key]);
+                            }
+                        }
                     }
                 }
             }

@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Core;
 
+use Aws\FMS\FMSClient;
 use Swoolefy\Library\OpenTelemetry\HttpEntryInstrumentation;
 use Swoolefy\Core\Runtime\RuntimeRegistry;
 use Swoolefy\Core\Table\TableManager;
@@ -843,11 +844,15 @@ class BaseServer
      */
     public static function catchException($e)
     {
-        $exceptionHandlerClass = '\\Swoolefy\\Core\\SwoolefyException';
-        if (isset(self::$config['exception_handler']) && !empty(self::$config['exception_handler'])) {
-            $exceptionHandlerClass = self::$config['exception_handler'];
+        try {
+            $exceptionHandlerClass = '\\Swoolefy\\Core\\SwoolefyException';
+            if (isset(self::$config['exception_handler']) && !empty(self::$config['exception_handler'])) {
+                $exceptionHandlerClass = self::$config['exception_handler'];
+            }
+            $exceptionHandlerClass::appException($e);
+        } catch (\Throwable $exception) {
+            fmtPrintError("[Exception Handle Error],error=".$exception->getMessage(), $exception->getTraceAsString());
         }
-        $exceptionHandlerClass::appException($e);
     }
 
     /**
