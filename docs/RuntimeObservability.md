@@ -2,8 +2,8 @@
 
 > 目标分支：`swoolefy-6.2-x`  
 > 设计范围：**Runtime Metrics + Worker Runtime Diagnostics + Worker Memory Leak Detection**  
-> 原则：**不重复实现已有能力、不改变现有 App/Component/ZFactory/Pool/Context/Worker 生命周期、不新增 APM 平台、不自动重启 Worker。**
-
+> 原则：**不重复实现已有能力、不改变现有 App/Component/ZFactory/Pool/Context/Worker 生命周期、不新增 APM 平台、不自动重启 Worker。**   
+> 结果：**本方案已实现**  
 ---
 
 ## 0. 本方案不是通用 Metrics 方案，而是针对 Swoolefy 6.2-x 的设计
