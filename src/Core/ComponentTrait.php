@@ -128,6 +128,7 @@ trait ComponentTrait
         $containerObjectDto->__objInitTime = time();
         $containerObjectDto->__object = $object;
         $containerObjectDto->__comAliasName = $comAliasName;
+        $containerObjectDto->__tagetObjectId = spl_object_id($object);
 
         $appConf = BaseServer::getAppConf();
         if (!empty($appConf['component_pools']) && is_array($appConf['component_pools'])) {

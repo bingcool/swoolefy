@@ -43,7 +43,7 @@ use Swoolefy\Exception\SystemException;
  * 5. 超时边界短重试：再 pop(0.05) 两次，覆盖 push/pop 临界竞态，且不再次完整阻塞 popTimeout
  *
  * ## 归还策略（{@see pushObj()}）
- * - 未过期且未满：push 成功后安全递减 callCount
+ * - 未过期且未满：在借用协程内同步 push，成功后安全递减 callCount
  * - push 超时 / 已过期 / 池已满：丢弃对象并 decreaseCallCount，必要时 refillOne 补回空闲槽
  *
  * 取不到对象时返回 null，上层 ComponentTrait 可降级 creatObject。
@@ -234,17 +234,26 @@ class PoolsHandler
      *
      * 过期、池已满、channel 已关闭或 push 超时：丢弃、释放容量账本并 decreaseCallCount，再按需补建。
      *
-     * 注意：归还仍异步执行，但“接受归还”必须在当前协程同步完成。否则同一对象在
-     * Coroutine::create() 尚未运行的窗口内可被重复 push，形成两个异步归还任务，
-     * 其中一个任务会错误地丢弃或重复结算同一借出额度。
+     * 归还必须在借用协程内同步完成，不能再通过 Coroutine::create() 延后。
+     *
+     * 容量为 1 且存在高扇出等待者时，异步释放会留下一个危险窗口：调用方已把租约
+     * 标记为 -1 并结束，而真正的 channel->push() 尚未运行。此时唯一对象既不在
+     * channel，也没有有效借主；所有 fetchObj() 都只能在 pop() 上等待。若调度器
+     * 没有及时运行释放协程，整个池会饥饿。同步 push 将「消费租约 → 唤醒一个等待者
+     * 或放回空闲 channel → 结算账本」收敛为同一条归还路径。
      *
      * ContainerObjectDto 的 __coroutineId 仅保存当前租约的所属协程：
      * - fetchObj() 成功后写入当前 cid；
      * - 本方法接受归还后立即改为 -1；
      * - -1 表示已归还/正在归还，拒绝重复、跨协程和陈旧归还。
      *
-     * 这里不保存对象到额外数组，异步闭包最多临时持有一个已经接受归还的对象；
-     * 池自身最多同时存在 poolsNum 个对象，不会引入无界强引用。
+     * 每次成功归还会为 channel 创建新的 DTO 外壳，而不是把调用方持有的 DTO 重新
+     * 入队。底层组件对象仍复用，但旧外壳永久保持 -1；因此调用方即使保留旧引用，
+     * 也无法在对象被下一租约借出后把该旧 handle 误归还。
+     *
+     * 已借出的对象必然对应一个可用槽位：它离开 channel 时腾出了该槽位。因此使用
+     * 非阻塞 push(0) 即可；若仍失败，说明 channel 被关闭或账本/外部 channel 状态
+     * 已不一致，按丢弃并补槽的失败路径恢复，绝不把业务协程卡在归还阶段。
      *
      * @param object $obj
      * @return void
@@ -261,21 +270,13 @@ class PoolsHandler
         }
 
         /*
-         * 这是无 yield 的“校验归属 + 消费租约”连续区间。必须在 create() 前执行，
-         * 因为 create() 只负责调度，不能作为重复归还的互斥边界。
+         * 这是无 yield 的“校验归属 + 消费租约”连续区间。先消费租约再进入同步
+         * release，可保证重复、跨协程和陈旧 handle 都不能参与后续账本结算。
          */
+        $obj->__coroutineId = -1;
 
-        $release = function () use ($obj): void {
-            $this->releaseBorrowedObject($obj);
-        };
-
-        /*
-         * create() 极少数情况下会因运行时资源不足而失败。不能因此遗失已经消费的
-         * 租约和 callCount；当前协程同步执行相同结算逻辑，保持账本可恢复。
-         */
-        if (\Swoole\Coroutine::create($release) === false) {
-            $release();
-        }
+        // 不创建异步释放协程：见方法注释中的 capacity=1 高扇出饥饿窗口。
+        $this->releaseBorrowedObject($obj);
     }
 
     /**
@@ -290,24 +291,33 @@ class PoolsHandler
     protected function releaseBorrowedObject(ContainerObjectDto $obj): void
     {
         $pushed = false;
+        $idleObject = null;
         try {
             $targetObj = $obj->getObject();
             if ($targetObj instanceof PDOConnection) {
                 // 恢复默认 false，避免上一次借用的动态 SQL 调试泄漏到下一次借用。
                 $targetObj->dynamicDebug = false;
             }
-
             $isExpired = !is_null($obj->__objExpireTime) && time() > $obj->__objExpireTime;
             if (!$isExpired && $this->isChannelOpen() && $this->channel->length() < $this->poolsNum) {
-                // 放回channel,不绑定任何协程
+                // 放回 channel，不绑定任何协程。借出时已腾出一个槽位，归还不能等待。
                 $obj->__coroutineId = -1;
-                $pushed = $this->channel->push($obj, $this->pushTimeout);
+                /**
+                 * $obj可能会被引用另一个对象，不能被回收。
+                 * 每次成功归还会为 channel 创建新的 DTO 外壳，而不是把调用方持有的 DTO 重新
+                 * 入队。底层组件对象仍复用，但旧外壳永久保持 -1；因此调用方即使保留旧引用，
+                 * 也无法在对象被下一租约借出后把该旧 handle 误归还。
+                 */
+                $idleObject = clone $obj; // 只复制标量元数据，__object 对象还是底层引用
+                $idleObject->__coroutineId = -1;
+                $pushed = $this->channel->push($idleObject, 0);
             }
         } catch (\Throwable $exception) {
-            // detached release coroutine 不能让 channel 异常逃逸并中断后续账本结算。
+            // 归还路径不能让 channel 异常逃逸并中断后续账本结算。
             $pushed = false;
         } finally {
             if (!$pushed) {
+                unset($idleObject);
                 // 对象未回到 channel，已不属于池，必须释放容量后才允许重建。
                 $this->discardObject($obj);
             }
@@ -341,6 +351,9 @@ class PoolsHandler
                 $targetObj->enableDynamicDebug();
             }
             // 出 channel 对象绑定到当前协程；pushObj 用它拒绝重复、错误和陈旧归还。
+            if (!is_object($obj)) {
+                return null;
+            }
             $obj->__coroutineId = Coroutine::getCid();
             return $obj;
         } catch (\Throwable $exception) {
@@ -460,17 +473,17 @@ class PoolsHandler
             }
 
             try {
-                $obj = call_user_func($this->callable, $this->poolName);
-                if (!is_object($obj)) {
+                $targetObj = call_user_func($this->callable, $this->poolName);
+                if (!is_object($targetObj)) {
                     throw new SystemException("Pools of {$this->poolName} build instance must return object");
                 }
-                $containerObject = $this->buildContainerObject($obj, $this->poolName);
+                $containerObject = $this->buildContainerObject($targetObj, $this->poolName);
                 $pushed = $this->channel->push($containerObject, $this->pushTimeout);
                 if (!$pushed) {
                     unset($containerObject);
                     $this->releaseCreateSlot();
                 }
-                unset($obj);
+                unset($targetObj);
             } catch (\Throwable $exception) {
                 $this->releaseCreateSlot();
                 throw $exception;
@@ -515,12 +528,15 @@ class PoolsHandler
     }
 
     /**
-     * channel 可能被外部调用 getChannel()->close() 关闭。关闭后不能再 pop、push 或
-     * refill；归还路径会改为丢弃并释放账本。这个判断不持有对象，仅保护通道生命周期。
+     * channel 可能被外部调用 getChannel()->close() 关闭。关闭后的第一次 push/pop 会把
+     * errCode 置为 SWOOLE_CHANNEL_CLOSED；随后不能再 pop、push、make 或 refill。
+     * 归还路径会丢弃对象并释放账本，避免已关闭 channel 上反复「预占 → 构造 → push
+     * 失败」而造成无意义重建。这个判断不持有对象，仅保护通道生命周期。
      */
     protected function isChannelOpen(): bool
     {
-        return $this->channel instanceof Channel;
+        return $this->channel instanceof Channel
+            && $this->channel->errCode !== \SWOOLE_CHANNEL_CLOSED;
     }
 
     /**
@@ -537,6 +553,7 @@ class PoolsHandler
         $containerObjectDto->__object        = $object;
         $containerObjectDto->__comAliasName  = $poolName;
         $containerObjectDto->__objExpireTime = time() + ($this->lifeTime) + (new \Random\Randomizer())->getInt(1, 10);
+        $containerObjectDto->__tagetObjectId = spl_object_id($object);
         return $containerObjectDto;
     }
 

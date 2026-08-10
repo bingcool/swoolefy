@@ -136,9 +136,17 @@ final class PoolsHandlerConcurrencyTest extends CoroutineTestCase
                     });
                 }
 
+                /*
+                 * 不能使用箭头函数：箭头函数会按值捕获 $finished，条件会永久停留在
+                 * 创建闭包时的 0，造成“所有 worker 卡死”的假象。这里必须按引用读取
+                 * 每轮调度后的真实完成数，才是 capacity=1 饥饿回归的有效断言。
+                 */
                 $this->waitFor(
-                    static fn (): bool => $finished === $coroutines,
-                    sprintf(
+                    static function () use (&$finished, $coroutines): bool {
+                        return $finished === $coroutines;
+                    },
+                    function () use (&$finished, &$completed, $errors, $pool, $capacity): string {
+                        return sprintf(
                         'capacity=%d 的协程池发生永久等待：finished=%d, completed=%d, errors=%d, callCount=%d, channel=%d, objectCount=%d',
                         $capacity,
                         $finished,
@@ -147,7 +155,8 @@ final class PoolsHandlerConcurrencyTest extends CoroutineTestCase
                         $this->readCounter($pool, 'callCount'),
                         $pool->getCurrentNum(),
                         $this->readCounter($pool, 'objectCount'),
-                    ),
+                        );
+                    },
                 );
                 self::assertSame($coroutines, $completed, sprintf('capacity=%d 出现 %d 个 fetch/release 失败', $capacity, $errors->length()));
                 $this->waitForPoolRecovery($pool, $capacity);
@@ -155,6 +164,137 @@ final class PoolsHandlerConcurrencyTest extends CoroutineTestCase
                 self::assertLessThanOrEqual($capacity, TestPoolResource::$peakActive);
                 self::assertSame($capacity, $this->readCounter($pool, 'objectCount'));
             }
+        });
+    }
+
+    /**
+     * 这个用例刻意让所有 fetch 在同一空池上竞争。capacity=1 时，归还若仅创建一个
+     * detached coroutine，调用方已结束而唯一对象尚未 push 的窗口会让大量 pop 等待者
+     * 看不到可用对象；同步归还必须在 pushObj 返回前立即完成账本结算并唤醒等待者。
+     */
+    public function testCapacityOneHighFanoutReleaseCompletesSynchronously(): void
+    {
+        $this->runInCoroutine(function (): void {
+            $capacity = 1;
+            $coroutines = 250;
+            TestPoolResource::reset($capacity);
+            $pool = $this->createPool($capacity, static function (): TestPoolResource {
+                Coroutine::sleep(0.001);
+                return new TestPoolResource();
+            });
+
+            $completed = 0;
+            $finished = 0;
+            $errors = new Channel($coroutines);
+            for ($i = 0; $i < $coroutines; ++$i) {
+                go(function () use ($pool, &$completed, &$finished, $errors): void {
+                    try {
+                        $object = $pool->fetchObj();
+                        if (!is_object($object)) {
+                            throw new RuntimeException('capacity=1 high-fanout fetch returned null.');
+                        }
+                        Coroutine::sleep(0.001);
+                        $pool->pushObj($object);
+                        ++$completed;
+                    } catch (Throwable $exception) {
+                        $errors->push($exception);
+                    } finally {
+                        ++$finished;
+                    }
+                });
+            }
+
+            $this->waitFor(
+                static function () use (&$finished, $coroutines): bool {
+                    return $finished === $coroutines;
+                },
+                function () use (&$finished, &$completed, $errors, $pool): string {
+                    return sprintf(
+                        'capacity=1 高扇出未完成：finished=%d, completed=%d, errors=%d, callCount=%d, channel=%d, objectCount=%d',
+                        $finished,
+                        $completed,
+                        $errors->length(),
+                        $this->readCounter($pool, 'callCount'),
+                        $pool->getCurrentNum(),
+                        $this->readCounter($pool, 'objectCount'),
+                    );
+                },
+            );
+            self::assertSame($coroutines, $completed);
+            self::assertSame(0, $errors->length());
+            $this->waitForPoolRecovery($pool, $capacity);
+
+            // 没有异步 release 残留协程或“账本有对象、channel 无对象”的中间态。
+            self::assertSame(0, $this->readCounter($pool, 'callCount'));
+            self::assertSame($capacity, $pool->getCurrentNum());
+            self::assertSame($capacity, $this->readCounter($pool, 'objectCount'));
+        });
+    }
+
+    public function testCrossCoroutineStaleReturnAndClosedPoolRemainSafe(): void
+    {
+        $this->runInCoroutine(function (): void {
+            TestPoolResource::reset(1);
+            $pool = $this->createPool(1, static fn (): TestPoolResource => new TestPoolResource());
+
+            $borrowed = $pool->fetchObj();
+            self::assertIsObject($borrowed);
+            $crossReturnDone = new Channel(1);
+            go(function () use ($pool, $borrowed, $crossReturnDone): void {
+                // 非借用协程不得消费租约；原借主仍必须能够正常归还。
+                $pool->pushObj($borrowed);
+                $crossReturnDone->push(true);
+            });
+            self::assertTrue((bool) $crossReturnDone->pop(1));
+            self::assertSame(1, $this->readCounter($pool, 'callCount'));
+            self::assertSame(0, $pool->getCurrentNum());
+
+            $pool->pushObj($borrowed);
+            $this->waitForPoolRecovery($pool, 1);
+
+            // 同一个 PHP 引用在下一次租约后已经是陈旧 handle，不能二次入池。
+            $stale = $borrowed;
+            $next = $pool->fetchObj();
+            self::assertIsObject($next);
+            $pool->pushObj($stale);
+            self::assertSame(1, $this->readCounter($pool, 'callCount'));
+            self::assertSame(0, $pool->getCurrentNum());
+            $pool->pushObj($next);
+            $this->waitForPoolRecovery($pool, 1);
+
+            // close 后归还只丢弃和释放账本，不再 refill，更不能永久等待。
+            $closing = $pool->fetchObj();
+            self::assertIsObject($closing);
+            $pool->getChannel()?->close();
+            $pool->pushObj($closing);
+            self::assertSame(0, $this->readCounter($pool, 'callCount'));
+            self::assertSame(0, $this->readCounter($pool, 'objectCount'));
+            self::assertNull($pool->fetchObj());
+        });
+    }
+
+    public function testTimedOutWaiterDoesNotConsumeCapacityOrLease(): void
+    {
+        $this->runInCoroutine(function (): void {
+            TestPoolResource::reset(1);
+            $pool = $this->createPool(1, static fn (): TestPoolResource => new TestPoolResource());
+            $pool->setPopTimeout(0.01);
+
+            $borrowed = $pool->fetchObj();
+            self::assertIsObject($borrowed);
+            $result = new Channel(1);
+            go(function () use ($pool, $result): void {
+                $result->push($pool->fetchObj());
+            });
+
+            // getObj 的超时短重试后允许返回 null，但不能虚增 callCount 或释放借主租约。
+            self::assertNull($result->pop(1));
+            self::assertSame(1, $this->readCounter($pool, 'callCount'));
+            self::assertSame(1, $this->readCounter($pool, 'objectCount'));
+            self::assertSame(0, $pool->getCurrentNum());
+
+            $pool->pushObj($borrowed);
+            $this->waitForPoolRecovery($pool, 1);
         });
     }
 
@@ -220,19 +360,25 @@ final class PoolsHandlerConcurrencyTest extends CoroutineTestCase
         $this->waitFor(
             fn (): bool => $this->readCounter($pool, 'callCount') === 0
                 && $pool->getCurrentNum() === $capacity,
-            sprintf('对象池未恢复：callCount=%d, channel=%d', $this->readCounter($pool, 'callCount'), $pool->getCurrentNum()),
+            fn (): string => sprintf(
+                '对象池未恢复：callCount=%d, channel=%d, objectCount=%d',
+                $this->readCounter($pool, 'callCount'),
+                $pool->getCurrentNum(),
+                $this->readCounter($pool, 'objectCount'),
+            ),
         );
     }
 
     /**
      * @param callable(): bool $condition
+     * @param callable(): string|string $message
      */
-    private function waitFor(callable $condition, string $message): void
+    private function waitFor(callable $condition, callable|string $message): void
     {
         $deadline = microtime(true) + 15;
         while (!$condition()) {
             if (microtime(true) >= $deadline) {
-                self::fail($message);
+                self::fail(is_callable($message) ? $message() : $message);
             }
             Coroutine::sleep(0.005);
         }
