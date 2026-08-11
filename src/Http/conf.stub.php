@@ -30,6 +30,9 @@ return [
     'runtime_enable_coroutine' => true,
 
     // Worker 本地可观测性：固定指标、按需诊断及有界内存趋势采样。
+    // /api/runtime data 顶层严格且仅有 global、worker；global.server 是 Swoole 服务级 stats，
+    // worker.process/coroutine/memory/metrics/pool 都仅表示当前 Worker。
+    // 组件池别名白名单自动来自 app.conf 的 component_pools，并输出到 worker.pool.aliases。
     'runtime_observability' => [
         'metrics' => ['enable' => true],
         'diagnostics' => ['enable' => true],

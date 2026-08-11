@@ -8,6 +8,7 @@ use PHPUintTest\TestCase;
 use Swoolefy\Core\Runtime\Memory\MemoryHistory;
 use Swoolefy\Core\Runtime\Memory\MemoryLeakDetector;
 use Swoolefy\Core\Runtime\Memory\MemorySnapshot;
+use Swoolefy\Core\Runtime\Diagnostics\RuntimeDiagnostics;
 use Swoolefy\Core\Runtime\Metrics\Counter;
 use Swoolefy\Core\Runtime\Metrics\Gauge;
 use Swoolefy\Core\Runtime\Metrics\Histogram;
@@ -49,25 +50,49 @@ final class RuntimeObservabilityTest extends TestCase
         self::assertSame(['count' => 2, 'sum' => 0.4, 'min' => 0.1, 'max' => 0.3, 'avg' => 0.2], $histogram->snapshot());
     }
 
-    /** 请求和连接池 API 仅使用固定的汇总指标名。 */
+    /**
+     * 非池指标保持固定名称；池指标按启动时白名单中的组件别名聚合。
+     *
+     * 同一别名的成功、归还和失败必须累计在同一快照项；未知别名只能增加固定的
+     * 未归属计数器，不能在 Worker 常驻内存中创建动态别名键。
+     */
     public function testRuntimeMetricsLifecycle(): void
     {
-        $metrics = new RuntimeMetrics(new MetricsRegistry());
+        $metrics = new RuntimeMetrics(new MetricsRegistry(), ['redis', 'mysql']);
         $metrics->requestStarted();
         $metrics->requestError();
         $metrics->requestDuration(0.25);
         $metrics->requestFinished();
+        $metrics->poolFetched('redis');
+        $metrics->poolFetched('redis');
+        $metrics->poolReleased('redis');
+        $metrics->poolFetchError('redis');
+        $metrics->poolFetched('mysql');
+        $metrics->poolReleased('mysql');
         $metrics->poolFetched('untrusted-name');
-        $metrics->poolReleased('another-name');
         $snapshot = $metrics->snapshot();
         self::assertSame(1, $snapshot['counter'][RuntimeMetrics::HTTP_REQUESTS_TOTAL]);
         self::assertSame(0, $snapshot['gauge'][RuntimeMetrics::HTTP_REQUESTS_ACTIVE]);
         self::assertSame(1, $snapshot['counter'][RuntimeMetrics::HTTP_5XX_TOTAL]);
-        self::assertSame(1, $snapshot['counter'][RuntimeMetrics::POOL_FETCH_TOTAL]);
-        self::assertSame(1, $snapshot['counter'][RuntimeMetrics::POOL_RELEASE_TOTAL]);
+        self::assertSame(4, $snapshot['counter'][RuntimeMetrics::POOL_FETCH_TOTAL]);
+        self::assertSame(2, $snapshot['counter'][RuntimeMetrics::POOL_RELEASE_TOTAL]);
         self::assertArrayNotHasKey('untrusted-name', $snapshot['counter']);
-        $metrics->poolFetchError('failed-pool');
-        self::assertSame(1, $metrics->snapshot()['counter'][RuntimeMetrics::POOL_FETCH_ERROR_TOTAL]);
+        self::assertSame(1, $snapshot['counter'][RuntimeMetrics::POOL_FETCH_ERROR_TOTAL]);
+        self::assertSame(1, $snapshot['counter'][RuntimeMetrics::POOL_UNATTRIBUTED_TOTAL]);
+        self::assertSame([
+            'redis' => [
+                'fetch_total' => 2,
+                'release_total' => 1,
+                'fetch_error_total' => 1,
+                'balance' => 1,
+            ],
+            'mysql' => [
+                'fetch_total' => 1,
+                'release_total' => 1,
+                'fetch_error_total' => 0,
+                'balance' => 0,
+            ],
+        ], $metrics->poolSnapshot());
     }
 
     /** 历史记录会淘汰旧观测值，因此不会无限增长。 */
@@ -100,7 +125,7 @@ final class RuntimeObservabilityTest extends TestCase
         self::assertSame(MemoryLeakDetector::CRITICAL, $critical->detect($this->samples([100, 110, 120, 130, 150]))->state);
     }
 
-    /** 省略 diagnostics.enable 时仍提供低开销的按需诊断。 */
+    /** 指标关闭时，Worker 本地指标明确标记为禁用，不伪造服务级指标。 */
     public function testRegistryRespectsDisabledMetrics(): void
     {
         RuntimeRegistry::initialize([
@@ -111,9 +136,84 @@ final class RuntimeObservabilityTest extends TestCase
         self::assertNotNull(RuntimeRegistry::memory());
         self::assertNotNull(RuntimeRegistry::diagnostics());
         $snapshot = RuntimeRegistry::diagnostics()?->snapshot();
-        self::assertSame(['enabled' => false], $snapshot['metrics']);
-        self::assertArrayHasKey('php_usage', $snapshot['memory']);
-        self::assertArrayHasKey('rss', $snapshot['memory']);
+        self::assertSame(['enabled' => false], $snapshot['worker']['metrics']);
+        self::assertSame('collector_failed', $snapshot['global']['server']['error']);
+        self::assertArrayHasKey('php_usage', $snapshot['worker']['memory']);
+        self::assertArrayHasKey('rss', $snapshot['worker']['memory']);
+    }
+
+    /** 组件池别名只能位于当前 Worker 的 pool.aliases 中。 */
+    public function testDiagnosticsExposePerAliasPoolSnapshot(): void
+    {
+        RuntimeRegistry::initialize([
+            'metrics' => ['enable' => true],
+            'memory' => ['enable' => false],
+            'pool_aliases' => ['redis', 'db'],
+        ]);
+
+        $metrics = RuntimeRegistry::metrics();
+        self::assertNotNull($metrics);
+        $metrics->poolFetched('redis');
+        $metrics->poolFetched('redis');
+        $metrics->poolReleased('redis');
+        $metrics->poolFetchError('db');
+
+        $snapshot = RuntimeRegistry::diagnostics()?->snapshot();
+        $pool = $snapshot['worker']['pool']['aliases'];
+        self::assertSame([
+            'redis' => [
+                'fetch_total' => 2,
+                'release_total' => 1,
+                'fetch_error_total' => 0,
+                'balance' => 1,
+            ],
+            'db' => [
+                'fetch_total' => 0,
+                'release_total' => 0,
+                'fetch_error_total' => 1,
+                'balance' => 0,
+            ],
+        ], $pool);
+        self::assertArrayNotHasKey('pool', $snapshot);
+        self::assertArrayNotHasKey('aliases', $snapshot['worker']['metrics']['pool']);
+    }
+
+    /**
+     * 响应顶层严格只有 global 与 worker。Swoole Server stats 是唯一的服务级来源；
+     * RuntimeRegistry 的 PHP 静态状态只能描述当前 Worker，不能伪造全局框架指标。
+     */
+    public function testDiagnosticsClassifySourcesIntoStrictGlobalAndWorkerGroups(): void
+    {
+        RuntimeRegistry::initialize([
+            'metrics' => ['enable' => true],
+            'memory' => ['enable' => false],
+            'pool_aliases' => ['redis'],
+        ]);
+        $metrics = RuntimeRegistry::metrics();
+        self::assertNotNull($metrics);
+        $metrics->requestStarted();
+        $metrics->poolFetched('redis');
+
+        $diagnostics = new RuntimeDiagnostics(
+            static fn (): array => ['request_count' => 99, 'worker_num' => 2],
+        );
+        $snapshot = $diagnostics->snapshot();
+
+        self::assertSame([
+            'request_count' => 99,
+            'worker_num' => 2,
+        ], $snapshot['global']['server']);
+        self::assertSame(['global', 'worker'], array_keys($snapshot));
+        self::assertSame(1, $snapshot['worker']['metrics']['request']['counter'][RuntimeMetrics::HTTP_REQUESTS_TOTAL]);
+        self::assertSame(1, $snapshot['worker']['pool']['aliases']['redis']['fetch_total']);
+        self::assertArrayHasKey('pid', $snapshot['worker']['process']);
+        self::assertArrayHasKey('system', $snapshot['global']);
+        self::assertArrayNotHasKey('parent_pid', $snapshot['global']['process']);
+        self::assertArrayNotHasKey('metrics', $snapshot['global']);
+        self::assertArrayNotHasKey('pool', $snapshot['global']);
+        foreach (['runtime', 'process', 'server', 'coroutine', 'memory', 'metrics', 'pool', 'platform', 'service'] as $oldKey) {
+            self::assertArrayNotHasKey($oldKey, $snapshot);
+        }
     }
 
     /** 显式关闭诊断时不创建诊断组件。 */
@@ -126,17 +226,17 @@ final class RuntimeObservabilityTest extends TestCase
         self::assertNull(RuntimeRegistry::diagnostics());
     }
 
-    /** 服务端采集器不可用时，诊断结果仍部分可用。 */
+    /** 服务端采集器不可用时，其他全局与当前 Worker 分区仍可用。 */
     public function testDiagnosticsAreCollectorIsolated(): void
     {
         RuntimeRegistry::initialize(['memory' => ['enable' => false]]);
         $snapshot = RuntimeRegistry::diagnostics()?->snapshot();
         self::assertIsArray($snapshot);
-        self::assertArrayHasKey('runtime', $snapshot);
-        self::assertArrayHasKey('memory', $snapshot);
-        self::assertSame(['enabled' => false], $snapshot['memory']);
-        self::assertSame('collector_failed', $snapshot['server']['error']);
-        self::assertSame(0, $snapshot['pool']['balance']);
+        self::assertSame(['global', 'worker'], array_keys($snapshot));
+        self::assertArrayHasKey('system', $snapshot['global']);
+        self::assertSame(['enabled' => false], $snapshot['worker']['memory']);
+        self::assertSame('collector_failed', $snapshot['global']['server']['error']);
+        self::assertSame(['enabled' => false], $snapshot['worker']['metrics']);
     }
 
     /** 创建确定性的模拟内存数据，避免实际分配内存。 */

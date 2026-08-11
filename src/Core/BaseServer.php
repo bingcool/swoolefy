@@ -201,7 +201,15 @@ class BaseServer
                 HttpEntryInstrumentation::register(true);
             }
             // 在用户 WorkerStart 钩子之前初始化 Worker 本地可观测性组件。
-            RuntimeRegistry::initialize(self::$config['runtime_observability'] ?? []);
+            // 组件池别名是配置期的有限集合，供 RuntimeMetrics 安全地按别名归因。
+            $runtimeObservability = self::$config['runtime_observability'] ?? [];
+            $appConfig = self::getAppConf();
+            $runtimeObservability['pool_aliases'] = array_keys(
+                is_array($appConfig['component_pools'] ?? null)
+                    ? $appConfig['component_pools']
+                    : [],
+            );
+            RuntimeRegistry::initialize($runtimeObservability);
         }catch(\Throwable $throwable) {
             self::catchException($throwable);
         }

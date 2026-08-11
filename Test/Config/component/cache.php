@@ -10,11 +10,7 @@
  * +----------------------------------------------------------------------
  */
 
-use Swoolefy\Library\Amqp\AmqpStreamConnectionFactory;
-use PhpAmqpLib\Connection\AMQPStreamConnection;
 use Swoolefy\Core\Application;
-use Test\Config\AmqpConfig;
-use Test\Config\KafkaConfig;
 
 $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
 

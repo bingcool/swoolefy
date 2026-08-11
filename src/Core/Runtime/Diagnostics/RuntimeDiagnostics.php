@@ -7,16 +7,31 @@ namespace Swoolefy\Core\Runtime\Diagnostics;
 use Swoolefy\Cmd\Infrastructure\PidFileManager;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Coroutine\CoroutineManager;
+use Swoolefy\Core\Runtime\Metrics\RuntimeMetrics;
 use Swoolefy\Core\Runtime\RuntimeRegistry;
 
 /**
- * 以失败开放方式组装只读的 Worker 运行时诊断信息。
+ * 以失败开放方式组装只读的服务与当前 Worker 运行时诊断信息。
  *
  * 不包含配置、请求载荷、对象图、凭据或堆栈回溯。各采集器彼此隔离，
  * 因此部分诊断结果仍然可用。
  */
 final class RuntimeDiagnostics
 {
+    /** @var \Closure(): array<string, mixed> */
+    private readonly \Closure $serverStats;
+
+    /**
+     * @param null|callable():array<string, mixed> $serverStats 仅供替换 Swoole 全局 stats 来源；
+     *                                                       不得以 Worker 本地注册表替代。
+     */
+    public function __construct(?callable $serverStats = null)
+    {
+        $this->serverStats = $serverStats === null
+            ? static fn (): array => BaseServer::getStats()
+            : \Closure::fromCallable($serverStats);
+    }
+
     /**
      * 创建安全的运行时快照。
      *
@@ -26,48 +41,74 @@ final class RuntimeDiagnostics
     public function snapshot(bool $memoryHistory = false): array
     {
         return [
-            'runtime' => $this->runtime(),
-            'process' => $this->process(),
-            'worker' => $this->worker(),
-            'server' => $this->server(),
-            'coroutine' => $this->coroutine(),
-            'memory' => $this->memory($memoryHistory),
-            'metrics' => $this->metrics(),
-            'pool' => $this->pool(),
+            // global 只放服务级元数据或 Swoole 服务快照；绝不放 PHP Worker 本地状态。
+            'global' => [
+                'system' => $this->system(),
+                'process' => $this->globalProcess(),
+                'server' => $this->server(),
+            ],
+            'worker' => [
+                'identity' => $this->workerIdentity(),
+                'process' => $this->workerProcess(),
+                'coroutine' => $this->coroutine(),
+                'memory' => $this->memory($memoryHistory),
+                'metrics' => $this->metrics(),
+                'pool' => [
+                    'aliases' => $this->pool(),
+                ],
+            ],
         ];
     }
 
-    /** 返回安全的运行时版本信息及已配置的服务协议。 */
-    public function runtime(): array
+    /** 返回服务级版本、协议及配置元数据；不包含随请求落点变化的 Worker 状态。 */
+    public function system(): array
     {
-        return $this->collect(fn (): array => [
-            'php_version' => PHP_VERSION,
-            'swoole_version' => function_exists('swoole_version') ? swoole_version() : null,
-            'swoolefy_version' => defined('SWOOLEFY_VERSION') ? SWOOLEFY_VERSION : null,
-            'server_protocol' => BaseServer::getServiceProtocol(),
-        ]);
+        return $this->collect(function (): array {
+            $server = BaseServer::getServer();
+            return [
+                'php_version' => PHP_VERSION,
+                'swoole_version' => function_exists('swoole_version') ? swoole_version() : null,
+                'swoolefy_version' => defined('SWOOLEFY_VERSION') ? SWOOLEFY_VERSION : null,
+                'server_protocol' => BaseServer::getServiceProtocol(),
+                'configured_worker_num' => is_object($server) ? ($server->setting['worker_num'] ?? null) : null,
+            ];
+        });
     }
 
-    /** 不调用操作系统 Shell，返回当前 Worker 进程标识。 */
-    public function process(): array
+    /** 返回从服务 PID 文件读取的 Master PID，不依赖当前 Worker 的父进程关系。 */
+    public function globalProcess(): array
     {
-        $server = BaseServer::getServer();
-        $pidFile = (string) $server->setting['pid_file'] ?? '';
+        return $this->collect(static function (): array {
+            $server = BaseServer::getServer();
+            $pidFile = is_object($server) ? (string) ($server->setting['pid_file'] ?? '') : '';
+            return [
+                'master_pid' => PidFileManager::read($pidFile),
+                'manager_pid' => $server->manager_pid
+            ];
+        });
+    }
+
+    /**
+     * 返回当前 Worker 的进程标识。
+     *
+     * parent_pid 是 getppid() 读出的当前进程父 PID；不同部署/运行模式下不保证就是
+     * Swoole manager，因此不能标记为服务级 manager_pid。
+     */
+    public function workerProcess(): array
+    {
         return $this->collect(static fn (): array => [
-            'worker_pid' => getmypid() ?: null,
-            'master_pid' =>  PidFileManager::read($pidFile),
-            'manager_pid' => function_exists('posix_getppid') ? posix_getppid() : null,
+            'pid' => getmypid() ?: null,
+            'parent_pid' => function_exists('posix_getppid') ? posix_getppid() : null,
         ]);
     }
 
-    /** 仅使用公开的服务端状态构建 Worker 元数据。 */
-    public function worker(): array
+    /** 仅返回承载本次响应的当前 Worker 身份与生命周期。 */
+    public function workerIdentity(): array
     {
         return $this->collect(function (): array {
             $server = BaseServer::getServer();
             return [
                 'worker_id' => is_object($server) ? ($server->worker_id ?? null) : null,
-                'worker_num' => is_object($server) ? ($server->setting['worker_num'] ?? null) : null,
                 'start_time' => RuntimeRegistry::startedAt(),
                 'uptime_seconds' => RuntimeRegistry::startedAt() === null ? null : max(0, time() - RuntimeRegistry::startedAt()),
             ];
@@ -77,7 +118,7 @@ final class RuntimeDiagnostics
     /** 复用 Swoole 服务端的标准统计数据，不自行维护副本。 */
     public function server(): array
     {
-        return $this->collect(static fn (): array => BaseServer::getStats());
+        return $this->collect($this->serverStats);
     }
 
     /** 复用框架 CoroutineManager 的版本兼容状态 API。 */
@@ -108,33 +149,68 @@ final class RuntimeDiagnostics
         });
     }
 
-    /** 仅返回标量快照，绝不返回可变的指标对象。 */
+    /**
+     * 返回当前 Worker 的本地指标；服务级 Swoole 统计唯一位于 global.server。
+     *
+     * RuntimeRegistry 是当前 Worker 的 PHP 静态状态，不能用它构造伪造的服务汇总。
+     */
     public function metrics(): array
     {
-        return $this->collect(static fn (): array => RuntimeRegistry::metrics()?->snapshot() ?? ['enabled' => false]);
-    }
-
-    /** 返回连接池生命周期汇总计数器，不暴露连接池对象。 */
-    public function pool(): array
-    {
         return $this->collect(function (): array {
-            $fetches = $this->poolTotal('swoolefy_pool_fetch_total');
-            $releases = $this->poolTotal('swoolefy_pool_release_total');
+            $metrics = RuntimeRegistry::metrics();
+            if ($metrics === null) {
+                return ['enabled' => false];
+            }
+
+            $snapshot = $metrics->snapshot();
+            $counter = $snapshot['counter'];
+            $gauge = $snapshot['gauge'];
+            $histogram = $snapshot['histogram'];
+
             return [
-                'fetch_total' => $fetches,
-                'release_total' => $releases,
-                'fetch_error_total' => $this->poolTotal('swoolefy_pool_fetch_error_total'),
-                // 正余额仅是诊断信息，不能据此判定发生泄漏。
-                'balance' => $fetches - $releases,
+                'request' => [
+                    'counter' => $this->only($counter, [
+                        RuntimeMetrics::HTTP_REQUESTS_TOTAL,
+                        RuntimeMetrics::HTTP_5XX_TOTAL,
+                        RuntimeMetrics::WORKER_REQUESTS_TOTAL,
+                        RuntimeMetrics::WORKER_ERRORS_TOTAL,
+                    ]),
+                    'gauge' => $this->only($gauge, [RuntimeMetrics::HTTP_REQUESTS_ACTIVE]),
+                    'histogram' => $this->only($histogram, [RuntimeMetrics::HTTP_DURATION]),
+                ],
+                'memory' => [
+                    'gauge' => $this->only($gauge, [
+                        RuntimeMetrics::WORKER_UPTIME_SECONDS,
+                        RuntimeMetrics::WORKER_MEMORY_BYTES,
+                        RuntimeMetrics::WORKER_PEAK_MEMORY_BYTES,
+                        RuntimeMetrics::WORKER_RSS_BYTES,
+                    ]),
+                ],
+                'pool' => [
+                    'counter' => $this->only($counter, [
+                        RuntimeMetrics::POOL_FETCH_TOTAL,
+                        RuntimeMetrics::POOL_RELEASE_TOTAL,
+                        RuntimeMetrics::POOL_FETCH_ERROR_TOTAL,
+                        RuntimeMetrics::POOL_UNATTRIBUTED_TOTAL,
+                    ]),
+                ],
             ];
         });
     }
 
-    /** 读取固定的汇总计数器，避免动态 Pool 键。 */
-    private function poolTotal(string $name): int
+    /**
+     * 返回按组件池别名归因的当前 Worker 生命周期计数器，不暴露连接池对象。
+     *
+     * 未知或缺失别名不会出现在此映射中，而是由
+     * worker.metrics.pool.counter.swoolefy_pool_unattributed_total 明确记录。
+     *
+     * @return array<string, array{fetch_total:int,release_total:int,fetch_error_total:int,balance:int}>
+     */
+    public function pool(): array
     {
-        $snapshot = RuntimeRegistry::metrics()?->snapshot() ?? [];
-        return (int) ($snapshot['counter'][$name] ?? 0);
+        return $this->collect(
+            static fn (): array => RuntimeRegistry::metrics()?->poolSnapshot() ?? [],
+        );
     }
 
     /** 将采集器失败转换为不透明且不含敏感信息的响应。 */
@@ -145,5 +221,22 @@ final class RuntimeDiagnostics
         } catch (\Throwable) {
             return ['error' => 'collector_failed'];
         }
+    }
+
+    /**
+     * 从有界的固定指标名中选取分类快照，缺失表示该指标尚未在当前 Worker 创建。
+     *
+     * @template TValue
+     * @param array<string, TValue> $metrics
+     * @param list<string> $names
+     * @return array<string, TValue>
+     */
+    private function only(array $metrics, array $names): array
+    {
+        return array_filter(
+            $metrics,
+            static fn (mixed $value, string $name): bool => in_array($name, $names, true),
+            ARRAY_FILTER_USE_BOTH,
+        );
     }
 }

@@ -6,6 +6,39 @@
 > 结果：**本方案已实现**  
 ---
 
+## 0.1 `/api/runtime` 严格作用域响应（现行）
+
+`RuntimeRegistry` 是 Worker 进程内的 PHP 静态状态，不能跨 Worker 聚合。因此 `/api/runtime` 的 `data` 严格只有 `global` 与 `worker`：
+
+```json
+{
+  "data": {
+    "global": {
+      "system": {},
+      "process": {},
+      "server": {}
+    },
+    "worker": {
+      "identity": {},
+      "process": {},
+      "coroutine": {},
+      "memory": {},
+      "metrics": {
+        "request": {},
+        "memory": {},
+        "pool": {"counter": {}}
+      },
+      "pool": {"aliases": {"redis": {}}}
+    }
+  }
+}
+```
+
+- `global.server` 是唯一的 `Swoole\Server::stats()` 服务级统计来源；不再存在重复的 `metrics.global.server`。
+- `worker.identity`、`worker.coroutine`、`worker.memory`、`worker.metrics` 只描述承载本次 `/api/runtime` 请求的一个 Worker。请求切换 Worker、Worker 重启和多进程部署都会使数值不可直接当作服务合计。
+- `worker.process.pid`、`parent_pid` 也是当前 Worker 数据；后者只是 POSIX 父 PID，不能假定为 Swoole manager。池别名只保留于 `worker.pool.aliases`，不再有 `data.pool` 兼容镜像。未知别名仍只计入固定的 `swoolefy_pool_unattributed_total`，不会扩展标签集合。
+- 完整中文 Schema、字段来源和旧键迁移表见 [`docs/RuntimeResponseSchema.md`](RuntimeResponseSchema.md)；运行时操作说明见 [`src/Core/Runtime/README.md`](../src/Core/Runtime/README.md)。
+
 ## 0. 本方案不是通用 Metrics 方案，而是针对 Swoolefy 6.2-x 的设计
 
 本方案基于当前 `swoolefy-6.2-x` 源码重新梳理后的实际运行链路设计。
@@ -2269,9 +2302,10 @@ balance
     "state": "normal"
   },
   "pool": {
-    "mysql": {
+    "redis": {
       "fetch_total": 123000,
       "release_total": 122999,
+      "fetch_error_total": 1,
       "balance": 1
     }
   }
@@ -3562,7 +3596,7 @@ swoolefy_pool_release_total
 swoolefy_pool_fetch_error_total
 ```
 
-Pool 名称如果要区分：
+Pool 名称需要区分时：
 
 ```text
 mysql
@@ -3570,7 +3604,8 @@ redis
 curl
 ```
 
-必须使用固定白名单。
+必须使用 Worker 启动时 `component_pools` 的固定别名白名单；未知、空白或运行中才出现的
+别名只增加固定的 `swoolefy_pool_unattributed_total`，不能创建动态键，也不能归属到其他池。
 
 不要：
 

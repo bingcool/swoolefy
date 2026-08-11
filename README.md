@@ -95,6 +95,7 @@
 | **Websocket** | 推送、离线、Cluster、Socket.IO 等 | [架构/协议](#nav-arch) · 测试见 PHPUintTest |
 | **PHPUintTest** | PHPUnit 11 单轨；Unit / Coroutine / Http / Websocket | [PHPUnitTest](docs/PHPUnitTest.md) · [简介](#nav-phpunit) |
 | **Health** | K8s `/health`·`/ready` 探针（与 CLI `ProductionHealthCheck` 互补） | [Http/Health](src/Http/Health/README.md) · Config/health.php |
+| **Runtime Observability** | `/api/runtime` 的严格 `global` / `worker` 诊断快照与 Worker 本地指标 | [响应 Schema](docs/RuntimeResponseSchema.md) · [运行时说明](src/Core/Runtime/README.md) |
 | **library** | 协程组件库（DB / Redis / Queue / Jwt …） | [bingcool/library](https://github.com/bingcool/library) · [五](#nav-5-library) |
 
 ### 🎯 核心特性
@@ -529,8 +530,7 @@ docker run -d -it --security-opt seccomp=unconfined -p 9501:9501 -p 9502:9502 -v
 - [x] Validate 组件    
 - [x] Encrypt 加密解密组件   
 - [x] Captcha 验证码组件    
-
-> I18n（请求语言 + Symfony Translation）在 **swoolefy 应用层**：`LocaleMiddleware` + `translator` 组件，见 [docs/I18n.md](docs/I18n.md)。library 不含独立 Translation 组件。
+- [x] I18n 语言国际化   
 
 github: [https://github.com/bingcool/library](https://github.com/bingcool/library)    
 
@@ -874,6 +874,7 @@ return [
 
 2、组件Component.php
 
+Log组件
 ```php
 <?php
 
@@ -931,14 +932,22 @@ return [
         return $logger;
     }
     
-    // Redis Cache
+```
+
+Cache组件
+```php
+
+use Swoolefy\Core\Application;
+
+$dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
+
+return [
     'redis' => function() use($dc) {
         $redis = new \Swoolefy\Library\Redis\Redis();
         $redis->connect($dc['redis']['host'], $dc['redis']['port']);
         return $redis;
     },
-    
-    // Predis Cache
+
     'predis' => function() use($dc) {
         $predis = new \Swoolefy\Library\Redis\predis([
             'scheme' => $dc['predis']['scheme'],
@@ -946,10 +955,19 @@ return [
             'port'   => $dc['predis']['port'],
         ]);
         return $predis;
-    }
-    
-```
+    },
 
+    'cache' => function() use($dc) {
+        /**
+         * @var \Swoolefy\Library\Redis\RedisConnection $redis
+         */
+        $redis = Application::getApp()->get('predis')->getObject();
+        $cache = new \Swoolefy\Library\Cache\Driver\RedisCache($redis);
+        return $cache;
+
+    }
+];
+```
 
 
 ### 十二、💡 使用组件

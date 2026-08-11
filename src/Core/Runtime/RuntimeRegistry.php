@@ -35,7 +35,13 @@ final class RuntimeRegistry
         self::$startedAt = time();
         $metricsEnabled = (bool) ($config['metrics']['enable'] ?? false);
         if ($metricsEnabled) {
-            self::$metrics = new RuntimeMetrics(new MetricsRegistry());
+            // 别名白名单由 WorkerStart 从 component_pools 传入；只在启动时确定，
+            // 防止请求路径把任意字符串扩展为长期驻留的指标键。
+            $poolAliases = array_values(array_filter(
+                $config['pool_aliases'] ?? [],
+                static fn (mixed $alias): bool => is_string($alias) && trim($alias) !== '',
+            ));
+            self::$metrics = new RuntimeMetrics(new MetricsRegistry(), $poolAliases);
         }
         // Diagnostics only reads existing Worker-local state on demand. Keep it
         // available by default; deployments that do not expose diagnostics incur

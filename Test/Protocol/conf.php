@@ -28,7 +28,7 @@ return [
     'swoole_process_mode'      => SWOOLE_PROCESS,
     'include_files'            => [],
     'runtime_enable_coroutine' => true,
-    // 与生产默认配置保持一致，同时在测试服务端保持 Worker 本地隔离。
+    // data 顶层严格只有 global、worker；Worker 指标、内存及组件池别名均不跨进程聚合。
     'runtime_observability' => [
         'metrics' => ['enable' => true],
         'diagnostics' => ['enable' => true],
