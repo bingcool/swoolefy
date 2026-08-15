@@ -17,7 +17,8 @@ use GuzzleHttp\Exception\GuzzleException;
 /**
  * HTTP 执行器（exec_type=2）。
  *
- * 边界：只消费 ExecutionSnapshot，不改 Timer、不重试、不把异常抛出 Worker。
+ * 边界：只消费 ExecutionSnapshot，不改 Timer、本类不重试（retry 由 CronManager 编排）、
+ * 不把异常抛出 Worker。
  * CronUrlProcess 可注入 $transport，以便复用业务 before/response/after 回调。
  *
  * 映射：url ?: command → URL；http_method / http_body / http_headers / http_request_time_out。

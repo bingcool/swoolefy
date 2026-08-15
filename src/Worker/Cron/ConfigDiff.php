@@ -40,7 +40,7 @@ namespace Swoolefy\Worker\Cron;
  * - status 单独比较，走 ENABLE / DISABLE，不计入 TaskDefinition::fingerprint()
  * - fingerprint() 覆盖 expression、execType、withBlockLapping、command、
  *   cronBetween、cronSkip、httpMethod、httpBody、httpHeaders、httpRequestTimeOut、
- *   execBinFile、execScript、url、runType、forkType、argv、updatedAt、timezone
+ *   execBinFile、execScript、url、runType、forkType、argv、updatedAt、timezone、retry
  * - cronName、cronTaskId、nodeId、output、extend、cronDbLogClass、cronMetaOrigin、raw
  *   不参与 fingerprint，单独变化不会产生 UPDATE
  * - 仅识别 STATUS_DISABLED ↔ STATUS_ENABLED；其它 status 取值不单独成 ENABLE/DISABLE

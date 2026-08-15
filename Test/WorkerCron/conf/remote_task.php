@@ -8,6 +8,7 @@ return [
         //'cron_expression' => '*/1 * * * *', // 每分钟执行一次
         'url'   => 'http://127.0.0.1:9501/index/index',
         'method' => 'get',
+        'retry' => 0, // 0=不重试（默认）；N=首次失败后再重试 N 次（最多 1+N 次）
         'connect_time_out' => 10, //连接对方主机最长等待时间
         'request_time_out' => 15, // 整个请求最长等待总时间，要比connection_time_out大
         'options' => [], // curl option

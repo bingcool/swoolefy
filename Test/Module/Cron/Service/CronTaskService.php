@@ -86,6 +86,7 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
             }
             $cronForkTask->status = (int) ($item['status'] ?? 0);
             $cronForkTask->with_block_lapping = (int) ($item['with_block_lapping'] ?? 0);
+            $cronForkTask->retry = max(0, (int) ($item['retry'] ?? 0));
             $cronForkTask->node_id = $item['node_id'] ?? null;
             $cronForkTask->cron_between = $item['cron_between'] ?? [];
             $cronForkTask->cron_skip = $item['cron_skip'] ?? [];
@@ -140,6 +141,7 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
             }
             $cronHttpTask->status = (int) ($item['status'] ?? 0);
             $cronHttpTask->with_block_lapping = (int) ($item['with_block_lapping'] ?? 0);
+            $cronHttpTask->retry = max(0, (int) ($item['retry'] ?? 0));
             $cronHttpTask->node_id = $item['node_id'] ?? null;
             $cronHttpTask->cron_between = $item['cron_between'] ?? [];
             $cronHttpTask->cron_skip = $item['cron_skip'] ?? [];

@@ -78,6 +78,13 @@ class CronForkTaskMetaDtoWorker extends WorkerAbstractDto
     public $with_block_lapping = false;
 
     /**
+     * 失败后重试次数（不含首次；0=不重试，N=最多再试 N 次）
+     *
+     * @var int
+     */
+    public $retry = 0;
+
+    /**
      * 执行的参数
      * @var array
      */

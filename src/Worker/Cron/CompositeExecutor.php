@@ -15,7 +15,7 @@ namespace Swoolefy\Worker\Cron;
  * 按 exec_type 分发到 Shell / HTTP 执行器。
  *
  * 不为了“现代化”增加 MQ / RPC 等更多类型；未知 exec_type 回退 Shell。
- * 本类不解析 URL、不拼命令，只做路由。CronProcess 默认用本类；
+ * 本类不解析 URL、不拼命令、不重试，只做路由。CronProcess 默认用本类；
  * CronForkProcess / CronUrlProcess 会覆盖 createCronExecutor() 注入带执行钩子的单类型执行器。
  *
  * @see CronExecutorInterface

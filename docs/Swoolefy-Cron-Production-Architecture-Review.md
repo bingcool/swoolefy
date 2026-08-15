@@ -1340,7 +1340,7 @@ Runtime Diagnostics 接入
 暂不进入核心生产闭环：
 
 ```text
-Retry
+Retry backoff / retry_delay（引擎已支持立即 retry，见 CronManager::runWithRetry）
 Manual Run
 Misfire / Backfill
 Max Concurrent

@@ -46,6 +46,13 @@ class CronUrlTaskMetaDtoWorker extends WorkerAbstractDto
     public $cron_expression = '';
 
     /**
+     * 失败后重试次数（不含首次；0=不重试，N=最多再试 N 次）
+     *
+     * @var int
+     */
+    public $retry = 0;
+
+    /**
      * @var string
      */
     public $url = '';

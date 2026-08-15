@@ -70,4 +70,12 @@ final class ExecutionResult
     {
         return $this->status === self::SKIPPED;
     }
+
+    /**
+     * 本轮（或某次 attempt）执行失败。CronManager 只对 FAILED 做 retry。
+     */
+    public function isFailed(): bool
+    {
+        return $this->status === self::FAILED;
+    }
 }

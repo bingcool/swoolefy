@@ -13,6 +13,7 @@ use Test\Model\ClientModel;
  * @property int exec_type 执行类型 1-shell，2-http
  * @property int status 状态 0-禁用，1-启用
  * @property int with_block_lapping 是否阻塞执行 0-否，1->是
+ * @property int retry 失败后重试次数（不含首次；0=不重试）
  * @property string description 描述
  * @property string cron_between json类型-允许执行时间段
  * @property string cron_skip json类型-不允许执行时间段(即需跳过的时间段)

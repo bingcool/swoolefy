@@ -22,7 +22,8 @@ namespace Swoolefy\Worker\Cron;
  * 否则用 command ?: exec_script。空命令返回 FAILED，不抛异常。
  *
  * 失败隔离：proc_open 失败、非零退出、任意 Throwable 都返回 ExecutionResult::failed()，
- * 不得上抛到 CronManager / Worker（P0-5）。
+ * 不得上抛到 CronManager / Worker（P0-5）。本类不重试，retry 由 CronManager 按
+ * TaskDefinition::$retry 在同一 Snapshot 内编排。
  *
  * @see CompositeExecutor
  * @see CronForkProcess::executeCronSnapshot()

@@ -34,7 +34,7 @@ use Swoolefy\Exception\CronException;
  * - start()：初始 sync +（Closure fetcher 时）Polling tick；失败保留空 Runtime，后续重试
  * - syncFromFetcher()：fetcher 抛异常 = DB 故障，保留 Last Known Good，绝不 clear all
  * - applyRows()：规范化 + nodeId 过滤后 Diff Apply；单行非法只跳过该行
- * - onTrigger()：先 arm 下一轮，再 Guard / Window / Executor；finally 释放 running
+ * - onTrigger()：先 arm 下一轮，再 Guard / Window / Snapshot /（FAILED 时同轮 retry）；finally 释放 running
  * - 生产触发在 SwooleCronTimer 的 goApp 协程内执行（Swoole 6 proc_open/HTTP 要求）
  * - stop()：清 Polling、清全部 Job Timer、释放 Registry；必须显式调用
  *
@@ -218,6 +218,9 @@ final class CronManager
      * 生产路径由 SwooleCronTimer 先 goApp 再进入本方法，因此 Shell/HTTP
      * 都在协程内。本方法本身不再二次 go()，以免 Guard 临界区与 finally
      * 和执行协程脱节。单测 ManualCronTimer 同步调用本方法。
+     *
+     * retry 在本方法内同步完成：不另武装 Timer、不新建 Snapshot、不释放 Guard。
+     * 指标按「一轮 trigger」记一次，duration 含全部 attempt。
      */
     public function onTrigger(string $jobId): void
     {
@@ -253,11 +256,11 @@ final class CronManager
         $started = microtime(true);
         try {
             $this->writeLog($snapshot, sprintf('【%s】开始执行 cron_expression=%s', $job->definition->cronName, $job->definition->expression));
-            $result = $this->executor->run($snapshot);
+            $result = $this->runWithRetry($snapshot);
             $this->writeLog($snapshot, $this->formatResultMessage($job, $result), $result->pid);
             $this->metrics->recordRun($result->status, microtime(true) - $started);
         } catch (\Throwable $e) {
-            // P0-5：Job Exception ≠ Worker Exception
+            // P0-5：Job Exception ≠ Worker Exception（含 retry 循环外的兜底）
             $result = ExecutionResult::failed($e->getMessage());
             $this->writeLog($snapshot, sprintf('【%s】执行异常已隔离: %s', $job->definition->cronName, $e->getMessage()));
             $this->metrics->recordRun(ExecutionResult::FAILED, microtime(true) - $started);
@@ -469,6 +472,43 @@ final class CronManager
         // Enable ≠ Immediately Run：等待下一次合法 nextRunAt
         $this->scheduler->arm($job);
         $this->writeDefinitionLog($definition, '', sprintf('【%s】ENABLE 已恢复调度', $definition->cronName));
+    }
+
+    /**
+     * 同一 ExecutionSnapshot 内按 retry 重试 FAILED。
+     *
+     * 语义：retry=0 只跑 1 次；retry=N 最多 1+N 次（首次 + N 次重试）。
+     * 只重试 FAILED（含 Executor 抛出后隔离成的 FAILED）；SUCCESS 立即结束。
+     * SKIPPED 由 Window / Guard 在进入本方法前处理，不会走到这里。
+     * 无 retry_delay 字段，失败后立即重试，不另武装 Timer。
+     */
+    private function runWithRetry(ExecutionSnapshot $snapshot): ExecutionResult
+    {
+        $maxAttempts = $snapshot->definition->maxAttempts();
+        $result = ExecutionResult::failed('未执行');
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            try {
+                // 全程使用同一冻结 Snapshot：Config Update 不得改写本轮 command / url
+                $result = $this->executor->run($snapshot);
+            } catch (\Throwable $e) {
+                // 单次 attempt 异常隔离为 FAILED，可继续重试，不得拖垮 Worker
+                $result = ExecutionResult::failed($e->getMessage());
+            }
+            if (!$result->isFailed()) {
+                return $result;
+            }
+            if ($attempt < $maxAttempts) {
+                $this->writeLog($snapshot, sprintf(
+                    '【%s】第 %d/%d 次失败，立即重试: %s',
+                    $snapshot->definition->cronName,
+                    $attempt,
+                    $maxAttempts,
+                    $result->message,
+                ), $result->pid);
+            }
+        }
+
+        return $result;
     }
 
     /**

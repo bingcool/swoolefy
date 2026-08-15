@@ -97,8 +97,10 @@ flowchart TB
     Window --> Guard["ExecutionGuard"]
     Guard --> Snap["ExecutionSnapshot 冻结"]
     Snap --> Exec["ShellExecutor / HttpExecutor"]
-    Exec --> Log["logWriter → cron_task_log"]
-    Exec --> Metrics["CronMetrics → RuntimeMetrics"]
+    Exec --> Retry{"FAILED 且未用尽 retry？"}
+    Retry -->|是| Exec
+    Retry -->|否| Log["logWriter → cron_task_log"]
+    Retry --> Metrics["CronMetrics → RuntimeMetrics"]
 ```
 
 ### 分层职责
@@ -232,15 +234,36 @@ sequenceDiagram
         M-->>M: recordSkip
     end
     M->>M: ExecutionSnapshot::create
-    M->>E: run(snapshot)
-    E-->>M: SUCCESS / FAILED（异常也收成 FAILED）
+    loop 最多 1+retry 次（仅 FAILED）
+        M->>E: run(同一 snapshot)
+        E-->>M: SUCCESS / FAILED（异常也收成 FAILED）
+    end
     M->>G: end(job) in finally
     alt deleted 且 !running
         M->>M: registry.remove
     end
 ```
 
-`recordSkip` 写日志并 `metrics->recordRun(SKIPPED)`，不创建真正的执行。SKIP 不更新 `lastRunAt`。
+`recordSkip` 写日志并 `metrics->recordRun(SKIPPED)`，不创建真正的执行。SKIP 不更新 `lastRunAt`，也**不会**进入 retry。
+
+### Retry（同一轮 trigger）
+
+`retry` 默认 `0`：与历史行为一致，失败即本轮 `FAILED`。
+
+| `retry` | 最多 attempt | 行为 |
+|---|---|---|
+| `0`（默认） | 1 | 首次失败即结束 |
+| `N`（N>0） | `1+N` | 首次 + 之后最多再试 N 次 |
+
+规则：
+
+1. **只重试 `FAILED`**（含 Executor 抛出后隔离成的 FAILED）。`SUCCESS` 立即结束。
+2. **不重试 `SKIPPED`**（时间窗 / `with_block_lapping` 重叠在进入 Executor 之前就 return）。
+3. 全部 attempt 使用**同一** `ExecutionSnapshot`（同一 `execBatchId` / 冻结定义），不另武装 Timer。
+4. `ExecutionGuard` 在整个 attempt 序列期间保持 running，`finally` 才 `end`。
+5. 无 `retry_delay` 字段，失败后**立即**重试。
+6. 指标按一轮 trigger 记一次：`duration` 含全部 attempt；success/fail Counter 只看最终结果。
+7. 改 `retry` 会改变 `fingerprint()`，下一轮 Config Diff 走 `UPDATE`（进行中的 Snapshot 仍用旧值）。
 
 ### 5. 执行
 
@@ -251,7 +274,7 @@ sequenceDiagram
 | `CronUrlProcess` | `HttpExecutor(transport: executeHttpSnapshot)` | Guzzle + before/response/after 回调 |
 
 - Shell：有 `exec_bin_file` 则 `bin + (exec_script ?: command) + argv`；否则 `command ?: exec_script`。空命令 / `proc_open` 失败 / 非零退出 → `FAILED`，不抛。
-- HTTP：`url ?: command`；`FILTER_VALIDATE_URL` 失败 → `FAILED`。GET + body → query；其它方法 + body → json。**2xx 为 SUCCESS**，其余状态码 FAILED。响应 body 失败日志截断 200 字符。`HttpExecutor` **不重试**。
+- HTTP：`url ?: command`；`FILTER_VALIDATE_URL` 失败 → `FAILED`。GET + body → query；其它方法 + body → json。**2xx 为 SUCCESS**，其余状态码 FAILED。响应 body 失败日志截断 200 字符。`HttpExecutor` / `ShellExecutor` **本身不重试**；`retry>0` 时由 `CronManager::onTrigger` 在同一 Snapshot 内立即重试。
 - `CronForkProcess` 额外：`run_type` 含 swoolefy 时强制 `proc_open` 并补 `daemon` / `schedule_model`；分钟级 Cron（首字段 `*` 或 `*/N`）启动前随机 `System::sleep(0.2~2.0)` 降惊群；`CronForkRunner::isNextHandle(true, 120)` 达并发上限则本轮 FAILED。
 - 未知 `exec_type`：`CompositeExecutor` 回退 Shell，不增加 MQ / RPC 类型。
 
@@ -342,6 +365,7 @@ Test 实现 `Test\Module\Cron\Service\CronTaskService`：
 
 - 按 `node_id` + `exec_type` 拉 `cron_task`（**不要只查 status=1**，否则 DISABLE 会被误当成 DELETE）。
 - `exec_type=1` → `ScheduleEvent` 数组；`exec_type=2` → `CronUrlTaskMetaDtoWorker` 数组。
+- 透传 `retry`（缺省 0）。`cron_task.retry` 列默认 0。
 - `logCronTaskRuntime` 写入 `cron_task_log`（`cron_id` / `exec_batch_id` / `pid` / `task_item` / `message`）。
 
 ---
@@ -360,6 +384,7 @@ Test 实现 `Test\Module\Cron\Service\CronTaskService`：
 | `status` | `status` | `0` 停用 / `1` 启用 |
 | `exec_type` | `execType` | `1` Shell（`CronProcess::EXEC_FORK_TYPE`）/ `2` HTTP（`EXEC_URL_TYPE`）；缺省时有 URL 则 HTTP，否则 Shell |
 | `with_block_lapping` | `withBlockLapping` | `true`：同一 Job 最多一个 Running |
+| `retry` | `retry` | 失败后重试次数，**不含首次**。默认 `0`（不重试）。`retry=N` → 最多 `1+N` 次 attempt。负数回退 `0`。只重试 `FAILED`，不重试 `SKIPPED`。无 `retry_delay`，失败后立即重试。计入 fingerprint |
 | `node_id` | `nodeId` | 空串 / null → null |
 | `timezone` | `timezone` | 仅 Linux Cron |
 | `updated_at` | `updatedAt` | 计入 fingerprint |
@@ -401,7 +426,7 @@ Test 实现 `Test\Module\Cron\Service\CronTaskService`：
 
 ### fingerprint（决定 UPDATE）
 
-计入：`expression`、`execType`、`withBlockLapping`、`command`、`cronBetween`、`cronSkip`、`httpMethod`、`httpBody`、`httpHeaders`、`httpRequestTimeOut`、`execBinFile`、`execScript`、`url`、`runType`、`forkType`、`argv`、`updatedAt`、`timezone`。
+计入：`expression`、`execType`、`withBlockLapping`、`command`、`cronBetween`、`cronSkip`、`httpMethod`、`httpBody`、`httpHeaders`、`httpRequestTimeOut`、`execBinFile`、`execScript`、`url`、`runType`、`forkType`、`argv`、`updatedAt`、`timezone`、`retry`。
 
 **不计入**（单独变化不会 UPDATE）：`cronName`、`cronTaskId`、`nodeId`、`output`、`extend`、`cronDbLogClass`、`cronMetaOrigin`、`raw`。`status` 走 ENABLE/DISABLE，不进 fingerprint。
 
@@ -623,6 +648,7 @@ $manager = new CronManager(
             'exec_type' => 1,
             'status' => 1,
             'command' => '/bin/echo hello',
+            'retry' => 0,           // 默认不重试；2 = 最多 3 次 attempt
         ],
     ],
     executor: new CompositeExecutor(new ShellExecutor(), new HttpExecutor()),
@@ -654,11 +680,11 @@ Cron **复用**现有 `RuntimeRegistry` / `RuntimeMetrics` / `RuntimeDiagnostics
 | `swoolefy_cron_jobs_total` | Gauge | Registry 内 Job 数（含 Disabled / 待释放 deleted） |
 | `swoolefy_cron_jobs_enabled` | Gauge | `isSchedulable()` 的 Job 数 |
 | `swoolefy_cron_jobs_running` | Gauge | 至少有一个 Execution 在跑的 Job 数（不是 `runningCount` 之和） |
-| `swoolefy_cron_runs_total` | Counter | 含 SUCCESS / FAILED / SKIPPED |
-| `swoolefy_cron_runs_success` | Counter | |
-| `swoolefy_cron_runs_failed` | Counter | |
-| `swoolefy_cron_runs_skipped` | Counter | 时间窗 / 重叠 |
-| `swoolefy_cron_execution_duration_seconds` | Histogram | 实际执行耗时；SKIPPED 不观察 |
+| `swoolefy_cron_runs_total` | Counter | 含 SUCCESS / FAILED / SKIPPED；**按一轮 trigger 记一次**，retry 中间 attempt 不单独加 |
+| `swoolefy_cron_runs_success` | Counter | 本轮最终 SUCCESS |
+| `swoolefy_cron_runs_failed` | Counter | 本轮最终 FAILED（用尽 1+retry 次仍失败） |
+| `swoolefy_cron_runs_skipped` | Counter | 时间窗 / 重叠；SKIP 不进入 retry |
+| `swoolefy_cron_execution_duration_seconds` | Histogram | 本轮全部 attempt 的墙钟耗时；SKIPPED 不观察 |
 
 HTTP Worker 不会调用 `recordCronJobs()`，对应 Gauge 保持 0，但 `worker.metrics.cron` 键仍存在。
 
@@ -703,7 +729,7 @@ HTTP Worker 不会调用 `recordCronJobs()`，对应 Gauge 保持 0，但 `worke
 
 | 能力 | 现状 |
 |---|---|
-| Retry | `HttpExecutor` / `ShellExecutor` 失败即本轮 FAILED，不重试 |
+| Retry backoff / `retry_delay` | 引擎已支持 `retry`（立即重试）；**没有**退避间隔字段 |
 | Misfire / Backfill / Catch-up | `calculateNextRunAt` 只算下一合法点，不补历史 |
 | 分布式锁 / Leader Election | `ExecutionGuard` 是**进程内**协作式互斥，不是跨节点锁 |
 | Manual Run | 无「忽略 expression 立刻执行一次」的引擎 API |
@@ -731,6 +757,7 @@ HTTP Worker 不会调用 `recordCronJobs()`，对应 Gauge 保持 0，但 `worke
 - `PHPUintTest/Unit/Worker/Cron/ConfigDiffTest.php`
 - `PHPUintTest/Unit/Worker/Cron/ExpressionParserTest.php`
 - `PHPUintTest/Unit/Worker/Cron/ExecutorAndWindowTest.php`
+- `PHPUintTest/Unit/Worker/Cron/RetryTest.php` — retry=0 / fail-then-success / 用尽失败 / SKIP 不重试 / Snapshot 冻结
 - `PHPUintTest/Coroutine/Worker/Cron/SwooleCronTimerCoroutineTest.php`
 
 ---

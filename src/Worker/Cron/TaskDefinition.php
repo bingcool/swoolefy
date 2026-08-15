@@ -29,6 +29,7 @@ use Swoolefy\Worker\Dto\CronUrlTaskMetaDtoWorker;
  *
  * fingerprint() 只覆盖调度/执行元数据，不含 status。
  * status 变化走 ConfigDiff 的 ENABLE / DISABLE，避免“只改停启用却重建 Timer 定义”。
+ * retry 计入 fingerprint：改重试次数会 UPDATE（换定义，进行中的 Snapshot 仍冻结旧值）。
  * cronName、cronTaskId、nodeId、output、extend、cronDbLogClass、cronMetaOrigin、raw
  * 不参与 fingerprint，单独变化不会产生 UPDATE。
  *
@@ -87,6 +88,7 @@ final class TaskDefinition
         public readonly string $cronDbLogClass = '',
         public readonly string $cronMetaOrigin = '',
         public readonly ?string $timezone = null,
+        public readonly int $retry = 0,
         public readonly array $raw = [],
     ) {
     }
@@ -100,6 +102,7 @@ final class TaskDefinition
      * - HTTP：url / command（像 URL 时）、http_method / method、http_body / params、
      *   http_headers / headers、http_request_time_out / request_time_out
      * - Shell：command / exec_script / exec_bin_file
+     * - 重试：retry（缺省 / 非法 / 负数 → 0；0 = 不重试）
      *
      * command 与 exec_script / url 会互相回填，避免历史配置只填其中一项。
      * 缺 status 时默认 STATUS_ENABLED（静态 conf 无停用字段）。
@@ -143,6 +146,11 @@ final class TaskDefinition
         }
 
         $nodeId = $item['node_id'] ?? null;
+        // retry=0 默认不重试；retry=N 表示首次失败后再重试 N 次（最多 1+N 次）
+        $retry = (int) ($item['retry'] ?? 0);
+        if ($retry < 0) {
+            $retry = 0;
+        }
 
         return new self(
             jobId: $jobId,
@@ -172,6 +180,7 @@ final class TaskDefinition
             cronDbLogClass: (string) ($item['cron_db_log_class'] ?? ''),
             cronMetaOrigin: (string) ($item['cron_meta_origin'] ?? ''),
             timezone: isset($item['timezone']) && $item['timezone'] !== '' ? (string) $item['timezone'] : null,
+            retry: $retry,
             raw: $item,
         );
     }
@@ -214,6 +223,7 @@ final class TaskDefinition
      *
      * 使用 sha1(json_encode(...))，键顺序固定为本方法字面量数组顺序。
      * 嵌套数组（cron_between / cron_skip / http_* / argv）按规范化后的 PHP 数组比较。
+     * retry 计入：改重试次数必须 UPDATE，以便 Runtime 换定义。
      */
     public function fingerprint(): string
     {
@@ -236,7 +246,18 @@ final class TaskDefinition
             $this->argv,
             $this->updatedAt,
             $this->timezone,
+            $this->retry,
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '');
+    }
+
+    /**
+     * 本轮最多执行次数：首次 1 次 + retry 次重试。
+     *
+     * retry=0 → 1；retry=2 → 3。只作用于 FAILED，SKIPPED 不走本计数。
+     */
+    public function maxAttempts(): int
+    {
+        return 1 + max(0, $this->retry);
     }
 
     /**
@@ -255,6 +276,7 @@ final class TaskDefinition
         $payload['cron_meta_origin'] = $this->cronMetaOrigin;
         $payload['command'] = $this->command;
         $payload['with_block_lapping'] = $this->withBlockLapping;
+        $payload['retry'] = $this->retry;
         $payload['cron_between'] = $this->cronBetween;
         $payload['cron_skip'] = $this->cronSkip;
         $payload['updated_at'] = $this->updatedAt;
@@ -295,6 +317,7 @@ final class TaskDefinition
             'exec_type' => $this->execType,
             'status' => $this->status,
             'with_block_lapping' => $this->withBlockLapping ? 1 : 0,
+            'retry' => $this->retry,
             'command' => $this->command,
             'node_id' => $this->nodeId,
             'cron_between' => $this->cronBetween,

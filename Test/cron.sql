@@ -7,6 +7,7 @@ CREATE TABLE `cron_task` (
     `exec_type` tinyint(2) NOT NULL DEFAULT '1' COMMENT '执行类型 1-shell，2-http',
     `status` tinyint(2) NOT NULL DEFAULT '0' COMMENT '状态 0-禁用，1-启用',
     `with_block_lapping` tinyint(2) NOT NULL DEFAULT '0' COMMENT '是否阻塞执行 0-否，1->是',
+    `retry` int NOT NULL DEFAULT '0' COMMENT '失败后重试次数（不含首次；0=不重试，N=最多再试N次）',
     `description` varchar(256) NOT NULL DEFAULT '' COMMENT '描述',
     `cron_between` json DEFAULT NULL COMMENT '允许执行时间段',
     `cron_skip` json DEFAULT NULL COMMENT '不允许执行时间段(即需跳过的时间段)',

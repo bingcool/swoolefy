@@ -21,7 +21,8 @@ use Swoolefy\Core\Runtime\Metrics\RuntimeMetrics;
  *
  * Gauge：jobs_total / jobs_enabled / jobs_running，由 CronManager::refreshMetrics() 刷新。
  * Counter：runs_total + success/failed/skipped。
- * Histogram：execution_duration；SKIPPED 不记耗时（未真正执行）。
+ * Histogram：execution_duration 含本轮全部 retry attempt；SKIPPED 不记耗时（未真正执行）。
+ * Counter 按一轮 trigger 的最终结果记一次，中间 FAILED attempt 不加。
  *
  * @see RuntimeMetrics::recordCronJobs()
  * @see CronManager::refreshMetrics()
