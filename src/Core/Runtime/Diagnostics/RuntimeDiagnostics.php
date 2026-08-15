@@ -56,6 +56,7 @@ final class RuntimeDiagnostics
                 'pool' => [
                     'aliases' => $this->pool(),
                 ],
+                'cron' => $this->cron(),
             ],
         ];
     }
@@ -178,6 +179,20 @@ final class RuntimeDiagnostics
                     'gauge' => $this->only($gauge, [RuntimeMetrics::HTTP_REQUESTS_ACTIVE]),
                     'histogram' => $this->only($histogram, [RuntimeMetrics::HTTP_DURATION]),
                 ],
+                'cron' => [
+                    'gauge' => $this->only($gauge, [
+                        RuntimeMetrics::CRON_JOBS_TOTAL,
+                        RuntimeMetrics::CRON_JOBS_ENABLED,
+                        RuntimeMetrics::CRON_JOBS_RUNNING,
+                    ]),
+                    'counter' => $this->only($counter, [
+                        RuntimeMetrics::CRON_RUNS_TOTAL,
+                        RuntimeMetrics::CRON_RUNS_SUCCESS,
+                        RuntimeMetrics::CRON_RUNS_FAILED,
+                        RuntimeMetrics::CRON_RUNS_SKIPPED,
+                    ]),
+                    'histogram' => $this->only($histogram, [RuntimeMetrics::CRON_EXECUTION_DURATION]),
+                ],
                 'memory' => [
                     'gauge' => $this->only($gauge, [
                         RuntimeMetrics::WORKER_UPTIME_SECONDS,
@@ -211,6 +226,28 @@ final class RuntimeDiagnostics
         return $this->collect(
             static fn (): array => RuntimeRegistry::metrics()?->poolSnapshot() ?? [],
         );
+    }
+
+    /**
+     * 复用 CronManager 经 RuntimeRegistry 注册的诊断快照。
+     *
+     * 内容由 CronManager::diagnostics() 提供：job_count / enabled_count /
+     * running_count / last_config_sync / last_config_sync_error / jobs。
+     * HTTP Worker 未接入时返回 ['enabled'=>false]，不另建第二套 Cron 诊断。
+     * 采集失败走 collect() 的 collector_failed，不暴露堆栈。
+     *
+     * @return array<string, mixed>
+     */
+    public function cron(): array
+    {
+        return $this->collect(static function (): array {
+            $snapshot = RuntimeRegistry::cronSnapshot();
+            if ($snapshot === null) {
+                return ['enabled' => false];
+            }
+
+            return $snapshot;
+        });
     }
 
     /** 将采集器失败转换为不透明且不含敏感信息的响应。 */

@@ -19,6 +19,21 @@ use Swoolefy\Worker\Dto\CronForkTaskMetaDtoWorker;
 use Swoolefy\Exception\SystemException;
 use Swoolefy\Script\AbstractKernel;
 
+/**
+ * Shell 子进程拉起与并发限制。
+ *
+ * 调度只属于 CronManager。本类由 CronForkProcess::executeCronSnapshot()
+ * 经 ShellExecutor 的 forkRunner 调用：按 cron_name 单例、限制 concurrent、
+ * proc_open / exec。只负责“怎么 fork”，不负责 Timer / Diff / Guard。
+ *
+ * 不变量：
+ * - 每个 cron_name 一个 Runner 实例（getInstance / removeRunner）
+ * - isNextHandle() 在达到 concurrent 时拒绝新 fork
+ * - PID 记录在 runProcessMetaPool，供 with_block_lapping 与 GC
+ *
+ * @see CronForkProcess::executeCronSnapshot()
+ * @see ShellExecutor
+ */
 class CronForkRunner
 {
     /**
@@ -78,8 +93,12 @@ class CronForkRunner
     const FORK_FAIL_CODE = 10000;
 
     /**
+     * 按 runnerName（通常 md5(cron_name)）取单例。concurrent 上限 10。
+     * 首次创建时注册 GC tick（检查仍在跑的 fork、清理残留 pid 文件）。
+     *
      * @param string $runnerName
      * @param int $concurrent
+     * @param string $cronName
      * @return CronForkRunner
      */
     public static function getInstance(string $runnerName, int $concurrent = 5, string $cronName = '')
@@ -124,6 +143,9 @@ class CronForkRunner
     }
 
     /**
+     * 显式释放 Runner 单例。CronManager DELETE 不自动清 Runner，
+     * 执行器按需 getInstance；Worker 停机或测试清理时可调用本方法。
+     *
      * @param string $runnerName
      * @return void
      */
@@ -331,7 +353,7 @@ class CronForkRunner
             goApp(function () use ($fn, $callable, $command, $descriptors) {
                 $fn($command, $descriptors, $callable);
             });
-        }else {
+        } else {
             $fn($command, $descriptors, $callable);
         }
     }

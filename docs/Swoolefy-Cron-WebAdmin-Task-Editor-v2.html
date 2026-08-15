@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Swoolefy Cron - 创建 / 编辑任务</title>
+<style>
+:root{
+ --bg:#f5f7fb;--panel:#fff;--text:#172033;--muted:#6b7280;--line:#e5e9f0;
+ --primary:#2563eb;--primary-soft:#eff6ff;--green:#16a34a;--orange:#d97706;
+ --red:#dc2626;--dark:#101827;--shadow:0 8px 30px rgba(25,35,60,.06)
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}
+.app{display:flex;min-height:100vh}
+.sidebar{width:236px;background:var(--dark);color:#cbd5e1;padding:22px 14px}
+.brand{font-size:20px;font-weight:700;color:#fff;padding:8px 12px 28px}
+.brand small{display:block;font-size:11px;color:#64748b;font-weight:500;margin-top:5px}
+.nav a{display:flex;align-items:center;gap:10px;padding:11px 12px;margin:4px 0;border-radius:8px;color:#94a3b8;text-decoration:none}
+.nav a.active,.nav a:hover{background:#1d2a3d;color:#fff}
+.main{flex:1;padding:26px 32px;max-width:1450px}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.breadcrumb{color:var(--muted);font-size:13px;margin-bottom:7px}
+.title{font-size:24px;font-weight:700;margin:0}
+.subtitle{color:var(--muted);margin:6px 0 0}
+.actions{display:flex;gap:9px}
+button{border:0;border-radius:7px;padding:9px 15px;cursor:pointer;font-weight:600}
+.primary{background:var(--primary);color:#fff}
+.ghost{background:#fff;border:1px solid var(--line);color:#374151}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:start}
+.panel{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:22px}
+.section{padding-bottom:23px;margin-bottom:23px;border-bottom:1px solid var(--line)}
+.section:last-child{border-bottom:0;margin-bottom:0;padding-bottom:0}
+.section-title{font-size:16px;font-weight:700;margin:0 0 4px}
+.section-desc{font-size:12px;color:var(--muted);margin-bottom:18px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.field{display:flex;flex-direction:column;gap:7px}
+.field.full{grid-column:1/-1}
+label{font-weight:600;font-size:13px}
+.req{color:var(--red)}
+input,select,textarea{
+ width:100%;border:1px solid #dce1e9;border-radius:7px;background:#fff;
+ padding:10px 11px;color:#1f2937;outline:none;font:inherit
+}
+input:focus,select:focus,textarea:focus{border-color:#93b4f5;box-shadow:0 0 0 3px #eff6ff}
+textarea{min-height:92px;resize:vertical}
+.help{font-size:12px;color:var(--muted);line-height:1.5}
+.expr-types{display:flex;gap:10px;margin-bottom:14px}
+.expr-type{
+ flex:1;border:1px solid var(--line);border-radius:9px;padding:13px;
+ cursor:pointer;background:#fff
+}
+.expr-type.active{border-color:#8db1f7;background:var(--primary-soft)}
+.expr-type .radio{display:flex;align-items:center;gap:8px;font-weight:700}
+.expr-type small{display:block;color:var(--muted);margin:7px 0 0 24px}
+.radio-dot{width:15px;height:15px;border:1px solid #aab3c2;border-radius:50%;position:relative}
+.active .radio-dot{border-color:var(--primary)}
+.active .radio-dot:after{content:"";position:absolute;width:7px;height:7px;left:3px;top:3px;background:var(--primary);border-radius:50%}
+.expr-preview{border:1px solid #cfe0ff;background:#f8fbff;border-radius:9px;padding:13px 14px;margin-top:12px}
+.expr-preview .valid{color:var(--green);font-weight:700}
+.next-runs{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+.next-runs span{background:#fff;border:1px solid #dce7fb;padding:5px 8px;border-radius:5px;color:#475569;font-size:12px}
+.segmented{display:flex;gap:8px}
+.segmented label{flex:1}
+.segmented input{display:none}
+.segmented span{display:block;text-align:center;padding:10px;border:1px solid var(--line);border-radius:7px;font-weight:600;cursor:pointer}
+.segmented input:checked+span{border-color:#8db1f7;background:var(--primary-soft);color:#1d4ed8}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:9px;padding:13px 14px}
+.toggle{position:relative;width:42px;height:24px}
+.toggle input{display:none}
+.slider{position:absolute;inset:0;background:#cbd5e1;border-radius:20px;cursor:pointer}
+.slider:before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;background:white;border-radius:50%;transition:.18s}
+.toggle input:checked+.slider{background:var(--primary)}
+.toggle input:checked+.slider:before{transform:translateX(18px)}
+.code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.preview-card{position:sticky;top:22px}
+.preview-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.preview-title{font-size:15px;font-weight:700}
+.badge{font-size:11px;padding:4px 7px;border-radius:999px;background:#dcfce7;color:#166534;font-weight:700}
+.task-name{font-size:20px;font-weight:700;margin-bottom:4px}
+.task-desc{color:var(--muted);line-height:1.5;margin-bottom:18px}
+.kv{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line)}
+.kv:last-child{border-bottom:0}
+.kv span:first-child{color:var(--muted)}
+.callout{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:8px;padding:11px 12px;font-size:12px;line-height:1.55;margin-top:17px}
+.footer{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
+.danger{color:var(--red);background:#fff;border:1px solid #fecaca}
+.hidden{display:none}
+@media(max-width:1050px){.layout{grid-template-columns:1fr}.preview-card{position:static}.sidebar{width:200px}}
+@media(max-width:720px){.sidebar{display:none}.main{padding:18px}.grid{grid-template-columns:1fr}.expr-types{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+ <div class="brand">Swoolefy Cron<small>Production Admin</small></div>
+ <nav class="nav">
+  <a href="#">◈　Dashboard</a>
+  <a class="active" href="#">▣　计划任务</a>
+  <a href="#">◷　执行记录</a>
+  <a href="#">●　Cron Nodes</a>
+  <a href="#">◉　Runtime</a>
+  <a href="#">⚙　系统设置</a>
+ </nav>
+</aside>
+
+<main class="main">
+ <div class="top">
+  <div>
+   <div class="breadcrumb">计划任务 / 创建任务</div>
+   <h1 class="title">创建计划任务</h1>
+   <p class="subtitle">配置任务调度规则、执行方式以及运行策略</p>
+  </div>
+  <div class="actions">
+   <button class="ghost" onclick="history.back()">取消</button>
+   <button class="primary" onclick="saveDemo()">保存任务</button>
+  </div>
+ </div>
+
+ <div class="layout">
+  <div class="panel">
+
+   <section class="section">
+    <h2 class="section-title">基础信息</h2>
+    <div class="section-desc">任务名称和节点决定任务的管理归属。</div>
+    <div class="grid">
+     <div class="field">
+      <label>任务名称 <span class="req">*</span></label>
+      <input id="name" value="修复用户数据" placeholder="例如：订单同步">
+      <div class="help">任务名称必须唯一。</div>
+     </div>
+     <div class="field">
+      <label>执行节点 <span class="req">*</span></label>
+      <select id="node">
+       <option>agent-1（127.0.0.1）</option>
+       <option>agent-2（10.0.0.21）</option>
+       <option>agent-3（10.0.0.22）</option>
+      </select>
+     </div>
+     <div class="field full">
+      <label>描述</label>
+      <textarea id="desc" placeholder="描述这个计划任务的用途">清理异常用户记录</textarea>
+     </div>
+    </div>
+   </section>
+
+   <section class="section">
+    <h2 class="section-title">调度配置</h2>
+    <div class="section-desc">Swoolefy Cron 支持秒级 Interval 与 Linux Cron 两种表达式。</div>
+
+    <div class="expr-types">
+     <div class="expr-type active" id="intervalType" onclick="setExprType('interval')">
+      <div class="radio"><i class="radio-dot"></i>每 N 秒</div>
+      <small>适合 5s、15s、30s 等高频任务</small>
+     </div>
+     <div class="expr-type" id="cronType" onclick="setExprType('cron')">
+      <div class="radio"><i class="radio-dot"></i>Linux Cron</div>
+      <small>分钟级标准 Cron 表达式</small>
+     </div>
+    </div>
+
+    <div id="intervalForm">
+     <div class="grid">
+      <div class="field">
+       <label>执行间隔（秒） <span class="req">*</span></label>
+       <input id="interval" type="number" min="1" value="15" oninput="preview()">
+       <div class="help">例如 15 表示每 15 秒执行一次。</div>
+      </div>
+      <div class="field">
+       <label>表达式</label>
+       <input id="intervalExpr" class="code" value="15" readonly>
+      </div>
+     </div>
+    </div>
+
+    <div id="cronForm" class="hidden">
+     <div class="field">
+      <label>Linux Cron 表达式 <span class="req">*</span></label>
+      <input id="cronExpr" class="code" placeholder="*/5 * * * *" oninput="preview()">
+      <div class="help">分钟级标准 Linux Cron，例如 <span class="code">*/5 * * * *</span> 表示每 5 分钟执行。</div>
+     </div>
+    </div>
+
+    <div class="expr-preview">
+     <div class="valid">✓ 表达式有效</div>
+     <div id="exprDescription">每 15 秒执行一次</div>
+     <div class="next-runs" id="nextRuns">
+      <span>12:00:15</span><span>12:00:30</span><span>12:00:45</span><span>12:01:00</span>
+     </div>
+    </div>
+   </section>
+
+   <section class="section">
+    <h2 class="section-title">执行配置</h2>
+    <div class="section-desc">选择任务执行类型。不同类型使用不同执行参数。</div>
+
+    <div class="field" style="margin-bottom:16px">
+     <label>执行类型 <span class="req">*</span></label>
+     <div class="segmented">
+      <label><input type="radio" name="execType" checked onchange="setExecType('shell')"><span>Shell</span></label>
+      <label><input type="radio" name="execType" onchange="setExecType('http')"><span>HTTP</span></label>
+     </div>
+    </div>
+
+    <div id="shellConfig">
+     <div class="field">
+      <label>Command <span class="req">*</span></label>
+      <textarea class="code" placeholder="/bin/bash /opt/scripts/task.sh">/bin/bash /home/wwwroot/swoolefy/Test/Python/shell.sh --type=1</textarea>
+      <div class="help">Shell Command 将由目标 Cron Node 执行，请确认命令来源可信。</div>
+     </div>
+    </div>
+
+    <div id="httpConfig" class="hidden">
+     <div class="grid">
+      <div class="field full">
+       <label>Request URL <span class="req">*</span></label>
+       <input value="http://127.0.0.1:9501/index/index">
+      </div>
+      <div class="field">
+       <label>HTTP Method</label>
+       <select><option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option></select>
+      </div>
+      <div class="field">
+       <label>Timeout（秒）</label>
+       <input type="number" value="30" min="0">
+      </div>
+      <div class="field">
+       <label>HTTP Headers</label>
+       <textarea class="code" placeholder='{"Content-Type":"application/json"}'></textarea>
+      </div>
+      <div class="field">
+       <label>HTTP Body</label>
+       <textarea class="code" placeholder='{"type":"incremental"}'></textarea>
+      </div>
+     </div>
+    </div>
+   </section>
+
+   <section class="section">
+    <h2 class="section-title">执行策略</h2>
+    <div class="section-desc">控制任务是否允许重叠，以及允许 / 跳过执行的时间范围。</div>
+
+    <div class="toggle-row" style="margin-bottom:15px">
+     <div><b>阻塞重叠执行</b><div class="help">上一次执行尚未完成时，不再启动新的执行。</div></div>
+     <label class="toggle"><input id="blocking" type="checkbox" checked><i class="slider"></i></label>
+    </div>
+
+    <div class="grid">
+     <div class="field">
+      <label>允许执行时间段 cron_between</label>
+      <textarea class="code" placeholder='例如：["09:00-18:00"]'></textarea>
+      <div class="help">留空表示不限制。</div>
+     </div>
+     <div class="field">
+      <label>跳过时间段 cron_skip</label>
+      <textarea class="code" placeholder='例如：["12:00-13:00"]'></textarea>
+      <div class="help">命中跳过时间段时，本次调度直接跳过。</div>
+     </div>
+    </div>
+   </section>
+
+   <section class="section">
+    <h2 class="section-title">任务状态</h2>
+    <div class="toggle-row">
+     <div><b>创建后立即启用</b><div class="help">启用后 Worker 下次 Polling 会加载该任务。</div></div>
+     <label class="toggle"><input id="enabled" type="checkbox" checked><i class="slider"></i></label>
+    </div>
+   </section>
+
+   <div class="footer">
+    <button class="danger" onclick="alert('Demo：删除操作应要求二次确认')">删除任务</button>
+    <button class="ghost">取消</button>
+    <button class="primary" onclick="saveDemo()">保存任务</button>
+   </div>
+  </div>
+
+  <aside class="panel preview-card">
+   <div class="preview-head">
+    <div class="preview-title">任务预览</div>
+    <span class="badge" id="statusBadge">启用</span>
+   </div>
+   <div class="task-name" id="previewName">修复用户数据</div>
+   <div class="task-desc" id="previewDesc">清理异常用户记录</div>
+
+   <div class="kv"><span>执行节点</span><b id="previewNode">agent-1</b></div>
+   <div class="kv"><span>调度类型</span><b id="previewType">每 N 秒</b></div>
+   <div class="kv"><span>表达式</span><b class="code" id="previewExpr">15</b></div>
+   <div class="kv"><span>执行类型</span><b id="previewExec">Shell</b></div>
+   <div class="kv"><span>防重叠</span><b id="previewBlock">是</b></div>
+
+   <div class="callout">
+    <b>配置链路</b><br>
+    保存后只写入 <span class="code">cron_task</span>。Cron Worker 通过数据库 Polling 发现配置变化，再更新 Runtime Job / Timer。
+   </div>
+
+   <div class="callout" style="background:#eff6ff;border-color:#bfdbfe;color:#1e40af">
+    <b>生产提示</b><br>
+    Shell Command 属于高风险配置；HTTP Headers 中的 Token / Cookie 等敏感信息不应在列表接口中明文返回。
+   </div>
+  </aside>
+ </div>
+</main>
+</div>
+
+<script>
+let exprType='interval', execType='shell';
+
+function setExprType(type){
+ exprType=type;
+ document.getElementById('intervalType').classList.toggle('active',type==='interval');
+ document.getElementById('cronType').classList.toggle('active',type==='cron');
+ document.getElementById('intervalForm').classList.toggle('hidden',type!=='interval');
+ document.getElementById('cronForm').classList.toggle('hidden',type!=='cron');
+ preview();
+}
+function setExecType(type){
+ execType=type;
+ document.getElementById('shellConfig').classList.toggle('hidden',type!=='shell');
+ document.getElementById('httpConfig').classList.toggle('hidden',type!=='http');
+ document.getElementById('previewExec').textContent=type==='shell'?'Shell':'HTTP';
+}
+function preview(){
+ const name=document.getElementById('name').value||'未命名任务';
+ const desc=document.getElementById('desc').value||'暂无描述';
+ let expr, descText;
+ if(exprType==='interval'){
+  const sec=Math.max(1,parseInt(document.getElementById('interval').value||1));
+  expr=String(sec); document.getElementById('intervalExpr').value=expr;
+  descText='每 '+sec+' 秒执行一次';
+  const now=new Date(); const arr=[];
+  for(let i=1;i<=4;i++){let d=new Date(now.getTime()+sec*i*1000);arr.push(d.toLocaleTimeString('zh-CN',{hour12:false}));}
+  document.getElementById('nextRuns').innerHTML=arr.map(x=>'<span>'+x+'</span>').join('');
+ }else{
+  expr=document.getElementById('cronExpr').value||'*/5 * * * *';
+  descText='Linux Cron：'+expr;
+  document.getElementById('nextRuns').innerHTML='<span>下一次执行时间由 Cron Parser 计算</span>';
+ }
+ document.getElementById('exprDescription').textContent=descText;
+ document.getElementById('previewName').textContent=name;
+ document.getElementById('previewDesc').textContent=desc;
+ document.getElementById('previewExpr').textContent=expr;
+ document.getElementById('previewType').textContent=exprType==='interval'?'每 N 秒':'Linux Cron';
+ document.getElementById('previewNode').textContent=document.getElementById('node').value.split('（')[0];
+ document.getElementById('previewBlock').textContent=document.getElementById('blocking').checked?'是':'否';
+}
+document.getElementById('name').addEventListener('input',preview);
+document.getElementById('desc').addEventListener('input',preview);
+document.getElementById('node').addEventListener('change',preview);
+document.getElementById('blocking').addEventListener('change',preview);
+document.getElementById('enabled').addEventListener('change',()=>{
+ document.getElementById('statusBadge').textContent=document.getElementById('enabled').checked?'启用':'禁用';
+});
+function saveDemo(){
+ const name=document.getElementById('name').value.trim();
+ if(!name){alert('请输入任务名称');return;}
+ alert('Demo：这里将提交 POST /api/v1/tasks\\n\\n实际接入时由 API 负责 DTO 校验并写入 cron_task。');
+}
+preview();
+</script>
+</body>
+</html>

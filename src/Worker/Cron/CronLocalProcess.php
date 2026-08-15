@@ -16,6 +16,19 @@ use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Exception\SystemException;
 use Swoolefy\Worker\Dto\CronLocalTaskMetaDtoWorker;
 
+/**
+ * 进程内本地 Cron（handler_class 实现 AbstractCronController）。
+ *
+ * 这是独立产品，不是 fork/url/DB cron 的历史调度路径。
+ * 一个 Worker 只跑一条本地规则，调度走 CrontabManager::addRule，
+ * 重叠由 with_block_lapping + $this->handing 控制。
+ *
+ * 不创建、不启动 CronManager。fork / url / DB 任务的唯一调度器是 CronManager，
+ * 由 CronForkProcess / CronUrlProcess 接入。
+ *
+ * @see CronProcess
+ * @see \Swoolefy\Core\Crontab\CrontabManager
+ */
 class CronLocalProcess extends CronProcess
 {
     /**
@@ -46,7 +59,9 @@ class CronLocalProcess extends CronProcess
     protected $cronLocalTaskMetaDto;
 
     /**
-     * onInit
+     * 校验 handler_class 并组装 CronLocalTaskMetaDtoWorker。
+     * 不创建 CronManager：本地 crontab 不走 Diff / Runtime / one-shot Timer。
+     *
      * @return void
      */
     public function onInit()
@@ -75,7 +90,9 @@ class CronLocalProcess extends CronProcess
     }
 
     /**
-     * run
+     * 向 CrontabManager 注册本 Worker 唯一的本地规则。
+     * 重叠 / 退出 / 存活时间在回调里处理。不调用 runCronTask()。
+     *
      * @return void
      */
     public function run()

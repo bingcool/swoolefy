@@ -11,11 +11,20 @@
 
 namespace Swoolefy\Worker\Cron;
 
-use Swoolefy\Core\Crontab\CrontabManager;
-use Swoolefy\Library\HttpClient\CurlHttpClient;
-use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Worker\Dto\CronUrlTaskMetaDtoWorker;
 
+/**
+ * HTTP Cron Worker。
+ *
+ * 调度只走父类 CronManager；执行走 executeHttpSnapshot()：
+ * 按冻结 Snapshot 发 HTTP，并执行业务 before/response/after 回调。
+ * Timeout / 连接失败由 HttpExecutor 收成 FAILED，不拖垮 Worker。
+ *
+ * 本类不再向 CrontabManager addRule。run() 只调用 runCronTask()。
+ *
+ * @see CronProcess::runCronTask()
+ * @see HttpExecutor
+ */
 class CronUrlProcess extends CronProcess
 {
 
@@ -29,7 +38,75 @@ class CronUrlProcess extends CronProcess
     }
 
     /**
-     * run
+     * HTTP 任务走生产引擎；执行隔离异常，Timeout 只失败本轮。
+     */
+    protected function createCronExecutor(): CronExecutorInterface
+    {
+        return new HttpExecutor(fn (ExecutionSnapshot $snapshot): array => $this->executeHttpSnapshot($snapshot));
+    }
+
+    /**
+     * 按冻结 Snapshot 发起 HTTP，并执行业务 before/response/after 回调。
+     *
+     * @return array{status:int,body?:string}
+     */
+    protected function executeHttpSnapshot(ExecutionSnapshot $snapshot): array
+    {
+        $scheduleUrlTask = $snapshot->definition->toLogDto();
+        if (!$scheduleUrlTask instanceof CronUrlTaskMetaDtoWorker) {
+            return ['status' => 0, 'body' => 'HTTP 任务定义无法转换'];
+        }
+
+        if (is_array($scheduleUrlTask->before_callback) && count($scheduleUrlTask->before_callback) == 2) {
+            list($class, $action) = $scheduleUrlTask->before_callback;
+            (new $class)->{$action}($scheduleUrlTask);
+        } elseif ($scheduleUrlTask->before_callback instanceof \Closure) {
+            $res = call_user_func($scheduleUrlTask->before_callback, $scheduleUrlTask);
+            if ($res === false) {
+                return ['status' => 0, 'body' => 'before_callback 返回 false'];
+            }
+        }
+
+        $url = $scheduleUrlTask->url !== '' ? $scheduleUrlTask->url : $snapshot->definition->command;
+        $timeout = (int) ($scheduleUrlTask->request_time_out ?? $snapshot->definition->httpRequestTimeOut);
+        $client = new \GuzzleHttp\Client([
+            'timeout' => max(1, $timeout),
+            'connect_timeout' => (int) ($scheduleUrlTask->connect_time_out ?? 30),
+            'http_errors' => false,
+        ]);
+        $method = strtoupper($scheduleUrlTask->method ?: 'GET');
+        $options = [
+            'headers' => $scheduleUrlTask->headers ?? [],
+        ];
+        $params = $scheduleUrlTask->params ?? [];
+        if ($method === 'GET' && $params !== []) {
+            $options['query'] = $params;
+        } elseif ($params !== []) {
+            $options['json'] = $params;
+        }
+        $raw = $client->request($method, $url, $options);
+        $status = $raw->getStatusCode();
+        $body = (string) $raw->getBody();
+
+        if (is_array($scheduleUrlTask->response_callback) && count($scheduleUrlTask->response_callback) == 2) {
+            list($class, $action) = $scheduleUrlTask->response_callback;
+            (new $class)->{$action}($raw, $scheduleUrlTask);
+        } elseif ($scheduleUrlTask->response_callback instanceof \Closure) {
+            call_user_func($scheduleUrlTask->response_callback, $raw, $scheduleUrlTask);
+        }
+
+        if (is_array($scheduleUrlTask->after_callback) && count($scheduleUrlTask->after_callback) == 2) {
+            list($class, $action) = $scheduleUrlTask->after_callback;
+            (new $class)->{$action}($scheduleUrlTask);
+        } elseif ($scheduleUrlTask->after_callback instanceof \Closure) {
+            call_user_func($scheduleUrlTask->after_callback, $scheduleUrlTask);
+        }
+
+        return ['status' => $status, 'body' => $body];
+    }
+
+    /**
+     * 启动生产引擎。Worker 级异常才 reboot；单个 URL 异常已在 Executor 内隔离。
      */
     public function run()
     {
@@ -48,122 +125,6 @@ class CronUrlProcess extends CronProcess
             parent::onHandleException($throwable, $context);
             sleep(2);
             $this->reboot();
-        }
-    }
-
-    /**
-     * @param array $taskList
-     * @return void
-     */
-    protected function registerCronTask(array $taskList)
-    {
-        if(!empty($taskList)) {
-            foreach($taskList as $taskItem) {
-                $this->runRegisterCronTask($taskItem);
-            }
-        }
-
-        // 解除已暂停的定时任务
-        $this->unregisterCronTask($taskList, CronProcess::EXEC_URL_TYPE);
-        // 重新注册meta信息有变动的定时任务
-        $this->reRegisterCronTaskOfChangeMeta($taskList, CronProcess::EXEC_URL_TYPE);
-    }
-
-    /**
-     * @param array $taskItem
-     * @param bool $registerAgain
-     * @return void
-     */
-    protected function runRegisterCronTask(array $taskItem, bool $registerAgain = false)
-    {
-        try {
-            if (!$registerAgain) {
-                $isNewAddFlag = $this->isNewAddTask($taskItem['cron_name']);
-                if ($isNewAddFlag) {
-                    $scheduleUrlTask = CronUrlTaskMetaDtoWorker::load($taskItem);
-                    $startMsg = "【{$scheduleUrlTask->cron_name}】注册定时任务启动";
-                    $this->logCronTaskRuntime($scheduleUrlTask, "", $startMsg);
-                    fmtPrintInfo($startMsg);
-                }
-            }else {
-                $isNewAddFlag = true;
-            }
-            if ($isNewAddFlag) {
-                CrontabManager::getInstance()->addRule($taskItem['cron_name'], $taskItem['cron_expression'], function ($expression, $cron_name) use($taskItem) {
-                    $scheduleUrlTask = CronUrlTaskMetaDtoWorker::load($taskItem);
-                    $execBatchId = uniqid();
-                    $logger = LogManager::getInstance()->getLogger(LogManager::CRON_URL_LOG);
-                    try {
-                        $startMsg = "【{$cron_name}】开始执行定时任务，url={$scheduleUrlTask->url}";
-                        $logger->addInfo($startMsg);
-                        $this->logCronTaskRuntime($scheduleUrlTask, $execBatchId, $startMsg);
-
-                        if (is_array($scheduleUrlTask->before_callback) && count($scheduleUrlTask->before_callback) == 2) {
-                            list($class, $action) = $scheduleUrlTask->before_callback;
-                            (new $class)->{$action}($scheduleUrlTask);
-                        }else if ($scheduleUrlTask->before_callback instanceof \Closure) {
-                            $res = call_user_func($scheduleUrlTask->before_callback, $scheduleUrlTask);
-                            if ($res === false) {
-                                $logger->addInfo("【{$cron_name}】远程请求url定时任务before_callback函数返回false，暂停继续往下执行，url={$scheduleUrlTask->url}");
-                                $msg = "cron_name=$cron_name 远程请求url定时任务before_callback函数返回false，暂停继续往下执行";
-                                fmtPrintNote($msg);
-                                $this->logCronTaskRuntime($scheduleUrlTask,$execBatchId, $msg);
-                                return false;
-                            }
-                        }
-
-                        $httpClient = new CurlHttpClient();
-                        $httpClient->setOptionArray($scheduleUrlTask->options ?? []);
-                        $httpClient->setHeaderArray($scheduleUrlTask->headers ?? []);
-                        $method = strtolower($scheduleUrlTask->method);
-                        $rawResponse = $httpClient->{$method}(
-                            $scheduleUrlTask->url,
-                            $scheduleUrlTask->params ?? [],
-                            $scheduleUrlTask->connect_time_out ?? 30,
-                            $scheduleUrlTask->request_time_out ?? 120,
-                        );
-
-                        $msg = "【{$cron_name}】远程请求url定时任务执行成功，url={$scheduleUrlTask->url}";
-                        $logger->addInfo($msg);
-                        $this->logCronTaskRuntime($scheduleUrlTask, $execBatchId, $msg);
-
-                        if (is_object($rawResponse)) {
-                            $responseResult = $rawResponse->getBody();
-                            $msg = "【{$cron_name}】远程请求url定时任务执行成功，响应数据={$responseResult}";
-                            $this->logCronTaskRuntime($scheduleUrlTask, $execBatchId, $msg);
-                        }
-
-                        $responseLogMsg = "【{$cron_name}】response_callback-远程请求执行响应逻辑，url={$scheduleUrlTask->url}";
-                        if (is_array($scheduleUrlTask->response_callback) && count($scheduleUrlTask->response_callback) == 2) {
-                            $logger->addInfo($responseLogMsg);
-                            list($class, $action) = $scheduleUrlTask->response_callback;
-                            (new $class)->{$action}($rawResponse, $scheduleUrlTask);
-                        }else if ($scheduleUrlTask->response_callback instanceof \Closure) {
-                            $logger->addInfo($responseLogMsg);
-                            call_user_func($scheduleUrlTask->response_callback, $rawResponse, $scheduleUrlTask);
-                        }
-
-                        $afterLogMsg = "【{$cron_name}】after_callback-远程请求执行后置逻辑，url={$scheduleUrlTask->url}";
-                        if (is_array($scheduleUrlTask->after_callback) && count($scheduleUrlTask->after_callback) == 2) {
-                            $logger->addInfo($afterLogMsg);
-                            list($class, $action) = $scheduleUrlTask->after_callback;
-                            (new $class)->{$action}($scheduleUrlTask);
-                        }else if ($scheduleUrlTask->after_callback instanceof \Closure) {
-                            $logger->addInfo($afterLogMsg);
-                            call_user_func($scheduleUrlTask->after_callback, $scheduleUrlTask);
-                        }
-                    }catch (\Throwable $throwable) {
-                        $errorMsg= sprintf("【{$cron_name}】远程请求定时任务处理报错，url={$scheduleUrlTask->url},error=%s, trace=%s", $throwable->getMessage(), $throwable->getTraceAsString());
-                        $logger->addError($errorMsg);
-
-                        $recordMsg = sprintf("【{$cron_name}】远程请求定时任务处理报错，url={$scheduleUrlTask->url},error=%s", $throwable->getMessage());
-                        $this->logCronTaskRuntime($scheduleUrlTask, $execBatchId, $recordMsg);
-                        throw $throwable;
-                    }
-                });
-            }
-        }catch (\Throwable $throwable) {
-            $this->onHandleException($throwable, $taskItem);
         }
     }
 }

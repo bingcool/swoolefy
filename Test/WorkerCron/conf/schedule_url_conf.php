@@ -13,6 +13,9 @@ return [
         'limit_run_coroutine_num' => 10, // 当前进程的实时协程数量，如果协程数量超过此设置的数量，则禁止继续消费队列处理业务，而是在等待
         'extend_data' => [],
         'args' => [
+            // CronManager 唯一调度：配置轮询间隔（秒）。
+            'cron_poll_interval' => 20,
+            'node_id' => env('CRON_NODE_ID'),
             // 定时任务列表
             'task_list' => array_merge(
                 require_once __DIR__.'/remote_task.php',

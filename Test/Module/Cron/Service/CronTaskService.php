@@ -36,8 +36,9 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
      */
     public function fetchCronTask(int $execType, $nodeId)
     {
+        // 文档查询范围：node_id + 未软删。status 交给 Runtime Diff 做 ENABLE/DISABLE，
+        // 不可在此处只取启用任务，否则 DISABLE 会被误当成 DELETE。
         $list = CronTaskEntity::query()->field('*')->where([
-            'status' => 1,
             'node_id' => $nodeId,
             'exec_type' => $execType,
         ])->select()->toArray();
@@ -83,6 +84,18 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
             if (!empty($item['expression'])) {
                 $cronForkTask->cron_expression = $item['expression'];
             }
+            $cronForkTask->status = (int) ($item['status'] ?? 0);
+            $cronForkTask->with_block_lapping = (int) ($item['with_block_lapping'] ?? 0);
+            $cronForkTask->node_id = $item['node_id'] ?? null;
+            $cronForkTask->cron_between = $item['cron_between'] ?? [];
+            $cronForkTask->cron_skip = $item['cron_skip'] ?? [];
+
+            if (!empty($item['command'])) {
+                $cronForkTask->command = $item['command'];
+                if (empty($item['exec_script'])) {
+                    $cronForkTask->exec_script = $item['command'];
+                }
+            }
 
             if (!empty($item['exec_script'])) {
                 $cronForkTask->exec_script = $item['exec_script'];
@@ -125,8 +138,16 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
             if (!empty($item['expression'])) {
                 $cronHttpTask->cron_expression = $item['expression'];
             }
+            $cronHttpTask->status = (int) ($item['status'] ?? 0);
+            $cronHttpTask->with_block_lapping = (int) ($item['with_block_lapping'] ?? 0);
+            $cronHttpTask->node_id = $item['node_id'] ?? null;
+            $cronHttpTask->cron_between = $item['cron_between'] ?? [];
+            $cronHttpTask->cron_skip = $item['cron_skip'] ?? [];
+            $cronHttpTask->command = $item['command'] ?? $cronHttpTask->url;
 
-            if (!empty($item['exec_script'])) {
+            if (!empty($item['command'])) {
+                $cronHttpTask->url = $item['command'];
+            } elseif (!empty($item['exec_script'])) {
                 $cronHttpTask->url = $item['exec_script'];
             }
 

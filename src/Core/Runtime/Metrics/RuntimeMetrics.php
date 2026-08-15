@@ -27,6 +27,19 @@ final class RuntimeMetrics
     public const POOL_RELEASE_TOTAL = 'swoolefy_pool_release_total';
     public const POOL_FETCH_ERROR_TOTAL = 'swoolefy_pool_fetch_error_total';
     public const POOL_UNATTRIBUTED_TOTAL = 'swoolefy_pool_unattributed_total';
+    /** Cron Registry 内 Job 总数（含 Disabled）。固定名，无任务标签。 */
+    public const CRON_JOBS_TOTAL = 'swoolefy_cron_jobs_total';
+    /** 仍应持有 Schedule Timer 的 Job 数。 */
+    public const CRON_JOBS_ENABLED = 'swoolefy_cron_jobs_enabled';
+    /** 至少有一个 Execution 在跑的 Job 数。 */
+    public const CRON_JOBS_RUNNING = 'swoolefy_cron_jobs_running';
+    /** Cron 运行次数（含 SUCCESS / FAILED / SKIPPED）。 */
+    public const CRON_RUNS_TOTAL = 'swoolefy_cron_runs_total';
+    public const CRON_RUNS_SUCCESS = 'swoolefy_cron_runs_success';
+    public const CRON_RUNS_FAILED = 'swoolefy_cron_runs_failed';
+    public const CRON_RUNS_SKIPPED = 'swoolefy_cron_runs_skipped';
+    /** 实际执行耗时（秒）；SKIPPED 不观察。 */
+    public const CRON_EXECUTION_DURATION = 'swoolefy_cron_execution_duration_seconds';
 
     /**
      * @var array<string, array{fetch_total:int,release_total:int,fetch_error_total:int}>
@@ -95,6 +108,46 @@ final class RuntimeMetrics
     {
         $this->registry->counter(self::POOL_FETCH_ERROR_TOTAL)->increment();
         $this->incrementPoolMetric($name, 'fetch_error_total');
+    }
+
+    /**
+     * 刷新 Cron Job 数量类 Gauge。
+     *
+     * 由 CronMetrics 适配，CronManager::refreshMetrics() 在 start / stop / sync /
+     * 每轮 Execution finally 后调用。固定名称，不含 jobId / cron_name 标签，避免高基数。
+     * HTTP Worker 不会调用本方法，对应 Gauge 保持 0。
+     */
+    public function recordCronJobs(int $total, int $enabled, int $running): void
+    {
+        $this->registry->gauge(self::CRON_JOBS_TOTAL)->set($total);
+        $this->registry->gauge(self::CRON_JOBS_ENABLED)->set($enabled);
+        $this->registry->gauge(self::CRON_JOBS_RUNNING)->set($running);
+    }
+
+    /**
+     * 记录一次 Cron 运行结果（SUCCESS / FAILED / SKIPPED）。
+     * 未知 status 只增加 runs_total，不落入 success/failed/skipped，避免脏标签。
+     */
+    public function recordCronRun(string $status): void
+    {
+        $this->registry->counter(self::CRON_RUNS_TOTAL)->increment();
+        match (strtoupper($status)) {
+            'SUCCESS' => $this->registry->counter(self::CRON_RUNS_SUCCESS)->increment(),
+            'FAILED' => $this->registry->counter(self::CRON_RUNS_FAILED)->increment(),
+            'SKIPPED' => $this->registry->counter(self::CRON_RUNS_SKIPPED)->increment(),
+            default => null,
+        };
+    }
+
+    /**
+     * 记录一次 Cron Execution 耗时（秒）。负数丢弃。SKIPPED 由 CronMetrics 侧跳过。
+     */
+    public function recordCronDuration(float $seconds): void
+    {
+        if ($seconds < 0) {
+            return;
+        }
+        $this->registry->histogram(self::CRON_EXECUTION_DURATION)->observe($seconds);
     }
 
     /** 根据定时内存采样器更新 Worker 运行时 Gauge。 */

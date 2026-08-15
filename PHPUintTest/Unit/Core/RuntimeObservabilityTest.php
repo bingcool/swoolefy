@@ -181,6 +181,8 @@ final class RuntimeObservabilityTest extends TestCase
     /**
      * 响应顶层严格只有 global 与 worker。Swoole Server stats 是唯一的服务级来源；
      * RuntimeRegistry 的 PHP 静态状态只能描述当前 Worker，不能伪造全局框架指标。
+     * HTTP Worker 未 registerCronSnapshot 时 worker.cron.enabled=false，
+     * 但 worker.metrics.cron 键仍存在（Gauge 为 0）。
      */
     public function testDiagnosticsClassifySourcesIntoStrictGlobalAndWorkerGroups(): void
     {
@@ -204,6 +206,8 @@ final class RuntimeObservabilityTest extends TestCase
             'worker_num' => 2,
         ], $snapshot['global']['server']);
         self::assertSame(['global', 'worker'], array_keys($snapshot));
+        self::assertSame(['enabled' => false], $snapshot['worker']['cron']);
+        self::assertArrayHasKey('cron', $snapshot['worker']['metrics']);
         self::assertSame(1, $snapshot['worker']['metrics']['request']['counter'][RuntimeMetrics::HTTP_REQUESTS_TOTAL]);
         self::assertSame(1, $snapshot['worker']['pool']['aliases']['redis']['fetch_total']);
         self::assertArrayHasKey('pid', $snapshot['worker']['process']);

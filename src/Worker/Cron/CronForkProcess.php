@@ -12,19 +12,31 @@
 namespace Swoolefy\Worker\Cron;
 
 use Swoole\Coroutine\System;
-use Swoolefy\Core\Crontab\CrontabManager;
 use Swoolefy\Core\Log\LogManager;
-use Swoolefy\Core\Schedule\BetweenFilterDto;
 use Swoolefy\Core\Schedule\DynamicCallFn;
 use Swoolefy\Core\Schedule\ScheduleEvent;
-use Swoolefy\Core\Schedule\SkipFilterDto;
 use Swoolefy\Script\AbstractKernel;
 
+/**
+ * Shell / swoolefy script Cron Worker。
+ *
+ * 调度只走父类 CronManager（Polling + Diff + one-shot Timer + Guard）。
+ * 执行走本类 executeCronSnapshot()：按冻结 Snapshot 拉起 CronForkRunner
+ *（proc_open / exec），记录子进程 PID，异常隔离后返回 FAILED。
+ *
+ * 本类不再向 CrontabManager addRule。run() 只调用 runCronTask()。
+ *
+ * @see CronProcess::runCronTask()
+ * @see ShellExecutor
+ * @see CronForkRunner
+ */
 class CronForkProcess extends CronProcess
 {
 
+    /** 使用 php exec() 拉起（备选，swoolefy script 强制 proc_open）。 */
     const FORK_TYPE_EXEC = 'exec';
 
+    /** 默认：proc_open，可拿到管道与 PID。 */
     const FORK_TYPE_PROC_OPEN = 'proc_open';
 
     /**
@@ -37,7 +49,111 @@ class CronForkProcess extends CronProcess
     }
 
     /**
-     * run
+     * 使用生产引擎调度，执行仍走本类的 fork / swoolefy script 逻辑。
+     */
+    protected function createCronExecutor(): CronExecutorInterface
+    {
+        return new ShellExecutor(fn (ExecutionSnapshot $snapshot): ExecutionResult => $this->executeCronSnapshot($snapshot));
+    }
+
+    /**
+     * 按 Execution Snapshot 拉起 Shell / swoolefy script。
+     *
+     * 使用冻结定义，Config Update 不影响本轮 command。异常在此捕获，不拖垮 Worker。
+     */
+    protected function executeCronSnapshot(ExecutionSnapshot $snapshot): ExecutionResult
+    {
+        $scheduleTask = $snapshot->definition->toLogDto();
+        if (!$scheduleTask instanceof ScheduleEvent) {
+            return ExecutionResult::failed('Shell 任务定义无法转为 ScheduleEvent');
+        }
+
+        $execBatchId = $snapshot->execBatchId;
+        $scheduleTaskItems = $scheduleTask->toArray();
+        $logger = LogManager::getInstance()->getLogger(LogManager::CRON_FORK_LOG);
+        $runner = CronForkRunner::getInstance(md5($scheduleTask->cron_name), 5, $scheduleTask->cron_name);
+
+        try {
+            if (!empty($scheduleTask->fork_type)) {
+                $forkType = $scheduleTask->fork_type;
+            } else {
+                $forkType = CronForkProcess::FORK_TYPE_PROC_OPEN;
+            }
+
+            if ($this->isSwoolefyRunType($scheduleTask->run_type)) {
+                $scheduleModelValue = 'cron';
+                $scheduleModelOption = AbstractKernel::getScheduleModelOptionField();
+                $scheduleTask->extend[$scheduleModelOption] = $scheduleModelValue;
+                (new DynamicCallFn())->generatePidFile($scheduleTask);
+                $scheduleTask->argv['daemon'] = 1;
+                $scheduleTask->argv[$scheduleModelOption] = $scheduleModelValue;
+                $forkType = CronForkProcess::FORK_TYPE_PROC_OPEN;
+            }
+
+            $this->randSleepTime($scheduleTask->cron_expression);
+            $argv = $scheduleTask->argv ?? [];
+            $extend = $scheduleTask->extend ?? [];
+            $isNextHandle = $runner->isNextHandle(true, 120);
+            if (!$isNextHandle) {
+                $logger?->addInfo("【{$scheduleTask->cron_name}】cron_fork任务达到最大限制并发数，禁止fork进程", false, $scheduleTaskItems);
+                return ExecutionResult::failed('达到最大限制并发数，禁止 fork');
+            }
+
+            if ($forkType == self::FORK_TYPE_PROC_OPEN) {
+                $pidHolder = [0];
+                $runner->procOpen($scheduleTask->exec_bin_file, $scheduleTask->exec_script, $argv, function ($pipe0, $pipe1, $pipe2, $statusProperty) use ($scheduleTask, $execBatchId, &$pidHolder) {
+                    $statusProperty['exec_batch_id'] = $execBatchId;
+                    $pidHolder[0] = (int) ($statusProperty['pid'] ?? 0);
+                    $this->receiveCallBack($pipe0, $pipe1, $pipe2, $statusProperty, $scheduleTask);
+                }, $extend);
+
+                return ExecutionResult::success('cron_fork proc_open 已拉起', $pidHolder[0], 0);
+            }
+
+            $output = !empty($scheduleTask->output) ? $scheduleTask->output : '/dev/null';
+            list($command, $execOutput, $returnCode, $pid) = $runner->exec(
+                $scheduleTask->exec_bin_file,
+                $scheduleTask->exec_script,
+                $argv,
+                true,
+                $output,
+                true,
+                $extend
+            );
+            $pid = (int) $pid;
+            if ($returnCode == 0 || ($pid > 0 && \Swoole\Process::kill($pid, 0))) {
+                if (is_callable($scheduleTask->fork_success_callback)) {
+                    try {
+                        call_user_func($scheduleTask->fork_success_callback, $scheduleTask);
+                    } catch (\Throwable) {
+                    }
+                }
+                return ExecutionResult::success(
+                    "Exec command={$command},returnCode={$returnCode},pid={$pid}",
+                    $pid,
+                    (int) $returnCode,
+                );
+            }
+
+            return ExecutionResult::failed(
+                "Exec command={$command},returnCode={$returnCode},pid={$pid}",
+                $pid,
+                (int) $returnCode,
+            );
+        } catch (\Throwable $exception) {
+            if (is_callable($scheduleTask->fork_fail_callback)) {
+                try {
+                    call_user_func($scheduleTask->fork_fail_callback, $scheduleTask, $exception);
+                } catch (\Throwable) {
+                }
+            }
+            $this->onHandleException($exception, $scheduleTask->toArray());
+            return ExecutionResult::failed($exception->getMessage());
+        }
+    }
+
+    /**
+     * 启动生产引擎。Worker 级异常才 reboot；单个 Job 异常已在 Executor 内隔离。
      */
     public function run()
     {
@@ -60,239 +176,11 @@ class CronForkProcess extends CronProcess
     }
 
     /**
-     * @param array $taskList
-     * @return void
-     */
-    protected function registerCronTask(array $taskList)
-    {
-        if (!empty($taskList)) {
-            foreach($taskList as $taskItem) {
-                $this->runRegisterCronTask($taskItem);
-            }
-        }
-
-        // 解除已暂停的定时任务
-        $this->unregisterCronTask($taskList, CronProcess::EXEC_FORK_TYPE);
-        // 重新注册meta信息有变动的定时任务
-        $this->reRegisterCronTaskOfChangeMeta($taskList, CronProcess::EXEC_FORK_TYPE);
-    }
-
-    /**
-     * @param array $taskItem
-     * @param bool $registerAgain // 是否重新注册任务
-     * @return void
-     */
-    protected function runRegisterCronTask(array $taskItem, bool $registerAgain = false)
-    {
-        /**
-         * @var ScheduleEvent $scheduleTask
-         */
-        if (!$registerAgain) {
-            $isNewAddFlag = $this->isNewAddTask($taskItem['cron_name']);
-            if ($isNewAddFlag) {
-                $scheduleTask = ScheduleEvent::load($taskItem);
-                $startMsg = "【{$scheduleTask->cron_name}】注册定时任务启动";
-                $this->logCronTaskRuntime($scheduleTask, "", $startMsg);
-                fmtPrintInfo($startMsg);
-            }
-        } else {
-            $isNewAddFlag = true;
-        }
-
-        if ($isNewAddFlag) {
-            $scheduleTask = ScheduleEvent::load($taskItem);
-            // 调用其他类型语言脚本(python)可以不必设置此参数,直接置空
-            if (!isset($taskItem['run_type'])) {
-                $scheduleTask->run_type = '';
-            }
-
-            if (!empty($scheduleTask->fork_type)) {
-                $forkType = $scheduleTask->fork_type;
-            } else {
-                $forkType = CronForkProcess::FORK_TYPE_PROC_OPEN;
-            }
-
-            try {
-                CrontabManager::getInstance()->addRule($scheduleTask->cron_name, $scheduleTask->cron_expression, function () use($scheduleTask, $forkType) {
-                    $execBatchId = uniqid();
-                    $scheduleTaskItems = $scheduleTask->toArray();
-                    $logger = LogManager::getInstance()->getLogger(LogManager::CRON_FORK_LOG);
-                    $runner = CronForkRunner::getInstance(md5($scheduleTask->cron_name),5, $scheduleTask->cron_name);
-
-                    if (!empty($scheduleTask->cron_between)) {
-                        $cronBetweenArr = $scheduleTask->cron_between;
-                        if (is_array($cronBetweenArr) && count($cronBetweenArr) == 2) {
-                            $cronBetweenArr = [[$cronBetweenArr[0], $cronBetweenArr[1]]];
-                        }
-                        foreach ($cronBetweenArr as $cronBetween) {
-                            if (is_array($cronBetween) && count($cronBetween) == 2) {
-                                $cronBetween = $scheduleTask->parseBetweenTime($cronBetween[0], $cronBetween[1]);
-                                if (empty($cronBetween)) {
-                                    $msg = "【{$scheduleTask->cron_name}】配置项cron_between格式错误, time=".date('Y-m-d H:i:s');
-                                    $logger->addInfo($msg, false, $scheduleTaskItems);
-                                    $this->debug($msg);
-                                    $this->logCronTaskRuntime($scheduleTask, $execBatchId, "【{$scheduleTask->cron_name}】配置项cron_between格式错误");
-                                    return;
-                                }
-                                $canDue = (new BetweenFilterDto())->filter($cronBetween);
-                                if ($canDue == false) {
-                                    $msg = "【{$scheduleTask->cron_name}】当前不在设定的允许between时间段内，不能执行任务, time=".date('Y-m-d H:i:s');
-                                    $logger->addInfo($msg, false, $scheduleTaskItems);
-                                    $this->debug($msg);
-                                    $this->logCronTaskRuntime($scheduleTask, $execBatchId,"【{$scheduleTask->cron_name}】当前不在设定的允许between时间段内，不能执行任务");
-                                    return;
-                                }
-                            } else {
-                                $msg = "【{$scheduleTask->cron_name}】配置项cron_between格式错误, time=".date('Y-m-d H:i:s');
-                                $logger->addInfo($msg, false, $scheduleTaskItems);
-                                $this->debug($msg);
-                                $this->logCronTaskRuntime($scheduleTask, $execBatchId, "【{$scheduleTask->cron_name}】配置项cron_between格式错误");
-                                return;
-                            }
-                        }
-                    }
-
-                    if (!empty($scheduleTask->cron_skip)) {
-                        $cronSkipArr = $scheduleTask->cron_skip;
-                        if (is_array($cronSkipArr) && count($cronSkipArr) == 2) {
-                            $cronSkipArr = [[$cronSkipArr[0], $cronSkipArr[1]]];
-                        }
-                        foreach ($cronSkipArr as $cronSkip) {
-                            if (is_array($cronSkip) && count($cronSkip) == 2) {
-                                $cronSkip = $scheduleTask->parseBetweenTime($cronSkip[0], $cronSkip[1]);
-                                if (empty($cronSkip)) {
-                                    $msg = "【{$scheduleTask->cron_name}】配置项cron_skip格式错误, time=".date('Y-m-d H:i:s');
-                                    $logger->addInfo($msg, false, $scheduleTaskItems);
-                                    $this->debug($msg);
-                                    $this->logCronTaskRuntime($scheduleTask, $execBatchId,"【{$scheduleTask->cron_name}】配置项cron_skip格式错误");
-                                    return;
-                                }
-                                $canDue = (new SkipFilterDto())->filter($cronSkip);
-                                if ($canDue == false) {
-                                    $msg = "【{$scheduleTask->cron_name}】当前时间任务在skip时间段内,不能执行任务，time=".date('Y-m-d H:i:s');
-                                    $logger->addInfo($msg, false, $scheduleTaskItems);
-                                    $this->debug($msg);
-                                    $this->logCronTaskRuntime($scheduleTask, $execBatchId,"【{$scheduleTask->cron_name}】当前时间任务在skip时间段内,不能执行任务");
-                                    return;
-                                }
-                            } else {
-                                $msg = "【{$scheduleTask->cron_name}】配置项cron_skip格式错误, time=".date('Y-m-d H:i:s');
-                                $logger->addInfo($msg, false, $scheduleTaskItems);
-                                $this->debug($msg);
-                                $this->logCronTaskRuntime($scheduleTask, $execBatchId,"【{$scheduleTask->cron_name}】配置项cron_skip格式错误");
-                                return;
-                            }
-                        }
-                    }
-
-                    // !!!import swoolefy script run type
-                    if ($this->isSwoolefyRunType($scheduleTask->run_type)) {
-                        $scheduleModelValue = 'cron';
-                        $scheduleModelOption = AbstractKernel::getScheduleModelOptionField();
-                        // set schedule_model, cron_script_pid_file in extend array
-                        $scheduleTask->extend[$scheduleModelOption] = $scheduleModelValue;
-                        (new DynamicCallFn())->generatePidFile($scheduleTask);
-
-                        // set schedule_model, cron_script_pid_file in argv array
-                        $scheduleTask->argv['daemon'] = 1;
-                        $scheduleTask->argv[$scheduleModelOption] = $scheduleModelValue;
-
-                        // swoolefy run type,use proc_open will good
-                        $forkType = CronForkProcess::FORK_TYPE_PROC_OPEN;
-                    }
-
-                    // 日志无需打印回调闭包函数
-                    $scheduleTaskItems['fork_success_callback'] = $scheduleTaskItems['fork_fail_callback'] = '';
-                    // 确保任务不会重叠运行.如果上一次任务仍在运行，则跳过本次执行
-                    if (isset($scheduleTask->with_block_lapping) && $scheduleTask->with_block_lapping == true) {
-                        $runningForkProcess = $runner->getRunningForkProcess();
-                        if (!empty($runningForkProcess)) {
-                            $msg = "【{$scheduleTask->cron_name}】with_block_lapping阻塞重叠中不执行下一轮, cron_expression={$scheduleTask->cron_expression}";
-                            $logger->addInfo($msg, false, $scheduleTaskItems);
-                            $this->debug($msg);
-                            return;
-                        }
-                    }
-
-                    $this->logCronTaskRuntime($scheduleTask, $execBatchId,"【{$scheduleTask->cron_name}】cron_fork任务开始执行, cron_expression=".$scheduleTask->cron_expression);
-                    $logger->addInfo("【{$scheduleTask->cron_name}】cron_fork任务开始执行, cron_expression=".$scheduleTask->cron_expression, false, $scheduleTaskItems);
-                    $this->randSleepTime($scheduleTask->cron_expression);
-                    try {
-                        $argv     = $scheduleTask->argv ?? [];
-                        $extend   = $scheduleTask->extend ?? [];
-                        // 限制并发处理
-                        $isNextHandle = $runner->isNextHandle(true, 120);
-                        if (!$isNextHandle) {
-                            $logger->addInfo("【{$scheduleTask->cron_name}】cron_fork任务达到最大限制并发数，禁止fork进程, cron_expression=".$scheduleTask->cron_expression, false, $scheduleTaskItems);
-                        }
-                        if ($isNextHandle) {
-                            if ($forkType == self::FORK_TYPE_PROC_OPEN) {
-                                $runner->procOpen($scheduleTask->exec_bin_file, $scheduleTask->exec_script, $argv, function ($pipe0, $pipe1, $pipe2, $statusProperty) use($scheduleTask, $execBatchId) {
-                                    $statusProperty['exec_batch_id'] = $execBatchId;
-                                    $this->receiveCallBack($pipe0, $pipe1, $pipe2, $statusProperty, $scheduleTask);
-                                }, $extend);
-                            }else {
-                                $output = '/dev/null';
-                                if (!empty($scheduleTask->output)) {
-                                    $output = $scheduleTask->output;
-                                }
-                                list($command, $execOutput, $returnCode, $pid) = $runner->exec($scheduleTask->exec_bin_file, $scheduleTask->exec_script, $argv, true, $output, true, $extend);
-
-                                $msg = "【{$scheduleTask->cron_name}】Exec进程执行结果command={$command},returnCode={$returnCode},pid={$pid}，time=".date('Y-m-d H:i:s');
-                                $logger->addInfo($msg, false, $scheduleTaskItems);
-                                $this->debug($msg);
-
-                                $this->logCronTaskRuntime(
-                                    $scheduleTask,
-                                    $execBatchId,
-                                    "【{$scheduleTask->cron_name}】Exec 拉起进程执行结果command={$command},returnCode={$returnCode},pid={$pid}",
-                                    $pid
-                                );
-
-                                \Swoole\Coroutine\System::sleep(0.1);
-                                if ($returnCode == 0 || \Swoole\Process::kill($pid, 0)) {
-                                    if (is_callable($scheduleTask->fork_success_callback)) {
-                                        try {
-                                            call_user_func($scheduleTask->fork_success_callback, $scheduleTask);
-                                        }catch (\Throwable $throwable) {
-                                            // 忽略异常
-                                        }
-                                    }
-                                }
-                            }
-                            $logger->addInfo("【{$scheduleTask->cron_name}】cron_fork任务fork进程成功, cron_expression=".$scheduleTask->cron_expression, false, $scheduleTaskItems);
-                            $this->logCronTaskRuntime($scheduleTask, $execBatchId,"【{$scheduleTask->cron_name}】cron_fork任务fork进程成功, cron_expression=".$scheduleTask->cron_expression);
-                        }
-                    }catch (\Throwable $exception) {
-                        $logger->addInfo("【{$scheduleTask->cron_name}】cron_fork进程失败, cron_expression=".$scheduleTask->cron_expression." error=".$exception->getMessage() , false, $scheduleTaskItems);
-                        if (is_callable($scheduleTask->fork_fail_callback)) {
-                            try {
-                                call_user_func($scheduleTask->fork_fail_callback, $scheduleTask, $exception);
-                            }catch (\Throwable $throwable) {
-                                // 忽略异常
-                            }
-                        }
-                        $this->onHandleException($exception, $scheduleTask->toArray());
-                        $this->logCronTaskRuntime($scheduleTask, $execBatchId,"【{$scheduleTask->cron_name}】cron_fork进程失败, cron_expression=".$scheduleTask->cron_expression." error=".$exception->getMessage());
-                    }
-                }, null,null, $scheduleTask->toArray());
-            }catch (\Throwable $throwable) {
-                if (is_callable($scheduleTask->fork_fail_callback)) {
-                    try {
-                        call_user_func($scheduleTask->fork_fail_callback, $scheduleTask, $throwable);
-                    }catch (\Throwable $throwable) {
-                        // 忽略异常
-                    }
-                }
-                $this->onHandleException($throwable, $scheduleTask->toArray());
-                $this->logCronTaskRuntime($scheduleTask, "","【{$scheduleTask->cron_name}】定时任务注册失败");
-            }
-        }
-    }
-
-    /**
+     * 分钟级 Cron（首字段为 * 或星号/N）启动前随机 sleep，降低整点惊群。
+     * 秒级 Interval（纯数字）不 sleep。
+     *
      * @param string $cronExpression
-     * @return  bool
+     * @return bool
      */
     protected function randSleepTime($cronExpression)
     {
@@ -352,6 +240,7 @@ class CronForkProcess extends CronProcess
     }
 
     /**
+     * 是否 swoolefy script 运行类型（需补 daemon / schedule_model / pid 文件）。
      *
      * @param string $runType
      * @return bool

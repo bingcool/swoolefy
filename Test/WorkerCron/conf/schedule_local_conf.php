@@ -1,7 +1,7 @@
 <?php
 
 return [
-    // 独立进程本地处理任务
+    // 独立产品：进程内本地 crontab（CronLocalProcess + CrontabManager），不走 CronManager。
 //    [
 //        'process_name' => 'test-local-cron-worker', // 进程名称
 //        'handler' => \Swoolefy\Worker\Cron\CronLocalProcess::class,
@@ -20,7 +20,7 @@ return [
 //        ],
 //    ],
 
-     // 独立进程本地处理任务
+     // 独立产品：进程内本地 crontab（CronLocalProcess + CrontabManager），不走 CronManager。
     [
         'process_name' => 'test-local-cron-worker11', // 进程名称
         'handler' => \Swoolefy\Worker\Cron\CronLocalProcess::class,

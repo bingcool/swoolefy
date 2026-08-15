@@ -11,26 +11,53 @@
 
 namespace Swoolefy\Worker\Cron;
 
-use Swoolefy\Core\Crontab\CrontabManager;
 use Swoolefy\Core\Log\LogManager;
+use Swoolefy\Core\Runtime\RuntimeRegistry;
 use Swoolefy\Core\Schedule\ScheduleEvent;
 use Swoolefy\Worker\AbstractWorkerProcess;
-use Swoolefy\Worker\Dto\CronForkTaskMetaDtoWorker;
 use Swoolefy\Worker\Dto\CronUrlTaskMetaDtoWorker;
 
+/**
+ * Cron Worker 基类：fork / url / DB cron 的唯一调度入口是 CronManager。
+ *
+ * 管线：task_list（静态数组或 DB Closure）→ fetcher → ConfigDiff → Runtime
+ * → one-shot nextRunAt Timer → Guard / 时间窗 → Snapshot → Shell / HTTP。
+ *
+ * - 静态数组 fetcher：只同步一次，pollIntervalMs=0
+ * - Closure fetcher：按 cron_poll_interval 秒 Polling；抛异常保留 Last Known Good
+ * - createCronExecutor() 默认 CompositeExecutor；子类注入 Shell / HTTP 执行钩子
+ * - onShutDown() 必须 cronManager->stop() 并注销 RuntimeRegistry cron snapshot
+ *
+ * 本类不再走 CrontabManager::addRule。进程内本地 crontab 见 {@see CronLocalProcess}，
+ * 那是另一条产品线，不参与本引擎。
+ *
+ * @see CronManager
+ * @see CronForkProcess
+ * @see CronUrlProcess
+ */
 class CronProcess extends AbstractWorkerProcess
 {
 
+    /** exec_type=1：Shell / fork / swoolefy script。 */
     const EXEC_FORK_TYPE = 1;
 
+    /** exec_type=2：HTTP URL。 */
     const EXEC_URL_TYPE = 2;
     /**
+     * Worker args['task_list']：array 或 Closure。Closure 成功必须返回 array。
+     *
      * @var mixed
      */
     protected $taskList;
 
     /**
-     * onInit
+     * 生产级 Cron 引擎。Worker Stop 时必须显式 stop()，不能只依赖析构。
+     */
+    protected ?CronManager $cronManager = null;
+
+    /**
+     * 读取 Worker args 的 task_list（静态数组或 DB fetcher Closure）。
+     *
      * @return void
      */
     public function onInit()
@@ -40,140 +67,89 @@ class CronProcess extends AbstractWorkerProcess
     }
 
     /**
-     * @return void
+     * 启动 Cron 引擎：初始同步 + Polling。
+     *
+     * 静态数组只同步一次；Closure 作为 fetcher，抛异常时保留 Last Known Good Runtime。
      */
     protected function runCronTask()
     {
+        $this->cronManager = $this->createCronManager();
+        RuntimeRegistry::registerCronSnapshot(fn (): array => $this->cronManager?->diagnostics() ?? ['enabled' => false]);
+        $this->cronManager->start();
+    }
+
+    /**
+     * 构造生产引擎。子类可覆盖 createCronExecutor() 注入 Shell / HTTP。
+     */
+    protected function createCronManager(): CronManager
+    {
+        $args = $this->getArgs();
+        $pollSeconds = (int) ($args['cron_poll_interval'] ?? 20);
+        $nodeId = $args['node_id'] ?? $args['cron_node_id'] ?? null;
+
+        return new CronManager(
+            fetcher: $this->createTaskFetcher(),
+            executor: $this->createCronExecutor(),
+            timer: new SwooleCronTimer(),
+            clock: new SystemCronClock(),
+            pollIntervalMs: $this->taskList instanceof \Closure ? max(1, $pollSeconds) * 1000 : 0,
+            nodeId: $nodeId === null || $nodeId === '' ? null : (int) $nodeId,
+            logWriter: function (ScheduleEvent|CronUrlTaskMetaDtoWorker $task, string $execBatchId, string $message, int $pid = 0): void {
+                $this->logCronTaskRuntime($task, $execBatchId, $message, $pid);
+            },
+        );
+    }
+
+    /**
+     * 把 task_list 包成 CronManager fetcher。
+     *
+     * Closure：每次 Polling 调用；非 array 抛异常 → syncFromFetcher 视为 DB 故障。
+     * 静态数组：闭包每次返回同一份，且 pollIntervalMs=0，不会周期重拉。
+     *
+     * @return callable():array<int, array<string, mixed>>
+     */
+    protected function createTaskFetcher(): callable
+    {
         $taskList = $this->taskList;
         if ($taskList instanceof \Closure) {
-            // 启动执行一次
-            $this->registerCronTask($taskList());
-            // 定时拉取最新cron配置
-            \Swoolefy\Core\Coroutine\Timer::tick(20 * 1000, function () use($taskList) {
-                $lastTaskList = $taskList();
-                $this->registerCronTask($lastTaskList);
-            });
-        } else {
-            $this->registerCronTask($taskList);
-        }
-    }
-
-    /**
-     * 解除已暂停的定时任务
-     *
-     * @param array $taskList
-     * @param int $execType
-     * @return void
-     */
-    protected function unregisterCronTask(array &$taskList, $execType = CronProcess::EXEC_FORK_TYPE)
-    {
-        // 剔除已暂停的计划任务
-        $runCronTaskList = CrontabManager::getInstance()->getRunCronTaskList();
-        if (!empty($runCronTaskList)) {
-            $taskCronNameList    = array_column($taskList, 'cron_name');
-            $taskCronNameKeyList = array_map(function ($item) {
-                return md5($item);
-            }, $taskCronNameList);
-
-            $logger = LogManager::getInstance()->getLogger(LogManager::CRON_FORK_LOG);
-            foreach ($runCronTaskList as $cronNameKey => $cronTask) {
-                if (!in_array($cronNameKey, $taskCronNameKeyList)) {
-                    // 删除已经暂停的计划任务
-                    CrontabManager::getInstance()->removeCronTaskByName($cronTask['cron_name']);
-                    // 删除已经暂停的计划任务对应的runner
-                    CronForkRunner::removeRunner(md5($cronTask['cron_name']));
-                    // 加载旧的cron任务Meta，寄存在cron运行时中，用于记录日志
-                    $oldCronTask = $cronTask['extend'] ?? [];
-                    if ($execType == CronProcess::EXEC_FORK_TYPE) {
-                        $this->logCronTaskRuntime(ScheduleEvent::load($oldCronTask),"","[Remove Cron]任务停止或删除，定时任务已暂停");
-                    } else if ($execType == CronProcess::EXEC_URL_TYPE) {
-                        $this->logCronTaskRuntime(CronUrlTaskMetaDtoWorker::load($oldCronTask),"","[Remove Cron]任务停止或删除，定时任务已暂停");
-                    }
-                    $logger->info("Remove cron task 【{$cronTask['cron_name']}】 has stopped");
-                    fmtPrintInfo("Remove cron task 【{$cronTask['cron_name']}】 has stopped");
+            return static function () use ($taskList): array {
+                $list = $taskList();
+                if (!is_array($list)) {
+                    throw new \RuntimeException('cron task_list fetcher 必须返回 array');
                 }
-            }
+
+                return $list;
+            };
         }
+
+        $static = is_array($taskList) ? $taskList : [];
+
+        return static fn (): array => $static;
     }
 
     /**
-     * db cron task Meta配置模式下的重新注册cron任务处理
-     *
-     * 重新注册cron_name不变，但是其他的meta信息有改变的，比如cron_expression有变动的
-     *
-     * @param array $taskList
-     * @param int $execType
-     * @return void
+     * 默认按 exec_type 分发 Shell / HTTP。子类可覆盖以注入 CronForkRunner / HTTP 回调。
      */
-    protected function reRegisterCronTaskOfChangeMeta(array &$taskList, $execType = CronProcess::EXEC_FORK_TYPE)
+    protected function createCronExecutor(): CronExecutorInterface
     {
-        if (empty($taskList)) {
-            return;
-        }
-
-        $firstItem = $taskList[0];
-
-        // 配置是DB保存模式的才处理
-        if (isset($firstItem['cron_meta_origin']) && $firstItem['cron_meta_origin'] != CronForkTaskMetaDtoWorker::CRON_META_ORIGIN_DB) {
-            return;
-        }
-
-        $runCronTaskList = CrontabManager::getInstance()->getRunCronTaskList();
-        if (!empty($runCronTaskList)) {
-            $taskCronNameList    = array_column($taskList, 'cron_name');
-            $taskCronNameKeyList = array_map(function ($item) {
-                return md5($item);
-            }, $taskCronNameList);
-
-            $taskCronNameMap = array_column($taskList, null, 'cron_name');
-            $logger = LogManager::getInstance()->getLogger(LogManager::CRON_FORK_LOG);
-            foreach ($runCronTaskList as $cronNameKey => $cronTask) {
-                if (in_array($cronNameKey, $taskCronNameKeyList)) {
-                    $oldUpdatedAt = $cronTask['extend']['updated_at'] ?? "";
-                    $newCronTask = $taskCronNameMap[$cronTask['cron_name']] ?? [];
-                    $newUpdatedAt = $newCronTask['updated_at'] ?? "";
-                    if (!empty($oldUpdatedAt) && !empty($newUpdatedAt) && $oldUpdatedAt != $newUpdatedAt) {
-                        // 删除已经meta信息有变动的计划任务
-                        CrontabManager::getInstance()->removeCronTaskByName($cronTask['cron_name']);
-                        // 删除已经meta信息有变动的的计划任务对应的runner
-                        CronForkRunner::removeRunner($cronNameKey);
-                        // 重新注册cron任务
-                        $this->runRegisterCronTask($newCronTask, true);
-                        if ($execType == CronProcess::EXEC_FORK_TYPE) {
-                            $this->logCronTaskRuntime(ScheduleEvent::load($newCronTask),"","[Re-register]任务配置有变动，已重新注册定时任务");
-                        }else if ($execType == CronProcess::EXEC_URL_TYPE) {
-                            $this->logCronTaskRuntime(CronUrlTaskMetaDtoWorker::load($newCronTask),"","[Re-register]任务配置有变动，已重新注册定时任务");
-                        }
-                        $logger->info("Re-register cron task 【{$cronTask['cron_name']}】 has meta changed");
-                        fmtPrintInfo("Re-register cron task 【{$cronTask['cron_name']}】 has meta changed");
-                    }
-                }
-            }
-        }
+        return new CompositeExecutor(new ShellExecutor(), new HttpExecutor());
     }
 
     /**
-     * @param string $cronName
-     * @return bool
+     * Worker Stop：停止 Polling、清空 Job Timer、释放 Runtime。
      */
-    protected function isNewAddTask(string $cronName)
+    public function onShutDown()
     {
-        $cronTask = CrontabManager::getInstance()->getCronTaskByName($cronName);
-        if (!empty($cronTask) && is_array($cronTask)) {
-            $timerId = $cronTask['timer_id'];
-            if (!\Swoole\Timer::exists($timerId)) {
-                $isNewAddFlag = true;
-            }else {
-                $isNewAddFlag = false;
-            }
-        }else {
-            $isNewAddFlag = true;
-        }
-
-        return $isNewAddFlag;
+        $this->cronManager?->stop();
+        $this->cronManager = null;
+        RuntimeRegistry::registerCronSnapshot(null);
+        parent::onShutDown();
     }
 
     /**
+     * 子类（CronForkProcess / CronUrlProcess）覆盖并调用 runCronTask()。
+     * CronLocalProcess 不走本方法，仍用进程内 CrontabManager 单规则。
+     *
      * @inheritDoc
      * @return mixed
      */
@@ -183,9 +159,13 @@ class CronProcess extends AbstractWorkerProcess
     }
 
     /**
-     * @param array $taskItem
+     * 将运行日志委托给业务 cron_db_log_class（实现 CronTaskInterface）。
+     * 类缺失或抛异常只记 CRON_FORK_LOG，不得拖垮 Worker。
+     *
+     * @param ScheduleEvent|CronUrlTaskMetaDtoWorker $scheduleTask
      * @param string $execBatchId
      * @param string $message
+     * @param int $pid
      * @return void
      */
     protected function logCronTaskRuntime(
@@ -208,17 +188,6 @@ class CronProcess extends AbstractWorkerProcess
                 $logger->error($errorMsg);
                 fmtPrintError($errorMsg);
             }
-        }
-    }
-
-    /**
-     * @param string $msg
-     * @return void
-     */
-    protected function debug(string $msg)
-    {
-        if (env('CRON_DEBUG')) {
-            fmtPrintNote($msg);
         }
     }
 }
