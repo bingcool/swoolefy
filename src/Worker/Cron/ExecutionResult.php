@@ -17,7 +17,8 @@ namespace Swoolefy\Worker\Cron;
  * SKIPPED 由 CronManager 管线（时间窗 / 重叠）产生，Executor 只返回 SUCCESS / FAILED。
  * pid 是子进程 PID（Shell），HTTP 保持 0。httpStatus / exitCode 供日志与单测断言。
  *
- * 本对象不驱动调度：无论哪种 status，下一轮 Timer 都已在 onTrigger 开头武装。
+ * 本对象不驱动调度：onTrigger 无论哪种 status，下一轮 Timer 都已在开头武装。
+ * runOnceNow 不改 Timer / nextRunAt。
  *
  * @see CronExecutorInterface
  * @see CronMetrics::recordRun()

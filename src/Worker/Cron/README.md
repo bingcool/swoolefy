@@ -92,8 +92,9 @@ flowchart TB
     Apply --> Scheduler["CronScheduler::arm / clear"]
     Scheduler --> Timer["SwooleCronTimer::after + goApp"]
     Timer --> Trigger["CronManager::onTrigger()"]
+    Manual["CronManager::runOnceNow()"] --> Window["TimeWindowFilter"]
     Trigger --> ArmNext["先 arm 下一轮 nextRunAt"]
-    ArmNext --> Window["TimeWindowFilter"]
+    ArmNext --> Window
     Window --> Guard["ExecutionGuard"]
     Guard --> Snap["ExecutionSnapshot 冻结"]
     Snap --> Exec["ShellExecutor / HttpExecutor"]
@@ -121,12 +122,12 @@ flowchart TB
 
 1. **Active Job = 恰好一个 Schedule Timer**；Disabled / Deleted = 零个。`CronScheduler::arm()` 内部先 `clear` 再 `after`，禁止双 Timer。
 2. **先 arm 再执行**（`onTrigger` 固定顺序）：用「刚刚触发的计划点」计算下一格，避免 `finish_time + interval` 漂移；长任务期间下一计划点仍能触发，供重叠 SKIP；SUCCESS / FAILED / SKIPPED / Exception 都不会丢失后续调度。
-3. **Enable ≠ Immediately Run**：`applyEnable()` 只武装下一合法 `nextRunAt`，不立刻调用 Executor。Interval / Cron 都取**严格晚于**基准的下一个点。
+3. **Enable ≠ Immediately Run**：`applyEnable()` 只武装下一合法 `nextRunAt`，不立刻调用 Executor。Interval / Cron 都取**严格晚于**基准的下一个点。立刻跑一次请用 `runOnceNow()`，二者不是同一条语义。
 4. **Last Known Good**：`fetcher` 抛异常 = DB 故障，`syncFromFetcher()` **不**调用 `applyRows()`，绝不 clear all。`fetcher` **成功返回 `[]`** 才按全量 DELETE 收敛。
 5. **Job Exception ≠ Worker Exception**：Executor / `logWriter` 异常隔离在本 Job，不得拖垮其它 Job 或 Worker。
 6. **DELETE 不杀进行中的 Execution**：只清未来 Timer、打 `deleted`；`onTrigger` 的 `finally` 里若 `deleted && !running` 再 `registry->remove()`。
 7. **Snapshot 边界**：`ExecutionSnapshot::create()` 之后，`UPDATE` 只替换 `RuntimeJob::$definition`，本轮 command / url / headers 保持冻结。
-8. **Swoole 6 协程**：`SwooleCronTimer` 的 `after` / `tick` 必须 `goApp` 后再进 `onTrigger`。`proc_open` / Guzzle 不能在进程事件循环里调用。`onTrigger` 本身不再二次 `go()`，以免 Guard 临界区与 `finally` 脱节。
+8. **Swoole 6 协程**：`SwooleCronTimer` 的 `after` / `tick` 必须 `goApp` 后再进 `onTrigger`。`proc_open` / Guzzle 不能在进程事件循环里调用。`onTrigger` 本身不再二次 `go()`，以免 Guard 临界区与 `finally` 脱节。`runOnceNow()` 已在协程内则同步执行；控制面尚未进协程时尽量 `Coroutine::run`。
 
 ### expression 双模式
 
@@ -245,6 +246,49 @@ sequenceDiagram
 ```
 
 `recordSkip` 写日志并 `metrics->recordRun(SKIPPED)`，不创建真正的执行。SKIP 不更新 `lastRunAt`，也**不会**进入 retry。
+
+### 立刻执行一次（`runOnceNow`）
+
+控制面 / 运维需要「忽略 expression，马上用当前 Runtime 定义跑一轮」时，调用引擎 API，**不要**把 Enable 理解成立刻执行。
+
+```php
+$result = $manager->runOnceNow('id:1');
+// 或 $cronProcess->runOnceNow('id:1');
+```
+
+| 项 | 语义 |
+|---|---|
+| 签名 | `CronManager::runOnceNow(string $jobId): ExecutionResult` |
+| 忽略 | 本轮不读 expression / `nextRunAt`，立刻走当前 `RuntimeJob` 定义 |
+| 不改 | 已武装的 one-shot Timer 与 `nextRunAt`（不 steal / 不替换） |
+| 不是 | Enable = Immediately Run。`applyEnable()` 仍然只 `arm` 下一合法点 |
+| 时间窗 | **仍应用** `cron_between` / `cron_skip`。忽略的是调度表达式，不是窗口 |
+| 重叠 | `with_block_lapping=1` 且已 running → `SKIPPED`（与 trigger 相同） |
+| 缺失 / 停用 / 已删除 | 返回 `FAILED`，message 区分原因，**不上抛** Worker |
+| 管线 | 与 trigger 相同：Window → Guard → Snapshot → retry → Executor → 日志 / 指标 |
+| retry | 字段仍作用于这一次；FAILED 在同一 Snapshot 内立即重试 |
+| 协程 | 已在协程内同步执行（禁止二次 `go()`）。控制面尚未进协程时尽量 `Coroutine::run`（Swoole 6 `proc_open`） |
+
+```php
+$manager->start();
+$next = $manager->registry()->get('id:1')->nextRunAt;
+
+$result = $manager->runOnceNow('id:1');
+if ($result->isSuccess()) {
+    // 已执行一次；计划点不变
+}
+if ($result->isSkipped()) {
+    // 时间窗 或 with_block_lapping 重叠
+}
+if ($result->isFailed()) {
+    // 不存在 / 已停用 / 已删除 / Executor 失败
+}
+
+assert($manager->registry()->get('id:1')->nextRunAt === $next);
+assert($manager->timerCountFor('id:1') === 1);
+```
+
+Test 应用的 `CronTaskManagerController` 是 **写 `cron_task` 的 HTTP Admin**，与 Cron Worker 进程隔离，**没有**接到本 API（避免伪装成已跨进程触发）。跨进程 Manual Run HTTP 仍属后续。
 
 ### Retry（同一轮 trigger）
 
@@ -663,7 +707,7 @@ $manager->start();
 $manager->stop();
 ```
 
-单测应注入 `ManualCronTimer` + `FrozenCronClock`，不要依赖真实 Swoole 时钟。公开只读辅助：`registry()`、`scheduler()`、`timerCountFor()`、`diagnostics()`、`lastConfigSyncError()`、`lastConfigSyncAt()`。
+单测应注入 `ManualCronTimer` + `FrozenCronClock`，不要依赖真实 Swoole 时钟。公开只读辅助：`registry()`、`scheduler()`、`timerCountFor()`、`diagnostics()`、`lastConfigSyncError()`、`lastConfigSyncAt()`。立刻执行：`runOnceNow($jobId)`。
 
 ---
 
@@ -730,9 +774,9 @@ HTTP Worker 不会调用 `recordCronJobs()`，对应 Gauge 保持 0，但 `worke
 | 能力 | 现状 |
 |---|---|
 | Retry backoff / `retry_delay` | 引擎已支持 `retry`（立即重试）；**没有**退避间隔字段 |
-| Misfire / Backfill / Catch-up | `calculateNextRunAt` 只算下一合法点，不补历史 |
+| Misfire / Backfill / Catch-up | `calculateNextRunAt` 只算下一合法点，不补历史（`runOnceNow` 也不补跑错过的点） |
 | 分布式锁 / Leader Election | `ExecutionGuard` 是**进程内**协作式互斥，不是跨节点锁 |
-| Manual Run | 无「忽略 expression 立刻执行一次」的引擎 API |
+| 跨进程 Manual Run HTTP | 引擎已有 `runOnceNow`；Test Admin 写库，不跨进程调用 Cron Worker |
 | 框架级 Web Admin | Test 应用有 `cron_task` CRUD；设计文档与 HTML 原型在 `docs/`，不是 `src/Worker/Cron` 的一部分 |
 | 跨进程 Runtime 查询 | Cron 诊断只活在 Cron Worker 的 `RuntimeRegistry` |
 | MQ / RPC / DAG / 独立 Scheduler 服务 | 明确不引入 |
@@ -758,6 +802,7 @@ HTTP Worker 不会调用 `recordCronJobs()`，对应 Gauge 保持 0，但 `worke
 - `PHPUintTest/Unit/Worker/Cron/ExpressionParserTest.php`
 - `PHPUintTest/Unit/Worker/Cron/ExecutorAndWindowTest.php`
 - `PHPUintTest/Unit/Worker/Cron/RetryTest.php` — retry=0 / fail-then-success / 用尽失败 / SKIP 不重试 / Snapshot 冻结
+- `PHPUintTest/Unit/Worker/Cron/RunOnceNowTest.php` — 成功不改 nextRunAt、停用 / 缺失、重叠 SKIP、时间窗、retry、无 backfill
 - `PHPUintTest/Coroutine/Worker/Cron/SwooleCronTimerCoroutineTest.php`
 
 ---
@@ -766,7 +811,7 @@ HTTP Worker 不会调用 `recordCronJobs()`，对应 Gauge 保持 0，但 `worke
 
 | 方法 / 常量 | 类 | 用途 |
 |---|---|---|
-| `start()` / `stop()` / `syncFromFetcher()` / `applyRows()` / `onTrigger()` | `CronManager` | 生命周期与触发 |
+| `start()` / `stop()` / `syncFromFetcher()` / `applyRows()` / `onTrigger()` / `runOnceNow()` | `CronManager` | 生命周期、触发、立刻执行一次 |
 | `diagnostics()` | `CronManager` | Runtime 诊断 |
 | `ADD` `UPDATE` `DELETE` `ENABLE` `DISABLE` `NOOP` | `ConfigDiff` | Diff op |
 | `fromArray()` / `resolveJobId()` / `fingerprint()` / `toLogDto()` | `TaskDefinition` | 配置规范化 |
@@ -776,7 +821,7 @@ HTTP Worker 不会调用 `recordCronJobs()`，对应 Gauge 保持 0，但 `worke
 | `parse()` / `isSecondInterval()` | `ExpressionParser` | 表达式 |
 | `run()` | `CronExecutorInterface` | 执行 |
 | `recordJobs()` / `recordRun()` | `CronMetrics` | 指标 |
-| `runCronTask()` / `createCronManager()` / `createTaskFetcher()` | `CronProcess` | Worker 装配 |
+| `runCronTask()` / `createCronManager()` / `createTaskFetcher()` / `runOnceNow()` | `CronProcess` | Worker 装配与控制面立刻执行 |
 | `executeCronSnapshot()` | `CronForkProcess` | Shell 钩子 |
 | `executeHttpSnapshot()` | `CronUrlProcess` | HTTP 钩子 |
 | `registerCronSnapshot()` / `cronSnapshot()` | `RuntimeRegistry` | 诊断挂载 |

@@ -35,6 +35,7 @@ use Swoolefy\Exception\CronException;
  * - syncFromFetcher()：fetcher 抛异常 = DB 故障，保留 Last Known Good，绝不 clear all
  * - applyRows()：规范化 + nodeId 过滤后 Diff Apply；单行非法只跳过该行
  * - onTrigger()：先 arm 下一轮，再 Guard / Window / Snapshot /（FAILED 时同轮 retry）；finally 释放 running
+ * - runOnceNow()：忽略 expression / nextRunAt，立刻用当前 Runtime 定义跑一轮同一管线；不碰 Schedule Timer
  * - 生产触发在 SwooleCronTimer 的 goApp 协程内执行（Swoole 6 proc_open/HTTP 要求）
  * - stop()：清 Polling、清全部 Job Timer、释放 Registry；必须显式调用
  *
@@ -45,6 +46,7 @@ use Swoolefy\Exception\CronException;
  * 调度不变量：
  * - Active Job = 恰好一个 Schedule Timer；Disabled / Deleted = 零个
  * - Enable ≠ Immediately Run，等待下一次合法 nextRunAt
+ * - runOnceNow ≠ Enable Immediately Run：只额外执行一次，不改 nextRunAt，也不等于把 Enable 变成立刻跑
  * - DELETE 不杀进行中的 Execution；结束后再从 Registry 移除
  *
  * @see ConfigDiff
@@ -240,41 +242,34 @@ final class CronManager
             return;
         }
 
-        $window = $this->timeWindow->evaluate($job->definition, $this->clock->now());
-        if (!$window['allowed']) {
-            $this->recordSkip($job, '时间窗跳过: ' . $window['reason']);
-            return;
-        }
+        $this->runExecutionPipeline($job, $planned, 'trigger');
+    }
 
-        if (!$this->guard->tryBegin($job)) {
-            $this->recordSkip($job, 'with_block_lapping 重叠跳过');
-            return;
-        }
-
-        $snapshot = ExecutionSnapshot::create($job, $planned);
-        $job->lastRunAt = $this->clock->now();
-        $started = microtime(true);
+    /**
+     * 忽略 expression / nextRunAt，立刻用当前 RuntimeJob 定义执行一次。
+     *
+     * 与 onTrigger 共用 Window / Guard / Snapshot / retry / Executor / 日志 / 指标。
+     * 与 onTrigger 的差异：
+     * - 不 arm、不 clear Schedule Timer，已武装的 nextRunAt 保持不变
+     * - 不是 Enable = Immediately Run（Enable 仍只等下一合法点）
+     * - 忽略的是调度表达式，不是时间窗：仍应用 cron_between / cron_skip
+     *
+     * 重叠：with_block_lapping=1 且已 running → SKIPPED（与 trigger 相同）。
+     * 缺失 / 停用 / 已删除：返回 FAILED，文案区分原因，不上抛 Worker。
+     *
+     * 协程：已在协程内则同步执行（与 onTrigger 一样，禁止二次 go()，以免 Guard/finally 脱节）。
+     * 控制面 / HTTP 尚未进协程时，尽量 Coroutine::run 后再执行（Swoole 6 proc_open / HTTP hook）。
+     * 单测无 Swoole 或无法新建调度器时回退同步。
+     *
+     * retry 字段仍作用于这一次：FAILED 在同一 Snapshot 内立即重试，不另武装 Timer。
+     */
+    public function runOnceNow(string $jobId): ExecutionResult
+    {
         try {
-            $this->writeLog($snapshot, sprintf('【%s】开始执行 cron_expression=%s', $job->definition->cronName, $job->definition->expression));
-            $result = $this->runWithRetry($snapshot);
-            $this->writeLog($snapshot, $this->formatResultMessage($job, $result), $result->pid);
-            $this->metrics->recordRun($result->status, microtime(true) - $started);
+            return $this->runInCoroutineIfNeeded(fn (): ExecutionResult => $this->doRunOnceNow($jobId));
         } catch (\Throwable $e) {
-            // P0-5：Job Exception ≠ Worker Exception（含 retry 循环外的兜底）
-            $result = ExecutionResult::failed($e->getMessage());
-            $this->writeLog($snapshot, sprintf('【%s】执行异常已隔离: %s', $job->definition->cronName, $e->getMessage()));
-            $this->metrics->recordRun(ExecutionResult::FAILED, microtime(true) - $started);
-        } finally {
-            $this->guard->end($this->registry->get($jobId));
-            $alive = $this->registry->get($jobId);
-            if ($alive !== null) {
-                $alive->lastFinishAt = $this->clock->now();
-                // DELETE 后当前 Execution 结束后再释放 Runtime，避免中途杀掉
-                if ($alive->deleted && !$alive->running) {
-                    $this->registry->remove($jobId);
-                }
-            }
-            $this->refreshMetrics();
+            // 控制面调用也必须失败隔离，不得拖垮 Worker / HTTP
+            return ExecutionResult::failed('runOnceNow 异常已隔离: ' . $e->getMessage());
         }
     }
 
@@ -344,6 +339,133 @@ final class CronManager
         }
 
         return $this->scheduler->activeTimerCount($job);
+    }
+
+    /**
+     * runOnceNow 的同步主体：校验 Runtime 后走同一执行管线，绝不改 Timer。
+     */
+    private function doRunOnceNow(string $jobId): ExecutionResult
+    {
+        if ($jobId === '') {
+            return ExecutionResult::failed('runOnceNow: jobId 为空');
+        }
+        $job = $this->registry->get($jobId);
+        if ($job === null) {
+            return ExecutionResult::failed('runOnceNow: 任务不存在');
+        }
+        if ($job->deleted) {
+            return ExecutionResult::failed('runOnceNow: 任务已删除');
+        }
+        if (!$job->definition->isEnabled()) {
+            return ExecutionResult::failed('runOnceNow: 任务已停用');
+        }
+
+        // plannedAt 用当前时钟，表示「立刻跑」；不读取、不改写 nextRunAt
+        return $this->runExecutionPipeline($job, $this->clock->now(), 'runOnceNow');
+    }
+
+    /**
+     * Window → Guard → Snapshot → retry → 日志 / 指标。onTrigger 与 runOnceNow 共用。
+     *
+     * 调用方负责调度侧差异：onTrigger 先 arm；runOnceNow 不碰 Timer。
+     *
+     * @param string $source trigger | runOnceNow，仅影响开始日志文案
+     */
+    private function runExecutionPipeline(RuntimeJob $job, int $planned, string $source): ExecutionResult
+    {
+        $jobId = $job->jobId;
+        $window = $this->timeWindow->evaluate($job->definition, $this->clock->now());
+        if (!$window['allowed']) {
+            $reason = '时间窗跳过: ' . $window['reason'];
+            $this->recordSkip($job, $reason);
+
+            return ExecutionResult::skipped($reason);
+        }
+
+        if (!$this->guard->tryBegin($job)) {
+            $reason = 'with_block_lapping 重叠跳过';
+            $this->recordSkip($job, $reason);
+
+            return ExecutionResult::skipped($reason);
+        }
+
+        $snapshot = ExecutionSnapshot::create($job, $planned);
+        $job->lastRunAt = $this->clock->now();
+        $started = microtime(true);
+        $result = ExecutionResult::failed('未执行');
+        try {
+            $this->writeLog($snapshot, $this->formatStartMessage($job, $source));
+            $result = $this->runWithRetry($snapshot);
+            $this->writeLog($snapshot, $this->formatResultMessage($job, $result), $result->pid);
+            $this->metrics->recordRun($result->status, microtime(true) - $started);
+        } catch (\Throwable $e) {
+            // Job Exception ≠ Worker Exception（含 retry 循环外的兜底）
+            $result = ExecutionResult::failed($e->getMessage());
+            $this->writeLog($snapshot, sprintf('【%s】执行异常已隔离: %s', $job->definition->cronName, $e->getMessage()));
+            $this->metrics->recordRun(ExecutionResult::FAILED, microtime(true) - $started);
+        } finally {
+            $this->guard->end($this->registry->get($jobId));
+            $alive = $this->registry->get($jobId);
+            if ($alive !== null) {
+                $alive->lastFinishAt = $this->clock->now();
+                // DELETE 后当前 Execution 结束后再释放 Runtime，避免中途杀掉
+                if ($alive->deleted && !$alive->running) {
+                    $this->registry->remove($jobId);
+                }
+            }
+            $this->refreshMetrics();
+        }
+
+        return $result;
+    }
+
+    /**
+     * 控制面可能不在协程内；Swoole 6 的 proc_open / HTTP 必须进协程。
+     * 已在协程内则同步执行，禁止二次 go()（与 onTrigger 同一不变量）。
+     *
+     * @param callable():ExecutionResult $fn
+     */
+    private function runInCoroutineIfNeeded(callable $fn): ExecutionResult
+    {
+        if (!$this->shouldEnterNewCoroutine()) {
+            return $fn();
+        }
+
+        $box = [ExecutionResult::failed('runOnceNow 未执行')];
+        $runner = function () use ($fn, &$box): void {
+            $box[0] = $fn();
+        };
+        try {
+            if (method_exists(\Swoole\Coroutine::class, 'run')) {
+                \Swoole\Coroutine::run($runner);
+            } else {
+                \Swoole\Coroutine\run($runner);
+            }
+        } catch (\Throwable $e) {
+            $this->debug('runOnceNow 无法新建协程调度器，同步执行: ' . $e->getMessage());
+            $box[0] = $fn();
+        }
+
+        return $box[0] instanceof ExecutionResult ? $box[0] : ExecutionResult::failed('runOnceNow 未执行');
+    }
+
+    /**
+     * 仅当 Swoole 协程可用、当前 cid<0、且存在 Coroutine::run 时才新建调度器。
+     */
+    private function shouldEnterNewCoroutine(): bool
+    {
+        if (!class_exists(\Swoole\Coroutine::class)) {
+            return false;
+        }
+        try {
+            if (\Swoole\Coroutine::getCid() > 0) {
+                return false;
+            }
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return method_exists(\Swoole\Coroutine::class, 'run') || function_exists('\\Swoole\\Coroutine\\run');
     }
 
     /**
@@ -562,6 +684,22 @@ final class CronManager
             $result->status,
             $result->message,
         );
+    }
+
+    /**
+     * 开始执行日志。runOnceNow 标明忽略了本轮调度点，便于和 trigger 区分。
+     */
+    private function formatStartMessage(RuntimeJob $job, string $source): string
+    {
+        if ($source === 'runOnceNow') {
+            return sprintf(
+                '【%s】runOnceNow 开始执行（忽略 expression / nextRunAt） cron_expression=%s',
+                $job->definition->cronName,
+                $job->definition->expression,
+            );
+        }
+
+        return sprintf('【%s】开始执行 cron_expression=%s', $job->definition->cronName, $job->definition->expression);
     }
 
     /**

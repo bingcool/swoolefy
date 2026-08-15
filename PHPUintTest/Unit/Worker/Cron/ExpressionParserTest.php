@@ -97,6 +97,23 @@ final class ExpressionParserTest extends TestCase
     }
 
     /**
+     * calculateNextRunAt 只算下一合法点，不回填 Worker 停机期间错过的历史 misfire。
+     */
+    public function testCalculateNextRunAtDoesNotBackfillHistory(): void
+    {
+        $interval = $this->parser->parse(15);
+        $this->assertSame(1050, $interval->calculateNextRunAt(1040), '错过 1005/1020/1035 只给下一网格 1050');
+        $this->assertSame(1005, $interval->calculateNextRunAt(1000));
+
+        $cron = $this->parser->parse('*/5 * * * *', 'UTC');
+        $from = (new \DateTimeImmutable('2026-08-15 10:17:00', new \DateTimeZone('UTC')))->getTimestamp();
+        $expected = (new \DateTimeImmutable('2026-08-15 10:20:00', new \DateTimeZone('UTC')))->getTimestamp();
+        $this->assertSame($expected, $cron->calculateNextRunAt($from), '10:17 只给 10:20，不补 10:05/10:10/10:15');
+        $missed = (new \DateTimeImmutable('2026-08-15 10:15:00', new \DateTimeZone('UTC')))->getTimestamp();
+        $this->assertGreaterThan($missed, $cron->calculateNextRunAt($from));
+    }
+
+    /**
      * 非法 Cron 字符串必须抛 CronException，供 applyOp 隔离跳过。
      */
     public function testInvalidExpressionThrows(): void

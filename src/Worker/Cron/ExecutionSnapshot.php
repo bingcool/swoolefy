@@ -23,6 +23,7 @@ namespace Swoolefy\Worker\Cron;
  * plannedAt 是本轮计划点（nextRunAt），不是实际 start 墙钟。
  *
  * @see CronManager::onTrigger()
+ * @see CronManager::runOnceNow()
  * @see CronExecutorInterface::run()
  */
 final class ExecutionSnapshot

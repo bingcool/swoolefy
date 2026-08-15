@@ -27,6 +27,7 @@ use Swoolefy\Worker\Dto\CronUrlTaskMetaDtoWorker;
  * - Closure fetcher：按 cron_poll_interval 秒 Polling；抛异常保留 Last Known Good
  * - createCronExecutor() 默认 CompositeExecutor；子类注入 Shell / HTTP 执行钩子
  * - onShutDown() 必须 cronManager->stop() 并注销 RuntimeRegistry cron snapshot
+ * - runOnceNow() 转给 CronManager，引擎未启动时返回 FAILED
  *
  * 本类不再走 CrontabManager::addRule。进程内本地 crontab 见 {@see CronLocalProcess}，
  * 那是另一条产品线，不参与本引擎。
@@ -133,6 +134,27 @@ class CronProcess extends AbstractWorkerProcess
     protected function createCronExecutor(): CronExecutorInterface
     {
         return new CompositeExecutor(new ShellExecutor(), new HttpExecutor());
+    }
+
+    /**
+     * 生产引擎实例（未 start 或已 stop 时为 null）。供控制面 / 单测调用 runOnceNow。
+     */
+    public function cronManager(): ?CronManager
+    {
+        return $this->cronManager;
+    }
+
+    /**
+     * 忽略 expression，立刻用当前 Runtime 定义执行一次。见 {@see CronManager::runOnceNow()}。
+     * 引擎未启动时返回 FAILED，不上抛。
+     */
+    public function runOnceNow(string $jobId): ExecutionResult
+    {
+        if ($this->cronManager === null) {
+            return ExecutionResult::failed('runOnceNow: CronManager 未启动');
+        }
+
+        return $this->cronManager->runOnceNow($jobId);
     }
 
     /**

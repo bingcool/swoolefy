@@ -15,7 +15,8 @@ namespace Swoolefy\Worker\Cron;
  * cron_between / cron_skip 时间窗判断。
  *
  * 边界：不修改 expression、不改 Timer、不调用 Executor。
- * CronManager::onTrigger() 在 Guard 之前调用；不允许则 recordSkip，本轮结束。
+ * CronManager::onTrigger() / runOnceNow() 在 Guard 之前调用；不允许则 recordSkip，本轮结束。
+ * runOnceNow 忽略 expression，但仍走本过滤器（忽略的是调度点，不是时间窗）。
  *
  * 判定：allowed = inside(cron_between) && !inside(cron_skip)
  * - cron_between 为空：视为全天允许
@@ -27,6 +28,7 @@ namespace Swoolefy\Worker\Cron;
  * 非时刻串（完整日期时间）走 strtotime()；解析失败的窗视为不命中。
  *
  * @see CronManager::onTrigger()
+ * @see CronManager::runOnceNow()
  */
 final class TimeWindowFilter
 {

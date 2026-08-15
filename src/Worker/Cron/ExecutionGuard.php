@@ -15,7 +15,7 @@ namespace Swoolefy\Worker\Cron;
  * 执行并发守卫。
  *
  * 边界：只改 RuntimeJob::$running / $runningCount，不碰 Timer、不调用 Executor。
- * CronManager::onTrigger() 在 TimeWindowFilter 通过之后、创建 Snapshot 之前调用。
+ * CronManager::onTrigger() / runOnceNow() 在 TimeWindowFilter 通过之后、创建 Snapshot 之前调用。
  *
  * with_block_lapping=1 时，同一 Job 任意时刻最多一个 Running Execution。
  * check running + mark running 必须在同一临界区完成，中间不可 yield
@@ -27,6 +27,7 @@ namespace Swoolefy\Worker\Cron;
  * 本守卫是进程内协作式互斥，不是分布式锁。
  *
  * @see CronManager::onTrigger()
+ * @see CronManager::runOnceNow()
  */
 final class ExecutionGuard
 {
