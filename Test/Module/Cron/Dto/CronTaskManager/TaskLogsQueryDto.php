@@ -33,6 +33,18 @@ class TaskLogsQueryDto extends AbstractDto
     #[ApiProperty(description: '每页条数')]
     protected int $pageSize = 20;
 
+    #[ApiProperty(description: '执行批次 ID，空表示不过滤')]
+    protected ?string $execBatchId = null;
+
+    #[ApiProperty(description: '结果状态：success/failed/skipped，空表示不过滤')]
+    protected ?string $status = null;
+
+    #[ApiProperty(description: '开始时间（含）')]
+    protected ?string $startTime = null;
+
+    #[ApiProperty(description: '结束时间（含）')]
+    protected ?string $endTime = null;
+
     /** 获取任务 ID */
     public function getTaskId(): int
     {
@@ -85,5 +97,53 @@ class TaskLogsQueryDto extends AbstractDto
     public function getOffset(): int
     {
         return ($this->getPage() - 1) * $this->getPageSize();
+    }
+
+    public function getExecBatchId(): ?string
+    {
+        return $this->execBatchId;
+    }
+
+    public function setExecBatchId(?string $execBatchId): static
+    {
+        $this->execBatchId = $execBatchId !== null && trim($execBatchId) !== '' ? trim($execBatchId) : null;
+
+        return $this;
+    }
+
+    public function getStatus(): ?string
+    {
+        return $this->status;
+    }
+
+    public function setStatus(?string $status): static
+    {
+        $this->status = $status !== null && trim($status) !== '' ? strtolower(trim($status)) : null;
+
+        return $this;
+    }
+
+    public function getStartTime(): ?string
+    {
+        return $this->startTime;
+    }
+
+    public function setStartTime(?string $startTime): static
+    {
+        $this->startTime = $startTime !== null && trim($startTime) !== '' ? trim($startTime) : null;
+
+        return $this;
+    }
+
+    public function getEndTime(): ?string
+    {
+        return $this->endTime;
+    }
+
+    public function setEndTime(?string $endTime): static
+    {
+        $this->endTime = $endTime !== null && trim($endTime) !== '' ? trim($endTime) : null;
+
+        return $this;
     }
 }

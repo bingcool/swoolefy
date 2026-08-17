@@ -16,4 +16,20 @@ class ListTasksResponse extends BasePageResultResponse
     {
         $this->data = $data;
     }
+
+    public function getData(): array
+    {
+        $items = [];
+        foreach ($this->data->getList() as $row) {
+            $items[] = $row->toDeepArray();
+        }
+
+        return [
+            'items' => $items,
+            'list' => $items,
+            'page' => $this->data->getPage(),
+            'pageSize' => $this->data->getPageSize(),
+            'total' => $this->data->getTotal(),
+        ];
+    }
 }

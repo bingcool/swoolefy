@@ -86,6 +86,7 @@ final class CronManager
      * @param int|null $nodeId 非空时丢弃其它节点任务（过滤发生在 Diff 之前）
      * @param null|callable(ScheduleEvent|\Swoolefy\Worker\Dto\CronUrlTaskMetaDtoWorker,string,string,int):void $logWriter
      * @param CronMetrics|null $metrics 空则接入 RuntimeRegistry::metrics()；指标关闭时内部为 no-op
+     * @param null|callable(string,int,ExecutionResult):void $runOnceAck 消费手动执行请求后的确认回调
      */
     public function __construct(
         private $fetcher,
@@ -96,6 +97,7 @@ final class CronManager
         private readonly ?int $nodeId = null,
         private $logWriter = null,
         ?CronMetrics $metrics = null,
+        private $runOnceAck = null,
     ) {
         $this->registry = new RuntimeJobRegistry();
         $this->scheduler = new CronScheduler($this->timer, $this->clock);
@@ -159,6 +161,7 @@ final class CronManager
             $this->lastConfigSyncError = null;
             $this->lastConfigSyncAt = $this->clock->now();
             $this->applyRows($rows);
+            $this->consumeRunOnceRequests($rows);
 
             return true;
         } catch (\Throwable $e) {
@@ -206,6 +209,54 @@ final class CronManager
             $this->applyOp($op['op'], $op['jobId'], $op['definition']);
         }
         $this->refreshMetrics();
+    }
+
+    /**
+     * 消费 fetcher 行上的手动执行标记。
+     *
+     * 行字段 `run_once_requested` 为真时，在本节点对已注册 Job 调用 runOnceNow，
+     * 再通过 runOnceAck 清队列。不改 Schedule Timer / nextRunAt。
+     * 同一 job 本轮只跑一次；异常隔离，不得拖垮 Polling。
+     *
+     * @param list<array<string, mixed>> $rows
+     */
+    public function consumeRunOnceRequests(array $rows): void
+    {
+        $seen = [];
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $requested = $row['run_once_requested'] ?? $row['run_once_requested_at'] ?? null;
+            if (empty($requested)) {
+                continue;
+            }
+            try {
+                $definition = TaskDefinition::fromArray($row);
+            } catch (\Throwable $e) {
+                $this->debug('Skip run-once invalid task: ' . $e->getMessage());
+                continue;
+            }
+            if ($this->nodeId !== null && $definition->nodeId !== null && $definition->nodeId !== $this->nodeId) {
+                continue;
+            }
+            if (isset($seen[$definition->jobId])) {
+                continue;
+            }
+            $seen[$definition->jobId] = true;
+            try {
+                $result = $this->runOnceNow($definition->jobId);
+            } catch (\Throwable $e) {
+                $result = ExecutionResult::failed('runOnceNow 异常已隔离: ' . $e->getMessage());
+            }
+            if (is_callable($this->runOnceAck) && $definition->cronTaskId > 0) {
+                try {
+                    ($this->runOnceAck)($definition->jobId, $definition->cronTaskId, $result);
+                } catch (\Throwable $e) {
+                    $this->debug('runOnceAck failed: ' . $e->getMessage());
+                }
+            }
+        }
     }
 
     /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Module\Cron\Service;
 
+use Swoolefy\Worker\Cron\ExpressionParser;
 use Test\Module\Cron\Dto\CronTaskManager\CronTaskPayloadBuildResultDto;
 use Test\Module\Cron\Dto\CronTaskManager\CronTaskPayloadDto;
 
@@ -22,7 +23,7 @@ class CronTaskPayloadBuilder
      * 构建可持久化的任务字段集合。
      *
      * @param array<string, mixed> $payload snake_case：name、expression、command、exec_type、node_id、
-     *        description、status、with_block_lapping、http_*、cron_between、cron_skip 等
+     *        description、status、with_block_lapping、retry、http_*、cron_between、cron_skip 等
      * @param bool $isCreate true=创建校验；false=部分更新（缺省字段不写入 DTO）
      */
     public function build(array $payload, bool $isCreate): CronTaskPayloadBuildResultDto
@@ -35,6 +36,7 @@ class CronTaskPayloadBuilder
         $execType = isset($payload['exec_type']) ? (int)$payload['exec_type'] : null;
         $status = isset($payload['status']) ? (int)$payload['status'] : null;
         $withBlockLapping = isset($payload['with_block_lapping']) ? (int)$payload['with_block_lapping'] : null;
+        $retry = array_key_exists('retry', $payload) ? (int)$payload['retry'] : null;
         $httpMethod = strtoupper(trim((string)($payload['http_method'] ?? 'GET')));
         $httpTimeout = isset($payload['http_request_time_out']) ? (int)$payload['http_request_time_out'] : null;
         $cronBetween = $this->normalizeTimeRanges($payload['cron_between'] ?? null);
@@ -52,6 +54,17 @@ class CronTaskPayloadBuilder
             if ($nodeId <= 0) {
                 return CronTaskPayloadBuildResultDto::fail('node_id为必填');
             }
+        }
+
+        if ($expression !== '') {
+            $exprError = $this->validateExpression($expression);
+            if ($exprError !== null) {
+                return CronTaskPayloadBuildResultDto::fail($exprError);
+            }
+        }
+
+        if ($retry !== null && $retry < 0) {
+            return CronTaskPayloadBuildResultDto::fail('retry必须是>=0的整数');
         }
 
         $dto = new CronTaskPayloadDto();
@@ -79,6 +92,11 @@ class CronTaskPayloadBuilder
         }
         if ($withBlockLapping !== null && in_array($withBlockLapping, [0, 1], true)) {
             $dto->putWithBlockLapping($withBlockLapping);
+        }
+        if ($retry !== null) {
+            $dto->putRetry(max(0, $retry));
+        } elseif ($isCreate) {
+            $dto->putRetry(0);
         }
 
         if ($httpMethod !== '' || $isCreate) {
@@ -168,5 +186,21 @@ class CronTaskPayloadBuilder
         }
 
         return !empty($ranges) ? $ranges : null;
+    }
+
+    /**
+     * 用引擎 ExpressionParser 校验表达式，避免 Web API 再实现一套解析器。
+     *
+     * 秒级 Interval 实际下限由 IntervalSchedule 约束（>=5）；非法 Linux Cron 原样返回引擎文案。
+     */
+    protected function validateExpression(string $expression): ?string
+    {
+        try {
+            (new ExpressionParser())->parse($expression);
+        } catch (\Throwable $e) {
+            return 'expression无效: ' . $e->getMessage();
+        }
+
+        return null;
     }
 }

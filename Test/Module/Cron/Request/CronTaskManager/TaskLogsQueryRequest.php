@@ -19,6 +19,18 @@ class TaskLogsQueryRequest extends BasePageRequest
     #[StringToInt]
     protected int $taskId = 0;
 
+    #[ApiProperty(description: '执行批次 ID')]
+    protected ?string $execBatchId = null;
+
+    #[ApiProperty(description: '结果状态：success/failed/skipped')]
+    protected ?string $status = null;
+
+    #[ApiProperty(description: '开始时间（含）')]
+    protected ?string $startTime = null;
+
+    #[ApiProperty(description: '结束时间（含）')]
+    protected ?string $endTime = null;
+
     public function getTaskId(): int
     {
         return $this->taskId;
@@ -27,6 +39,54 @@ class TaskLogsQueryRequest extends BasePageRequest
     public function setTaskId(int $taskId): static
     {
         $this->taskId = $taskId;
+
+        return $this;
+    }
+
+    public function getExecBatchId(): ?string
+    {
+        return $this->execBatchId;
+    }
+
+    public function setExecBatchId(?string $execBatchId): static
+    {
+        $this->execBatchId = $execBatchId;
+
+        return $this;
+    }
+
+    public function getStatus(): ?string
+    {
+        return $this->status;
+    }
+
+    public function setStatus(?string $status): static
+    {
+        $this->status = $status;
+
+        return $this;
+    }
+
+    public function getStartTime(): ?string
+    {
+        return $this->startTime;
+    }
+
+    public function setStartTime(?string $startTime): static
+    {
+        $this->startTime = $startTime;
+
+        return $this;
+    }
+
+    public function getEndTime(): ?string
+    {
+        return $this->endTime;
+    }
+
+    public function setEndTime(?string $endTime): static
+    {
+        $this->endTime = $endTime;
 
         return $this;
     }

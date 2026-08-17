@@ -12,6 +12,7 @@
 namespace Swoolefy\Http;
 
 use Swoolefy\Annotation\ApiProperty;
+use Swoolefy\Annotation\StringToInt;
 use Swoolefy\Annotation\Validation\ValidationRule;
 
 /**
@@ -32,6 +33,7 @@ class BasePageRequest extends BaseRequest
             'int' => 'page must be int'
         ]
     )]
+    #[StringToInt]
     protected int $page = 1;
 
     /**
@@ -47,6 +49,7 @@ class BasePageRequest extends BaseRequest
             'int' => 'pageSize must be int'
         ]
     )]
+    #[StringToInt]
     protected int $pageSize = 10;
 
     public function setPage(int $page): static

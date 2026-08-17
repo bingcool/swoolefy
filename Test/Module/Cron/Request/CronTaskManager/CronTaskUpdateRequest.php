@@ -44,6 +44,9 @@ class CronTaskUpdateRequest extends BaseRequest
     #[ApiProperty(description: '是否阻塞重叠执行')]
     protected ?int $withBlockLapping = null;
 
+    #[ApiProperty(description: '失败后重试次数（不含首次；0=不重试）')]
+    protected ?int $retry = null;
+
     #[ApiProperty(description: 'HTTP 方法')]
     protected ?string $httpMethod = null;
 
@@ -180,6 +183,18 @@ class CronTaskUpdateRequest extends BaseRequest
     public function setWithBlockLapping(?int $withBlockLapping): static
     {
         $this->withBlockLapping = $withBlockLapping;
+
+        return $this;
+    }
+
+    public function getRetry(): ?int
+    {
+        return $this->retry;
+    }
+
+    public function setRetry(?int $retry): static
+    {
+        $this->retry = $retry;
 
         return $this;
     }
@@ -335,6 +350,9 @@ class CronTaskUpdateRequest extends BaseRequest
         }
         if ($this->withBlockLapping !== null) {
             $out['with_block_lapping'] = $this->withBlockLapping;
+        }
+        if ($this->retry !== null) {
+            $out['retry'] = $this->retry;
         }
         if ($this->httpMethod !== null) {
             $out['http_method'] = $this->httpMethod;

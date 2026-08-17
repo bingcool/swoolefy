@@ -162,15 +162,41 @@ class ResponseOutput extends HttpInputOut
     }
 
     /**
-     * sendHttpStatus
-     * @param int $code
+     * 将 HTTP 状态码规范为 int，再写入 Swoole Response。
+     *
+     * 异常 code 可能是字符串（如 "401"、PDO SQLSTATE "42S22"），
+     * 直接传入会触发 TypeError，掩盖原始业务异常。
+     *
+     * @param int|string $code HTTP 状态码；纯数字字符串转 int，非数字回退 500
      * @param string $reasonPhrase
      * @return ResponseOutput
      */
-    public function withStatus(int $code, string $reasonPhrase = '')
+    public function withStatus(int|string $code, string $reasonPhrase = '')
     {
-        $this->swooleResponse->status($code, $reasonPhrase);
+        $this->swooleResponse->status(self::normalizeHttpStatus($code), $reasonPhrase);
         return $this;
+    }
+
+    /**
+     * 将 HTTP 状态规范为 int。
+     *
+     * - int 原样返回
+     * - 纯数字字符串（如 "401"）转为 int
+     * - SQLSTATE 等非数字字符串回退 {@see Status::INTERNAL_SERVER_ERROR}
+     *
+     * @param int|string $code
+     */
+    public static function normalizeHttpStatus(int|string $code): int
+    {
+        if (is_int($code)) {
+            return $code;
+        }
+        $trimmed = trim($code);
+        if ($trimmed !== '' && preg_match('/^-?\d+$/', $trimmed) === 1) {
+            return (int) $trimmed;
+        }
+
+        return Status::INTERNAL_SERVER_ERROR;
     }
 
     /**

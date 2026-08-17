@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Module\Cron\Request\CronTaskManager;
 
 use Swoolefy\Annotation\ApiProperty;
+use Swoolefy\Annotation\StringToInt;
 use Swoolefy\Annotation\Validation\ValidationRule;
 use Swoolefy\Http\BasePageRequest;
 
@@ -19,14 +20,17 @@ class ListTasksRequest extends BasePageRequest
 
     #[ApiProperty(description: '任务状态：0=禁用, 1=启用')]
     #[ValidationRule(rule: 'nullable|int', message: 'status 必须是整数')]
+    #[StringToInt]
     protected ?int $status = null;
 
     #[ApiProperty(description: '节点 ID')]
     #[ValidationRule(rule: 'nullable|int', message: 'nodeId 必须是整数')]
+    #[StringToInt]
     protected ?int $nodeId = null;
 
     #[ApiProperty(description: '执行类型：1=shell, 2=http')]
     #[ValidationRule(rule: 'nullable|int', message: 'execType 必须是整数')]
+    #[StringToInt]
     protected ?int $execType = null;
 
     public function getKeyword(): ?string

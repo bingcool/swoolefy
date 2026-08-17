@@ -3,1409 +3,556 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Swoolefy Cron · 任务管理</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <title>Swoolefy Cron Admin</title>
+  <link rel="stylesheet" href="https://unpkg.com/element-ui@2.15.14/lib/theme-chalk/index.css" />
   <style>
-    :root {
-      --bg0: #e8eef4;
-      --bg1: #f4f7fa;
-      --ink: #1a2332;
-      --ink-muted: #5a6a7e;
-      --line: rgba(26, 35, 50, 0.1);
-      --surface: rgba(255, 255, 255, 0.78);
-      --surface-solid: #ffffff;
-      --accent: #0d7c6f;
-      --accent-soft: rgba(13, 124, 111, 0.12);
-      --accent-ink: #085a51;
-      --warn: #b45309;
-      --warn-soft: rgba(180, 83, 9, 0.12);
-      --danger: #b42318;
-      --danger-soft: rgba(180, 35, 24, 0.1);
-      --ok: #0f766e;
-      --shell: #1d4e89;
-      --http: #9a3412;
-      --radius: 10px;
-      --sidebar-w: 240px;
-      --font: "Outfit", sans-serif;
-      --mono: "IBM Plex Mono", ui-monospace, monospace;
-      --shadow: 0 1px 0 rgba(255,255,255,0.7) inset, 0 8px 28px rgba(26, 35, 50, 0.06);
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    html, body {
-      min-height: 100%;
-      font-family: var(--font);
-      color: var(--ink);
-      background:
-        radial-gradient(900px 480px at 8% -10%, rgba(13, 124, 111, 0.14), transparent 55%),
-        radial-gradient(700px 420px at 92% 8%, rgba(29, 78, 137, 0.1), transparent 50%),
-        linear-gradient(165deg, var(--bg0), var(--bg1) 45%, #edf2f7);
-      background-attachment: fixed;
-    }
-
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(26, 35, 50, 0.035) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(26, 35, 50, 0.035) 1px, transparent 1px);
-      background-size: 28px 28px;
-      pointer-events: none;
-      z-index: 0;
-      mask-image: linear-gradient(180deg, rgba(0,0,0,0.45), transparent 75%);
-    }
-
-    .app {
-      position: relative;
-      z-index: 1;
-      display: grid;
-      grid-template-columns: var(--sidebar-w) 1fr;
-      min-height: 100vh;
-    }
-
-    /* —— Sidebar —— */
-    .sidebar {
-      padding: 28px 18px 24px;
-      border-right: 1px solid var(--line);
-      background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.28));
-      backdrop-filter: blur(12px);
-      display: flex;
-      flex-direction: column;
-      gap: 28px;
-    }
-
-    .brand {
-      padding: 4px 10px;
-      animation: rise 0.55s ease both;
-    }
-
-    .brand-mark {
-      display: flex;
-      align-items: baseline;
-      gap: 8px;
-    }
-
-    .brand-name {
-      font-size: 1.55rem;
-      font-weight: 700;
-      letter-spacing: -0.03em;
-      line-height: 1.1;
-    }
-
-    .brand-name span {
-      color: var(--accent);
-    }
-
-    .brand-sub {
-      margin-top: 6px;
-      font-size: 0.78rem;
-      color: var(--ink-muted);
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-    }
-
-    .nav {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      animation: rise 0.55s ease 0.08s both;
-    }
-
-    .nav button {
-      appearance: none;
-      border: 0;
-      background: transparent;
-      text-align: left;
-      font: inherit;
-      font-size: 0.95rem;
-      font-weight: 500;
-      color: var(--ink-muted);
-      padding: 11px 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.2s, color 0.2s, transform 0.2s;
-    }
-
-    .nav button:hover {
-      color: var(--ink);
-      background: rgba(255,255,255,0.55);
-    }
-
-    .nav button.active {
-      color: var(--accent-ink);
-      background: var(--accent-soft);
-    }
-
-    .sidebar-foot {
-      margin-top: auto;
-      padding: 12px;
-      font-size: 0.75rem;
-      color: var(--ink-muted);
-      border-top: 1px solid var(--line);
-      animation: rise 0.55s ease 0.16s both;
-    }
-
-    .sidebar-foot code {
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      color: var(--accent-ink);
-    }
-
-    /* —— Main —— */
-    .main {
-      padding: 28px 32px 48px;
-      min-width: 0;
-    }
-
-    .page { display: none; animation: fadeIn 0.35s ease both; }
-    .page.active { display: block; }
-
-    .page-head {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 22px;
-      flex-wrap: wrap;
-    }
-
-    .page-head h1 {
-      font-size: 1.65rem;
-      font-weight: 650;
-      letter-spacing: -0.03em;
-    }
-
-    .page-head p {
-      margin-top: 4px;
-      color: var(--ink-muted);
-      font-size: 0.92rem;
-    }
-
-    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
-
-    .btn {
-      appearance: none;
-      border: 1px solid var(--line);
-      background: var(--surface-solid);
-      color: var(--ink);
-      font: inherit;
-      font-size: 0.88rem;
-      font-weight: 550;
-      padding: 9px 14px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.18s, border-color 0.18s, transform 0.15s;
-    }
-
-    .btn:hover { border-color: rgba(13,124,111,0.35); transform: translateY(-1px); }
-    .btn:active { transform: translateY(0); }
-
-    .btn-primary {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: #fff;
-    }
-
-    .btn-primary:hover { background: var(--accent-ink); border-color: var(--accent-ink); }
-
-    .btn-ghost { background: transparent; }
-    .btn-danger { color: var(--danger); border-color: rgba(180,35,24,0.25); }
-    .btn-sm { padding: 5px 10px; font-size: 0.8rem; }
-
-    /* —— Filters / toolbar —— */
-    .toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 16px;
-      align-items: center;
-    }
-
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      min-width: 0;
-    }
-
-    .field label {
-      font-size: 0.72rem;
-      font-weight: 550;
-      color: var(--ink-muted);
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
-    }
-
-    .field input,
-    .field select,
-    .field textarea {
-      font: inherit;
-      font-size: 0.9rem;
-      color: var(--ink);
-      background: var(--surface-solid);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 9px 11px;
-      outline: none;
-      transition: border-color 0.15s, box-shadow 0.15s;
-      width: 100%;
-    }
-
-    .field input:focus,
-    .field select:focus,
-    .field textarea:focus {
-      border-color: rgba(13,124,111,0.45);
-      box-shadow: 0 0 0 3px var(--accent-soft);
-    }
-
-    .field textarea {
-      font-family: var(--mono);
-      font-size: 0.8rem;
-      min-height: 88px;
-      resize: vertical;
-    }
-
-    .field-inline { min-width: 140px; }
-    .field-grow { flex: 1; min-width: 180px; }
-
-    /* —— Panels / tables —— */
-    .panel {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-
-    .table-wrap { overflow-x: auto; }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.9rem;
-    }
-
-    th, td {
-      text-align: left;
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--line);
-      vertical-align: middle;
-    }
-
-    th {
-      font-size: 0.72rem;
-      font-weight: 600;
-      color: var(--ink-muted);
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      background: rgba(255,255,255,0.55);
-      white-space: nowrap;
-    }
-
-    tr:last-child td { border-bottom: 0; }
-    tbody tr { transition: background 0.15s; }
-    tbody tr:hover { background: rgba(13, 124, 111, 0.04); }
-
-    .mono { font-family: var(--mono); font-size: 0.8rem; }
-    .muted { color: var(--ink-muted); }
-    .truncate {
-      max-width: 220px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      padding: 3px 8px;
-      border-radius: 6px;
-      white-space: nowrap;
-    }
-
-    .badge::before {
-      content: "";
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: currentColor;
-    }
-
-    .badge-ok { color: var(--ok); background: var(--accent-soft); }
-    .badge-off { color: var(--ink-muted); background: rgba(90,106,126,0.12); }
-    .badge-shell { color: var(--shell); background: rgba(29,78,137,0.1); }
-    .badge-http { color: var(--http); background: rgba(154,52,18,0.1); }
-    .badge-warn { color: var(--warn); background: var(--warn-soft); }
-    .badge-fail { color: var(--danger); background: var(--danger-soft); }
-
-    .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
-
-    .pager {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 12px 14px;
-      border-top: 1px solid var(--line);
-      font-size: 0.85rem;
-      color: var(--ink-muted);
-    }
-
-    /* —— Overview —— */
-    .stat-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 14px;
-      margin-bottom: 22px;
-    }
-
-    .stat {
-      padding: 18px 18px 16px;
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      animation: rise 0.5s ease both;
-    }
-
-    .stat:nth-child(2) { animation-delay: 0.05s; }
-    .stat:nth-child(3) { animation-delay: 0.1s; }
-    .stat:nth-child(4) { animation-delay: 0.15s; }
-
-    .stat-label {
-      font-size: 0.75rem;
-      font-weight: 550;
-      color: var(--ink-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-
-    .stat-value {
-      margin-top: 8px;
-      font-size: 1.85rem;
-      font-weight: 700;
-      letter-spacing: -0.03em;
-      line-height: 1;
-    }
-
-    .stat-hint {
-      margin-top: 8px;
-      font-size: 0.8rem;
-      color: var(--ink-muted);
-    }
-
-    .split {
-      display: grid;
-      grid-template-columns: 1.4fr 1fr;
-      gap: 14px;
-    }
-
-    .panel-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .panel-head h2 {
-      font-size: 1rem;
-      font-weight: 600;
-    }
-
-    .empty {
-      padding: 36px 16px;
-      text-align: center;
-      color: var(--ink-muted);
-      font-size: 0.9rem;
-    }
-
-    /* —— Modal —— */
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(18, 28, 40, 0.42);
-      backdrop-filter: blur(3px);
-      z-index: 40;
-      display: none;
-      align-items: flex-start;
-      justify-content: center;
-      padding: 48px 16px;
-      overflow-y: auto;
-    }
-
-    .modal-backdrop.open { display: flex; animation: fadeIn 0.2s ease; }
-
-    .modal {
-      width: min(680px, 100%);
-      background: var(--surface-solid);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      box-shadow: 0 24px 60px rgba(18, 28, 40, 0.18);
-      animation: slideUp 0.28s ease;
-    }
-
-    .modal-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 18px;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .modal-head h3 { font-size: 1.1rem; font-weight: 600; }
-
-    .modal-body {
-      padding: 18px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px 14px;
-    }
-
-    .modal-body .span-2 { grid-column: span 2; }
-
-    .modal-foot {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-      padding: 14px 18px;
-      border-top: 1px solid var(--line);
-      background: rgba(244, 247, 250, 0.6);
-    }
-
-    .http-only.hidden { display: none !important; }
-
-    /* —— Toast —— */
-    .toast {
-      position: fixed;
-      right: 24px;
-      bottom: 24px;
-      z-index: 50;
-      background: var(--ink);
-      color: #fff;
-      padding: 12px 16px;
-      border-radius: 8px;
-      font-size: 0.88rem;
-      opacity: 0;
-      transform: translateY(8px);
-      pointer-events: none;
-      transition: opacity 0.25s, transform 0.25s;
-      max-width: 320px;
-    }
-
-    .toast.show {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .drawer-stats {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--line);
-      background: rgba(13, 124, 111, 0.04);
-    }
-
-    .mini-stat strong {
-      display: block;
-      font-size: 1.15rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-    }
-
-    .mini-stat span {
-      font-size: 0.72rem;
-      color: var(--ink-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-    }
-
-    @keyframes rise {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(16px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @media (max-width: 1100px) {
-      .stat-grid { grid-template-columns: repeat(2, 1fr); }
-      .split { grid-template-columns: 1fr; }
-      .drawer-stats { grid-template-columns: repeat(2, 1fr); }
-    }
-
-    @media (max-width: 820px) {
-      .app { grid-template-columns: 1fr; }
-      .sidebar {
-        border-right: 0;
-        border-bottom: 1px solid var(--line);
-        padding: 18px 16px;
-        gap: 16px;
-      }
-      .nav { flex-direction: row; flex-wrap: wrap; }
-      .sidebar-foot { display: none; }
-      .main { padding: 20px 16px 40px; }
-      .modal-body { grid-template-columns: 1fr; }
-      .modal-body .span-2 { grid-column: span 1; }
-    }
+    html, body, #app { height: 100%; margin: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif; }
+    .app-wrapper { display: flex; height: 100%; }
+    .sidebar { width: 210px; background: #304156; color: #bfcbd9; flex-shrink: 0; overflow: auto; }
+    .brand { padding: 20px 16px 12px; color: #fff; font-weight: 700; font-size: 16px; }
+    .brand small { display: block; color: #909399; font-weight: 400; font-size: 12px; margin-top: 4px; }
+    .sidebar .el-menu { border-right: 0; }
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; background: #f0f2f5; }
+    .navbar { height: 50px; background: #fff; box-shadow: 0 1px 4px rgba(0,21,41,.08); display: flex; align-items: center; padding: 0 20px; }
+    .content { padding: 16px 20px 24px; overflow: auto; flex: 1; }
+    .page-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+    .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+    .editor-layout { display: grid; grid-template-columns: minmax(0,1fr) 320px; gap: 16px; align-items: start; }
+    .preview-card { position: sticky; top: 8px; }
+    .expr-types { display: flex; gap: 10px; margin-bottom: 12px; }
+    .expr-type { flex: 1; border: 1px solid #dcdfe6; border-radius: 6px; padding: 10px 12px; cursor: pointer; background: #fff; }
+    .expr-type.active { border-color: #409eff; background: #ecf5ff; }
+    .expr-type small { display: block; color: #909399; margin-top: 4px; }
+    .kv { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ebeef5; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .callout { background: #fdf6ec; border: 1px solid #faecd8; color: #e6a23c; border-radius: 4px; padding: 10px; font-size: 12px; line-height: 1.6; margin-top: 12px; }
+    .callout.info { background: #ecf5ff; border-color: #d9ecff; color: #409eff; }
+    @media (max-width: 1100px) { .stat-row, .editor-layout { grid-template-columns: 1fr; } .sidebar { width: 180px; } }
   </style>
 </head>
 <body>
-  <div class="app">
+<div id="app">
+  <div class="app-wrapper">
     <aside class="sidebar">
-      <div class="brand">
-        <div class="brand-mark">
-          <div class="brand-name">Swoolefy <span>Cron</span></div>
-        </div>
-        <div class="brand-sub">Task Manager Console</div>
-      </div>
-      <nav class="nav" id="nav">
-        <button type="button" data-page="overview" class="active">总览</button>
-        <button type="button" data-page="tasks">定时任务</button>
-        <button type="button" data-page="nodes">Agent 节点</button>
-        <button type="button" data-page="logs">执行日志</button>
-      </nav>
-      <div class="sidebar-foot">
-        API 对接 <code>http://127.0.0.1:9501/api/v1/*</code>
-      </div>
+      <div class="brand">Swoolefy Cron<small>Production Admin</small></div>
+      <el-menu :default-active="$route.path" background-color="#304156" text-color="#bfcbd9" active-text-color="#409EFF" router>
+        <el-menu-item index="/dashboard"><i class="el-icon-data-line"></i><span>Dashboard</span></el-menu-item>
+        <el-menu-item index="/tasks"><i class="el-icon-s-order"></i><span>计划任务</span></el-menu-item>
+        <el-menu-item index="/executions"><i class="el-icon-time"></i><span>执行记录</span></el-menu-item>
+        <el-menu-item index="/nodes"><i class="el-icon-monitor"></i><span>Cron Nodes</span></el-menu-item>
+        <el-menu-item index="/runtime"><i class="el-icon-odometer"></i><span>Runtime</span></el-menu-item>
+      </el-menu>
     </aside>
-
-    <main class="main">
-      <!-- Overview -->
-      <section class="page active" id="page-overview">
-        <div class="page-head">
-          <div>
-            <h1>总览</h1>
-            <p>Cron 任务与 Agent 节点运行概况</p>
-          </div>
-          <div class="actions">
-            <button class="btn" type="button" onclick="switchPage('tasks')">管理任务</button>
-            <button class="btn btn-primary" type="button" onclick="openTaskModal()">新建任务</button>
-          </div>
-        </div>
-
-        <div class="stat-grid" id="overview-stats"></div>
-
-        <div class="split">
-          <div class="panel">
-            <div class="panel-head">
-              <h2>最近任务</h2>
-              <button class="btn btn-sm btn-ghost" type="button" onclick="switchPage('tasks')">全部</button>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>名称</th>
-                    <th>类型</th>
-                    <th>表达式</th>
-                    <th>状态</th>
-                  </tr>
-                </thead>
-                <tbody id="overview-tasks"></tbody>
-              </table>
-            </div>
-          </div>
-          <div class="panel">
-            <div class="panel-head">
-              <h2>Agent 节点</h2>
-              <button class="btn btn-sm btn-ghost" type="button" onclick="switchPage('nodes')">全部</button>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>名称</th>
-                    <th>IP</th>
-                    <th>任务数</th>
-                  </tr>
-                </thead>
-                <tbody id="overview-nodes"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Tasks -->
-      <section class="page" id="page-tasks">
-        <div class="page-head">
-          <div>
-            <h1>定时任务</h1>
-            <p>GET/POST/PUT/DELETE · <span class="mono">/api/v1/tasks</span></p>
-          </div>
-          <div class="actions">
-            <button class="btn btn-primary" type="button" onclick="openTaskModal()">新建任务</button>
-          </div>
-        </div>
-
-        <div class="toolbar">
-          <div class="field field-grow">
-            <label>关键词</label>
-            <input id="filter-keyword" type="search" placeholder="任务名称" oninput="renderTasks()" />
-          </div>
-          <div class="field field-inline">
-            <label>状态</label>
-            <select id="filter-status" onchange="renderTasks()">
-              <option value="">全部</option>
-              <option value="1">启用</option>
-              <option value="0">禁用</option>
-            </select>
-          </div>
-          <div class="field field-inline">
-            <label>类型</label>
-            <select id="filter-exec" onchange="renderTasks()">
-              <option value="">全部</option>
-              <option value="1">Shell</option>
-              <option value="2">HTTP</option>
-            </select>
-          </div>
-          <div class="field field-inline">
-            <label>节点</label>
-            <select id="filter-node" onchange="renderTasks()"></select>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>名称</th>
-                  <th>Cron</th>
-                  <th>类型</th>
-                  <th>节点</th>
-                  <th>状态</th>
-                  <th>更新时间</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody id="tasks-body"></tbody>
-            </table>
-          </div>
-          <div class="pager">
-            <span id="tasks-pager-info">共 0 条</span>
-            <span class="muted">实时数据</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- Nodes -->
-      <section class="page" id="page-nodes">
-        <div class="page-head">
-          <div>
-            <h1>Agent 节点</h1>
-            <p>GET/POST/DELETE · <span class="mono">/api/v1/nodes</span></p>
-          </div>
-          <div class="actions">
-            <button class="btn btn-primary" type="button" onclick="openNodeModal()">新建节点</button>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>名称</th>
-                  <th>IP</th>
-                  <th>备注</th>
-                  <th>绑定任务</th>
-                  <th>创建时间</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody id="nodes-body"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- Logs -->
-      <section class="page" id="page-logs">
-        <div class="page-head">
-          <div>
-            <h1>执行日志</h1>
-            <p>日志 <span class="mono">/api/v1/tasks/logs</span> · 统计 <span class="mono">/api/v1/tasks/stats</span></p>
-          </div>
-        </div>
-
-        <div class="toolbar">
-          <div class="field field-inline">
-            <label>任务</label>
-            <select id="logs-task" onchange="renderLogs()"></select>
-          </div>
-        </div>
-
-        <div class="panel" style="margin-bottom: 14px;">
-          <div class="panel-head">
-            <h2>任务统计</h2>
-            <span class="muted mono" id="stats-task-label"></span>
-          </div>
-          <div class="drawer-stats" id="logs-stats"></div>
-        </div>
-
-        <div class="panel">
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>批次</th>
-                  <th>结果</th>
-                  <th>消息</th>
-                  <th>时间</th>
-                </tr>
-              </thead>
-              <tbody id="logs-body"></tbody>
-            </table>
-          </div>
-          <div class="pager">
-            <span id="logs-pager-info">共 0 条</span>
-            <span class="muted">按 taskId 分页查询</span>
-          </div>
-        </div>
-      </section>
-    </main>
+    <section class="main">
+      <header class="navbar">
+        <el-breadcrumb separator="/">
+          <el-breadcrumb-item>Cron Admin</el-breadcrumb-item>
+          <el-breadcrumb-item>{{ breadcrumb }}</el-breadcrumb-item>
+        </el-breadcrumb>
+      </header>
+      <div class="content"><router-view></router-view></div>
+    </section>
   </div>
+</div>
 
-  <!-- Task modal -->
-  <div class="modal-backdrop" id="task-modal" role="dialog" aria-modal="true">
-    <div class="modal">
-      <div class="modal-head">
-        <h3 id="task-modal-title">新建任务</h3>
-        <button class="btn btn-sm btn-ghost" type="button" onclick="closeTaskModal()">关闭</button>
+<script type="text/x-template" id="tpl-dashboard">
+  <div>
+    <div class="page-head"><div><h2 style="margin:0">Dashboard</h2><p style="color:#909399;margin:6px 0 0">任务、今日执行与节点心跳聚合</p></div></div>
+    <div class="stat-row">
+      <el-card shadow="never"><div>任务总数</div><h2>{{ overview.tasks.total }}</h2><div>启用 {{ overview.tasks.enabled }} / 禁用 {{ overview.tasks.disabled }}</div></el-card>
+      <el-card shadow="never"><div>今日执行</div><h2>{{ overview.executions.today }}</h2><div>成功 {{ overview.executions.success }} / 失败 {{ overview.executions.failed }}</div></el-card>
+      <el-card shadow="never"><div>节点</div><h2>{{ overview.nodes.total }}</h2><div>在线 {{ overview.nodes.online }} / 离线 {{ overview.nodes.offline }} / 未知 {{ overview.nodes.unknown }}</div></el-card>
+      <el-card shadow="never"><div>跳过</div><h2>{{ overview.executions.skipped }}</h2><div>今日 SKIP</div></el-card>
+    </div>
+    <el-card shadow="never">
+      <div slot="header" class="clearfix">
+        <span>执行趋势</span>
+        <el-radio-group v-model="range" size="mini" style="float:right" @change="loadTrend">
+          <el-radio-button label="24h">24h</el-radio-button>
+          <el-radio-button label="7d">7d</el-radio-button>
+          <el-radio-button label="30d">30d</el-radio-button>
+        </el-radio-group>
       </div>
-      <form class="modal-body" id="task-form" onsubmit="saveTask(event)">
-        <input type="hidden" id="task-id" />
-        <div class="field">
-          <label>名称 *</label>
-          <input id="task-name" required placeholder="demo-shell" />
+      <el-table :data="trend" size="small">
+        <el-table-column prop="time" label="时间"></el-table-column>
+        <el-table-column prop="total" label="总计"></el-table-column>
+        <el-table-column prop="success" label="成功"></el-table-column>
+        <el-table-column prop="failed" label="失败"></el-table-column>
+      </el-table>
+    </el-card>
+  </div>
+</script>
+
+<script type="text/x-template" id="tpl-tasks">
+  <div>
+    <div class="page-head">
+      <div><h2 style="margin:0">计划任务</h2><p style="color:#909399;margin:6px 0 0">配置写入 cron_task，Worker Polling 后生效</p></div>
+      <el-button type="primary" icon="el-icon-plus" @click="$router.push('/tasks/create')">创建任务</el-button>
+    </div>
+    <el-card shadow="never">
+      <el-form :inline="true" size="small" @submit.native.prevent="search">
+        <el-form-item label="关键词"><el-input v-model="query.keyword" clearable placeholder="任务名称"></el-input></el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="query.status" clearable placeholder="全部" style="width:110px">
+            <el-option :value="1" label="启用"></el-option>
+            <el-option :value="0" label="禁用"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="节点">
+          <el-select v-model="query.nodeId" clearable placeholder="全部" style="width:160px">
+            <el-option v-for="n in nodes" :key="n.id" :value="n.id" :label="n.nodeName"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="类型">
+          <el-select v-model="query.execType" clearable placeholder="全部" style="width:110px">
+            <el-option :value="1" label="Shell"></el-option>
+            <el-option :value="2" label="HTTP"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item><el-button type="primary" @click="search">查询</el-button></el-form-item>
+      </el-form>
+      <el-table :data="items" v-loading="loading" @selection-change="sel=$event">
+        <el-table-column type="selection" width="42"></el-table-column>
+        <el-table-column prop="name" label="名称" min-width="140"></el-table-column>
+        <el-table-column prop="expression" label="Expression" width="140"><template slot-scope="s"><span class="mono">{{ s.row.expression }}</span><el-tag size="mini" style="margin-left:6px">{{ s.row.expressionType }}</el-tag></template></el-table-column>
+        <el-table-column prop="nodeId" label="Node" width="70"></el-table-column>
+        <el-table-column label="Type" width="80"><template slot-scope="s"><el-tag size="mini" :type="s.row.execType===2?'warning':'primary'">{{ s.row.execType===2?'HTTP':'Shell' }}</el-tag></template></el-table-column>
+        <el-table-column label="Status" width="80"><template slot-scope="s"><el-tag size="mini" :type="s.row.status===1?'success':'info'">{{ s.row.status===1?'启用':'禁用' }}</el-tag></template></el-table-column>
+        <el-table-column prop="retry" label="Retry" width="70"></el-table-column>
+        <el-table-column prop="updatedAt" label="Updated" width="160"></el-table-column>
+        <el-table-column label="操作" width="280" fixed="right">
+          <template slot-scope="s">
+            <el-button type="text" @click="$router.push('/tasks/detail/'+s.row.id)">详情</el-button>
+            <el-button type="text" @click="$router.push('/tasks/edit/'+s.row.id)">编辑</el-button>
+            <el-button type="text" @click="toggle(s.row)">{{ s.row.status===1?'停用':'启用' }}</el-button>
+            <el-button type="text" @click="runOnce(s.row)">执行一次</el-button>
+            <el-button type="text" @click="dup(s.row)">复制</el-button>
+            <el-button type="text" style="color:#f56c6c" @click="remove(s.row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <el-button size="mini" :disabled="!sel.length" @click="batch(1)">批量启用</el-button>
+          <el-button size="mini" :disabled="!sel.length" @click="batch(0)">批量停用</el-button>
         </div>
-        <div class="field">
-          <label>Cron 表达式 *</label>
-          <input id="task-expression" class="mono" required placeholder="*/5 * * * *" />
-        </div>
-        <div class="field span-2">
-          <label>命令 / URL *</label>
-          <input id="task-command" class="mono" required placeholder="php script.php start --c=Demo" />
-        </div>
-        <div class="field">
-          <label>执行类型 *</label>
-          <select id="task-execType" onchange="toggleHttpFields()">
-            <option value="1">Shell (1)</option>
-            <option value="2">HTTP (2)</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>节点 *</label>
-          <select id="task-nodeId" required></select>
-        </div>
-        <div class="field">
-          <label>状态</label>
-          <select id="task-status">
-            <option value="1">启用</option>
-            <option value="0">禁用</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>阻塞重叠</label>
-          <select id="task-block">
-            <option value="0">否</option>
-            <option value="1">是</option>
-          </select>
-        </div>
-        <div class="field span-2">
-          <label>描述</label>
-          <input id="task-description" placeholder="可选说明" />
-        </div>
-        <div class="field http-only">
-          <label>HTTP Method</label>
-          <select id="task-httpMethod">
-            <option>GET</option>
-            <option>POST</option>
-            <option>PUT</option>
-            <option>DELETE</option>
-          </select>
-        </div>
-        <div class="field http-only">
-          <label>超时（秒）</label>
-          <input id="task-timeout" type="number" min="1" value="30" />
-        </div>
-        <div class="field span-2 http-only">
-          <label>HTTP Body (JSON)</label>
-          <textarea id="task-httpBody" placeholder='{"ping": true}'></textarea>
-        </div>
-        <div class="field span-2 http-only">
-          <label>HTTP Headers (JSON)</label>
-          <textarea id="task-httpHeaders" placeholder='{"X-Demo": "1"}'></textarea>
-        </div>
-        <div class="field span-2">
-          <label>允许时间段 cronBetween（每行 start,end）</label>
-          <textarea id="task-between" placeholder="09:00,18:00"></textarea>
-        </div>
-        <div class="field span-2">
-          <label>跳过时间段 cronSkip（每行 start,end）</label>
-          <textarea id="task-skip" placeholder="12:00,13:00"></textarea>
-        </div>
-      </form>
-      <div class="modal-foot">
-        <button class="btn" type="button" onclick="closeTaskModal()">取消</button>
-        <button class="btn btn-primary" type="submit" form="task-form">保存</button>
+        <el-pagination background layout="total, prev, pager, next" :total="total" :page-size="query.pageSize" :current-page.sync="query.page" @current-change="load"></el-pagination>
+      </div>
+    </el-card>
+  </div>
+</script>
+
+<script type="text/x-template" id="tpl-editor">
+  <div>
+    <div class="page-head">
+      <div>
+        <h2 style="margin:0">{{ isEdit ? '编辑计划任务' : '创建计划任务' }}</h2>
+        <p style="color:#909399;margin:6px 0 0">配置调度规则、执行方式以及运行策略</p>
+      </div>
+      <div>
+        <el-button @click="$router.push('/tasks')">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="save">保存任务</el-button>
       </div>
     </div>
-  </div>
-
-  <!-- Node modal -->
-  <div class="modal-backdrop" id="node-modal" role="dialog" aria-modal="true">
-    <div class="modal" style="width: min(440px, 100%);">
-      <div class="modal-head">
-        <h3>新建节点</h3>
-        <button class="btn btn-sm btn-ghost" type="button" onclick="closeNodeModal()">关闭</button>
-      </div>
-      <form class="modal-body" id="node-form" onsubmit="saveNode(event)" style="grid-template-columns: 1fr;">
-        <div class="field">
-          <label>名称 *</label>
-          <input id="node-name" required placeholder="agent-prod-1" />
+    <div class="editor-layout">
+      <el-card shadow="never">
+        <h3>基础信息</h3>
+        <el-form label-width="110px" size="small">
+          <el-form-item label="任务名称" required><el-input v-model="form.name" placeholder="例如：订单同步"></el-input></el-form-item>
+          <el-form-item label="执行节点" required>
+            <el-select v-model="form.nodeId" style="width:100%">
+              <el-option v-for="n in nodes" :key="n.id" :value="n.id" :label="n.nodeName+'（'+n.nodeIp+'）'"></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="描述"><el-input type="textarea" v-model="form.description"></el-input></el-form-item>
+        </el-form>
+        <h3>调度配置</h3>
+        <div class="expr-types">
+          <div class="expr-type" :class="{active: exprType==='interval'}" @click="setExprType('interval')"><b>每 N 秒</b><small>适合 15s、30s 等高频任务（引擎下限 5 秒）</small></div>
+          <div class="expr-type" :class="{active: exprType==='cron'}" @click="setExprType('cron')"><b>Linux Cron</b><small>分钟级标准 Cron 表达式</small></div>
         </div>
-        <div class="field">
-          <label>IP *</label>
-          <input id="node-ip" required placeholder="10.0.0.12" />
+        <el-form label-width="110px" size="small" v-if="exprType==='interval'">
+          <el-form-item label="间隔（秒）" required><el-input-number v-model="intervalSec" :min="5" @change="previewExpr"></el-input-number></el-form-item>
+        </el-form>
+        <el-form label-width="110px" size="small" v-else>
+          <el-form-item label="Cron 表达式" required><el-input class="mono" v-model="cronExpr" placeholder="*/5 * * * *" @input="previewExpr"></el-input></el-form-item>
+        </el-form>
+        <el-alert :title="preview.valid ? '表达式有效' : '表达式无效'" :type="preview.valid?'success':'error'" :description="preview.description" show-icon :closable="false"></el-alert>
+        <div style="margin-top:8px">
+          <el-tag v-for="t in preview.nextRuns" :key="t" size="mini" style="margin:0 6px 6px 0">{{ t }}</el-tag>
         </div>
-        <div class="field">
-          <label>备注</label>
-          <input id="node-remark" placeholder="可选" />
+        <h3>执行配置</h3>
+        <el-radio-group v-model="form.execType" size="small" style="margin-bottom:12px">
+          <el-radio-button :label="1">Shell</el-radio-button>
+          <el-radio-button :label="2">HTTP</el-radio-button>
+        </el-radio-group>
+        <el-form label-width="110px" size="small" v-if="form.execType===1">
+          <el-form-item label="Command" required><el-input type="textarea" class="mono" v-model="form.command"></el-input></el-form-item>
+        </el-form>
+        <el-form label-width="110px" size="small" v-else>
+          <el-form-item label="Request URL" required><el-input v-model="form.command"></el-input></el-form-item>
+          <el-form-item label="HTTP Method">
+            <el-select v-model="form.httpMethod"><el-option label="GET" value="GET"></el-option><el-option label="POST" value="POST"></el-option><el-option label="PUT" value="PUT"></el-option><el-option label="DELETE" value="DELETE"></el-option></el-select>
+          </el-form-item>
+          <el-form-item label="Timeout（秒）"><el-input-number v-model="form.httpRequestTimeOut" :min="0"></el-input-number></el-form-item>
+          <el-form-item label="HTTP Headers"><el-input type="textarea" class="mono" v-model="headersText" placeholder='{"Content-Type":"application/json"}'></el-input></el-form-item>
+          <el-form-item label="HTTP Body"><el-input type="textarea" class="mono" v-model="bodyText"></el-input></el-form-item>
+        </el-form>
+        <h3>执行策略</h3>
+        <el-form label-width="110px" size="small">
+          <el-form-item label="阻塞重叠"><el-switch v-model="form.withBlockLapping" :active-value="1" :inactive-value="0"></el-switch></el-form-item>
+          <el-form-item label="失败重试"><el-input-number v-model="form.retry" :min="0"></el-input-number><span style="margin-left:8px;color:#909399">不含首次；0=不重试</span></el-form-item>
+          <el-form-item label="cron_between"><el-input type="textarea" class="mono" v-model="betweenText" placeholder='[{"start":"09:00","end":"18:00"}]'></el-input></el-form-item>
+          <el-form-item label="cron_skip"><el-input type="textarea" class="mono" v-model="skipText" placeholder='[{"start":"12:00","end":"13:00"}]'></el-input></el-form-item>
+          <el-form-item :label="isEdit?'启用状态':'创建后启用'"><el-switch v-model="form.status" :active-value="1" :inactive-value="0"></el-switch></el-form-item>
+        </el-form>
+        <div style="text-align:right" v-if="isEdit">
+          <el-button type="danger" plain @click="remove">删除任务</el-button>
         </div>
-      </form>
-      <div class="modal-foot">
-        <button class="btn" type="button" onclick="closeNodeModal()">取消</button>
-        <button class="btn btn-primary" type="submit" form="node-form">创建</button>
-      </div>
+      </el-card>
+      <el-card shadow="never" class="preview-card">
+        <div style="display:flex;justify-content:space-between"><b>任务预览</b><el-tag size="mini" :type="form.status===1?'success':'info'">{{ form.status===1?'启用':'禁用' }}</el-tag></div>
+        <h3>{{ form.name || '未命名任务' }}</h3>
+        <p style="color:#909399">{{ form.description || '暂无描述' }}</p>
+        <div class="kv"><span>执行节点</span><b>{{ nodeLabel }}</b></div>
+        <div class="kv"><span>调度类型</span><b>{{ exprType==='interval'?'每 N 秒':'Linux Cron' }}</b></div>
+        <div class="kv"><span>表达式</span><b class="mono">{{ form.expression }}</b></div>
+        <div class="kv"><span>执行类型</span><b>{{ form.execType===2?'HTTP':'Shell' }}</b></div>
+        <div class="kv"><span>防重叠</span><b>{{ form.withBlockLapping?'是':'否' }}</b></div>
+        <div class="kv"><span>Retry</span><b>{{ form.retry }}</b></div>
+        <div class="callout">保存后只写入 <span class="mono">cron_task</span>。Cron Worker 通过数据库 Polling 发现配置变化。</div>
+        <div class="callout info">Shell Command 属于高风险配置；敏感 Header 不会在详情接口明文回传。</div>
+      </el-card>
     </div>
   </div>
+</script>
 
-  <div class="toast" id="toast"></div>
+<script type="text/x-template" id="tpl-detail">
+  <div>
+    <div class="page-head">
+      <div><h2 style="margin:0">{{ row.name }}</h2><p style="color:#909399;margin:6px 0 0">任务详情</p></div>
+      <div>
+        <el-button @click="$router.push('/tasks/edit/'+id)">编辑</el-button>
+        <el-button type="primary" @click="runOnce">执行一次</el-button>
+      </div>
+    </div>
+    <el-card shadow="never" v-loading="loading">
+      <el-descriptions :column="2" border>
+        <el-descriptions-item label="ID">{{ row.id }}</el-descriptions-item>
+        <el-descriptions-item label="节点">{{ row.nodeId }}</el-descriptions-item>
+        <el-descriptions-item label="表达式"><span class="mono">{{ row.expression }}</span> <el-tag size="mini">{{ row.expressionType }}</el-tag></el-descriptions-item>
+        <el-descriptions-item label="类型">{{ row.execType===2?'HTTP':'Shell' }}</el-descriptions-item>
+        <el-descriptions-item label="状态"><el-tag :type="row.status===1?'success':'info'" size="mini">{{ row.status===1?'启用':'禁用' }}</el-tag></el-descriptions-item>
+        <el-descriptions-item label="Retry">{{ row.retry }}</el-descriptions-item>
+        <el-descriptions-item label="防重叠">{{ row.withBlockLapping?'是':'否' }}</el-descriptions-item>
+        <el-descriptions-item label="Command" :span="2"><span class="mono">{{ row.command }}</span></el-descriptions-item>
+        <el-descriptions-item label="描述" :span="2">{{ row.description || '-' }}</el-descriptions-item>
+      </el-descriptions>
+    </el-card>
+    <el-card shadow="never" style="margin-top:12px" v-if="stats">
+      <div slot="header">执行统计</div>
+      总计 {{ stats.total }} · 成功 {{ stats.success }} · 失败 {{ stats.failed }} · 跳过 {{ stats.skipped }} · 成功率 {{ stats.successRate }}% · 平均耗时 {{ stats.avgDurationMs }}ms
+    </el-card>
+  </div>
+</script>
 
-  <script>
-    const API_BASE = 'http://127.0.0.1:9501';
+<script type="text/x-template" id="tpl-exec">
+  <div>
+    <div class="page-head"><div><h2 style="margin:0">执行记录</h2></div></div>
+    <el-card shadow="never">
+      <el-form :inline="true" size="small" @submit.native.prevent="load">
+        <el-form-item label="任务ID"><el-input-number v-model="query.taskId" :min="1"></el-input-number></el-form-item>
+        <el-form-item label="批次"><el-input v-model="query.execBatchId" clearable></el-input></el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="query.status" clearable style="width:120px">
+            <el-option value="success" label="成功"></el-option>
+            <el-option value="failed" label="失败"></el-option>
+            <el-option value="skipped" label="跳过"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item><el-button type="primary" @click="load">查询</el-button></el-form-item>
+      </el-form>
+      <el-table :data="items" v-loading="loading">
+        <el-table-column prop="execBatchId" label="批次" min-width="160"></el-table-column>
+        <el-table-column prop="pid" label="PID" width="80"></el-table-column>
+        <el-table-column prop="message" label="消息" min-width="280"></el-table-column>
+        <el-table-column prop="createdAt" label="时间" width="160"></el-table-column>
+        <el-table-column label="操作" width="80"><template slot-scope="s"><el-button type="text" @click="detail(s.row)">详情</el-button></template></el-table-column>
+      </el-table>
+      <el-pagination style="margin-top:12px" background layout="total, prev, pager, next" :total="total" :page-size="query.pageSize" :current-page.sync="query.page" @current-change="load"></el-pagination>
+    </el-card>
+    <el-dialog title="执行详情" :visible.sync="dlg" width="640px">
+      <pre class="mono" style="white-space:pre-wrap">{{ execDetail }}</pre>
+    </el-dialog>
+  </div>
+</script>
 
-    async function fetchJson(path, options = {}) {
-      const url = path.startsWith('http') ? path : `${API_BASE}${path}`;
-      const defaultHeaders = { 'Accept': 'application/json' };
-      if (options.body) {
-        defaultHeaders['Content-Type'] = 'application/json';
-        options.body = typeof options.body === 'string' ? options.body : JSON.stringify(options.body);
-      }
-      const res = await fetch(url, {
-        ...options,
-        headers: { ...defaultHeaders, ...(options.headers || {}) },
-      });
-      const json = await res.json();
-      if (!res.ok || (json.code !== undefined && json.code !== 0)) {
-        throw new Error(json.msg || json.message || `HTTP ${res.status}`);
-      }
-      return json;
-    }
+<script type="text/x-template" id="tpl-nodes">
+  <div>
+    <div class="page-head">
+      <div><h2 style="margin:0">Cron Nodes</h2></div>
+      <el-button type="primary" @click="open()">新建节点</el-button>
+    </div>
+    <el-card shadow="never">
+      <el-table :data="items" v-loading="loading">
+        <el-table-column prop="id" label="ID" width="60"></el-table-column>
+        <el-table-column prop="nodeName" label="名称"></el-table-column>
+        <el-table-column prop="nodeIp" label="IP"></el-table-column>
+        <el-table-column label="状态" width="100"><template slot-scope="s"><el-tag size="mini" :type="s.row.status==='online'?'success':(s.row.status==='offline'?'danger':'info')">{{ s.row.status }}</el-tag></template></el-table-column>
+        <el-table-column prop="lastHeartbeatAt" label="心跳" width="160"></el-table-column>
+        <el-table-column prop="taskCount" label="任务数" width="80"></el-table-column>
+        <el-table-column prop="remark" label="备注"></el-table-column>
+        <el-table-column label="操作" width="140">
+          <template slot-scope="s">
+            <el-button type="text" @click="open(s.row)">编辑</el-button>
+            <el-button type="text" style="color:#f56c6c" @click="remove(s.row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+    <el-dialog :title="form.id?'编辑节点':'新建节点'" :visible.sync="dlg" width="480px">
+      <el-form label-width="80px" size="small">
+        <el-form-item label="名称"><el-input v-model="form.nodeName"></el-input></el-form-item>
+        <el-form-item label="IP"><el-input v-model="form.nodeIp"></el-input></el-form-item>
+        <el-form-item label="备注"><el-input v-model="form.remark"></el-input></el-form-item>
+      </el-form>
+      <span slot="footer"><el-button @click="dlg=false">取消</el-button><el-button type="primary" @click="save">保存</el-button></span>
+    </el-dialog>
+  </div>
+</script>
 
-    function toast(msg) {
-      const el = document.getElementById('toast');
-      el.textContent = msg;
-      el.classList.add('show');
-      clearTimeout(toast._t);
-      toast._t = setTimeout(() => el.classList.remove('show'), 2200);
-    }
+<script type="text/x-template" id="tpl-runtime">
+  <div>
+    <div class="page-head"><div><h2 style="margin:0">Runtime</h2></div></div>
+    <el-alert :title="overview.note" type="info" :closable="false" style="margin-bottom:12px"></el-alert>
+    <div class="stat-row">
+      <el-card shadow="never"><div>Jobs</div><h2>{{ overview.scheduler.jobs }}</h2></el-card>
+      <el-card shadow="never"><div>Enabled</div><h2>{{ overview.scheduler.enabled }}</h2></el-card>
+      <el-card shadow="never"><div>Running</div><h2>{{ overview.scheduler.running }}</h2></el-card>
+      <el-card shadow="never"><div>Nodes online</div><h2>{{ overview.nodes.online }}</h2></el-card>
+    </div>
+    <el-card shadow="never">
+      <div class="kv"><span>lastSuccessAt</span><b>{{ overview.sync.lastSuccessAt || '-' }}</b></div>
+      <div class="kv"><span>lastErrorAt</span><b>{{ overview.sync.lastErrorAt || '-' }}</b></div>
+      <div class="kv"><span>processLocal</span><b>{{ overview.sync.processLocal ? '是' : '否' }}</b></div>
+    </el-card>
+  </div>
+</script>
 
-    let currentPage = 'overview';
+<script src="https://unpkg.com/vue@2.7.16/dist/vue.js"></script>
+<script src="https://unpkg.com/vue-router@3.6.5/dist/vue-router.js"></script>
+<script src="https://unpkg.com/element-ui@2.15.14/lib/index.js"></script>
+<script>
+// API 与页面同源；code!==0 视为业务失败
+const API = '/api/v1';
+async function api(path, options) {
+  options = options || {};
+  const headers = Object.assign({ Accept: 'application/json' }, options.headers || {});
+  if (options.body && typeof options.body !== 'string') {
+    headers['Content-Type'] = 'application/json';
+    options.body = JSON.stringify(options.body);
+  }
+  const res = await fetch(API + path, Object.assign({}, options, { headers }));
+  const json = await res.json();
+  if (!res.ok || (json.code !== undefined && json.code !== 0)) {
+    throw new Error(json.msg || json.message || ('HTTP ' + res.status));
+  }
+  return json.data;
+}
+function toastErr(e) { Vue.prototype.$message.error(e.message || String(e)); }
 
-    function switchPage(name) {
-      currentPage = name;
-      document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
-      document.getElementById(`page-${name}`).classList.add('active');
-      document.querySelectorAll('#nav button').forEach((b) => {
-        b.classList.toggle('active', b.dataset.page === name);
-      });
-      if (name === 'overview') renderOverview();
-      if (name === 'tasks') renderTasks();
-      if (name === 'nodes') renderNodes();
-      if (name === 'logs') renderLogs();
-    }
-
-    document.getElementById('nav').addEventListener('click', (e) => {
-      const btn = e.target.closest('button[data-page]');
-      if (btn) switchPage(btn.dataset.page);
-    });
-
-    function statusBadge(status) {
-      return status === 1
-        ? '<span class="badge badge-ok">启用</span>'
-        : '<span class="badge badge-off">禁用</span>';
-    }
-
-    function execBadge(type) {
-      return type === 2
-        ? '<span class="badge badge-http">HTTP</span>'
-        : '<span class="badge badge-shell">Shell</span>';
-    }
-
-    function logResultBadge(message) {
-      const m = (message || '').toLowerCase();
-      if (m.includes('fail') || m.includes('error') || m.includes('timeout')) {
-        return '<span class="badge badge-fail">失败</span>';
-      }
-      if (m.includes('skip')) {
-        return '<span class="badge badge-warn">跳过</span>';
-      }
-      return '<span class="badge badge-ok">成功</span>';
-    }
-
-    async function loadNodes() {
-      const json = await fetchJson('/api/v1/nodes');
-      return (json.data && json.data.list) ? json.data.list : [];
-    }
-
-    async function loadTasks(params = {}) {
-      const qs = new URLSearchParams();
-      if (params.page) qs.set('page', params.page);
-      if (params.pageSize) qs.set('pageSize', params.pageSize);
-      if (params.keyword) qs.set('keyword', params.keyword);
-      if (params.status !== undefined && params.status !== '') qs.set('status', params.status);
-      if (params.nodeId !== undefined && params.nodeId !== '') qs.set('nodeId', params.nodeId);
-      if (params.execType !== undefined && params.execType !== '') qs.set('execType', params.execType);
-      const json = await fetchJson(`/api/v1/tasks?${qs.toString()}`);
-      return json.data || { total: 0, list: [] };
-    }
-
-    async function loadLogs(taskId) {
-      const json = await fetchJson(`/api/v1/tasks/logs?taskId=${taskId}&page=1&pageSize=200`);
-      const data = json.data || { total: 0, list: [] };
-      return data.list || [];
-    }
-
-    async function loadStats(taskId) {
-      const json = await fetchJson(`/api/v1/tasks/stats?taskId=${taskId}`);
-      return json.data || {};
-    }
-
-    async function fillNodeSelects() {
+const Dashboard = {
+  template: '#tpl-dashboard',
+  data() { return { overview: { tasks:{total:0,enabled:0,disabled:0}, executions:{today:0,success:0,failed:0,skipped:0}, nodes:{total:0,online:0,offline:0,unknown:0} }, trend: [], range: '24h' }; },
+  created() { this.load(); this.loadTrend(); },
+  methods: {
+    async load() { try { this.overview = await api('/dashboard/overview'); } catch (e) { toastErr(e); } },
+    async loadTrend() { try { this.trend = await api('/dashboard/execution-trend?range=' + this.range) || []; } catch (e) { toastErr(e); } }
+  }
+};
+const Tasks = {
+  template: '#tpl-tasks',
+  data() { return { items: [], total: 0, loading: false, nodes: [], sel: [], query: { page: 1, pageSize: 20, keyword: '', status: '', nodeId: '', execType: '' } }; },
+  created() { this.loadNodes(); this.load(); },
+  methods: {
+    async loadNodes() { try { const d = await api('/nodes'); this.nodes = (d && d.list) || []; } catch (e) { toastErr(e); } },
+    async load() {
+      this.loading = true;
       try {
-        const nodes = await loadNodes();
-        const opts = nodes.map((n) => `<option value="${n.id}">#${n.id} ${escapeHtml(n.nodeName)}</option>`).join('');
-        const filter = document.getElementById('filter-node');
-        filter.innerHTML = `<option value="">全部</option>${opts}`;
-        document.getElementById('task-nodeId').innerHTML = opts;
-      } catch (e) {
-        console.error('load nodes failed:', e);
-      }
+        const qs = new URLSearchParams();
+        Object.keys(this.query).forEach(k => { if (this.query[k] !== '' && this.query[k] !== null) qs.set(k, this.query[k]); });
+        const d = await api('/tasks?' + qs.toString());
+        this.items = d.items || d.list || [];
+        this.total = d.total || 0;
+      } catch (e) { toastErr(e); } finally { this.loading = false; }
+    },
+    search() { this.query.page = 1; this.load(); },
+    async toggle(row) {
+      try { await api('/tasks/status', { method: 'PUT', body: { id: row.id, status: row.status === 1 ? 0 : 1 } }); this.$message.success('已更新'); this.load(); } catch (e) { toastErr(e); }
+    },
+    async runOnce(row) {
+      try { const d = await api('/tasks/run', { method: 'POST', body: { id: row.id } }); this.$message.success((d && d.message) || '已入队'); } catch (e) { toastErr(e); }
+    },
+    async dup(row) {
+      try { await api('/tasks/duplicate', { method: 'POST', body: { id: row.id } }); this.$message.success('已复制为禁用副本'); this.load(); } catch (e) { toastErr(e); }
+    },
+    async remove(row) {
+      try { await this.$confirm('确认删除 ' + row.name + '？'); await api('/tasks?id=' + encodeURIComponent(row.id), { method: 'DELETE', body: { id: Number(row.id) } }); this.$message.success('已删除'); this.load(); } catch (e) { if (e !== 'cancel') toastErr(e); }
+    },
+    async batch(status) {
+      try { await api('/tasks/batch-status', { method: 'PUT', body: { ids: this.sel.map(x => x.id), status } }); this.$message.success('批量已更新'); this.load(); } catch (e) { toastErr(e); }
     }
-
-    async function fillTasksSelect() {
-      try {
-        const data = await loadTasks({ pageSize: 500 });
-        const tasks = data.list || [];
-        document.getElementById('logs-task').innerHTML = tasks
-          .map((t) => `<option value="${t.id}">#${t.id} ${escapeHtml(t.name)}</option>`)
-          .join('');
-      } catch (e) {
-        console.error('load tasks select failed:', e);
-      }
-    }
-
-    function nodeNameById(nodes, id) {
-      return nodes.find((n) => n.id === id)?.nodeName || `node#${id}`;
-    }
-
-    async function renderOverview() {
-      try {
-        const [nodes, tasksData] = await Promise.all([
-          loadNodes(),
-          loadTasks({ pageSize: 500 }),
-        ]);
-        const tasks = tasksData.list || [];
-        const enabled = tasks.filter((t) => t.status === 1).length;
-        const shell = tasks.filter((t) => t.execType === 1).length;
-        const http = tasks.filter((t) => t.execType === 2).length;
-        document.getElementById('overview-stats').innerHTML = `
-          <div class="stat"><div class="stat-label">任务总数</div><div class="stat-value">${tasks.length}</div><div class="stat-hint">${enabled} 启用 · ${tasks.length - enabled} 禁用</div></div>
-          <div class="stat"><div class="stat-label">Agent 节点</div><div class="stat-value">${nodes.length}</div><div class="stat-hint">可调度执行端</div></div>
-          <div class="stat"><div class="stat-label">Shell / HTTP</div><div class="stat-value">${shell}<span class="muted" style="font-size:1rem"> / ${http}</span></div><div class="stat-hint">执行类型分布</div></div>
-          <div class="stat"><div class="stat-label">今日日志</div><div class="stat-value">—</div><div class="stat-hint">实时查询</div></div>
-        `;
-        document.getElementById('overview-tasks').innerHTML = tasks.slice(0, 5).map((t) => `
-          <tr>
-            <td><strong>${escapeHtml(t.name)}</strong></td>
-            <td>${execBadge(t.execType)}</td>
-            <td class="mono">${escapeHtml(t.expression)}</td>
-            <td>${statusBadge(t.status)}</td>
-          </tr>
-        `).join('') || '<tr><td colspan="4"><div class="empty">暂无任务</div></td></tr>';
-        document.getElementById('overview-nodes').innerHTML = nodes.map((n) => {
-          const count = tasks.filter((t) => t.nodeId === n.id).length;
-          return `<tr><td><strong>${escapeHtml(n.nodeName)}</strong></td><td class="mono">${escapeHtml(n.nodeIp)}</td><td>${count}</td></tr>`;
-        }).join('') || '<tr><td colspan="3"><div class="empty">暂无节点</div></td></tr>';
-      } catch (e) {
-        toast(`加载总览失败: ${e.message}`);
-      }
-    }
-
-    async function renderTasks() {
-      try {
-        const kw = document.getElementById('filter-keyword').value.trim();
-        const status = document.getElementById('filter-status').value;
-        const exec = document.getElementById('filter-exec').value;
-        const node = document.getElementById('filter-node').value;
-        const data = await loadTasks({
-          page: 1,
-          pageSize: 500,
-          keyword: kw || undefined,
-          status: status || undefined,
-          nodeId: node || undefined,
-          execType: exec || undefined,
-        });
-        const list = data.list || [];
-        document.getElementById('tasks-pager-info').textContent = `共 ${data.total || list.length} 条`;
-        const body = document.getElementById('tasks-body');
-        if (!list.length) {
-          body.innerHTML = `<tr><td colspan="8"><div class="empty">没有匹配的任务</div></td></tr>`;
-          return;
-        }
-        const nodes = await loadNodes();
-        body.innerHTML = list.map((t) => `
-          <tr>
-            <td class="mono">${t.id}</td>
-            <td>
-              <strong>${escapeHtml(t.name)}</strong>
-              <div class="muted truncate" title="${escapeHtml(t.command)}">${escapeHtml(t.command)}</div>
-            </td>
-            <td class="mono">${escapeHtml(t.expression)}</td>
-            <td>${execBadge(t.execType)}</td>
-            <td>${escapeHtml(nodeNameById(nodes, t.nodeId))}</td>
-            <td>${statusBadge(t.status)}</td>
-            <td class="muted mono">${escapeHtml(t.updatedAt || '')}</td>
-            <td>
-              <div class="row-actions">
-                <button class="btn btn-sm" type="button" onclick="openTaskModal(${t.id})">编辑</button>
-                <button class="btn btn-sm" type="button" onclick="toggleStatus(${t.id})">${t.status === 1 ? '禁用' : '启用'}</button>
-                <button class="btn btn-sm" type="button" onclick="viewTaskLogs(${t.id})">日志</button>
-                <button class="btn btn-sm btn-danger" type="button" onclick="deleteTask(${t.id})">删除</button>
-              </div>
-            </td>
-          </tr>
-        `).join('');
-      } catch (e) {
-        toast(`加载任务失败: ${e.message}`);
-      }
-    }
-
-    async function renderNodes() {
-      try {
-        const [nodes, tasksData] = await Promise.all([
-          loadNodes(),
-          loadTasks({ pageSize: 500 }),
-        ]);
-        const tasks = tasksData.list || [];
-        const body = document.getElementById('nodes-body');
-        if (!nodes.length) {
-          body.innerHTML = `<tr><td colspan="7"><div class="empty">暂无节点</div></td></tr>`;
-          return;
-        }
-        body.innerHTML = nodes.map((n) => {
-          const count = tasks.filter((t) => t.nodeId === n.id).length;
-          return `
-            <tr>
-              <td class="mono">${n.id}</td>
-              <td><strong>${escapeHtml(n.nodeName)}</strong></td>
-              <td class="mono">${escapeHtml(n.nodeIp)}</td>
-              <td class="muted">${escapeHtml(n.remark || '—')}</td>
-              <td>${count}</td>
-              <td class="muted mono">${escapeHtml(n.createdAt || '')}</td>
-              <td>
-                <button class="btn btn-sm btn-danger" type="button" onclick="deleteNode(${n.id})" ${count ? 'disabled title="仍有绑定任务"' : ''}>删除</button>
-              </td>
-            </tr>
-          `;
-        }).join('');
-      } catch (e) {
-        toast(`加载节点失败: ${e.message}`);
-      }
-    }
-
-    async function renderLogs() {
-      try {
-        await fillNodeSelects();
-        await fillTasksSelect();
-        const select = document.getElementById('logs-task');
-        if (!select.value) {
-          const firstOpt = select.querySelector('option:first-child');
-          if (firstOpt) select.value = firstOpt.value;
-        }
-        const taskId = Number(select.value);
-        if (!taskId) {
-          document.getElementById('logs-stats').innerHTML = '<div class="mini-stat"><span>选择任务查看</span></div>';
-          document.getElementById('logs-body').innerHTML = `<tr><td colspan="5"><div class="empty">请先选择任务</div></td></tr>`;
-          return;
-        }
-        const [logs, stats] = await Promise.all([
-          loadLogs(taskId),
-          loadStats(taskId),
-        ]);
-        const tasks = (await loadTasks({ pageSize: 500 })).list || [];
-        const task = tasks.find((t) => t.id === taskId);
-        document.getElementById('stats-task-label').textContent = task ? `#${task.id} ${task.name}` : '';
-        document.getElementById('logs-stats').innerHTML = `
-          <div class="mini-stat"><strong>${stats.total ?? 0}</strong><span>样本</span></div>
-          <div class="mini-stat"><strong>${stats.success ?? 0}</strong><span>成功</span></div>
-          <div class="mini-stat"><strong>${stats.failed ?? 0}</strong><span>失败</span></div>
-          <div class="mini-stat"><strong>${stats.skipped ?? 0}</strong><span>跳过</span></div>
-          <div class="mini-stat"><strong>${stats.successRate ?? 0}%</strong><span>成功率</span></div>
-          <div class="mini-stat"><strong>${stats.avgDurationMs ?? 0}</strong><span>平均耗时 ms</span></div>
-          <div class="mini-stat"><strong>${stats.samples ?? 0}</strong><span>耗时样本</span></div>
-          <div class="mini-stat"><strong>${task?.expression || '—'}</strong><span>Cron</span></div>
-        `;
-        document.getElementById('logs-pager-info').textContent = `共 ${logs.length} 条`;
-        const body = document.getElementById('logs-body');
-        if (!logs.length) {
-          body.innerHTML = `<tr><td colspan="5"><div class="empty">该任务暂无日志</div></td></tr>`;
-          return;
-        }
-        body.innerHTML = logs.map((l) => `
-          <tr>
-            <td class="mono">${l.id}</td>
-            <td class="mono truncate" title="${escapeHtml(l.execBatchId || '')}">${escapeHtml(l.execBatchId || '')}</td>
-            <td>${logResultBadge(l.message)}</td>
-            <td class="truncate" title="${escapeHtml(l.message)}">${escapeHtml(l.message)}</td>
-            <td class="muted mono">${escapeHtml(l.createdAt || '')}</td>
-          </tr>
-        `).join('');
-      } catch (e) {
-        toast(`加载日志失败: ${e.message}`);
-      }
-    }
-
-    function viewTaskLogs(taskId) {
-      switchPage('logs');
-      setTimeout(async () => {
-        document.getElementById('logs-task').value = String(taskId);
-        await renderLogs();
-      }, 50);
-    }
-
-    function parseRanges(text) {
-      return text.split('\n').map((l) => l.trim()).filter(Boolean).map((line) => {
-        const [start, end] = line.split(',').map((s) => s.trim());
-        return { start: start || '', end: end || '' };
-      }).filter((r) => r.start && r.end);
-    }
-
-    function rangesToText(arr) {
-      return (arr || []).map((r) => `${r.start},${r.end}`).join('\n');
-    }
-
-    function toggleHttpFields() {
-      const isHttp = document.getElementById('task-execType').value === '2';
-      document.querySelectorAll('.http-only').forEach((el) => el.classList.toggle('hidden', !isHttp));
-    }
-
-    async function openTaskModal(id) {
-      await fillNodeSelects();
-      const form = document.getElementById('task-form');
-      form.reset();
-      document.getElementById('task-id').value = '';
-      document.getElementById('task-modal-title').textContent = id ? '编辑任务' : '新建任务';
-      if (id) {
+  }
+};
+const Editor = {
+  template: '#tpl-editor',
+  data() {
+    return {
+      nodes: [], saving: false, exprType: 'interval', intervalSec: 15, cronExpr: '*/5 * * * *',
+      headersText: '', bodyText: '', betweenText: '', skipText: '',
+      preview: { valid: true, description: '', nextRuns: [] },
+      form: { name: '', nodeId: null, description: '', expression: '15', command: '', execType: 1, status: 1, withBlockLapping: 0, retry: 0, httpMethod: 'GET', httpRequestTimeOut: 30, httpHeaders: null, httpBody: null, cronBetween: null, cronSkip: null }
+    };
+  },
+  computed: {
+    isEdit() { return !!this.$route.params.id; },
+    nodeLabel() { const n = this.nodes.find(x => x.id === this.form.nodeId); return n ? n.nodeName : '-'; }
+  },
+  created() { this.init(); },
+  methods: {
+    async init() {
+      try { const d = await api('/nodes'); this.nodes = (d && d.list) || []; if (!this.form.nodeId && this.nodes[0]) this.form.nodeId = this.nodes[0].id; } catch (e) { toastErr(e); }
+      if (this.isEdit) {
         try {
-          const data = await loadTasks({ pageSize: 500 });
-          const t = (data.list || []).find((x) => x.id === id);
-          if (!t) { toast('任务不存在'); return; }
-          document.getElementById('task-id').value = String(t.id);
-          document.getElementById('task-name').value = t.name || '';
-          document.getElementById('task-expression').value = t.expression || '';
-          document.getElementById('task-command').value = t.command || '';
-          document.getElementById('task-execType').value = String(t.execType || 1);
-          document.getElementById('task-nodeId').value = String(t.nodeId || '');
-          document.getElementById('task-status').value = String(t.status ?? 1);
-          document.getElementById('task-block').value = String(t.withBlockLapping ?? 0);
-          document.getElementById('task-description').value = t.description || '';
-          document.getElementById('task-httpMethod').value = t.httpMethod || 'GET';
-          document.getElementById('task-timeout').value = String(t.httpRequestTimeOut || 30);
-          document.getElementById('task-httpBody').value = t.httpBody ? JSON.stringify(t.httpBody, null, 2) : '';
-          document.getElementById('task-httpHeaders').value = t.httpHeaders ? JSON.stringify(t.httpHeaders, null, 2) : '';
-          document.getElementById('task-between').value = rangesToText(t.cronBetween);
-          document.getElementById('task-skip').value = rangesToText(t.cronSkip);
-        } catch (e) {
-          toast(`加载任务详情失败: ${e.message}`);
-          return;
-        }
-      } else {
-        document.getElementById('task-execType').value = '1';
-        document.getElementById('task-status').value = '1';
-        document.getElementById('task-timeout').value = '30';
+          const row = await api('/tasks/detail?id=' + this.$route.params.id);
+          this.form = Object.assign(this.form, row);
+          this.exprType = row.expressionType || (String(row.expression).match(/^\d+$/) ? 'interval' : 'cron');
+          if (this.exprType === 'interval') this.intervalSec = parseInt(row.expression, 10) || 15; else this.cronExpr = row.expression;
+          this.headersText = row.httpHeaders ? JSON.stringify(row.httpHeaders, null, 2) : '';
+          this.bodyText = row.httpBody ? JSON.stringify(row.httpBody, null, 2) : '';
+          this.betweenText = row.cronBetween && row.cronBetween.length ? JSON.stringify(row.cronBetween, null, 2) : '';
+          this.skipText = row.cronSkip && row.cronSkip.length ? JSON.stringify(row.cronSkip, null, 2) : '';
+        } catch (e) { toastErr(e); }
       }
-      toggleHttpFields();
-      document.getElementById('task-modal').classList.add('open');
-    }
-
-    function closeTaskModal() {
-      document.getElementById('task-modal').classList.remove('open');
-    }
-
-    async function saveTask(e) {
-      e.preventDefault();
-      let httpBody = null;
-      let httpHeaders = null;
+      this.previewExpr();
+    },
+    setExprType(t) { this.exprType = t; this.previewExpr(); },
+    syncExpr() { this.form.expression = this.exprType === 'interval' ? String(this.intervalSec || 15) : (this.cronExpr || ''); },
+    async previewExpr() {
+      this.syncExpr();
+      try { this.preview = await api('/tasks/expression/preview', { method: 'POST', body: { expression: this.form.expression } }); }
+      catch (e) { this.preview = { valid: false, description: e.message, nextRuns: [] }; }
+    },
+    parseJson(text, label) {
+      if (!text || !String(text).trim()) return null;
+      try { return JSON.parse(text); } catch (e) { throw new Error(label + ' JSON 无效'); }
+    },
+    async save() {
+      this.syncExpr();
+      if (!this.form.name || !this.form.command || !this.form.nodeId) { this.$message.warning('请填写名称、节点与 Command/URL'); return; }
+      if (!this.preview.valid) { this.$message.warning('请先修正表达式'); return; }
       try {
-        const b = document.getElementById('task-httpBody').value.trim();
-        const h = document.getElementById('task-httpHeaders').value.trim();
-        if (b) httpBody = JSON.parse(b);
-        if (h) httpHeaders = JSON.parse(h);
-      } catch {
-        toast('HTTP Body / Headers 需为合法 JSON');
-        return;
-      }
-      const id = document.getElementById('task-id').value;
-      const execType = Number(document.getElementById('task-execType').value);
-      const payload = {
-        name: document.getElementById('task-name').value.trim(),
-        expression: document.getElementById('task-expression').value.trim(),
-        command: document.getElementById('task-command').value.trim(),
-        execType,
-        nodeId: Number(document.getElementById('task-nodeId').value),
-        status: Number(document.getElementById('task-status').value),
-        withBlockLapping: Number(document.getElementById('task-block').value),
-        description: document.getElementById('task-description').value.trim(),
-        httpMethod: document.getElementById('task-httpMethod').value,
-        httpRequestTimeOut: Number(document.getElementById('task-timeout').value) || 30,
-        httpBody,
-        httpHeaders,
-        cronBetween: parseRanges(document.getElementById('task-between').value),
-        cronSkip: parseRanges(document.getElementById('task-skip').value),
-      };
+        const payload = Object.assign({}, this.form, {
+          httpHeaders: this.parseJson(this.headersText, 'Headers'),
+          httpBody: this.parseJson(this.bodyText, 'Body'),
+          cronBetween: this.parseJson(this.betweenText, 'cron_between'),
+          cronSkip: this.parseJson(this.skipText, 'cron_skip')
+        });
+        this.saving = true;
+        if (this.isEdit) await api('/tasks', { method: 'PUT', body: payload });
+        else await api('/tasks', { method: 'POST', body: payload });
+        this.$message.success('已保存');
+        this.$router.push('/tasks');
+      } catch (e) { toastErr(e); } finally { this.saving = false; }
+    },
+    async remove() {
+      try { await this.$confirm('确认删除？'); await api('/tasks?id=' + encodeURIComponent(this.form.id), { method: 'DELETE', body: { id: Number(this.form.id) } }); this.$router.push('/tasks'); } catch (e) { if (e !== 'cancel') toastErr(e); }
+    }
+  }
+};
+const Detail = {
+  template: '#tpl-detail',
+  data() { return { row: {}, stats: null, loading: false }; },
+  computed: { id() { return this.$route.params.id; } },
+  created() { this.load(); },
+  methods: {
+    async load() {
+      this.loading = true;
+      try { this.row = await api('/tasks/detail?id=' + this.id); this.stats = await api('/tasks/stats?taskId=' + this.id); }
+      catch (e) { toastErr(e); } finally { this.loading = false; }
+    },
+    async runOnce() {
+      try { const d = await api('/tasks/run', { method: 'POST', body: { id: Number(this.id) } }); this.$message.success((d && d.message) || '已入队'); } catch (e) { toastErr(e); }
+    }
+  }
+};
+const Executions = {
+  template: '#tpl-exec',
+  data() { return { items: [], total: 0, loading: false, dlg: false, execDetail: '', query: { taskId: 1, page: 1, pageSize: 20, execBatchId: '', status: '' } }; },
+  created() { if (this.$route.query.taskId) this.query.taskId = Number(this.$route.query.taskId); this.load(); },
+  methods: {
+    async load() {
+      this.loading = true;
       try {
-        if (id) {
-          await fetchJson('/api/v1/tasks', { method: 'PUT', body: { id: Number(id), ...payload } });
-          toast(`已更新任务 #${id}`);
-        } else {
-          await fetchJson('/api/v1/tasks', { method: 'POST', body: payload });
-          toast('已创建任务');
-        }
-        closeTaskModal();
-        await fillNodeSelects();
-        if (currentPage === 'tasks') await renderTasks();
-        if (currentPage === 'overview') await renderOverview();
-      } catch (err) {
-        toast(`保存失败: ${err.message}`);
-      }
+        const qs = new URLSearchParams({ taskId: this.query.taskId, page: this.query.page, pageSize: this.query.pageSize });
+        if (this.query.execBatchId) qs.set('execBatchId', this.query.execBatchId);
+        if (this.query.status) qs.set('status', this.query.status);
+        const d = await api('/tasks/logs?' + qs.toString());
+        this.items = (d && d.list) || [];
+        this.total = (d && d.total) || 0;
+      } catch (e) { toastErr(e); } finally { this.loading = false; }
+    },
+    async detail(row) {
+      try { this.execDetail = JSON.stringify(await api('/tasks/execution?id=' + this.query.taskId + '&execBatchId=' + encodeURIComponent(row.execBatchId)), null, 2); this.dlg = true; }
+      catch (e) { toastErr(e); }
     }
-
-    async function toggleStatus(id) {
+  }
+};
+const Nodes = {
+  template: '#tpl-nodes',
+  data() { return { items: [], loading: false, dlg: false, form: { id: 0, nodeName: '', nodeIp: '', remark: '' } }; },
+  created() { this.load(); },
+  methods: {
+    async load() { this.loading = true; try { const d = await api('/nodes'); this.items = (d && d.list) || []; } catch (e) { toastErr(e); } finally { this.loading = false; } },
+    open(row) { this.form = row ? { id: row.id, nodeName: row.nodeName, nodeIp: row.nodeIp, remark: row.remark } : { id: 0, nodeName: '', nodeIp: '', remark: '' }; this.dlg = true; },
+    async save() {
       try {
-        const data = await loadTasks({ pageSize: 500 });
-        const t = (data.list || []).find((x) => x.id === id);
-        if (!t) { toast('任务不存在'); return; }
-        const newStatus = t.status === 1 ? 0 : 1;
-        await fetchJson('/api/v1/tasks/status', { method: 'POST', body: { id, status: newStatus } });
-        toast(`任务 #${id} 状态 → ${newStatus === 1 ? '启用' : '禁用'}`);
-        if (currentPage === 'tasks') await renderTasks();
-        if (currentPage === 'overview') await renderOverview();
-      } catch (err) {
-        toast(`操作失败: ${err.message}`);
-      }
+        if (this.form.id) await api('/nodes', { method: 'PUT', body: this.form });
+        else await api('/nodes', { method: 'POST', body: this.form });
+        this.dlg = false; this.load();
+      } catch (e) { toastErr(e); }
+    },
+    async remove(row) {
+      try { await this.$confirm('确认删除节点？'); await api('/nodes', { method: 'DELETE', body: { id: row.id } }); this.load(); } catch (e) { if (e !== 'cancel') toastErr(e); }
     }
+  }
+};
+const Runtime = {
+  template: '#tpl-runtime',
+  data() { return { overview: { scheduler:{jobs:0,enabled:0,running:0}, sync:{lastSuccessAt:null,lastErrorAt:null,processLocal:true}, nodes:{online:0,offline:0}, note: '' } }; },
+  created() { this.load(); },
+  methods: { async load() { try { this.overview = await api('/runtime/overview'); } catch (e) { toastErr(e); } } }
+};
 
-    async function deleteTask(id) {
-      if (!confirm(`确认删除任务 #${id}？`)) return;
-      try {
-        await fetchJson('/api/v1/tasks', { method: 'DELETE', body: { id } });
-        toast(`已删除任务 #${id}`);
-        await fillNodeSelects();
-        if (currentPage === 'tasks') await renderTasks();
-        if (currentPage === 'overview') await renderOverview();
-      } catch (err) {
-        toast(`删除失败: ${err.message}`);
-      }
-    }
-
-    function openNodeModal() {
-      document.getElementById('node-form').reset();
-      document.getElementById('node-modal').classList.add('open');
-    }
-
-    function closeNodeModal() {
-      document.getElementById('node-modal').classList.remove('open');
-    }
-
-    async function saveNode(e) {
-      e.preventDefault();
-      const payload = {
-        nodeName: document.getElementById('node-name').value.trim(),
-        nodeIp: document.getElementById('node-ip').value.trim(),
-        remark: document.getElementById('node-remark').value.trim(),
-      };
-      try {
-        await fetchJson('/api/v1/nodes', { method: 'POST', body: payload });
-        toast('已创建节点');
-        closeNodeModal();
-        await fillNodeSelects();
-        if (currentPage === 'nodes') await renderNodes();
-        if (currentPage === 'overview') await renderOverview();
-      } catch (err) {
-        toast(`创建失败: ${err.message}`);
-      }
-    }
-
-    async function deleteNode(id) {
-      try {
-        const tasksData = await loadTasks({ pageSize: 500, nodeId: id });
-        if ((tasksData.list || []).length > 0) {
-          toast('节点仍有绑定任务，无法删除');
-          return;
-        }
-      } catch { /* proceed */ }
-      if (!confirm(`确认删除节点 #${id}？`)) return;
-      try {
-        await fetchJson('/api/v1/nodes', { method: 'DELETE', body: { id } });
-        toast(`已删除节点 #${id}`);
-        await fillNodeSelects();
-        if (currentPage === 'nodes') await renderNodes();
-        if (currentPage === 'overview') await renderOverview();
-      } catch (err) {
-        toast(`删除失败: ${err.message}`);
-      }
-    }
-
-    function escapeHtml(str) {
-      return String(str ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;');
-    }
-
-    document.querySelectorAll('.modal-backdrop').forEach((el) => {
-      el.addEventListener('click', (e) => {
-        if (e.target === el) el.classList.remove('open');
-      });
-    });
-
-    fillNodeSelects();
-    fillTasksSelect();
-    renderOverview();
-  </script>
+const router = new VueRouter({
+  routes: [
+    { path: '/', redirect: '/dashboard' },
+    { path: '/dashboard', component: Dashboard, meta: { title: 'Dashboard' } },
+    { path: '/tasks', component: Tasks, meta: { title: '计划任务' } },
+    { path: '/tasks/create', component: Editor, meta: { title: '创建任务' } },
+    { path: '/tasks/edit/:id', component: Editor, meta: { title: '编辑任务' } },
+    { path: '/tasks/detail/:id', component: Detail, meta: { title: '任务详情' } },
+    { path: '/executions', component: Executions, meta: { title: '执行记录' } },
+    { path: '/nodes', component: Nodes, meta: { title: 'Cron Nodes' } },
+    { path: '/runtime', component: Runtime, meta: { title: 'Runtime' } }
+  ]
+});
+new Vue({
+  el: '#app',
+  router,
+  computed: { breadcrumb() { return (this.$route.meta && this.$route.meta.title) || ''; } }
+});
+</script>
 </body>
 </html>

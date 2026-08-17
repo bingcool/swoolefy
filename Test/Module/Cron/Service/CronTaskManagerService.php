@@ -4,27 +4,43 @@ declare(strict_types=1);
 
 namespace Test\Module\Cron\Service;
 
+use Swoolefy\Core\Runtime\RuntimeRegistry;
+use Swoolefy\Worker\Cron\ExpressionParser;
 use Test\Module\Cron\CronAgentNodeEntity;
 use Test\Module\Cron\CronTaskEntity;
 use Test\Module\Cron\CronTaskLogEntity;
+use Test\Module\Cron\CronTaskRunRequestEntity;
 use Test\Module\Cron\Dto\CronTaskManager\AgentHeartbeatDto;
 use Test\Module\Cron\Dto\CronTaskManager\AgentHeartbeatResultDto;
 use Test\Module\Cron\Dto\CronTaskManager\AgentReportDto;
 use Test\Module\Cron\Dto\CronTaskManager\AgentTasksQueryDto;
 use Test\Module\Cron\Dto\CronTaskManager\AgentTasksResultDto;
+use Test\Module\Cron\Dto\CronTaskManager\BatchStatusDto;
+use Test\Module\Cron\Dto\CronTaskManager\BatchStatusResultDto;
 use Test\Module\Cron\Dto\CronTaskManager\CreateNodeDto;
+use Test\Module\Cron\Dto\CronTaskManager\CronAgentNodeRowDto;
 use Test\Module\Cron\Dto\CronTaskManager\CronTaskLogRowDto;
 use Test\Module\Cron\Dto\CronTaskManager\CronTaskPayloadDto;
 use Test\Module\Cron\Dto\CronTaskManager\CronTaskRowDto;
 use Test\Module\Cron\Dto\CronTaskManager\CronTaskStatsResultDto;
+use Test\Module\Cron\Dto\CronTaskManager\DashboardOverviewDto;
+use Test\Module\Cron\Dto\CronTaskManager\ExecutionDetailDto;
+use Test\Module\Cron\Dto\CronTaskManager\ExecutionDetailQueryDto;
+use Test\Module\Cron\Dto\CronTaskManager\ExecutionTrendBucketDto;
+use Test\Module\Cron\Dto\CronTaskManager\ExecutionTrendQueryDto;
+use Test\Module\Cron\Dto\CronTaskManager\ExpressionPreviewDto;
+use Test\Module\Cron\Dto\CronTaskManager\ExpressionPreviewResultDto;
 use Test\Module\Cron\Dto\CronTaskManager\ListTasksQueryDto;
 use Test\Module\Cron\Dto\CronTaskManager\NodeIdDto;
+use Test\Module\Cron\Dto\CronTaskManager\RunOnceQueuedDto;
+use Test\Module\Cron\Dto\CronTaskManager\RuntimeOverviewDto;
 use Test\Module\Cron\Dto\CronTaskManager\SwitchTaskStatusDto;
 use Test\Module\Cron\Dto\CronTaskManager\TaskIdDto;
 use Test\Module\Cron\Dto\CronTaskManager\TaskLogsQueryDto;
 use Test\Module\Cron\Dto\CronTaskManager\TaskPayloadInputDto;
 use Test\Module\Cron\Dto\CronTaskManager\TaskStatsQueryDto;
 use Test\Module\Cron\Dto\CronTaskManager\TaskStatusAckDto;
+use Test\Module\Cron\Dto\CronTaskManager\UpdateNodeDto;
 use Test\Module\Cron\Dto\CronTaskManager\UpdateTaskCommandDto;
 use Test\Module\Cron\Exception\CronTaskException;
 use Test\Module\Cron\Response\CronTaskManager\ListTasksPageResult;
@@ -89,15 +105,16 @@ class CronTaskManagerService
         $nodeId = $query->getNodeId();
         $execType = $query->getExecType();
 
-        $qb = CronTaskEntity::query()->field([
+        $qb = CronTaskEntity::queryNotDeleted()->field([
             'id',
             'node_id',
-            'name',
+            'cron_name',
             'expression',
             'command',
             'exec_type',
             'status',
             'with_block_lapping',
+            'retry',
             'description',
             'cron_between',
             'cron_skip',
@@ -109,7 +126,7 @@ class CronTaskManagerService
             'updated_at',
         ]);
         if ($keyword !== '') {
-            $qb->where('name', 'like', '%' . $keyword . '%');
+            $qb->where('cron_name', 'like', '%' . $keyword . '%');
         }
         if ($status !== null) {
             $qb->where('status', $status);
@@ -126,6 +143,8 @@ class CronTaskManagerService
 
         $pageResult = new ListTasksPageResult();
         $pageResult->setTotal($total);
+        $pageResult->setPage($query->getPage());
+        $pageResult->setPageSize($query->getPageSize());
         foreach ($list as $row) {
             $pageResult->addListItem(CronTaskRowDto::fromEntityRow($row));
         }
@@ -147,8 +166,14 @@ class CronTaskManagerService
             throw CronTaskException::throw($result->getError(), -1);
         }
 
+        $entityData = $result->getPayload()->toEntityArray();
+        $name = (string)($entityData['cron_name'] ?? $entityData['name'] ?? '');
+        if ($name !== '' && $this->nameExists($name, null)) {
+            throw CronTaskException::throw('任务名称必须唯一', -1);
+        }
+
         $task = new CronTaskEntity();
-        $task->setData($result->getPayload()->toEntityArray());
+        $task->setData($entityData);
         $task->save();
 
         return $task->getAttributes();
@@ -184,14 +209,23 @@ class CronTaskManagerService
             throw CronTaskException::throw('没有可更新字段', -1);
         }
 
-        $task->setData($payload->toEntityArray());
+        $entityData = $payload->toEntityArray();
+        $newName = (string)($entityData['cron_name'] ?? $entityData['name'] ?? '');
+        if ($newName !== '' && $this->nameExists($newName, $id)) {
+            throw CronTaskException::throw('任务名称必须唯一', -1);
+        }
+
+        $task->setData($entityData);
         $task->save();
 
         return $task->getAttributes();
     }
 
     /**
-     * 删除定时任务。
+     * 删除定时任务（软删 deleted_at）。
+     *
+     * 与列表同一可见性：loadById 只找 deleted_at IS NULL 的行。
+     * 入参是 cron_task.id（body 或 query），不是 cron_name。
      *
      * @return int 已删除的任务 id（与入参一致，供 DeleteAck Response）
      */
@@ -243,7 +277,13 @@ class CronTaskManagerService
      */
     public function listNodes(): array
     {
-        return CronAgentNodeEntity::query()->order('id', 'desc')->select()->toArray();
+        $list = CronAgentNodeEntity::query()->order('id', 'desc')->select()->toArray();
+        foreach ($list as &$row) {
+            $row['task_count'] = (int)CronTaskEntity::queryNotDeleted()->where('node_id', (int)($row['id'] ?? 0))->count();
+        }
+        unset($row);
+
+        return $list;
     }
 
     /**
@@ -307,14 +347,27 @@ class CronTaskManagerService
         $qb = CronTaskLogEntity::query()->where([
             'cron_id' => $taskId,
         ]);
+        if ($query->getExecBatchId() !== null) {
+            $qb->where('exec_batch_id', $query->getExecBatchId());
+        }
+        if ($query->getStartTime() !== null) {
+            $qb->where('created_at', '>=', $query->getStartTime());
+        }
+        if ($query->getEndTime() !== null) {
+            $qb->where('created_at', '<=', $query->getEndTime());
+        }
         $total = $qb->clone()->count();
         $list = $qb->order('id', 'desc')->limit($query->getOffset(), $query->getPageSize())->select()->toArray();
 
+        $statusFilter = $query->getStatus();
         $pageResult = new TaskLogsPageResult();
-        $pageResult->setTotal($total);
         foreach ($list as $row) {
+            if ($statusFilter !== null && ExecutionDetailDto::classifyMessage((string)($row['message'] ?? '')) !== $statusFilter) {
+                continue;
+            }
             $pageResult->addListItem(CronTaskLogRowDto::fromEntityRow($row));
         }
+        $pageResult->setTotal($statusFilter === null ? $total : count($pageResult->getList()));
 
         return $pageResult;
     }
@@ -415,6 +468,12 @@ class CronTaskManagerService
             throw CronTaskException::throw('nodeId不能为空', -1);
         }
 
+        $node = (new CronAgentNodeEntity())->loadById($nodeId);
+        if ($node) {
+            $node->last_heartbeat_at = date('Y-m-d H:i:s');
+            $node->save();
+        }
+
         $result = new AgentHeartbeatResultDto();
         $result->setNodeId($nodeId);
         $result->setServerTime(date('Y-m-d H:i:s'));
@@ -490,5 +549,410 @@ class CronTaskManagerService
         }
 
         return 0.0;
+    }
+
+    /**
+     * 任务详情：完整 Task Definition，expressionType 为展示层派生。
+     *
+     * @return array<string, mixed>
+     */
+    public function getTask(TaskIdDto $dto): array
+    {
+        $task = $this->requireTask($dto->getId());
+
+        return $task->getAttributes();
+    }
+
+    /**
+     * 表达式预览：统一走 ExpressionParser，计算接下来 4 次执行时间。
+     */
+    public function previewExpression(ExpressionPreviewDto $dto): ExpressionPreviewResultDto
+    {
+        $expression = $dto->getExpression();
+        if ($expression === '') {
+            return ExpressionPreviewResultDto::invalid('expression不能为空');
+        }
+
+        try {
+            $parser = new ExpressionParser();
+            $schedule = $parser->parse($expression);
+            $type = $parser->isSecondInterval($expression) ? 'interval' : 'cron';
+            $from = time();
+            $nextRuns = [];
+            $cursor = $from;
+            for ($i = 0; $i < 4; $i++) {
+                $cursor = $schedule->calculateNextRunAt($cursor);
+                $nextRuns[] = date('Y-m-d H:i:s', $cursor);
+            }
+            $description = $type === 'interval'
+                ? '每 ' . (int)$expression . ' 秒执行一次'
+                : 'Linux Cron：' . $expression;
+
+            return ExpressionPreviewResultDto::ok($type, $description, $nextRuns);
+        } catch (\Throwable $e) {
+            return ExpressionPreviewResultDto::invalid($e->getMessage());
+        }
+    }
+
+    /**
+     * 按 cron_id + exec_batch_id 取最近一条日志作为 Execution 详情。
+     */
+    public function getExecution(ExecutionDetailQueryDto $query): ExecutionDetailDto
+    {
+        if ($query->getTaskId() <= 0 || $query->getExecBatchId() === '') {
+            throw CronTaskException::throw('id和execBatchId不能为空', -1);
+        }
+
+        $row = CronTaskLogEntity::query()->where([
+            'cron_id' => $query->getTaskId(),
+            'exec_batch_id' => $query->getExecBatchId(),
+        ])->order('id', 'desc')->find();
+        if (!$row) {
+            throw CronTaskException::throw('执行记录不存在', -1);
+        }
+
+        return ExecutionDetailDto::fromLogRow(is_array($row) ? $row : $row->toArray());
+    }
+
+    /**
+     * Dashboard 聚合：任务计数 + 今日日志 + 节点心跳。
+     */
+    public function dashboardOverview(): DashboardOverviewDto
+    {
+        $total = (int)CronTaskEntity::queryNotDeleted()->count();
+        $enabled = (int)CronTaskEntity::queryNotDeleted()->where('status', 1)->count();
+        $todayStart = date('Y-m-d 00:00:00');
+        $logs = CronTaskLogEntity::query()->field(['message'])->where('created_at', '>=', $todayStart)->select()->toArray();
+        $success = 0;
+        $failed = 0;
+        $skipped = 0;
+        foreach ($logs as $log) {
+            $status = ExecutionDetailDto::classifyMessage((string)($log['message'] ?? ''));
+            if ($status === 'success') {
+                $success++;
+            } elseif ($status === 'failed') {
+                $failed++;
+            } elseif ($status === 'skipped') {
+                $skipped++;
+            }
+        }
+        $nodeStats = $this->countNodeHeartbeat();
+
+        return DashboardOverviewDto::of(
+            ['total' => $total, 'enabled' => $enabled, 'disabled' => max(0, $total - $enabled)],
+            ['today' => count($logs), 'success' => $success, 'failed' => $failed, 'skipped' => $skipped],
+            $nodeStats,
+        );
+    }
+
+    /**
+     * 执行趋势：24h 按小时，7d/30d 按天。
+     *
+     * @return list<ExecutionTrendBucketDto>
+     */
+    public function executionTrend(ExecutionTrendQueryDto $query): array
+    {
+        $range = $query->getRange();
+        $hourly = $range === '24h';
+        $days = $range === '30d' ? 30 : ($range === '7d' ? 7 : 1);
+        $startTs = $hourly ? time() - 86400 : strtotime('-' . ($days - 1) . ' days 00:00:00');
+        $start = date('Y-m-d H:i:s', $startTs);
+        $logs = CronTaskLogEntity::query()->field(['message', 'created_at'])->where('created_at', '>=', $start)->select()->toArray();
+
+        $buckets = [];
+        if ($hourly) {
+            for ($i = 23; $i >= 0; $i--) {
+                $ts = time() - $i * 3600;
+                $key = date('Y-m-d H', $ts);
+                $buckets[$key] = ExecutionTrendBucketDto::of(date('H:00', $ts), 0, 0, 0);
+            }
+        } else {
+            for ($i = $days - 1; $i >= 0; $i--) {
+                $key = date('Y-m-d', strtotime('-' . $i . ' days'));
+                $buckets[$key] = ExecutionTrendBucketDto::of($key, 0, 0, 0);
+            }
+        }
+
+        foreach ($logs as $log) {
+            $created = (string)($log['created_at'] ?? '');
+            $ts = strtotime($created);
+            if ($ts === false) {
+                continue;
+            }
+            $key = $hourly ? date('Y-m-d H', $ts) : date('Y-m-d', $ts);
+            if (!isset($buckets[$key])) {
+                continue;
+            }
+            $status = ExecutionDetailDto::classifyMessage((string)($log['message'] ?? ''));
+            $row = $buckets[$key]->toDeepArray();
+            $total = (int)$row['total'] + 1;
+            $success = (int)$row['success'] + ($status === 'success' ? 1 : 0);
+            $failed = (int)$row['failed'] + ($status === 'failed' ? 1 : 0);
+            $buckets[$key] = ExecutionTrendBucketDto::of((string)$row['time'], $total, $success, $failed);
+        }
+
+        return array_values($buckets);
+    }
+
+    /**
+     * Runtime 聚合。HTTP Worker 通常读不到 Cron Worker 诊断，running / lastSuccessAt 不伪造。
+     */
+    public function runtimeOverview(): RuntimeOverviewDto
+    {
+        $jobs = (int)CronTaskEntity::queryNotDeleted()->count();
+        $enabled = (int)CronTaskEntity::queryNotDeleted()->where('status', 1)->count();
+        $running = 0;
+        $lastSuccessAt = null;
+        $lastErrorAt = null;
+        $processLocal = true;
+        $snapshot = RuntimeRegistry::cronSnapshot();
+        if (is_array($snapshot) && !empty($snapshot) && ($snapshot['enabled'] ?? true) !== false && isset($snapshot['job_count'])) {
+            $processLocal = false;
+            $jobs = (int)($snapshot['job_count'] ?? $jobs);
+            $enabled = (int)($snapshot['enabled_count'] ?? $enabled);
+            $running = (int)($snapshot['running_count'] ?? 0);
+            $syncAt = $snapshot['last_config_sync'] ?? null;
+            if (is_int($syncAt) && $syncAt > 0) {
+                $lastSuccessAt = date('Y-m-d H:i:s', $syncAt);
+            }
+            $err = $snapshot['last_config_sync_error'] ?? null;
+            if (is_string($err) && $err !== '') {
+                $lastErrorAt = $err;
+            }
+        }
+        $nodes = $this->countNodeHeartbeat();
+
+        return RuntimeOverviewDto::of(
+            ['jobs' => $jobs, 'enabled' => $enabled, 'running' => $running],
+            ['lastSuccessAt' => $lastSuccessAt, 'lastErrorAt' => $lastErrorAt, 'processLocal' => $processLocal],
+            ['online' => $nodes['online'], 'offline' => $nodes['offline'], 'unknown' => $nodes['unknown']],
+            $processLocal
+                ? 'Cron 诊断只活在 Cron Worker；本接口聚合 DB 配置与 Agent 心跳，不伪造 running'
+                : '本进程可读到 Cron Runtime 快照',
+        );
+    }
+
+    /**
+     * 节点详情：含心跳状态与绑定任务数。
+     *
+     * @return array<string, mixed>
+     */
+    public function getNode(NodeIdDto $dto): array
+    {
+        $node = $this->requireNode($dto->getId());
+        $attrs = $node->getAttributes();
+        $attrs['task_count'] = (int)CronTaskEntity::queryNotDeleted()->where('node_id', $dto->getId())->count();
+
+        return $attrs;
+    }
+
+    /**
+     * 部分更新节点。
+     *
+     * @return array<string, mixed>
+     */
+    public function updateNode(UpdateNodeDto $dto): array
+    {
+        $node = $this->requireNode($dto->getId());
+        $data = [];
+        if ($dto->getNodeName() !== null) {
+            if ($dto->getNodeName() === '') {
+                throw CronTaskException::throw('nodeName不能为空', -1);
+            }
+            $data['node_name'] = $dto->getNodeName();
+        }
+        if ($dto->getNodeIp() !== null) {
+            if ($dto->getNodeIp() === '') {
+                throw CronTaskException::throw('nodeIp不能为空', -1);
+            }
+            $data['node_ip'] = $dto->getNodeIp();
+        }
+        if ($dto->getRemark() !== null) {
+            $data['remark'] = $dto->getRemark();
+        }
+        if ($data === []) {
+            throw CronTaskException::throw('没有可更新字段', -1);
+        }
+        $node->setData($data);
+        $node->save();
+        $attrs = $node->getAttributes();
+        $attrs['task_count'] = (int)CronTaskEntity::queryNotDeleted()->where('node_id', $dto->getId())->count();
+
+        return $attrs;
+    }
+
+    /**
+     * 批量启停：幂等赋值。
+     */
+    public function batchSwitchStatus(BatchStatusDto $dto): BatchStatusResultDto
+    {
+        $status = $dto->getStatus();
+        if (!in_array($status, [0, 1], true) || $dto->getIds() === []) {
+            throw CronTaskException::throw('参数错误', -1);
+        }
+        $updated = [];
+        foreach ($dto->getIds() as $id) {
+            $ack = $this->switchTaskStatus(SwitchTaskStatusDto::of($id, $status));
+            $updated[] = $ack->getId();
+        }
+
+        return BatchStatusResultDto::of($updated, $status);
+    }
+
+    /**
+     * 复制任务：name=原名称-copy，status=0，避免立刻进入生产调度。
+     *
+     * @return array<string, mixed>
+     */
+    public function duplicateTask(TaskIdDto $dto): array
+    {
+        $task = $this->requireTask($dto->getId());
+        $attrs = $task->getAttributes();
+        unset($attrs['id'], $attrs['created_at'], $attrs['updated_at'], $attrs['deleted_at']);
+        $baseName = (string)($attrs['cron_name'] ?? $attrs['name'] ?? 'task');
+        $attrs['cron_name'] = $this->uniqueCopyName($baseName);
+        unset($attrs['name']);
+        $attrs['status'] = 0;
+        // 副本必须是未删除行，否则列表 select() 能看见、loadById 因 SoftDelete 找不到
+        $attrs['deleted_at'] = null;
+        $copy = new CronTaskEntity();
+        $copy->setData($attrs);
+        $copy->save();
+
+        return $copy->getAttributes();
+    }
+
+    /**
+     * 入队手动执行。不改 cron_task，不声称已执行。
+     */
+    public function enqueueRunOnce(TaskIdDto $dto): RunOnceQueuedDto
+    {
+        $this->requireTask($dto->getId());
+        $requestedAt = date('Y-m-d H:i:s');
+        CronTaskRunRequestEntity::query()->insert([
+            'cron_id' => $dto->getId(),
+            'requested_at' => $requestedAt,
+            'consumed_at' => null,
+        ]);
+
+        return RunOnceQueuedDto::of($dto->getId(), $requestedAt);
+    }
+
+    /**
+     * 消费某任务全部待执行的手动请求（Cron Worker Polling 回调）。
+     */
+    public function ackRunOnce(int $cronTaskId): void
+    {
+        if ($cronTaskId <= 0) {
+            return;
+        }
+        CronTaskRunRequestEntity::query()
+            ->where('cron_id', $cronTaskId)
+            ->whereNull('consumed_at')
+            ->update(['consumed_at' => date('Y-m-d H:i:s')]);
+    }
+
+    /**
+     * 是否有未消费的手动执行请求。
+     */
+    public function hasPendingRunOnce(int $cronTaskId): bool
+    {
+        if ($cronTaskId <= 0) {
+            return false;
+        }
+
+        return CronTaskRunRequestEntity::query()
+            ->where('cron_id', $cronTaskId)
+            ->whereNull('consumed_at')
+            ->count() > 0;
+    }
+
+    /**
+     * @return array{total:int,online:int,offline:int,unknown:int}
+     */
+    protected function countNodeHeartbeat(): array
+    {
+        $nodes = CronAgentNodeEntity::query()->field(['last_heartbeat_at'])->select()->toArray();
+        $online = 0;
+        $offline = 0;
+        $unknown = 0;
+        foreach ($nodes as $node) {
+            $status = CronAgentNodeRowDto::deriveHeartbeatStatus((string)($node['last_heartbeat_at'] ?? ''));
+            if ($status === 'online') {
+                $online++;
+            } elseif ($status === 'offline') {
+                $offline++;
+            } else {
+                $unknown++;
+            }
+        }
+
+        return [
+            'total' => count($nodes),
+            'online' => $online,
+            'offline' => $offline,
+            'unknown' => $unknown,
+        ];
+    }
+
+    protected function requireTask(int $id): CronTaskEntity
+    {
+        if ($id <= 0) {
+            throw CronTaskException::throw('id不能为空', -1);
+        }
+        $task = (new CronTaskEntity())->loadById($id);
+        if (!$task) {
+            throw CronTaskException::throw('任务不存在', -1);
+        }
+
+        return $task;
+    }
+
+    protected function requireNode(int $id): CronAgentNodeEntity
+    {
+        if ($id <= 0) {
+            throw CronTaskException::throw('id不能为空', -1);
+        }
+        $node = (new CronAgentNodeEntity())->loadById($id);
+        if (!$node) {
+            throw CronTaskException::throw('节点不存在', -1);
+        }
+
+        return $node;
+    }
+
+    /**
+     * 名称唯一性含软删行：表上 uniq_cron_name 不区分 deleted_at。
+     */
+    protected function nameExists(string $name, ?int $exceptId): bool
+    {
+        $qb = CronTaskEntity::query()->where('cron_name', $name);
+        if ($exceptId !== null) {
+            $qb->where('id', '<>', $exceptId);
+        }
+
+        return $qb->count() > 0;
+    }
+
+    protected function uniqueCopyName(string $baseName): string
+    {
+        return self::allocateCopyName($baseName, fn(string $n) => $this->nameExists($n, null));
+    }
+
+    /**
+     * 复制命名：原名称-copy，冲突则 -copy-2、-copy-3…
+     *
+     * @param callable(string):bool $nameExists
+     */
+    public static function allocateCopyName(string $baseName, callable $nameExists): string
+    {
+        $candidate = $baseName . '-copy';
+        $i = 2;
+        while ($nameExists($candidate)) {
+            $candidate = $baseName . '-copy-' . $i;
+            $i++;
+        }
+
+        return $candidate;
     }
 }

@@ -52,6 +52,12 @@ class CronTaskRowDto extends AbstractDto
     #[ApiProperty(description: '是否阻塞重叠执行：0=否, 1=是')]
     protected int $withBlockLapping = 0;
 
+    #[ApiProperty(description: '失败后重试次数（不含首次；0=不重试）')]
+    protected int $retry = 0;
+
+    #[ApiProperty(description: '表达式类型：interval=每N秒，cron=Linux Cron（展示层派生，不落库）')]
+    protected string $expressionType = 'interval';
+
     #[ApiProperty(description: '任务描述')]
     protected string $description = '';
 
@@ -112,12 +118,15 @@ class CronTaskRowDto extends AbstractDto
         $dto = new self();
         $dto->setId((int)($row['id'] ?? 0));
         $dto->setNodeId((int)($row['node_id'] ?? 0));
-        $dto->setName((string)($row['name'] ?? ''));
+        // 表列为 cron_name，兼容误用 name 的查询结果
+        $dto->setName((string)($row['name'] ?? $row['cron_name'] ?? ''));
         $dto->setExpression((string)($row['expression'] ?? ''));
         $dto->setCommand((string)($row['command'] ?? ''));
         $dto->setExecType((int)($row['exec_type'] ?? 1));
         $dto->setStatus((int)($row['status'] ?? 1));
         $dto->setWithBlockLapping((int)($row['with_block_lapping'] ?? 0));
+        $dto->setRetry(max(0, (int)($row['retry'] ?? 0)));
+        $dto->setExpressionType(self::deriveExpressionType((string)($row['expression'] ?? '')));
         $dto->setDescription((string)($row['description'] ?? ''));
         $cb = $row['cron_between'] ?? [];
         $dto->setCronBetween(is_array($cb) ? $cb : []);
@@ -127,7 +136,7 @@ class CronTaskRowDto extends AbstractDto
         $hb = $row['http_body'] ?? null;
         $dto->setHttpBody(is_array($hb) ? $hb : null);
         $hh = $row['http_headers'] ?? null;
-        $dto->setHttpHeaders(is_array($hh) ? $hh : null);
+        $dto->setHttpHeaders(self::maskSensitiveHeaders(is_array($hh) ? $hh : null));
         $dto->setHttpRequestTimeOut((int)($row['http_request_time_out'] ?? 30));
         $dto->setCreatedAt((string)($row['created_at'] ?? ''));
         $dto->setUpdatedAt((string)($row['updated_at'] ?? ''));
@@ -233,6 +242,45 @@ class CronTaskRowDto extends AbstractDto
         return $this;
     }
 
+    /**
+     * 由 expression 派生展示类型：纯数字 → interval，否则 cron。
+     */
+    public static function deriveExpressionType(string $expression): string
+    {
+        $expression = trim($expression);
+
+        return $expression !== '' && ctype_digit($expression) ? 'interval' : 'cron';
+    }
+
+    /**
+     * 列表/详情不回传 Authorization/Cookie/Token 等敏感 Header 明文。
+     *
+     * @param array<string, mixed>|null $headers
+     * @return array<string, mixed>|null
+     */
+    public static function maskSensitiveHeaders(?array $headers): ?array
+    {
+        if ($headers === null) {
+            return null;
+        }
+
+        $sensitive = ['authorization', 'cookie', 'token', 'x-api-key', 'api-key', 'password', 'secret'];
+        $masked = [];
+        foreach ($headers as $key => $value) {
+            $lower = strtolower((string)$key);
+            $hit = false;
+            foreach ($sensitive as $needle) {
+                if ($lower === $needle || str_contains($lower, $needle)) {
+                    $hit = true;
+                    break;
+                }
+            }
+            $masked[$key] = $hit ? '******' : $value;
+        }
+
+        return $masked;
+    }
+
     /** 获取是否阻塞重叠执行 */
     public function getWithBlockLapping(): int
     {
@@ -243,6 +291,34 @@ class CronTaskRowDto extends AbstractDto
     public function setWithBlockLapping(int $withBlockLapping): static
     {
         $this->withBlockLapping = $withBlockLapping;
+
+        return $this;
+    }
+
+    /** 获取失败后重试次数 */
+    public function getRetry(): int
+    {
+        return $this->retry;
+    }
+
+    /** 设置失败后重试次数 */
+    public function setRetry(int $retry): static
+    {
+        $this->retry = max(0, $retry);
+
+        return $this;
+    }
+
+    /** 获取表达式展示类型 */
+    public function getExpressionType(): string
+    {
+        return $this->expressionType;
+    }
+
+    /** 设置表达式展示类型 */
+    public function setExpressionType(string $expressionType): static
+    {
+        $this->expressionType = $expressionType;
 
         return $this;
     }

@@ -35,6 +35,9 @@ class CronTaskLogRowDto extends AbstractDto
     #[ApiProperty(description: '执行批次 ID')]
     protected string $execBatchId = '';
 
+    #[ApiProperty(description: '执行进程 PID')]
+    protected int $pid = 0;
+
     /**
      * 任务项快照，执行时的调度元数据。
      *
@@ -65,6 +68,7 @@ class CronTaskLogRowDto extends AbstractDto
         $dto->setId((int)($row['id'] ?? 0));
         $dto->setCronId((int)($row['cron_id'] ?? 0));
         $dto->setExecBatchId((string)($row['exec_batch_id'] ?? ''));
+        $dto->setPid((int)($row['pid'] ?? 0));
         $ti = $row['task_item'] ?? null;
         if (is_array($ti)) {
             $dto->setTaskItem($ti);
@@ -118,6 +122,20 @@ class CronTaskLogRowDto extends AbstractDto
     public function setExecBatchId(string $execBatchId): static
     {
         $this->execBatchId = $execBatchId;
+
+        return $this;
+    }
+
+    /** 获取执行进程 PID */
+    public function getPid(): int
+    {
+        return $this->pid;
+    }
+
+    /** 设置执行进程 PID */
+    public function setPid(int $pid): static
+    {
+        $this->pid = $pid;
 
         return $this;
     }

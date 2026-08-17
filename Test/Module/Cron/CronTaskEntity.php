@@ -2,12 +2,14 @@
 namespace Test\Module\Cron;
 
 use Swoolefy\Library\Db\Concern\SoftDelete;
+use Swoolefy\Library\Db\Query;
 use Test\Model\ClientModel;
 
 // 生成的表【cron_task】的属性
 /**
  * @property int id
- * @property string name 任务名称
+ * @property int node_id 节点ID
+ * @property string cron_name 任务名称
  * @property string expression cron表达式
  * @property string command 执行命令
  * @property int exec_type 执行类型 1-shell，2-http
@@ -49,12 +51,24 @@ class CronTaskEntity extends ClientModel
     ];
 
     /**
-     * @param $id
+     * 管理端列表 / Worker 拉取用：排除已软删行。
+     *
+     * Query::select() 不会自动加 SoftDelete 条件（只有 first()/loadOne 会）。
+     * 若列表直接 query()->select()，已删行仍会展示，而 delete 的 loadById 因
+     * `deleted_at IS NULL` 找不到，表现为「任务不存在」但列表还在。
      */
-    public function loadById($id)
+    public static function queryNotDeleted(): Query
+    {
+        return static::query()->whereDeletedAtNull(static::getSoftDeleteField());
+    }
+
+    /**
+     * @param int|string $id cron_task 主键（请求里可能是数字字符串）
+     */
+    public function loadById($id): ?static
     {
         return $this->loadOne([
-            'id' => $id,
+            'id' => (int) $id,
         ]);
     }
 }

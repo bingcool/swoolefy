@@ -126,10 +126,8 @@ class SwoolefyException
             $errorMsg = $exceptionMsg . ' in file ' . $throwable->getFile() . ' on line ' . $throwable->getLine() . ' ||| ' . $app->swooleRequest->server['REQUEST_URI'] . $queryString;
         }
 
-        if (($code = $throwable->getCode()) == 0) {
-            // common error code
-            $code = -1;
-        }
+        // 异常 code 可能是 int、"401" 或 PDO SQLSTATE（如 "42S22"），必须先规范为 int
+        $code = static::normalizeExceptionCode($throwable->getCode());
 
         if (SystemEnv::isPrdEnv() || SystemEnv::isGraEnv()) {
             $errorMsg = $exceptionMsg;
@@ -137,6 +135,7 @@ class SwoolefyException
 
         $responseOutput = new ResponseOutput($app->swooleRequest, $app->swooleResponse);
         // AuthException 等：code 为合法 HTTP 状态时同步写响应状态（避免 JSON code=401 但 HTTP 仍 200）
+        // 比较必须在 int 上做：PHP 8 下 "42S22" >= 400 会按字符串比较为 true，导致 withStatus 收到非数字
         if ($code >= 400 && $code < 600) {
             $responseOutput->withStatus($code);
         }
@@ -188,6 +187,29 @@ class SwoolefyException
         if (in_array(SWOOLEFY_ENV, [SWOOLEFY_DEV, SWOOLEFY_GRA])) {
             fmtPrintError($errorMsg);
         }
+    }
+
+    /**
+     * 将异常 getCode() 规范为 int，供 JSON code 与 HTTP 状态使用。
+     *
+     * - int 0 → -1（业务失败码）
+     * - 纯数字字符串（如 "401"）转为 int
+     * - PDO SQLSTATE（如 "42S22"）等非数字字符串不是 HTTP 状态，回退 -1
+     *
+     * @param mixed $code
+     */
+    public static function normalizeExceptionCode(mixed $code): int
+    {
+        if (is_int($code)) {
+            return $code === 0 ? -1 : $code;
+        }
+        if (is_string($code) && preg_match('/^-?\d+$/', trim($code)) === 1) {
+            $int = (int) trim($code);
+
+            return $int === 0 ? -1 : $int;
+        }
+
+        return -1;
     }
 
 }

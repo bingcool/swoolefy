@@ -36,6 +36,15 @@ class CronAgentNodeRowDto extends AbstractDto
     #[ApiProperty(description: '备注')]
     protected string $remark = '';
 
+    #[ApiProperty(description: '最近心跳时间；无可靠来源时为空')]
+    protected string $lastHeartbeatAt = '';
+
+    #[ApiProperty(description: 'online / offline / unknown（仅心跳落库后才有 online/offline）')]
+    protected string $status = 'unknown';
+
+    #[ApiProperty(description: '绑定任务数')]
+    protected int $taskCount = 0;
+
     #[ApiProperty(description: '创建时间')]
     protected string $createdAt = '';
 
@@ -54,10 +63,31 @@ class CronAgentNodeRowDto extends AbstractDto
         $dto->setNodeName((string)($row['node_name'] ?? ''));
         $dto->setNodeIp((string)($row['node_ip'] ?? ''));
         $dto->setRemark((string)($row['remark'] ?? ''));
+        $lastHb = (string)($row['last_heartbeat_at'] ?? '');
+        $dto->setLastHeartbeatAt($lastHb);
+        $dto->setStatus(self::deriveHeartbeatStatus($lastHb));
+        $dto->setTaskCount((int)($row['task_count'] ?? 0));
         $dto->setCreatedAt((string)($row['created_at'] ?? ''));
         $dto->setUpdatedAt((string)($row['updated_at'] ?? ''));
 
         return $dto;
+    }
+
+    /**
+     * 心跳超过 90 秒视为 offline；从未上报为 unknown，不凭空推断。
+     */
+    public static function deriveHeartbeatStatus(string $lastHeartbeatAt, ?int $now = null): string
+    {
+        if (trim($lastHeartbeatAt) === '') {
+            return 'unknown';
+        }
+        $ts = strtotime($lastHeartbeatAt);
+        if ($ts === false) {
+            return 'unknown';
+        }
+        $now = $now ?? time();
+
+        return ($now - $ts) <= 90 ? 'online' : 'offline';
     }
 
     /** 获取节点 ID */
@@ -112,6 +142,42 @@ class CronAgentNodeRowDto extends AbstractDto
     public function setRemark(string $remark): static
     {
         $this->remark = $remark;
+
+        return $this;
+    }
+
+    public function getLastHeartbeatAt(): string
+    {
+        return $this->lastHeartbeatAt;
+    }
+
+    public function setLastHeartbeatAt(string $lastHeartbeatAt): static
+    {
+        $this->lastHeartbeatAt = $lastHeartbeatAt;
+
+        return $this;
+    }
+
+    public function getStatus(): string
+    {
+        return $this->status;
+    }
+
+    public function setStatus(string $status): static
+    {
+        $this->status = $status;
+
+        return $this;
+    }
+
+    public function getTaskCount(): int
+    {
+        return $this->taskCount;
+    }
+
+    public function setTaskCount(int $taskCount): static
+    {
+        $this->taskCount = $taskCount;
 
         return $this;
     }

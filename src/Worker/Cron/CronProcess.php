@@ -98,6 +98,7 @@ class CronProcess extends AbstractWorkerProcess
             logWriter: function (ScheduleEvent|CronUrlTaskMetaDtoWorker $task, string $execBatchId, string $message, int $pid = 0): void {
                 $this->logCronTaskRuntime($task, $execBatchId, $message, $pid);
             },
+            runOnceAck: $args['run_once_ack'] ?? null,
         );
     }
 

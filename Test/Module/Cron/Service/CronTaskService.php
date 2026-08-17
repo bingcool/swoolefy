@@ -38,7 +38,7 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
     {
         // 文档查询范围：node_id + 未软删。status 交给 Runtime Diff 做 ENABLE/DISABLE，
         // 不可在此处只取启用任务，否则 DISABLE 会被误当成 DELETE。
-        $list = CronTaskEntity::query()->field('*')->where([
+        $list = CronTaskEntity::queryNotDeleted()->field('*')->where([
             'node_id' => $nodeId,
             'exec_type' => $execType,
         ])->select()->toArray();
@@ -77,8 +77,9 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
             $cronForkTask->cron_task_id = $item['id'];
             $cronForkTask->cron_db_log_class = static::class;
             $cronForkTask->cron_meta_origin = ScheduleEvent::CRON_META_ORIGIN_DB;
-            if (!empty($item['name'])) {
-                $cronForkTask->cron_name = $item['name'];
+            $taskName = (string)($item['cron_name'] ?? $item['name'] ?? '');
+            if ($taskName !== '') {
+                $cronForkTask->cron_name = $taskName;
             }
 
             if (!empty($item['expression'])) {
@@ -109,7 +110,10 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
                 $cronForkTask->run_type = '';
             }
 
-            $newTaskList[] = $cronForkTask->toArray();
+            $arr = $cronForkTask->toArray();
+            // 不改 cron_task.updated_at：手动执行标记来自独立队列表
+            $arr['run_once_requested'] = $this->hasPendingRunOnce((int) $item['id']);
+            $newTaskList[] = $arr;
         }
 
         return $newTaskList;
@@ -132,8 +136,9 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
             $cronHttpTask->cron_task_id = $item['id'];
             $cronHttpTask->cron_db_log_class = static::class;
             $cronHttpTask->cron_meta_origin = ScheduleEvent::CRON_META_ORIGIN_DB;
-            if (!empty($item['name'])) {
-                $cronHttpTask->cron_name = $item['name'];
+            $taskName = (string)($item['cron_name'] ?? $item['name'] ?? '');
+            if ($taskName !== '') {
+                $cronHttpTask->cron_name = $taskName;
             }
 
             if (!empty($item['expression'])) {
@@ -175,7 +180,9 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
                 $cronHttpTask->request_time_out = 120;
             }
 
-            $newTaskList[] = $cronHttpTask->toArray();
+            $arr = $cronHttpTask->toArray();
+            $arr['run_once_requested'] = $this->hasPendingRunOnce((int) $item['id']);
+            $newTaskList[] = $arr;
         }
 
         return $newTaskList;
@@ -204,5 +211,21 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
             'task_item' => $scheduleTask->toArray(),
             'message' => $message,
         ]);
+    }
+
+    /**
+     * 是否有未消费的手动执行请求（供 fetcher 打标，CronManager Polling 消费）。
+     */
+    public function hasPendingRunOnce(int $cronTaskId): bool
+    {
+        return (new CronTaskManagerService())->hasPendingRunOnce($cronTaskId);
+    }
+
+    /**
+     * Cron Worker 消费手动执行后清队列。
+     */
+    public function ackRunOnce(int $cronTaskId): void
+    {
+        (new CronTaskManagerService())->ackRunOnce($cronTaskId);
     }
 }

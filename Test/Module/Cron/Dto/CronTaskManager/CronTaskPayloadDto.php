@@ -55,6 +55,9 @@ class CronTaskPayloadDto extends AbstractDto
     #[ApiProperty(description: '是否阻塞重叠执行：0=否，1=是')]
     protected ?int $withBlockLapping = null;
 
+    #[ApiProperty(description: '失败后重试次数（不含首次；0=不重试）')]
+    protected ?int $retry = null;
+
     #[ApiProperty(description: 'HTTP 请求方法')]
     protected ?string $httpMethod = null;
 
@@ -175,6 +178,19 @@ class CronTaskPayloadDto extends AbstractDto
         return $this;
     }
 
+    /**
+     * 标记并设置失败后重试次数（不含首次）。
+     *
+     * @param int $retry 0=不重试，N=最多再试 N 次
+     */
+    public function putRetry(int $retry): static
+    {
+        $this->retry = $retry;
+        $this->presentFields['retry'] = true;
+
+        return $this;
+    }
+
     /** 标记并设置 HTTP 请求方法 */
     public function putHttpMethod(string $httpMethod): static
     {
@@ -257,14 +273,14 @@ class CronTaskPayloadDto extends AbstractDto
      * 将已 put 的字段转为数据库 snake_case 关联数组。
      *
      * 仅输出 presentFields 中标记过的字段，未 put 的字段不会出现在结果中，
-     * 从而实现部分更新语义。
+     * 从而实现部分更新语义。API 字段 name 对应表列 cron_name。
      *
      * @return array<string, mixed>
      */
     public function toEntityArray(): array
     {
         $fieldMap = [
-            'name' => 'name',
+            'name' => 'cron_name',
             'expression' => 'expression',
             'command' => 'command',
             'description' => 'description',
@@ -272,6 +288,7 @@ class CronTaskPayloadDto extends AbstractDto
             'execType' => 'exec_type',
             'status' => 'status',
             'withBlockLapping' => 'with_block_lapping',
+            'retry' => 'retry',
             'httpMethod' => 'http_method',
             'httpRequestTimeOut' => 'http_request_time_out',
             'cronBetween' => 'cron_between',

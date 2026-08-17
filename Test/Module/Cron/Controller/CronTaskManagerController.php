@@ -7,7 +7,11 @@ use Swoolefy\Core\Controller\BController;
 use Test\Module\Cron\Dto\CronTaskManager\AgentHeartbeatDto;
 use Test\Module\Cron\Dto\CronTaskManager\AgentReportDto;
 use Test\Module\Cron\Dto\CronTaskManager\AgentTasksQueryDto;
+use Test\Module\Cron\Dto\CronTaskManager\BatchStatusDto;
 use Test\Module\Cron\Dto\CronTaskManager\CreateNodeDto;
+use Test\Module\Cron\Dto\CronTaskManager\ExecutionDetailQueryDto;
+use Test\Module\Cron\Dto\CronTaskManager\ExecutionTrendQueryDto;
+use Test\Module\Cron\Dto\CronTaskManager\ExpressionPreviewDto;
 use Test\Module\Cron\Dto\CronTaskManager\ListTasksQueryDto;
 use Test\Module\Cron\Dto\CronTaskManager\NodeIdDto;
 use Test\Module\Cron\Dto\CronTaskManager\SwitchTaskStatusDto;
@@ -15,19 +19,26 @@ use Test\Module\Cron\Dto\CronTaskManager\TaskIdDto;
 use Test\Module\Cron\Dto\CronTaskManager\TaskLogsQueryDto;
 use Test\Module\Cron\Dto\CronTaskManager\TaskPayloadInputDto;
 use Test\Module\Cron\Dto\CronTaskManager\TaskStatsQueryDto;
+use Test\Module\Cron\Dto\CronTaskManager\UpdateNodeDto;
 use Test\Module\Cron\Dto\CronTaskManager\UpdateTaskCommandDto;
+use Test\Module\Cron\Request\CronTaskManager\BatchStatusRequest;
 use Test\Module\Cron\Request\CronTaskManager\CronAgentHeartbeatRequest;
 use Test\Module\Cron\Request\CronTaskManager\CronAgentReportRequest;
 use Test\Module\Cron\Request\CronTaskManager\CronAgentTasksQueryRequest;
 use Test\Module\Cron\Request\CronTaskManager\CronNodeCreateRequest;
 use Test\Module\Cron\Request\CronTaskManager\CronNodeIdRequest;
+use Test\Module\Cron\Request\CronTaskManager\CronNodeUpdateRequest;
 use Test\Module\Cron\Request\CronTaskManager\CronTaskCreateRequest;
 use Test\Module\Cron\Request\CronTaskManager\CronTaskIdRequest;
 use Test\Module\Cron\Request\CronTaskManager\CronTaskStatsQueryRequest;
 use Test\Module\Cron\Request\CronTaskManager\CronTaskStatusSwitchRequest;
 use Test\Module\Cron\Request\CronTaskManager\CronTaskUpdateRequest;
+use Test\Module\Cron\Request\CronTaskManager\DashboardTrendRequest;
+use Test\Module\Cron\Request\CronTaskManager\ExecutionDetailRequest;
+use Test\Module\Cron\Request\CronTaskManager\ExpressionPreviewRequest;
 use Test\Module\Cron\Request\CronTaskManager\ListTasksRequest;
 use Test\Module\Cron\Request\CronTaskManager\TaskLogsQueryRequest;
+use Test\Module\Cron\Response\CronTaskManager\BatchStatusResponse;
 use Test\Module\Cron\Response\CronTaskManager\CronAgentHeartbeatResponse;
 use Test\Module\Cron\Response\CronTaskManager\CronAgentReportAckResponse;
 use Test\Module\Cron\Response\CronTaskManager\CronAgentTasksResponse;
@@ -37,7 +48,13 @@ use Test\Module\Cron\Response\CronTaskManager\CronNodeRowResponse;
 use Test\Module\Cron\Response\CronTaskManager\CronTaskRowResponse;
 use Test\Module\Cron\Response\CronTaskManager\CronTaskStatsResponse;
 use Test\Module\Cron\Response\CronTaskManager\CronTaskStatusAckResponse;
+use Test\Module\Cron\Response\CronTaskManager\DashboardOverviewResponse;
+use Test\Module\Cron\Response\CronTaskManager\ExecutionDetailResponse;
+use Test\Module\Cron\Response\CronTaskManager\ExecutionTrendResponse;
+use Test\Module\Cron\Response\CronTaskManager\ExpressionPreviewResponse;
 use Test\Module\Cron\Response\CronTaskManager\ListTasksResponse;
+use Test\Module\Cron\Response\CronTaskManager\RunOnceQueuedResponse;
+use Test\Module\Cron\Response\CronTaskManager\RuntimeOverviewResponse;
 use Test\Module\Cron\Response\CronTaskManager\TaskLogsResponse;
 use Test\Module\Cron\Service\CronTaskManagerService;
 
@@ -162,7 +179,7 @@ class CronTaskManagerController extends BController
      * Route: DELETE /api/v1/tasks
      *
      ```bash
-     curl -X DELETE 'http://127.0.0.1:9501/api/v1/tasks' \
+     curl -X DELETE 'http://127.0.0.1:9501/api/v1/tasks?id=1' \
        -H 'Content-Type: application/json' \
        -H 'Accept: application/json' \
        -d '{"id": 1}'
@@ -294,7 +311,11 @@ class CronTaskManagerController extends BController
         $query = (new TaskLogsQueryDto())
             ->setTaskId($request->getTaskId())
             ->setPage($request->getPage())
-            ->setPageSize($request->getPageSize());
+            ->setPageSize($request->getPageSize())
+            ->setExecBatchId($request->getExecBatchId())
+            ->setStatus($request->getStatus())
+            ->setStartTime($request->getStartTime())
+            ->setEndTime($request->getEndTime());
 
         return new TaskLogsResponse($this->cronTaskManagerService->taskLogs($query));
     }
@@ -425,5 +446,158 @@ class CronTaskManagerController extends BController
             ->setPid($request->getPid());
 
         return new CronAgentReportAckResponse($this->cronTaskManagerService->agentReport($dto));
+    }
+
+    /**
+     * 任务详情。对应架构 GET /tasks/{id}，路由实现为 GET /tasks/detail?id=。
+     *
+     * Route: GET /api/v1/tasks/detail
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/v1/tasks/detail?id=1' -H 'Accept: application/json'
+     ```
+     */
+    #[ApiOperation("查询定时任务详情")]
+    public function getTask(CronTaskIdRequest $request): CronTaskRowResponse
+    {
+        return new CronTaskRowResponse($this->cronTaskManagerService->getTask(TaskIdDto::of($request->getId())));
+    }
+
+    /**
+     * 表达式预览：走引擎 ExpressionParser。
+     *
+     * Route: POST /api/v1/tasks/expression/preview
+     *
+     ```bash
+     curl -X POST 'http://127.0.0.1:9501/api/v1/tasks/expression/preview' \
+       -H 'Content-Type: application/json' -d '{"expression":"15"}'
+     ```
+     */
+    #[ApiOperation("预览 Cron 表达式")]
+    public function previewExpression(ExpressionPreviewRequest $request): ExpressionPreviewResponse
+    {
+        return new ExpressionPreviewResponse(
+            $this->cronTaskManagerService->previewExpression(ExpressionPreviewDto::of($request->getExpression()))
+        );
+    }
+
+    /**
+     * 单次执行详情。对应架构 GET /tasks/{id}/executions/{execBatchId}。
+     *
+     * Route: GET /api/v1/tasks/execution
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/v1/tasks/execution?id=1&execBatchId=batch-xxx'
+     ```
+     */
+    #[ApiOperation("查询单次执行详情")]
+    public function getExecution(ExecutionDetailRequest $request): ExecutionDetailResponse
+    {
+        return new ExecutionDetailResponse(
+            $this->cronTaskManagerService->getExecution(ExecutionDetailQueryDto::of($request->getId(), $request->getExecBatchId()))
+        );
+    }
+
+    /**
+     * Dashboard 聚合概览。
+     *
+     * Route: GET /api/v1/dashboard/overview
+     */
+    #[ApiOperation("Dashboard 概览")]
+    public function dashboardOverview(): DashboardOverviewResponse
+    {
+        return new DashboardOverviewResponse($this->cronTaskManagerService->dashboardOverview());
+    }
+
+    /**
+     * 执行趋势。
+     *
+     * Route: GET /api/v1/dashboard/execution-trend?range=24h
+     */
+    #[ApiOperation("执行趋势")]
+    public function executionTrend(DashboardTrendRequest $request): ExecutionTrendResponse
+    {
+        return new ExecutionTrendResponse(
+            $this->cronTaskManagerService->executionTrend(ExecutionTrendQueryDto::of($request->getRange()))
+        );
+    }
+
+    /**
+     * Runtime 聚合。HTTP Worker 通常读不到 Cron Worker 诊断，不伪造 running。
+     *
+     * Route: GET /api/v1/runtime/overview
+     */
+    #[ApiOperation("Runtime 概览")]
+    public function runtimeOverview(): RuntimeOverviewResponse
+    {
+        return new RuntimeOverviewResponse($this->cronTaskManagerService->runtimeOverview());
+    }
+
+    /**
+     * 节点详情。对应架构 GET /nodes/{id}。
+     *
+     * Route: GET /api/v1/nodes/detail?id=
+     */
+    #[ApiOperation("查询节点详情")]
+    public function getNode(CronNodeIdRequest $request): CronNodeRowResponse
+    {
+        return new CronNodeRowResponse($this->cronTaskManagerService->getNode(NodeIdDto::of($request->getId())));
+    }
+
+    /**
+     * 更新节点。对应架构 PUT /nodes/{id}。
+     *
+     * Route: PUT /api/v1/nodes
+     */
+    #[ApiOperation("更新节点")]
+    public function updateNode(CronNodeUpdateRequest $request): CronNodeRowResponse
+    {
+        $dto = (new UpdateNodeDto())
+            ->setId($request->getId())
+            ->setNodeName($request->getNodeName())
+            ->setNodeIp($request->getNodeIp())
+            ->setRemark($request->getRemark());
+
+        return new CronNodeRowResponse($this->cronTaskManagerService->updateNode($dto));
+    }
+
+    /**
+     * 批量启停：幂等赋值。
+     *
+     * Route: PUT /api/v1/tasks/batch-status
+     *
+     ```bash
+     curl -X PUT 'http://127.0.0.1:9501/api/v1/tasks/batch-status' \
+       -H 'Content-Type: application/json' -d '{"ids":[1,2,3],"status":1}'
+     ```
+     */
+    #[ApiOperation("批量启停任务")]
+    public function batchSwitchStatus(BatchStatusRequest $request): BatchStatusResponse
+    {
+        return new BatchStatusResponse(
+            $this->cronTaskManagerService->batchSwitchStatus(BatchStatusDto::of($request->getIds(), $request->getStatus()))
+        );
+    }
+
+    /**
+     * 复制任务：status=0，name=原名称-copy。
+     *
+     * Route: POST /api/v1/tasks/duplicate
+     */
+    #[ApiOperation("复制定时任务")]
+    public function duplicateTask(CronTaskIdRequest $request): CronTaskRowResponse
+    {
+        return new CronTaskRowResponse($this->cronTaskManagerService->duplicateTask(TaskIdDto::of($request->getId())));
+    }
+
+    /**
+     * 手动执行入队。不跨进程调用 Cron Worker，由 Polling 消费后执行 runOnceNow。
+     *
+     * Route: POST /api/v1/tasks/run
+     */
+    #[ApiOperation("入队手动执行一次")]
+    public function runTaskOnce(CronTaskIdRequest $request): RunOnceQueuedResponse
+    {
+        return new RunOnceQueuedResponse($this->cronTaskManagerService->enqueueRunOnce(TaskIdDto::of($request->getId())));
     }
 }

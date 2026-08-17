@@ -5,7 +5,12 @@ namespace Test\Router;
 use Swoolefy\Http\Middleware\CorsMiddleware;
 use Swoolefy\Http\Route;
 use Test\Middleware\Group\GroupTestMiddleware;
+use Test\Module\Cron\Controller\CronAdminController;
 use Test\Module\Cron\Controller\CronTaskManagerController;
+
+Route::get('/cron-admin', [
+    'dispatch_route' => [CronAdminController::class, 'index'],
+]);
 
 Route::group([
     'prefix' => 'api/v1',
@@ -30,6 +35,24 @@ Route::group([
     Route::match(['POST', 'PUT'], '/tasks/status', [
         'dispatch_route' => [CronTaskManagerController::class, 'switchTaskStatus'],
     ]);
+    Route::put('/tasks/batch-status', [
+        'dispatch_route' => [CronTaskManagerController::class, 'batchSwitchStatus'],
+    ]);
+    Route::get('/tasks/detail', [
+        'dispatch_route' => [CronTaskManagerController::class, 'getTask'],
+    ]);
+    Route::post('/tasks/expression/preview', [
+        'dispatch_route' => [CronTaskManagerController::class, 'previewExpression'],
+    ]);
+    Route::get('/tasks/execution', [
+        'dispatch_route' => [CronTaskManagerController::class, 'getExecution'],
+    ]);
+    Route::post('/tasks/duplicate', [
+        'dispatch_route' => [CronTaskManagerController::class, 'duplicateTask'],
+    ]);
+    Route::post('/tasks/run', [
+        'dispatch_route' => [CronTaskManagerController::class, 'runTaskOnce'],
+    ]);
 
     // 节点管理
     Route::get('/nodes', [
@@ -37,6 +60,12 @@ Route::group([
     ]);
     Route::post('/nodes', [
         'dispatch_route' => [CronTaskManagerController::class, 'createNode'],
+    ]);
+    Route::put('/nodes', [
+        'dispatch_route' => [CronTaskManagerController::class, 'updateNode'],
+    ]);
+    Route::get('/nodes/detail', [
+        'dispatch_route' => [CronTaskManagerController::class, 'getNode'],
     ]);
     Route::delete('/nodes', [
         'dispatch_route' => [CronTaskManagerController::class, 'deleteNode'],
@@ -48,6 +77,17 @@ Route::group([
     ]);
     Route::get('/tasks/stats', [
         'dispatch_route' => [CronTaskManagerController::class, 'taskStats'],
+    ]);
+
+    // Dashboard / Runtime
+    Route::get('/dashboard/overview', [
+        'dispatch_route' => [CronTaskManagerController::class, 'dashboardOverview'],
+    ]);
+    Route::get('/dashboard/execution-trend', [
+        'dispatch_route' => [CronTaskManagerController::class, 'executionTrend'],
+    ]);
+    Route::get('/runtime/overview', [
+        'dispatch_route' => [CronTaskManagerController::class, 'runtimeOverview'],
     ]);
 
     // Agent节点拉取任务

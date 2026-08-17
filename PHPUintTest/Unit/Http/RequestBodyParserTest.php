@@ -53,6 +53,7 @@ final class RequestBodyParserTest extends TestCase
         $this->assertSame([], RequestBodyParser::parseJsonPayload('application/json', '{}', 'POST'));
         $this->assertSame([], RequestBodyParser::parseJsonPayload('application/json', '[]', 'POST'));
         $this->assertSame(['a' => 1], RequestBodyParser::parseJsonPayload('application/json', '{"a":1}', 'POST'));
+        $this->assertSame(['id' => 7], RequestBodyParser::parseJsonPayload('application/json', '{"id":7}', 'DELETE'));
     }
 
     /**

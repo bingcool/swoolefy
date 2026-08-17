@@ -478,6 +478,19 @@ Test 实现 `Test\Module\Cron\Service\CronTaskService`：
 
 ## 使用例子
 
+### 表结构（`Test/cron.sql`）
+
+Test 应用的 Cron Admin / Worker 读 `cron_task` 等表。新库导入 `Test/cron.sql`（`CREATE TABLE` 已含 `retry`，默认 `0` = 不重试）。
+
+**已有库不要 DROP**：`GET /api/v1/tasks` 会 SELECT `retry`。若表是旧结构（无该列），会报 `Unknown column 'retry'`。在业务库执行下面语句升级，已有行自动为 `0`：
+
+```sql
+ALTER TABLE `cron_task`
+    ADD COLUMN `retry` int NOT NULL DEFAULT '0' COMMENT '失败后重试次数（不含首次；0=不重试，N=最多再试N次）' AFTER `with_block_lapping`;
+```
+
+列已存在则跳过。同文件里该 `ALTER` 以注释形式保留，避免整文件导入时与 `CREATE TABLE` 冲突。
+
 ### 启动 Test WorkerCron
 
 仓库根目录 `cron.php` 指向 `Test\WorkerCron\MainCronProcess`，配置文件 `Test/WorkerCron/worker_cron_conf.php`（当前默认只 merge 了 fork 配置）。
@@ -595,11 +608,18 @@ Linux Cron 写法（同一字段）：
 
 `handler_class` 必须继承 `AbstractCronController` 并实现 `doCronTask($cron, string $cronName)`。重叠由 `with_block_lapping + $this->handing` 控制，与 `ExecutionGuard` 无关。
 
-### Test HTTP 管理 API（写库，不直接改 Timer）
+### Test HTTP 管理 API + Web Admin（写库，不直接改 Timer）
 
 路由：`Test/Router/Module/CronManager.php`，控制器 `Test/Module/Cron/Controller/CronTaskManagerController.php`，默认端口 **9501**。Worker 靠 Polling Diff 收敛，后台不操作 Scheduler。
 
+**Admin UI**：浏览器打开 `http://127.0.0.1:9501/cron-admin`（`CronAdminController` sendfile `Test/Module/Cron/static/cron-admin.html`，Vue 2 + Element UI）。页面：Dashboard / 计划任务 / 创建编辑（Task Editor v2）/ 详情 / 执行记录 / Nodes / Runtime。
+
+**跨进程 Manual Run**：`POST /api/v1/tasks/run` 只向 `cron_task_run_request` 入队，返回 `queued=true`，**不声称已执行**。Cron Worker fetcher 给行打上 `run_once_requested`，`CronManager::syncFromFetcher()` 之后 `consumeRunOnceRequests()` 调用 `runOnceNow`，再经 `run_once_ack` 清队列。不改 `cron_task.updated_at` / fingerprint。
+
 ```bash
+# Admin UI
+# http://127.0.0.1:9501/cron-admin
+
 # 列表
 curl -X GET 'http://127.0.0.1:9501/api/v1/tasks?page=1&pageSize=20&status=1&nodeId=1&execType=1' \
   -H 'Accept: application/json'
@@ -647,11 +667,36 @@ curl -X DELETE 'http://127.0.0.1:9501/api/v1/tasks' \
   -H 'Content-Type: application/json' \
   -d '{"id": 1}'
 
-# 执行日志
+# 执行日志（可选 execBatchId/status/startTime/endTime）
 curl -X GET 'http://127.0.0.1:9501/api/v1/tasks/logs?taskId=1&page=1&pageSize=20'
+
+# 详情 / 预览 / 执行详情 / 复制 / 手动入队 / 批量启停
+curl -X GET  'http://127.0.0.1:9501/api/v1/tasks/detail?id=1'
+curl -X POST 'http://127.0.0.1:9501/api/v1/tasks/expression/preview' -H 'Content-Type: application/json' -d '{"expression":"15"}'
+curl -X GET  'http://127.0.0.1:9501/api/v1/tasks/execution?id=1&execBatchId=batch-xxx'
+curl -X POST 'http://127.0.0.1:9501/api/v1/tasks/duplicate' -H 'Content-Type: application/json' -d '{"id":1}'
+curl -X POST 'http://127.0.0.1:9501/api/v1/tasks/run' -H 'Content-Type: application/json' -d '{"id":1}'
+curl -X PUT  'http://127.0.0.1:9501/api/v1/tasks/batch-status' -H 'Content-Type: application/json' -d '{"ids":[1,2],"status":0}'
+
+# Dashboard / Runtime / 节点详情与更新
+curl -X GET 'http://127.0.0.1:9501/api/v1/dashboard/overview'
+curl -X GET 'http://127.0.0.1:9501/api/v1/dashboard/execution-trend?range=24h'
+curl -X GET 'http://127.0.0.1:9501/api/v1/runtime/overview'
+curl -X GET 'http://127.0.0.1:9501/api/v1/nodes/detail?id=1'
+curl -X PUT 'http://127.0.0.1:9501/api/v1/nodes' -H 'Content-Type: application/json' -d '{"id":1,"remark":"prod"}'
 ```
 
-这些 API 属于 **Test 应用**，不是 `src/Worker/Cron` 对外 SDK。
+创建/更新 body 可带 `retry`（失败后再试次数，不含首次，默认 0）。这些 API 属于 **Test 应用**，不是 `src/Worker/Cron` 对外 SDK。
+
+路由对照（本框架 Route 为精确匹配，`{id}` 用 query/body）：
+
+| 架构路径 | 实现 |
+|---|---|
+| GET /tasks/{id} | GET /api/v1/tasks/detail?id= |
+| GET /tasks/{id}/executions/{execBatchId} | GET /api/v1/tasks/execution?id=&execBatchId= |
+| POST /tasks/{id}/duplicate | POST /api/v1/tasks/duplicate |
+| POST /tasks/{id}/run | POST /api/v1/tasks/run |
+| GET/PUT /nodes/{id} | GET /api/v1/nodes/detail 、 PUT /api/v1/nodes |
 
 ### 如何新增一个 Job
 
@@ -776,8 +821,8 @@ HTTP Worker 不会调用 `recordCronJobs()`，对应 Gauge 保持 0，但 `worke
 | Retry backoff / `retry_delay` | 引擎已支持 `retry`（立即重试）；**没有**退避间隔字段 |
 | Misfire / Backfill / Catch-up | `calculateNextRunAt` 只算下一合法点，不补历史（`runOnceNow` 也不补跑错过的点） |
 | 分布式锁 / Leader Election | `ExecutionGuard` 是**进程内**协作式互斥，不是跨节点锁 |
-| 跨进程 Manual Run HTTP | 引擎已有 `runOnceNow`；Test Admin 写库，不跨进程调用 Cron Worker |
-| 框架级 Web Admin | Test 应用有 `cron_task` CRUD；设计文档与 HTML 原型在 `docs/`，不是 `src/Worker/Cron` 的一部分 |
+| 跨进程 Manual Run HTTP | 引擎 `runOnceNow` + Test Admin 入队 `cron_task_run_request`，Polling `consumeRunOnceRequests` 后 ack；不跨进程 RPC |
+| 框架级 Web Admin | Test 应用：`GET /cron-admin` + `/api/v1` 管理 API；不是 `src/Worker/Cron` 的一部分 |
 | 跨进程 Runtime 查询 | Cron 诊断只活在 Cron Worker 的 `RuntimeRegistry` |
 | MQ / RPC / DAG / 独立 Scheduler 服务 | 明确不引入 |
 
@@ -793,6 +838,9 @@ HTTP Worker 不会调用 `recordCronJobs()`，对应 Gauge 保持 0，但 `worke
 
 # SwooleCronTimer goApp 协程边界
 ./vendor/bin/phpunit --filter SwooleCronTimerCoroutineTest
+
+# Admin 列表 DTO retry 缺省、PayloadBuilder retry=0、异常 withStatus 必须为 int（不连 MySQL）
+./vendor/bin/phpunit --filter 'SwoolefyExceptionResponseTest|CronAdminDtoTest|CronTaskPayloadBuilderTest'
 ```
 
 主要用例：
@@ -804,6 +852,9 @@ HTTP Worker 不会调用 `recordCronJobs()`，对应 Gauge 保持 0，但 `worke
 - `PHPUintTest/Unit/Worker/Cron/RetryTest.php` — retry=0 / fail-then-success / 用尽失败 / SKIP 不重试 / Snapshot 冻结
 - `PHPUintTest/Unit/Worker/Cron/RunOnceNowTest.php` — 成功不改 nextRunAt、停用 / 缺失、重叠 SKIP、时间窗、retry、无 backfill
 - `PHPUintTest/Coroutine/Worker/Cron/SwooleCronTimerCoroutineTest.php`
+- `PHPUintTest/Unit/Core/SwoolefyExceptionResponseTest.php` — SQLSTATE 不得传入 withStatus；HTTP 状态恒为 int
+- `PHPUintTest/Unit/Module/Cron/CronAdminDtoTest.php` — 列表行 retry 缺省 0
+- `PHPUintTest/Unit/Module/Cron/CronTaskPayloadBuilderTest.php` — 创建 payload retry 默认 0
 
 ---
 

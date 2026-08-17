@@ -14,6 +14,10 @@ class ListTasksPageResult extends ArrayDto
 {
     protected int $total = 0;
 
+    protected int $page = 1;
+
+    protected int $pageSize = 20;
+
     /**
      * @var array<int, CronTaskRowDto>
      */
@@ -32,6 +36,30 @@ class ListTasksPageResult extends ArrayDto
     public function getTotal(): int
     {
         return $this->total;
+    }
+
+    public function setPage(int $page): static
+    {
+        $this->page = max(1, $page);
+
+        return $this;
+    }
+
+    public function getPage(): int
+    {
+        return $this->page;
+    }
+
+    public function setPageSize(int $pageSize): static
+    {
+        $this->pageSize = max(1, $pageSize);
+
+        return $this;
+    }
+
+    public function getPageSize(): int
+    {
+        return $this->pageSize;
     }
 
     /**

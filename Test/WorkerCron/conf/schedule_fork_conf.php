@@ -20,12 +20,17 @@ return [
             // CronManager 唯一调度：配置轮询间隔（秒）。fetcher 抛异常时保留 Last Known Good Runtime。
             'cron_poll_interval' => 20,
             'node_id' => env('CRON_NODE_ID'),
+            // 跨进程 Manual Run：Admin 入队后由本 Polling 执行 runOnceNow，再 ack 清队列
+            'run_once_ack' => static function (string $jobId, int $cronTaskId): void {
+                unset($jobId);
+                (new \Test\Module\Cron\Service\CronTaskService())->ackRunOnce($cronTaskId);
+            },
             // 定时任务列表
             //'task_list' => Kernel::buildScheduleTaskList(Kernel::schedule()),
 
             // 动态定时任务列表，可以存在数据库中
             'task_list' => function () {
-                $list1 = include __DIR__ . '/fork_task.php';
+                //$list1 = include __DIR__ . '/fork_task.php';
                 // $list2 = Kernel::buildScheduleTaskList(Kernel::schedule());
 
                 // 读取yaml文件模式
@@ -39,7 +44,7 @@ return [
 //                }
 
                 // 读取数据库cronTask配置模式
-                //$list4 = (new \Test\Module\Cron\Service\CronTaskService())->fetchCronTask(CronProcess::EXEC_FORK_TYPE, env('CRON_NODE_ID'));
+                $list4 = (new \Test\Module\Cron\Service\CronTaskService())->fetchCronTask(CronProcess::EXEC_FORK_TYPE, env('CRON_NODE_ID'));
                 // 返回taskList
                 $taskList = array_merge($list1 ?? [], $list2 ?? [], $list3 ?? [], $list4 ?? []);
                 if (!empty($taskList)) {

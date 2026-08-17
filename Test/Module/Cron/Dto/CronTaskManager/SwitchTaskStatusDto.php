@@ -30,6 +30,15 @@ class SwitchTaskStatusDto extends AbstractDto
     #[ApiProperty(description: '目标状态：0=禁用，1=启用')]
     protected int $status = 0;
 
+    public static function of(int $id, int $status): self
+    {
+        $dto = new self();
+        $dto->id = $id;
+        $dto->status = $status;
+
+        return $dto;
+    }
+
     /** 获取任务 ID */
     public function getId(): int
     {
