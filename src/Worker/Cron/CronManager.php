@@ -13,6 +13,7 @@ namespace Swoolefy\Worker\Cron;
 
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Runtime\RuntimeRegistry;
+use Swoolefy\Core\Schedule\ScheduleEvent;
 use Swoolefy\Exception\CronException;
 
 /**
@@ -161,7 +162,7 @@ final class CronManager
 
             return true;
         } catch (\Throwable $e) {
-            // P0-6：DB Failure ≠ Clear Runtime
+            // DB Failure ≠ Clear Runtime
             $this->lastConfigSyncError = $e->getMessage();
             $this->lastConfigSyncAt = $this->clock->now();
             $this->debug('Config sync failed, keep last known good runtime: ' . $e->getMessage());
@@ -511,7 +512,7 @@ final class CronManager
     }
 
     /**
-     * fingerprint 变化：先清旧 Timer，再换 TaskDefinition / Schedule，再按需武装唯一新 Timer。
+     * fingerprint 变化：先清旧 Timer，再换 TaskDefinition / Schedule，再按需封装唯一新 Timer。
      * 进行中的 Execution 继续使用已冻结的 ExecutionSnapshot，不受本轮换定义影响。
      */
     private function applyUpdate(string $jobId, ?TaskDefinition $definition): void
@@ -644,7 +645,7 @@ final class CronManager
     }
 
     /**
-     * 执行期日志。logWriter 异常只记 debug，不得回传到 onTrigger（P0-5）。
+     * 执行期日志。logWriter 异常只记 debug，不得回传到 onTrigger。
      */
     private function writeLog(ExecutionSnapshot $snapshot, string $message, int $pid = 0): void
     {
