@@ -18,13 +18,14 @@ return [
         'extend_data' => [],
         'args' => [
             // CronManager 唯一调度：配置轮询间隔（秒）。fetcher 抛异常时保留 Last Known Good Runtime。
-            'cron_poll_interval' => 20,
+            'cron_poll_interval' => env('CRON_POLL_INTERVAL', 20),
             'node_id' => env('CRON_NODE_ID'),
             // 跨进程 Manual Run：Admin 入队后由本 Polling 执行 runOnceNow，再 ack 清队列
             'run_once_ack' => static function (string $jobId, int $cronTaskId): void {
                 unset($jobId);
                 (new \Test\Module\Cron\Service\CronTaskService())->ackRunOnce($cronTaskId);
             },
+
             // 定时任务列表
             //'task_list' => Kernel::buildScheduleTaskList(Kernel::schedule()),
 

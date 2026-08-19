@@ -43,17 +43,11 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
             'exec_type' => $execType,
         ])->select()->toArray();
 
-        $entity = (new CronTaskEntity)->loadById(5);
-        $entity->getConnection();
-
-
         if ($execType == CronProcess::EXEC_FORK_TYPE) {
             $taskList = $this->fetchShellCronTask($list);
-
             return $taskList;
         } elseif ($execType == CronProcess::EXEC_URL_TYPE) {
             $taskList = $this->fetchHttpCronTask($list);
-
             return $taskList;
         } else {
             throw new \Exception('exec_type error');

@@ -93,7 +93,7 @@ class CronProcess extends AbstractWorkerProcess
             executor: $this->createCronExecutor(),
             timer: new SwooleCronTimer(),
             clock: new SystemCronClock(),
-            pollIntervalMs: $this->taskList instanceof \Closure ? max(1, $pollSeconds) * 1000 : 0,
+            pollIntervalMs: $this->taskList instanceof \Closure ? max(5, $pollSeconds) * 1000 : 0,
             nodeId: $nodeId === null || $nodeId === '' ? null : (int) $nodeId,
             logWriter: function (ScheduleEvent|CronUrlTaskMetaDtoWorker $task, string $execBatchId, string $message, int $pid = 0): void {
                 $this->logCronTaskRuntime($task, $execBatchId, $message, $pid);
