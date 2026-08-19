@@ -57,6 +57,9 @@ CREATE TABLE `cron_task_run_request` (
     `cron_id` bigint NOT NULL DEFAULT '0' COMMENT '关联 cron_task.id',
     `requested_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '入队时间',
     `consumed_at` datetime DEFAULT NULL COMMENT 'Cron Worker 消费时间；NULL=待执行',
+    `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    `deleted_at` datetime DEFAULT NULL COMMENT '删除时间',
     PRIMARY KEY (`id`),
     KEY `idx_cron_pending` (`cron_id`, `consumed_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='手动执行请求（跨进程 runOnceNow 入队）';

@@ -13,6 +13,9 @@ use Test\Model\ClientModel;
  * @property int $cron_id
  * @property string $requested_at
  * @property string|null $consumed_at
+ * @property string created_at 创建时间
+ * @property string updated_at 修改时间
+ * @property string deleted_at 删除时间
  */
 class CronTaskRunRequestEntity extends ClientModel
 {
