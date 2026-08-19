@@ -31,12 +31,63 @@ final class CronAdminDtoTest extends TestCase
             'exec_type' => 1,
             'retry' => 3,
             'http_headers' => ['Authorization' => 'secret', 'X-Demo' => '1'],
-        ]);
+        ], 1000);
 
         $this->assertSame(3, $dto->getRetry());
         $this->assertSame('interval', $dto->getExpressionType());
         $this->assertSame('******', $dto->getHttpHeaders()['Authorization'] ?? null);
         $this->assertSame('1', $dto->getHttpHeaders()['X-Demo'] ?? null);
+        $this->assertSame(1005, $dto->getNextRunAt());
+        $this->assertNotSame('', $dto->getNextRunAtAt());
+    }
+
+    public function testRowNextRunAtDisabledIsNull(): void
+    {
+        $dto = CronTaskRowDto::fromEntityRow([
+            'id' => 1,
+            'cron_name' => 'paused',
+            'expression' => '15',
+            'command' => 'x',
+            'exec_type' => 1,
+            'status' => 0,
+        ], 1000);
+
+        $this->assertNull($dto->getNextRunAt());
+        $this->assertSame('', $dto->getNextRunAtAt());
+    }
+
+    public function testRowNextRunAtInvalidExpressionDoesNotThrow(): void
+    {
+        $dto = CronTaskRowDto::fromEntityRow([
+            'id' => 1,
+            'cron_name' => 'bad-expr',
+            'expression' => '???',
+            'command' => 'x',
+            'exec_type' => 1,
+            'status' => 1,
+        ], 1000);
+
+        $this->assertNull($dto->getNextRunAt());
+        $this->assertSame('', $dto->getNextRunAtAt());
+    }
+
+    public function testRowNextRunAtCronExpression(): void
+    {
+        $from = (new \DateTimeImmutable('2026-08-15 10:00:00', new \DateTimeZone('UTC')))->getTimestamp();
+        $expected = (new \DateTimeImmutable('2026-08-15 10:05:00', new \DateTimeZone('UTC')))->getTimestamp();
+        $dto = CronTaskRowDto::fromEntityRow([
+            'id' => 1,
+            'cron_name' => 'linux-cron',
+            'expression' => '*/5 * * * *',
+            'command' => 'x',
+            'exec_type' => 1,
+            'status' => 1,
+            'timezone' => 'UTC',
+        ], $from);
+
+        $this->assertSame('cron', $dto->getExpressionType());
+        $this->assertSame($expected, $dto->getNextRunAt());
+        $this->assertSame(date('Y-m-d H:i:s', $expected), $dto->getNextRunAtAt());
     }
 
     public function testRowMapsCronNameColumn(): void

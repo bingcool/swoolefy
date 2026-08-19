@@ -30,6 +30,7 @@ Cron/
 ├── IntervalSchedule.php            # 秒级网格（>= 5）
 ├── CronExpressionSchedule.php      # 五段 Linux Cron
 ├── TimeWindowFilter.php            # cron_between / cron_skip
+├── CronNextRunAt.php               # Admin 列表推算下一合法执行点（不读 Worker 内存）
 ├── ExecutionGuard.php              # with_block_lapping 进程内临界区
 ├── ExecutionSnapshot.php           # 本轮冻结定义 + execBatchId
 ├── ExecutionResult.php             # SUCCESS / FAILED / SKIPPED
@@ -475,7 +476,7 @@ Test 实现 `Test\Module\Cron\Service\CronTaskService`：
 | `cron_between` | 允许窗；空 = 全天允许。多窗 OR |
 | `cron_skip` | 跳过窗；空 = 不额外排除。任一命中即 SKIP |
 
-兼容单窗 `[start, end]` 与多窗 `[[start, end], ...]`。时刻串 `HH:MM` / `HH:MM:SS` 锚定到 `$now` 的当天；跨日窗（如 `22:00-02:00`）按字面时间戳比较，不自动拆日。判定：`allowed = inside(between) && !inside(skip)`。
+兼容单窗 `[start, end]`、多窗 `[[start, end], ...]`，以及 Admin JSON `{start, end}`。时刻串 `HH:MM` / `HH:MM:SS` 锚定到 `$now` 的当天；跨日窗（如 `22:00-02:00`）按字面时间戳比较，不自动拆日。判定：`allowed = inside(between) && !inside(skip)`。
 
 ### Shell（`exec_type=1`）
 
@@ -661,7 +662,9 @@ Linux Cron 写法（同一字段）：
 # Admin UI
 # http://127.0.0.1:9501/cron-admin
 
-# 列表
+# 列表（行含 expressionType / retry / nextRunAt）
+# nextRunAt：unix 秒；禁用或非法表达式为 null（暂停）。HTTP Admin 用 ExpressionParser
+# + calculateNextRunAt + TimeWindowFilter 推算下一合法点，不读 Cron Worker 内存。
 curl -X GET 'http://127.0.0.1:9501/api/v1/tasks?page=1&pageSize=20&status=1&nodeId=1&execType=1' \
   -H 'Accept: application/json'
 
@@ -880,8 +883,8 @@ HTTP Worker 不会调用 `recordCronJobs()`，对应 Gauge 保持 0，但 `worke
 # SwooleCronTimer goApp 协程边界
 ./vendor/bin/phpunit --filter SwooleCronTimerCoroutineTest
 
-# Admin 列表 DTO retry 缺省、PayloadBuilder retry=0、异常 withStatus 必须为 int（不连 MySQL）
-./vendor/bin/phpunit --filter 'SwoolefyExceptionResponseTest|CronAdminDtoTest|CronTaskPayloadBuilderTest'
+# Admin 列表 DTO retry 缺省、nextRunAt、PayloadBuilder retry=0、异常 withStatus 必须为 int（不连 MySQL）
+./vendor/bin/phpunit --filter 'SwoolefyExceptionResponseTest|CronAdminDtoTest|CronTaskPayloadBuilderTest|CronNextRunAtTest'
 ```
 
 主要用例：
@@ -895,7 +898,8 @@ HTTP Worker 不会调用 `recordCronJobs()`，对应 Gauge 保持 0，但 `worke
 - `PHPUintTest/Unit/Worker/Cron/RunOnceNowTest.php` — 成功不改 nextRunAt、停用 / 缺失、重叠 SKIP、时间窗、retry、无 backfill
 - `PHPUintTest/Coroutine/Worker/Cron/SwooleCronTimerCoroutineTest.php`
 - `PHPUintTest/Unit/Core/SwoolefyExceptionResponseTest.php` — SQLSTATE 不得传入 withStatus；HTTP 状态恒为 int
-- `PHPUintTest/Unit/Module/Cron/CronAdminDtoTest.php` — 列表行 retry 缺省 0、节点 heartbeat status
+- `PHPUintTest/Unit/Worker/Cron/CronNextRunAtTest.php` — 列表推算：Interval/Cron 下一合法点、禁用 null、非法表达式不抛、cron_skip 前进
+- `PHPUintTest/Unit/Module/Cron/CronAdminDtoTest.php` — 列表行 retry 缺省 0、nextRunAt、节点 heartbeat status
 - `PHPUintTest/Unit/Module/Cron/CronTaskPayloadBuilderTest.php` — 创建 payload retry 默认 0
 
 ---

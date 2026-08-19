@@ -120,6 +120,7 @@
         <el-table-column label="Type" width="80"><template slot-scope="s"><el-tag size="mini" :type="s.row.execType===2?'warning':'primary'">{{ s.row.execType===2?'HTTP':'Shell' }}</el-tag></template></el-table-column>
         <el-table-column label="Status" width="80"><template slot-scope="s"><el-tag size="mini" :type="s.row.status===1?'success':'info'">{{ s.row.status===1?'启用':'禁用' }}</el-tag></template></el-table-column>
         <el-table-column prop="retry" label="Retry" width="70"></el-table-column>
+        <el-table-column label="下次执行" width="170"><template slot-scope="s">{{ formatNextRun(s.row) }}</template></el-table-column>
         <el-table-column prop="updatedAt" label="Updated" width="160"></el-table-column>
         <el-table-column label="操作" width="280" fixed="right">
           <template slot-scope="s">
@@ -363,6 +364,20 @@ async function api(path, options) {
   return json.data;
 }
 function toastErr(e) { Vue.prototype.$message.error(e.message || String(e)); }
+/** unix 秒优先按浏览器本地格式化为 YYYY-MM-DD HH:mm:ss；否则用 API datetime 串；空为 '-' */
+function formatNextRunAt(row) {
+  if (!row) return '-';
+  var ts = row.nextRunAt;
+  if (ts !== null && ts !== undefined && ts !== '' && Number(ts) > 0) {
+    var d = new Date(Number(ts) * 1000);
+    if (!isNaN(d.getTime())) {
+      function p(n) { return String(n).padStart(2, '0'); }
+      return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate())
+        + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+    }
+  }
+  return row.nextRunAtAt || '-';
+}
 
 const Dashboard = {
   template: '#tpl-dashboard',
@@ -404,7 +419,8 @@ const Tasks = {
     },
     async batch(status) {
       try { await api('/tasks/batch-status', { method: 'PUT', body: { ids: this.sel.map(x => x.id), status } }); this.$message.success('批量已更新'); this.load(); } catch (e) { toastErr(e); }
-    }
+    },
+    formatNextRun(row) { return formatNextRunAt(row); }
   }
 };
 const Editor = {

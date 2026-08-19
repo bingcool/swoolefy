@@ -6,6 +6,7 @@ namespace Test\Module\Cron\Dto\CronTaskManager;
 
 use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Core\Dto\AbstractDto;
+use Swoolefy\Worker\Cron\CronNextRunAt;
 
 /**
  * Cron 任务列表/详情行 DTO。
@@ -25,6 +26,8 @@ use Swoolefy\Core\Dto\AbstractDto;
  * - withBlockLapping：0=允许重叠执行，1=阻塞重叠执行
  * - command：shell 时为脚本路径，http 时为请求 URL
  * - cronBetween / cronSkip：允许/跳过执行的时间段 JSON 数组
+ * - nextRunAt：下次合法执行 unix 秒（展示层推算，不落库）；禁用/非法表达式为 null
+ * - nextRunAtAt：同上的 datetime 串（Y-m-d H:i:s），无下次执行时为空
  */
 class CronTaskRowDto extends AbstractDto
 {
@@ -99,6 +102,12 @@ class CronTaskRowDto extends AbstractDto
     #[ApiProperty(description: 'HTTP 请求超时时间（秒）')]
     protected int $httpRequestTimeOut = 30;
 
+    #[ApiProperty(description: '下次合法执行 unix 秒；禁用或非法表达式为 null（暂停，无下次调度）')]
+    protected ?int $nextRunAt = null;
+
+    #[ApiProperty(description: '下次合法执行时间（Y-m-d H:i:s）；无则空串，风格同 createdAt / lastHeartbeatAt')]
+    protected string $nextRunAtAt = '';
+
     #[ApiProperty(description: '创建时间')]
     protected string $createdAt = '';
 
@@ -111,9 +120,12 @@ class CronTaskRowDto extends AbstractDto
      * JSON 列（cron_between、cron_skip、http_body、http_headers）在非法类型时
      * 分别回退为空数组或 null。
      *
+     * nextRunAt 由 {@see CronNextRunAt::compute} 按引擎规则推算，不读 Worker 内存。
+     *
      * @param array<string, mixed> $row cron_task 查询行或实体 getAttributes() 结果
+     * @param int|null $now 推算基准 unix 秒；空则 time()。单测可注入以对齐网格
      */
-    public static function fromEntityRow(array $row): self
+    public static function fromEntityRow(array $row, ?int $now = null): self
     {
         $dto = new self();
         $dto->setId((int)($row['id'] ?? 0));
@@ -140,6 +152,17 @@ class CronTaskRowDto extends AbstractDto
         $dto->setHttpRequestTimeOut((int)($row['http_request_time_out'] ?? 30));
         $dto->setCreatedAt((string)($row['created_at'] ?? ''));
         $dto->setUpdatedAt((string)($row['updated_at'] ?? ''));
+
+        $computeRow = $row;
+        $computeRow['status'] = $dto->getStatus();
+        $computeRow['expression'] = $dto->getExpression();
+        $computeRow['cron_name'] = $dto->getName();
+        $computeRow['command'] = $dto->getCommand();
+        $computeRow['cron_between'] = $dto->getCronBetween();
+        $computeRow['cron_skip'] = $dto->getCronSkip();
+        $next = CronNextRunAt::compute($computeRow, $now);
+        $dto->setNextRunAt($next);
+        $dto->setNextRunAtAt(CronNextRunAt::formatDatetime($next));
 
         return $dto;
     }
@@ -449,6 +472,34 @@ class CronTaskRowDto extends AbstractDto
     public function setHttpRequestTimeOut(int $httpRequestTimeOut): static
     {
         $this->httpRequestTimeOut = $httpRequestTimeOut;
+
+        return $this;
+    }
+
+    /** 获取下次合法执行 unix 秒；无则为 null */
+    public function getNextRunAt(): ?int
+    {
+        return $this->nextRunAt;
+    }
+
+    /** 设置下次合法执行 unix 秒 */
+    public function setNextRunAt(?int $nextRunAt): static
+    {
+        $this->nextRunAt = $nextRunAt;
+
+        return $this;
+    }
+
+    /** 获取下次合法执行 datetime 串；无则为空 */
+    public function getNextRunAtAt(): string
+    {
+        return $this->nextRunAtAt;
+    }
+
+    /** 设置下次合法执行 datetime 串 */
+    public function setNextRunAtAt(string $nextRunAtAt): static
+    {
+        $this->nextRunAtAt = $nextRunAtAt;
 
         return $this;
     }

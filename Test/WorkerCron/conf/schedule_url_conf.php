@@ -14,28 +14,33 @@ return [
         'extend_data' => [],
         'args' => [
             // CronManager 唯一调度：配置轮询间隔（秒）。
-            'cron_poll_interval' => 20,
+            'cron_poll_interval' => env('CRON_POLL_INTERVAL', 20),
             'node_id' => env('CRON_NODE_ID'),
+            // 跨进程 Manual Run：Admin 入队后由本 Polling 执行 runOnceNow，再 ack 清队列
+            'run_once_ack' => static function (string $jobId, int $cronTaskId): void {
+                unset($jobId);
+                (new \Test\Module\Cron\Service\CronTaskService())->ackRunOnce($cronTaskId);
+            },
             'heartbeat_interval' => env('CRON_HEARTBEAT_INTERVAL', 15),
             'node_heartbeat_ack' => static function (string $nodeId, int $heartbeatInterval = 15): void {
                 (new \Test\Module\Cron\Service\CronTaskService())->ackNodeHeartbeat($nodeId, $heartbeatInterval);
             },
             // 定时任务列表
-            'task_list' => array_merge(
-                require_once __DIR__.'/remote_task.php',
-            )
+//            'task_list' => array_merge(
+//                require_once __DIR__.'/remote_task.php',
+//            )
 
             // 动态定时任务列表，读取数据库cronaTask配置模式
-//            'task_list' => function () {
-//                $list4 = (new \Test\Module\Cron\Service\CronTaskService())->fetchCronTask(CronProcess::EXEC_URL_TYPE, env('CRON_NODE_ID'));
-//                // 返回taskList
-//                $taskList = array_merge($list1 ?? [], $list2 ?? [], $list3 ?? [], $list4 ?? []);
-//                if (!empty($taskList)) {
-//                    return $taskList;
-//                } else {
-//                    return [];
-//                }
-//            }
+            'task_list' => function () {
+                $list4 = (new \Test\Module\Cron\Service\CronTaskService())->fetchCronTask(CronProcess::EXEC_URL_TYPE, env('CRON_NODE_ID'));
+                // 返回taskList
+                $taskList = array_merge($list1 ?? [], $list2 ?? [], $list3 ?? [], $list4 ?? []);
+                if (!empty($taskList)) {
+                    return $taskList;
+                } else {
+                    return [];
+                }
+            }
         ],
     ]
 ];

@@ -97,6 +97,7 @@ class CronTaskManagerService
      *
      * 支持 keyword（name 模糊）、status、nodeId、execType 过滤；按 id 倒序。
      * 行数据映射为 {@see CronTaskRowDto} 填入 {@see ListTasksPageResult}。
+     * 列表行的 nextRunAt 由引擎规则推算（不读 Worker 内存）；禁用/非法表达式为 null。
      */
     public function listTasks(ListTasksQueryDto $query): ListTasksPageResult
     {

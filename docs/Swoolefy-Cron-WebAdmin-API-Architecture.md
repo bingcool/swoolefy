@@ -121,7 +121,10 @@ GET /api/v1/tasks?page=1&pageSize=20&keyword=&status=1&nodeId=1&execType=1
 
 ```text
 id,name,nodeId,expression,command,execType,status,
-withBlockLapping,description,updatedAt
+withBlockLapping,description,updatedAt,
+nextRunAt,nextRunAtAt
+
+`nextRunAt` 为 unix 秒（禁用 / 非法表达式为 `null`）；`nextRunAtAt` 为 `Y-m-d H:i:s`（无则为空串）。HTTP Admin 用 `ExpressionParser` + `calculateNextRunAt` + `TimeWindowFilter` 推算，不读 Cron Worker 内存。
 ```
 
 ## 4.2 Detail【P1】

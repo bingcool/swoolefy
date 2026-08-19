@@ -333,28 +333,51 @@ final class TaskDefinition
 
     /**
      * 将 cron_between / cron_skip 规范为 list of [start, end]。
-     * 兼容历史单窗 [start, end] 与多窗 [[start, end], ...]。
+     * 兼容历史单窗 [start, end]、多窗 [[start, end], ...]，以及 Admin JSON `{start, end}`。
      *
      * @param mixed $value
-     * @return list<array<int, mixed>>
+     * @return list<array{0:mixed,1:mixed}>
      */
     private static function normalizeWindows(mixed $value): array
     {
         if (!is_array($value) || $value === []) {
             return [];
         }
-        if (isset($value[0], $value[1]) && !is_array($value[0])) {
-            return [[$value[0], $value[1]]];
+        $pair = self::windowPair($value);
+        if ($pair !== null) {
+            return [$pair];
         }
 
         $windows = [];
         foreach ($value as $item) {
-            if (is_array($item)) {
-                $windows[] = $item;
+            if (!is_array($item)) {
+                continue;
+            }
+            $normalized = self::windowPair($item);
+            if ($normalized !== null) {
+                $windows[] = $normalized;
             }
         }
 
         return $windows;
+    }
+
+    /**
+     * 单窗 → [start, end]；无法识别则 null。
+     *
+     * @param array<mixed> $window
+     * @return array{0:mixed,1:mixed}|null
+     */
+    private static function windowPair(array $window): ?array
+    {
+        if (isset($window['start'], $window['end'])) {
+            return [$window['start'], $window['end']];
+        }
+        if (isset($window[0], $window[1]) && !is_array($window[0])) {
+            return [$window[0], $window[1]];
+        }
+
+        return null;
     }
 
     /**
