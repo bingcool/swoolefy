@@ -32,13 +32,13 @@ use Swoolefy\Exception\CronException;
  * - TimeWindowFilter：只决定本轮 SKIP，不改 expression
  *
  * 生命周期：
- * - start()：初始 sync +（Closure fetcher 时）Polling tick；失败保留空 Runtime，后续重试
+ * - start()：初始 sync +（Closure fetcher 时）Polling tick + 节点心跳（立刻一次再按 interval tick）；失败保留空 Runtime，后续重试
  * - syncFromFetcher()：fetcher 抛异常 = DB 故障，保留 Last Known Good，绝不 clear all
  * - applyRows()：规范化 + nodeId 过滤后 Diff Apply；单行非法只跳过该行
  * - onTrigger()：先 arm 下一轮，再 Guard / Window / Snapshot /（FAILED 时同轮 retry）；finally 释放 running
  * - runOnceNow()：忽略 expression / nextRunAt，立刻用当前 Runtime 定义跑一轮同一管线；不碰 Schedule Timer
  * - 生产触发在 SwooleCronTimer 的 goApp 协程内执行（Swoole 6 proc_open/HTTP 要求）
- * - stop()：清 Polling、清全部 Job Timer、释放 Registry；必须显式调用
+ * - stop()：清 Polling、清心跳 tick、清全部 Job Timer、释放 Registry；必须显式调用
  *
  * 失败隔离（P0-5 / P0-6）：
  * - Job Exception ≠ Worker Exception：Executor / logWriter 异常不得拖垮其它 Job
@@ -68,6 +68,15 @@ final class CronManager
     /** Config Polling 的 tick timerId；静态数组 fetcher 时保持 0（只同步一次）。 */
     private int $pollTimerId = 0;
 
+    /** 节点心跳 tick timerId；无 ack 或无 nodeId 时保持 0。 */
+    private int $heartbeatTimerId = 0;
+
+    /** 规范化后的心跳间隔（秒），默认 {@see CronNodeLiveness::DEFAULT_INTERVAL}。 */
+    private readonly int $heartbeatIntervalSeconds;
+
+    /** 最近一次心跳 ack 成功的 unix 秒（ack 抛异常则不更新）。 */
+    private ?int $lastHeartbeatAt = null;
+
     /** 最近一次 sync（成功或失败）的 unix 秒，供诊断。 */
     private ?int $lastConfigSyncAt = null;
 
@@ -87,6 +96,8 @@ final class CronManager
      * @param null|callable(ScheduleEvent|\Swoolefy\Worker\Dto\CronUrlTaskMetaDtoWorker,string,string,int):void $logWriter
      * @param CronMetrics|null $metrics 空则接入 RuntimeRegistry::metrics()；指标关闭时内部为 no-op
      * @param null|callable(string,int,ExecutionResult):void $runOnceAck 消费手动执行请求后的确认回调
+     * @param int $heartbeatIntervalSeconds 节点心跳间隔（秒）；&lt;1 回退 {@see CronNodeLiveness::DEFAULT_INTERVAL}
+     * @param null|callable(string,int):void $nodeHeartbeatAck 心跳回调 `(string $nodeId, int $interval=…): void`；第二参可选
      */
     public function __construct(
         private $fetcher,
@@ -98,7 +109,10 @@ final class CronManager
         private $logWriter = null,
         ?CronMetrics $metrics = null,
         private $runOnceAck = null,
+        int $heartbeatIntervalSeconds = CronNodeLiveness::DEFAULT_INTERVAL,
+        private $nodeHeartbeatAck = null,
     ) {
+        $this->heartbeatIntervalSeconds = CronNodeLiveness::normalizeInterval($heartbeatIntervalSeconds);
         $this->registry = new RuntimeJobRegistry();
         $this->scheduler = new CronScheduler($this->timer, $this->clock);
         $this->diff = new ConfigDiff();
@@ -110,8 +124,9 @@ final class CronManager
     }
 
     /**
-     * Worker Start：先尝试初始同步，再启动 Polling。
+     * Worker Start：先尝试初始同步，再启动 Polling 与节点心跳。
      * 初始同步失败不建立 Schedule，但保留空 Runtime，由后续 Polling 重试。
+     * 心跳在 start 时立刻打一次，避免 Admin 等到第一个 interval 才显示 online。
      */
     public function start(): void
     {
@@ -125,11 +140,12 @@ final class CronManager
                 $this->syncFromFetcher();
             });
         }
+        $this->startNodeHeartbeat();
         $this->refreshMetrics();
     }
 
     /**
-     * Worker Stop：停止 Polling、清空全部 Job Timer、释放 Runtime。
+     * Worker Stop：停止 Polling / 心跳、清空全部 Job Timer、释放 Runtime。
      * 必须是显式生命周期操作。
      */
     public function stop(): void
@@ -137,6 +153,10 @@ final class CronManager
         if ($this->pollTimerId > 0) {
             $this->timer->clear($this->pollTimerId);
             $this->pollTimerId = 0;
+        }
+        if ($this->heartbeatTimerId > 0) {
+            $this->timer->clear($this->heartbeatTimerId);
+            $this->heartbeatTimerId = 0;
         }
         $this->scheduler->clearAll($this->registry);
         $this->timer->clearAll();
@@ -344,6 +364,8 @@ final class CronManager
             'running_count' => $this->registry->runningCount(),
             'last_config_sync' => $this->lastConfigSyncAt,
             'last_config_sync_error' => $this->lastConfigSyncError,
+            'heartbeat_interval' => $this->heartbeatIntervalSeconds,
+            'last_heartbeat_at' => $this->lastHeartbeatAt,
             'jobs' => $jobs,
         ];
     }
@@ -391,6 +413,39 @@ final class CronManager
         }
 
         return $this->scheduler->activeTimerCount($job);
+    }
+
+    /**
+     * 启动节点心跳：立刻 ack 一次，再按 heartbeat_interval 武装 tick。
+     * 无 nodeHeartbeatAck 或无 nodeId 则跳过。
+     */
+    private function startNodeHeartbeat(): void
+    {
+        if (!is_callable($this->nodeHeartbeatAck) || $this->nodeId === null) {
+            return;
+        }
+        $this->beatNode();
+        $ms = $this->heartbeatIntervalSeconds * 1000;
+        $this->heartbeatTimerId = $this->timer->tick($ms, function (): void {
+            $this->beatNode();
+        });
+    }
+
+    /**
+     * 调用 nodeHeartbeatAck。异常隔离，不得拖垮 Polling / Job。
+     * Worker 侧约定 `(string $nodeId): void`；额外传入 interval，闭包可选用第二参落库。
+     */
+    private function beatNode(): void
+    {
+        if (!is_callable($this->nodeHeartbeatAck) || $this->nodeId === null) {
+            return;
+        }
+        try {
+            ($this->nodeHeartbeatAck)((string) $this->nodeId, $this->heartbeatIntervalSeconds);
+            $this->lastHeartbeatAt = $this->clock->now();
+        } catch (\Throwable $e) {
+            $this->debug('nodeHeartbeatAck failed: ' . $e->getMessage());
+        }
     }
 
     /**

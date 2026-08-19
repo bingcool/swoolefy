@@ -43,7 +43,8 @@ Cron/
 ├── CronUrlProcess.php              # HTTP Worker
 ├── CronLocalProcess.php            # 独立产品：进程内本地 crontab
 ├── CronForkRunner.php              # 子进程拉起与并发限制（不负责调度）
-└── CronTaskInterface.php           # 业务侧 fetch + log 约定
+├── CronTaskInterface.php           # 业务侧 fetch + log 约定
+└── CronNodeLiveness.php            # 节点存活公式（online/offline）
 ```
 
 单测辅助（不在本目录）：`PHPUintTest/Unit/Worker/Cron/Support/ManualCronTimer.php`、`FrozenCronClock.php`、`RecordingExecutor.php`。
@@ -157,6 +158,7 @@ flowchart TB
    - `syncFromFetcher()` 做初始同步；失败保留空 Runtime，后续 Polling 重试。
    - 仅当 `pollIntervalMs > 0`（`task_list` 是 Closure）时 `timer->tick()` 武装 Config Polling。
    - 静态数组 fetcher：`pollIntervalMs = 0`，只同步一次。
+   - 若配置了 `node_heartbeat_ack` 且 `node_id` 非空：立刻 ack 一次心跳，再按 `heartbeat_interval` 武装 tick（`SwooleCronTimer::tick` → `Tick::tickTimer`）。
 
 ### 2. Config Polling
 
@@ -333,7 +335,7 @@ Test 应用的 `CronTaskManagerController` 是 **写 `cron_task` 的 HTTP Admin*
 
 `CronProcess::onShutDown()` **必须**显式调用（不能只依赖析构）：
 
-1. `cronManager->stop()`：清 Polling tick、`scheduler->clearAll`、`timer->clearAll`、`registry->clear`。
+1. `cronManager->stop()`：清 Polling tick、清心跳 tick、`scheduler->clearAll`、`timer->clearAll`、`registry->clear`。
 2. `RuntimeRegistry::registerCronSnapshot(null)`。
 3. `SwooleCronTimer::clearAll()` 只清本实例 `$owned` 的 timerId，避免误清其它业务 Timer。
 
@@ -349,6 +351,9 @@ Test 应用的 `CronTaskManagerController` 是 **写 `cron_task` 的 HTTP Admin*
 | `cron_poll_interval` | `int` 秒 | `20` | 仅 Closure fetcher 生效；`< 1` 会被抬到 `1` 再 `* 1000` |
 | `node_id` | `int` | `null` | 非空时丢弃 `definition->nodeId` 非空且不等于本节点的任务 |
 | `cron_node_id` | `int` | — | `node_id` 的别名 |
+| `heartbeat_interval` | `int` 秒 | `15` | 节点心跳间隔；`< 1` 回退 15。start 立刻 ack 一次，再按此间隔 tick |
+| `node_heartbeat_ack` | `callable` | `null` | `(string $nodeId): void`；引擎额外传入第二参 `int $heartbeatInterval`，闭包可选用。无 ack 或无 `node_id` 不心跳 |
+| `run_once_ack` | `callable` | `null` | 消费手动执行后清队列 |
 
 `CronLocalProcess` **不读**上述调度键，只读：
 
@@ -365,7 +370,37 @@ Test 应用的 `CronTaskManagerController` 是 **写 `cron_task` 的 HTTP Admin*
 | 变量 | 说明 |
 |---|---|
 | `CRON_NODE_ID` | Test 配置里写入 `args['node_id']` |
+| `CRON_HEARTBEAT_INTERVAL` | Test 配置里写入 `args['heartbeat_interval']`，默认 15 |
 | `CRON_DEBUG` | 为真时 `fmtPrintNote` 打印 sync / 非法行等调试信息 |
+
+---
+
+## 节点心跳与存活
+
+Cron Worker 在 `start()` 时立刻调用 `node_heartbeat_ack`，再按 `heartbeat_interval`（默认 **15** 秒）`tick`。`stop()` 清除该 Timer。ack 异常隔离，不得拖垮 Polling / Job。
+
+Test 实现 `CronTaskService::ackNodeHeartbeat($nodeId, $heartbeatInterval)`：更新 `cron_agent_node.last_heartbeat_at`，并写入该节点自己的 `heartbeat_interval`；行不存在则按 `id=$nodeId` 插入。
+
+**存活公式**（`CronNodeLiveness::status($now, $lastHeartbeatAt, $interval)`，Admin 列表 / 详情 / Dashboard 共用）：
+
+```text
+online  iff  last_heartbeat_at != null
+         AND (now - last_heartbeat_at) <= max(3 * heartbeat_interval, heartbeat_interval + 5)
+offline otherwise
+```
+
+- 允许约 2 次漏跳 + 抖动；**从未心跳（null）一律 offline**，不返回 unknown。
+- 阈值用**该节点行上的** `heartbeat_interval`（多节点可不同），缺列 / 非法回退 15。
+- `staleAfterSeconds = max(3 * interval, interval + 5)`：interval=15 → 45；interval=10 → 30。
+
+DTO 字段：`status`（`online`|`offline`）、`lastHeartbeatAt`、`heartbeatInterval`、`staleAfterSeconds`。
+
+已有库升级（不要 DROP）：
+
+```sql
+ALTER TABLE `cron_agent_node`
+    ADD COLUMN `heartbeat_interval` int unsigned NOT NULL DEFAULT '15' COMMENT '该节点心跳间隔（秒）；Ack 时由 Worker 写入，Admin 按节点自身间隔判定存活' AFTER `last_heartbeat_at`;
+```
 
 ---
 
@@ -491,6 +526,8 @@ ALTER TABLE `cron_task`
 
 列已存在则跳过。同文件里该 `ALTER` 以注释形式保留，避免整文件导入时与 `CREATE TABLE` 冲突。
 
+`cron_agent_node.heartbeat_interval` 同理：新库 CREATE 已含（默认 15）；旧表见上文「节点心跳与存活」的 `ALTER`。
+
 ### 启动 Test WorkerCron
 
 仓库根目录 `cron.php` 指向 `Test\WorkerCron\MainCronProcess`，配置文件 `Test/WorkerCron/worker_cron_conf.php`（当前默认只 merge 了 fork 配置）。
@@ -524,6 +561,10 @@ php script.php start App --c=gen:cron:service
     'args' => [
         'cron_poll_interval' => 20,
         'node_id' => env('CRON_NODE_ID'),
+        'heartbeat_interval' => env('CRON_HEARTBEAT_INTERVAL', 15),
+        'node_heartbeat_ack' => static function (string $nodeId, int $heartbeatInterval = 15): void {
+            (new \Test\Module\Cron\Service\CronTaskService())->ackNodeHeartbeat($nodeId, $heartbeatInterval);
+        },
         'task_list' => function () {
             $list1 = include __DIR__ . '/fork_task.php';
             // $list4 = (new \Test\Module\Cron\Service\CronTaskService())
@@ -845,7 +886,8 @@ HTTP Worker 不会调用 `recordCronJobs()`，对应 Gauge 保持 0，但 `worke
 
 主要用例：
 
-- `PHPUintTest/Unit/Worker/Cron/CronManagerLifecycleTest.php` — Timer 不变量、Last Known Good、Snapshot 冻结、异常隔离、nodeId
+- `PHPUintTest/Unit/Worker/Cron/CronManagerLifecycleTest.php` — Timer 不变量、Last Known Good、Snapshot 冻结、异常隔离、nodeId、节点心跳 tick
+- `PHPUintTest/Unit/Worker/Cron/CronNodeLivenessTest.php` — 存活公式：fresh / stale / null / 边界 / 节点 interval
 - `PHPUintTest/Unit/Worker/Cron/ConfigDiffTest.php`
 - `PHPUintTest/Unit/Worker/Cron/ExpressionParserTest.php`
 - `PHPUintTest/Unit/Worker/Cron/ExecutorAndWindowTest.php`
@@ -853,7 +895,7 @@ HTTP Worker 不会调用 `recordCronJobs()`，对应 Gauge 保持 0，但 `worke
 - `PHPUintTest/Unit/Worker/Cron/RunOnceNowTest.php` — 成功不改 nextRunAt、停用 / 缺失、重叠 SKIP、时间窗、retry、无 backfill
 - `PHPUintTest/Coroutine/Worker/Cron/SwooleCronTimerCoroutineTest.php`
 - `PHPUintTest/Unit/Core/SwoolefyExceptionResponseTest.php` — SQLSTATE 不得传入 withStatus；HTTP 状态恒为 int
-- `PHPUintTest/Unit/Module/Cron/CronAdminDtoTest.php` — 列表行 retry 缺省 0
+- `PHPUintTest/Unit/Module/Cron/CronAdminDtoTest.php` — 列表行 retry 缺省 0、节点 heartbeat status
 - `PHPUintTest/Unit/Module/Cron/CronTaskPayloadBuilderTest.php` — 创建 payload retry 默认 0
 
 ---
@@ -873,6 +915,7 @@ HTTP Worker 不会调用 `recordCronJobs()`，对应 Gauge 保持 0，但 `worke
 | `run()` | `CronExecutorInterface` | 执行 |
 | `recordJobs()` / `recordRun()` | `CronMetrics` | 指标 |
 | `runCronTask()` / `createCronManager()` / `createTaskFetcher()` / `runOnceNow()` | `CronProcess` | Worker 装配与控制面立刻执行 |
+| `status()` / `staleAfterSeconds()` | `CronNodeLiveness` | 节点 online/offline |
 | `executeCronSnapshot()` | `CronForkProcess` | Shell 钩子 |
 | `executeHttpSnapshot()` | `CronUrlProcess` | HTTP 钩子 |
 | `registerCronSnapshot()` / `cronSnapshot()` | `RuntimeRegistry` | 诊断挂载 |

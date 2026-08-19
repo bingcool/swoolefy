@@ -9,7 +9,7 @@ use Swoolefy\Worker\Cron\CronTimerInterface;
 /**
  * 可手动推进的 Timer，不依赖真实 Swoole 时钟。
  *
- * 实现 CronTimerInterface：after 为 one-shot，tick 为周期（Polling）。
+ * 实现 CronTimerInterface：after 为 one-shot，tick 为周期（Polling / 心跳）。
  * advance($ms) 推进虚拟毫秒并 fireDue()；one-shot 触发后移除，tick 改写 due。
  * fireDue 有 100 次护栏，避免回调里再次 arm 造成死循环。
  *
@@ -36,7 +36,7 @@ final class ManualCronTimer implements CronTimerInterface
     }
 
     /**
-     * 周期 tick（仅测 Config Polling）。触发后 due += interval。
+     * 周期 tick（Config Polling / 节点心跳）。触发后 due += interval。
      */
     public function tick(int $ms, callable $fn): int
     {

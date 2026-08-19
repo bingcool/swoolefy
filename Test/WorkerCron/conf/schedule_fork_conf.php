@@ -20,10 +20,16 @@ return [
             // CronManager 唯一调度：配置轮询间隔（秒）。fetcher 抛异常时保留 Last Known Good Runtime。
             'cron_poll_interval' => env('CRON_POLL_INTERVAL', 20),
             'node_id' => env('CRON_NODE_ID'),
+            // 节点心跳间隔（秒）。start 立刻 ack 一次，再按此间隔 tick。
+            'heartbeat_interval' => env('CRON_HEARTBEAT_INTERVAL', 15),
             // 跨进程 Manual Run：Admin 入队后由本 Polling 执行 runOnceNow，再 ack 清队列
             'run_once_ack' => static function (string $jobId, int $cronTaskId): void {
                 unset($jobId);
                 (new \Test\Module\Cron\Service\CronTaskService())->ackRunOnce($cronTaskId);
+            },
+            // 节点心跳落库：upsert cron_agent_node.last_heartbeat_at / heartbeat_interval
+            'node_heartbeat_ack' => static function (string $nodeId, int $heartbeatInterval = 15): void {
+                (new \Test\Module\Cron\Service\CronTaskService())->ackNodeHeartbeat($nodeId, $heartbeatInterval);
             },
 
             // 定时任务列表

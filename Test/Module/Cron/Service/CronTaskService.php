@@ -3,8 +3,10 @@
 namespace Test\Module\Cron\Service;
 
 use Swoolefy\Core\Schedule\ScheduleEvent;
+use Swoolefy\Worker\Cron\CronNodeLiveness;
 use Swoolefy\Worker\Cron\CronProcess;
 use Swoolefy\Worker\Dto\CronUrlTaskMetaDtoWorker;
+use Test\Module\Cron\CronAgentNodeEntity;
 use Test\Module\Cron\CronTaskEntity;
 use Test\Module\Cron\CronTaskLogEntity;
 
@@ -12,8 +14,9 @@ use Test\Module\Cron\CronTaskLogEntity;
  * Cron Worker 侧任务拉取与运行日志写入。
  *
  * 实现 {@see \Swoolefy\Worker\Cron\CronTaskInterface}，供 CronProcess / Agent 使用：
- * - {@see fetchCronTask}：按节点 + 执行类型从 DB 取启用任务，并转成调度元数据
+ * - {@see fetchCronTask}：按节点 + 执行类型从 DB 取任务，并转成调度元数据
  * - {@see logCronTaskRuntime}：Worker 执行过程写 cron_task_log
+ * - {@see ackNodeHeartbeat}：Worker 心跳 upsert cron_agent_node.last_heartbeat_at
  *
  * 管理端 CRUD 见 {@see CronTaskManagerService}。
  */
@@ -221,5 +224,38 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
     public function ackRunOnce(int $cronTaskId): void
     {
         (new CronTaskManagerService())->ackRunOnce($cronTaskId);
+    }
+
+    /**
+     * Cron Worker 节点心跳：更新 last_heartbeat_at，并写入该节点自己的 heartbeat_interval。
+     * 节点行不存在时按 nodeId 插入，避免 Admin 因缺行一直 offline。
+     *
+     * @param string|int $nodeId cron_agent_node.id
+     * @param int $heartbeatInterval Worker args heartbeat_interval（秒）
+     */
+    public function ackNodeHeartbeat(string|int $nodeId, int $heartbeatInterval = CronNodeLiveness::DEFAULT_INTERVAL): void
+    {
+        $id = (int) $nodeId;
+        if ($id <= 0) {
+            return;
+        }
+        $interval = CronNodeLiveness::normalizeInterval($heartbeatInterval);
+        $now = date('Y-m-d H:i:s');
+        $node = (new CronAgentNodeEntity())->loadById($id);
+        if ($node) {
+            $node->last_heartbeat_at = $now;
+            $node->heartbeat_interval = $interval;
+            $node->save();
+
+            return;
+        }
+        CronAgentNodeEntity::query()->insert([
+            'id' => $id,
+            'node_name' => 'node-' . $id,
+            'node_ip' => '',
+            'remark' => '',
+            'last_heartbeat_at' => $now,
+            'heartbeat_interval' => $interval,
+        ]);
     }
 }

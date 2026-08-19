@@ -16,7 +16,7 @@ use Swoolefy\Core\Dto\AbstractDto;
  * 通过 {@see static::of} 从 Request 的 nodeId 构造。
  *
  * **消费者**：{@see \Test\Module\Cron\Service\CronTaskManagerService::agentHeartbeat} 校验
- * nodeId 后返回 {@see AgentHeartbeatResultDto}（当前实现不写库）。
+ * nodeId 后 upsert 心跳并返回 {@see AgentHeartbeatResultDto}。
  *
  * **关键字段语义**：nodeId 为 cron_agent_node 主键，必须 >0。
  */

@@ -46,11 +46,18 @@ CREATE TABLE `cron_agent_node` (
     `node_ip` varchar(64) NOT NULL DEFAULT '' COMMENT '节点IP',
     `remark` varchar(256) NOT NULL DEFAULT '' COMMENT '备注',
     `last_heartbeat_at` datetime DEFAULT NULL COMMENT '最近一次 Agent 心跳时间',
+    `heartbeat_interval` int unsigned NOT NULL DEFAULT '15' COMMENT '该节点心跳间隔（秒）；Ack 时由 Worker 写入，Admin 按节点自身间隔判定存活',
     `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
     PRIMARY KEY (`id`),
     KEY `idx_last_heartbeat` (`last_heartbeat_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Cron Agent 节点';
+
+-- 已有库升级（不要 DROP 表）。Admin 存活判定用 heartbeat_interval；旧表无该列会回退默认 15，
+-- 但 SELECT 该列时会报 Unknown column。新库按上方 CREATE TABLE 已含，无需再执行。
+-- 若列已存在，跳过本段即可。
+-- ALTER TABLE `cron_agent_node`
+--     ADD COLUMN `heartbeat_interval` int unsigned NOT NULL DEFAULT '15' COMMENT '该节点心跳间隔（秒）；Ack 时由 Worker 写入，Admin 按节点自身间隔判定存活' AFTER `last_heartbeat_at`;
 
 CREATE TABLE `cron_task_run_request` (
     `id` bigint unsigned NOT NULL AUTO_INCREMENT,

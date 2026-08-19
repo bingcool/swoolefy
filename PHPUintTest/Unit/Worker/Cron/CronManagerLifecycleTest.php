@@ -343,6 +343,123 @@ final class CronManagerLifecycleTest extends TestCase
     }
 
     /**
+     * start 立刻心跳一次；之后按 conf heartbeat_interval tick；stop 清掉心跳 Timer。
+     */
+    public function testNodeHeartbeatTicksImmediatelyAndOnInterval(): void
+    {
+        $timer = new ManualCronTimer();
+        $clock = new FrozenCronClock(1000);
+        $beats = [];
+        $manager = new CronManager(
+            fetcher: fn () => [$this->row(1, '15', 1, 'a.sh')],
+            executor: new RecordingExecutor(),
+            timer: $timer,
+            clock: $clock,
+            pollIntervalMs: 0,
+            nodeId: 9,
+            heartbeatIntervalSeconds: 2,
+            nodeHeartbeatAck: static function (string $nodeId, int $interval = 0) use (&$beats): void {
+                $beats[] = ['nodeId' => $nodeId, 'interval' => $interval];
+            },
+        );
+        $manager->start();
+        $this->assertCount(1, $beats, 'start 必须立刻心跳，Admin 不等第一个 interval');
+        $this->assertSame('9', $beats[0]['nodeId']);
+        $this->assertSame(2, $beats[0]['interval'], 'ack 必须带上 conf 的 heartbeat_interval');
+        $this->assertSame(2, $manager->diagnostics()['heartbeat_interval']);
+        $this->assertSame(1000, $manager->diagnostics()['last_heartbeat_at']);
+
+        $timer->advance(1999);
+        $this->assertCount(1, $beats, '未到 interval 不得二次心跳');
+        $timer->advance(1);
+        $this->assertCount(2, $beats, '到达 heartbeat_interval 后 tick 心跳');
+
+        $manager->stop();
+        $this->assertSame(0, $timer->count(), 'stop 必须清掉心跳 tick');
+        $timer->advance(4000);
+        $this->assertCount(2, $beats, 'stop 后不得再心跳');
+    }
+
+    /**
+     * 心跳 ack 抛异常必须隔离，不得阻止 Job 注册 / 后续心跳。
+     */
+    public function testNodeHeartbeatExceptionIsIsolated(): void
+    {
+        $timer = new ManualCronTimer();
+        $clock = new FrozenCronClock(1000);
+        $beats = 0;
+        $manager = new CronManager(
+            fetcher: fn () => [$this->row(1, '15', 1, 'keep.sh')],
+            executor: new RecordingExecutor(),
+            timer: $timer,
+            clock: $clock,
+            pollIntervalMs: 0,
+            nodeId: 1,
+            heartbeatIntervalSeconds: 3,
+            nodeHeartbeatAck: static function (string $nodeId) use (&$beats): void {
+                unset($nodeId);
+                ++$beats;
+                if ($beats === 1) {
+                    throw new \RuntimeException('hb down');
+                }
+            },
+        );
+        $manager->start();
+        $this->assertSame(1, $beats);
+        $this->assertSame(1, $manager->registry()->count(), '心跳异常不得拖垮 Worker / Runtime');
+        $this->assertNull($manager->diagnostics()['last_heartbeat_at'], 'ack 失败不记 last_heartbeat_at');
+        $timer->advance(3000);
+        $this->assertSame(2, $beats);
+        $this->assertSame(1000, $manager->diagnostics()['last_heartbeat_at']);
+    }
+
+    /**
+     * 无 ack 或无 nodeId 不武装心跳 Timer。
+     */
+    public function testHeartbeatSkippedWithoutAckOrNodeId(): void
+    {
+        $timer = new ManualCronTimer();
+        $clock = new FrozenCronClock(1000);
+        $called = 0;
+        $manager = $this->manager(fn () => [$this->row(1, '15', 1, 'a.sh')], new RecordingExecutor(), $timer, $clock);
+        $manager->start();
+        $jobTimers = $timer->count();
+        $this->assertSame(1, $jobTimers);
+        $manager->stop();
+
+        $timer2 = new ManualCronTimer();
+        $manager2 = new CronManager(
+            fetcher: fn () => [],
+            executor: new RecordingExecutor(),
+            timer: $timer2,
+            clock: $clock,
+            pollIntervalMs: 0,
+            nodeId: null,
+            heartbeatIntervalSeconds: 15,
+            nodeHeartbeatAck: static function () use (&$called): void {
+                ++$called;
+            },
+        );
+        $manager2->start();
+        $this->assertSame(0, $called);
+        $this->assertSame(0, $timer2->count());
+    }
+
+    /**
+     * CronProcess 必须从 Worker args 读取 heartbeat_interval / node_heartbeat_ack。
+     */
+    public function testCronProcessWiresHeartbeatArgs(): void
+    {
+        $src = (string) file_get_contents(
+            (new \ReflectionClass(\Swoolefy\Worker\Cron\CronProcess::class))->getFileName()
+        );
+        $this->assertStringContainsString("'heartbeat_interval'", $src);
+        $this->assertStringContainsString("'node_heartbeat_ack'", $src);
+        $this->assertStringContainsString('heartbeatIntervalSeconds', $src);
+        $this->assertStringContainsString('nodeHeartbeatAck', $src);
+    }
+
+    /**
      * 构造关闭 Polling 的 CronManager，便于手动推进 Timer。
      *
      * @param callable():list<array<string,mixed>> $fetcher

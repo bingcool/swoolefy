@@ -6,6 +6,7 @@ namespace Test\Module\Cron\Dto\CronTaskManager;
 
 use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Core\Dto\AbstractDto;
+use Swoolefy\Worker\Cron\CronNodeLiveness;
 
 /**
  * Cron Agent 节点行 DTO。
@@ -21,6 +22,8 @@ use Swoolefy\Core\Dto\AbstractDto;
  * **关键字段语义**：
  * - nodeName / nodeIp：Agent 节点的标识信息，创建时必填
  * - remark：可选备注
+ * - status：online | offline（由 {@see CronNodeLiveness} 按该节点 heartbeat_interval 判定）
+ * - lastHeartbeatAt / heartbeatInterval / staleAfterSeconds：心跳与存活阈值
  */
 class CronAgentNodeRowDto extends AbstractDto
 {
@@ -36,11 +39,17 @@ class CronAgentNodeRowDto extends AbstractDto
     #[ApiProperty(description: '备注')]
     protected string $remark = '';
 
-    #[ApiProperty(description: '最近心跳时间；无可靠来源时为空')]
+    #[ApiProperty(description: '最近心跳时间；从未心跳时为空')]
     protected string $lastHeartbeatAt = '';
 
-    #[ApiProperty(description: 'online / offline / unknown（仅心跳落库后才有 online/offline）')]
-    protected string $status = 'unknown';
+    #[ApiProperty(description: '该节点心跳间隔（秒），Ack 时由 Worker 写入')]
+    protected int $heartbeatInterval = CronNodeLiveness::DEFAULT_INTERVAL;
+
+    #[ApiProperty(description: '超过该秒数未心跳则 offline：max(3*interval, interval+5)')]
+    protected int $staleAfterSeconds = 45;
+
+    #[ApiProperty(description: 'online / offline（从未心跳视为 offline）')]
+    protected string $status = CronNodeLiveness::STATUS_OFFLINE;
 
     #[ApiProperty(description: '绑定任务数')]
     protected int $taskCount = 0;
@@ -64,8 +73,12 @@ class CronAgentNodeRowDto extends AbstractDto
         $dto->setNodeIp((string)($row['node_ip'] ?? ''));
         $dto->setRemark((string)($row['remark'] ?? ''));
         $lastHb = (string)($row['last_heartbeat_at'] ?? '');
+        $interval = CronNodeLiveness::normalizeInterval((int)($row['heartbeat_interval'] ?? 0));
+        $now = time();
         $dto->setLastHeartbeatAt($lastHb);
-        $dto->setStatus(self::deriveHeartbeatStatus($lastHb));
+        $dto->setHeartbeatInterval($interval);
+        $dto->setStaleAfterSeconds(CronNodeLiveness::staleAfterSeconds($interval));
+        $dto->setStatus(self::deriveHeartbeatStatus($lastHb, $now, $interval));
         $dto->setTaskCount((int)($row['task_count'] ?? 0));
         $dto->setCreatedAt((string)($row['created_at'] ?? ''));
         $dto->setUpdatedAt((string)($row['updated_at'] ?? ''));
@@ -74,20 +87,23 @@ class CronAgentNodeRowDto extends AbstractDto
     }
 
     /**
-     * 心跳超过 90 秒视为 offline；从未上报为 unknown，不凭空推断。
+     * 按该节点自己的心跳间隔判定 online / offline。
+     * 从未心跳或无法解析时间为 offline，不返回 unknown。
+     *
+     * @param string $lastHeartbeatAt DB datetime 或 unix 秒字符串
+     * @param int|null $now 当前 unix 秒，缺省 time()
+     * @param int $interval 该节点 heartbeat_interval（秒）
      */
-    public static function deriveHeartbeatStatus(string $lastHeartbeatAt, ?int $now = null): string
-    {
-        if (trim($lastHeartbeatAt) === '') {
-            return 'unknown';
-        }
-        $ts = strtotime($lastHeartbeatAt);
-        if ($ts === false) {
-            return 'unknown';
-        }
-        $now = $now ?? time();
-
-        return ($now - $ts) <= 90 ? 'online' : 'offline';
+    public static function deriveHeartbeatStatus(
+        string $lastHeartbeatAt,
+        ?int $now = null,
+        int $interval = CronNodeLiveness::DEFAULT_INTERVAL,
+    ): string {
+        return CronNodeLiveness::status(
+            $now ?? time(),
+            CronNodeLiveness::parseHeartbeatAt($lastHeartbeatAt),
+            $interval,
+        );
     }
 
     /** 获取节点 ID */
@@ -154,6 +170,30 @@ class CronAgentNodeRowDto extends AbstractDto
     public function setLastHeartbeatAt(string $lastHeartbeatAt): static
     {
         $this->lastHeartbeatAt = $lastHeartbeatAt;
+
+        return $this;
+    }
+
+    public function getHeartbeatInterval(): int
+    {
+        return $this->heartbeatInterval;
+    }
+
+    public function setHeartbeatInterval(int $heartbeatInterval): static
+    {
+        $this->heartbeatInterval = $heartbeatInterval;
+
+        return $this;
+    }
+
+    public function getStaleAfterSeconds(): int
+    {
+        return $this->staleAfterSeconds;
+    }
+
+    public function setStaleAfterSeconds(int $staleAfterSeconds): static
+    {
+        $this->staleAfterSeconds = $staleAfterSeconds;
 
         return $this;
     }

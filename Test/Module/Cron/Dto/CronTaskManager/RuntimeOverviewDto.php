@@ -26,10 +26,10 @@ class RuntimeOverviewDto extends AbstractDto
     protected array $sync = ['lastSuccessAt' => null, 'lastErrorAt' => null, 'processLocal' => true];
 
     /**
-     * @var array{online:int,offline:int,unknown:int}
+     * @var array{online:int,offline:int}
      */
-    #[ApiProperty(description: '节点在线情况（来自 Agent 心跳落库）')]
-    protected array $nodes = ['online' => 0, 'offline' => 0, 'unknown' => 0];
+    #[ApiProperty(description: '节点在线情况（Worker 心跳落库 + 各节点 interval 存活公式）')]
+    protected array $nodes = ['online' => 0, 'offline' => 0];
 
     #[ApiProperty(description: '说明：HTTP Worker 通常读不到 Cron Worker 诊断')]
     protected string $note = '';
@@ -37,7 +37,7 @@ class RuntimeOverviewDto extends AbstractDto
     /**
      * @param array{jobs:int,enabled:int,running:int} $scheduler
      * @param array{lastSuccessAt:?string,lastErrorAt:?string,processLocal:bool} $sync
-     * @param array{online:int,offline:int,unknown:int} $nodes
+     * @param array{online:int,offline:int} $nodes
      */
     public static function of(array $scheduler, array $sync, array $nodes, string $note): self
     {

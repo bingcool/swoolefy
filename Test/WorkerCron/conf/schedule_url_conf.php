@@ -16,6 +16,10 @@ return [
             // CronManager 唯一调度：配置轮询间隔（秒）。
             'cron_poll_interval' => 20,
             'node_id' => env('CRON_NODE_ID'),
+            'heartbeat_interval' => env('CRON_HEARTBEAT_INTERVAL', 15),
+            'node_heartbeat_ack' => static function (string $nodeId, int $heartbeatInterval = 15): void {
+                (new \Test\Module\Cron\Service\CronTaskService())->ackNodeHeartbeat($nodeId, $heartbeatInterval);
+            },
             // 定时任务列表
             'task_list' => array_merge(
                 require_once __DIR__.'/remote_task.php',

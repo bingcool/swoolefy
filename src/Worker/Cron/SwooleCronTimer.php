@@ -17,7 +17,7 @@ use Swoolefy\Core\Timer\Tick;
  * 生产 Timer：封装 Tick（afterTimer / tickTimer / delTicker），并跟踪本 Cron 实例创建的 timerId。
  *
  * 边界：只做 after / tick / clear / exists。不计算 nextRunAt，不执行任务。
- * Job 调度只用 after（one-shot）；tick 仅给 CronManager Config Polling。
+ * Job 调度只用 after（one-shot）；tick 仅给 CronManager Config Polling 与节点心跳。
  *
  * $owned 记录本实例创建的 timerId，Worker Stop 时 clearAll() 只清自己的，
  * 避免误清其它业务 Timer。必须显式 clearAll()，不能只依赖对象析构
@@ -57,7 +57,7 @@ final class SwooleCronTimer implements CronTimerInterface
     }
 
     /**
-     * 周期 tick，仅用于 Config Polling，禁止用于 Job 调度（Job 必须 one-shot）。
+     * 周期 tick，用于 Config Polling 与节点心跳，禁止用于 Job 调度（Job 必须 one-shot）。
      * 协程与 x-trace-id 由 Tick::tickTimer 负责，便于 fetcher 走 DB / Redis。
      */
     public function tick(int $ms, callable $fn): int

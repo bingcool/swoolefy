@@ -62,7 +62,7 @@
     <div class="stat-row">
       <el-card shadow="never"><div>任务总数</div><h2>{{ overview.tasks.total }}</h2><div>启用 {{ overview.tasks.enabled }} / 禁用 {{ overview.tasks.disabled }}</div></el-card>
       <el-card shadow="never"><div>今日执行</div><h2>{{ overview.executions.today }}</h2><div>成功 {{ overview.executions.success }} / 失败 {{ overview.executions.failed }}</div></el-card>
-      <el-card shadow="never"><div>节点</div><h2>{{ overview.nodes.total }}</h2><div>在线 {{ overview.nodes.online }} / 离线 {{ overview.nodes.offline }} / 未知 {{ overview.nodes.unknown }}</div></el-card>
+      <el-card shadow="never"><div>节点</div><h2>{{ overview.nodes.total }}</h2><div>在线 {{ overview.nodes.online }} / 离线 {{ overview.nodes.offline }}</div></el-card>
       <el-card shadow="never"><div>跳过</div><h2>{{ overview.executions.skipped }}</h2><div>今日 SKIP</div></el-card>
     </div>
     <el-card shadow="never">
@@ -299,8 +299,10 @@
         <el-table-column prop="id" label="ID" width="60"></el-table-column>
         <el-table-column prop="nodeName" label="名称"></el-table-column>
         <el-table-column prop="nodeIp" label="IP"></el-table-column>
-        <el-table-column label="状态" width="100"><template slot-scope="s"><el-tag size="mini" :type="s.row.status==='online'?'success':(s.row.status==='offline'?'danger':'info')">{{ s.row.status }}</el-tag></template></el-table-column>
+        <el-table-column label="状态" width="100"><template slot-scope="s"><el-tag size="mini" :type="s.row.status==='online'?'success':'danger'">{{ s.row.status==='online'?'online':'offline' }}</el-tag></template></el-table-column>
         <el-table-column prop="lastHeartbeatAt" label="心跳" width="160"></el-table-column>
+        <el-table-column prop="heartbeatInterval" label="间隔(s)" width="90"></el-table-column>
+        <el-table-column prop="staleAfterSeconds" label="失效(s)" width="90"></el-table-column>
         <el-table-column prop="taskCount" label="任务数" width="80"></el-table-column>
         <el-table-column prop="remark" label="备注"></el-table-column>
         <el-table-column label="操作" width="140">
@@ -364,7 +366,7 @@ function toastErr(e) { Vue.prototype.$message.error(e.message || String(e)); }
 
 const Dashboard = {
   template: '#tpl-dashboard',
-  data() { return { overview: { tasks:{total:0,enabled:0,disabled:0}, executions:{today:0,success:0,failed:0,skipped:0}, nodes:{total:0,online:0,offline:0,unknown:0} }, trend: [], range: '24h' }; },
+  data() { return { overview: { tasks:{total:0,enabled:0,disabled:0}, executions:{today:0,success:0,failed:0,skipped:0}, nodes:{total:0,online:0,offline:0} }, trend: [], range: '24h' }; },
   created() { this.load(); this.loadTrend(); },
   methods: {
     async load() { try { this.overview = await api('/dashboard/overview'); } catch (e) { toastErr(e); } },

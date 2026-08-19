@@ -124,9 +124,45 @@ final class CronAdminDtoTest extends TestCase
     public function testHeartbeatStatus(): void
     {
         $now = time();
-        $this->assertSame('unknown', CronAgentNodeRowDto::deriveHeartbeatStatus('', $now));
+        $this->assertSame('offline', CronAgentNodeRowDto::deriveHeartbeatStatus('', $now));
         $this->assertSame('online', CronAgentNodeRowDto::deriveHeartbeatStatus(date('Y-m-d H:i:s', $now - 10), $now));
-        $this->assertSame('offline', CronAgentNodeRowDto::deriveHeartbeatStatus(date('Y-m-d H:i:s', $now - 200), $now));
+        $this->assertSame('offline', CronAgentNodeRowDto::deriveHeartbeatStatus(date('Y-m-d H:i:s', $now - 46), $now));
+        $this->assertSame(
+            'online',
+            CronAgentNodeRowDto::deriveHeartbeatStatus(date('Y-m-d H:i:s', $now - 45), $now, 15),
+            '默认 15s 间隔边界 45s 仍 online',
+        );
+        $this->assertSame(
+            'offline',
+            CronAgentNodeRowDto::deriveHeartbeatStatus(date('Y-m-d H:i:s', $now - 31), $now, 10),
+            '节点自己的 interval=10 → 阈值 30，31s 为 offline',
+        );
+    }
+
+    public function testNodeRowMapsHeartbeatIntervalAndStatus(): void
+    {
+        $now = time();
+        $dto = CronAgentNodeRowDto::fromEntityRow([
+            'id' => 3,
+            'node_name' => 'n1',
+            'node_ip' => '127.0.0.1',
+            'last_heartbeat_at' => date('Y-m-d H:i:s', $now - 20),
+            'heartbeat_interval' => 10,
+            'task_count' => 2,
+        ]);
+        $this->assertSame(10, $dto->getHeartbeatInterval());
+        $this->assertSame(30, $dto->getStaleAfterSeconds());
+        $this->assertSame('online', $dto->getStatus());
+        $this->assertSame(2, $dto->getTaskCount());
+
+        $offline = CronAgentNodeRowDto::fromEntityRow([
+            'id' => 4,
+            'node_name' => 'n2',
+            'last_heartbeat_at' => null,
+        ]);
+        $this->assertSame(15, $offline->getHeartbeatInterval());
+        $this->assertSame(45, $offline->getStaleAfterSeconds());
+        $this->assertSame('offline', $offline->getStatus());
     }
 
     public function testPreviewIntervalUsesEngineParser(): void

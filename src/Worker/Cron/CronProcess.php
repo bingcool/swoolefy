@@ -87,6 +87,7 @@ class CronProcess extends AbstractWorkerProcess
         $args = $this->getArgs();
         $pollSeconds = (int) ($args['cron_poll_interval'] ?? 20);
         $nodeId = $args['node_id'] ?? $args['cron_node_id'] ?? null;
+        $heartbeatSeconds = CronNodeLiveness::normalizeInterval((int) ($args['heartbeat_interval'] ?? CronNodeLiveness::DEFAULT_INTERVAL));
 
         return new CronManager(
             fetcher: $this->createTaskFetcher(),
@@ -99,6 +100,8 @@ class CronProcess extends AbstractWorkerProcess
                 $this->logCronTaskRuntime($task, $execBatchId, $message, $pid);
             },
             runOnceAck: $args['run_once_ack'] ?? null,
+            heartbeatIntervalSeconds: $heartbeatSeconds,
+            nodeHeartbeatAck: $args['node_heartbeat_ack'] ?? null,
         );
     }
 
@@ -159,7 +162,7 @@ class CronProcess extends AbstractWorkerProcess
     }
 
     /**
-     * Worker Stop：停止 Polling、清空 Job Timer、释放 Runtime。
+     * Worker Stop：停止 Polling / 心跳、清空 Job Timer、释放 Runtime。
      */
     public function onShutDown()
     {

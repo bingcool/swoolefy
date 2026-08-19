@@ -15,7 +15,7 @@ namespace Swoolefy\Worker\Cron;
  * Cron 定时器抽象。
  *
  * 生产走 SwooleCronTimer，单测注入 ManualCronTimer，避免依赖真实 Swoole 时钟。
- * Job 调度只用 after（one-shot）；tick 仅给 Config Polling。
+ * Job 调度只用 after（one-shot）；tick 仅给 Config Polling 与节点心跳。
  * Worker Stop / Restart 必须 clearAll()，禁止只依赖析构。
  *
  * 生产实现必须把 after/tick 回调投进协程（Swoole 6 proc_open/HTTP 要求）。
@@ -36,7 +36,7 @@ interface CronTimerInterface
     public function after(int $ms, callable $fn): int;
 
     /**
-     * 周期回调，仅用于 Config Polling，不用于 Job 调度。
+     * 周期回调，用于 Config Polling 与节点心跳，不用于 Job 调度。
      *
      * @param int $ms
      * @param callable():void $fn

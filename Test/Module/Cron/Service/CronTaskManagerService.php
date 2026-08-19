@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Module\Cron\Service;
 
 use Swoolefy\Core\Runtime\RuntimeRegistry;
+use Swoolefy\Worker\Cron\CronNodeLiveness;
 use Swoolefy\Worker\Cron\ExpressionParser;
 use Test\Module\Cron\CronAgentNodeEntity;
 use Test\Module\Cron\CronTaskEntity;
@@ -18,7 +19,6 @@ use Test\Module\Cron\Dto\CronTaskManager\AgentTasksResultDto;
 use Test\Module\Cron\Dto\CronTaskManager\BatchStatusDto;
 use Test\Module\Cron\Dto\CronTaskManager\BatchStatusResultDto;
 use Test\Module\Cron\Dto\CronTaskManager\CreateNodeDto;
-use Test\Module\Cron\Dto\CronTaskManager\CronAgentNodeRowDto;
 use Test\Module\Cron\Dto\CronTaskManager\CronTaskLogRowDto;
 use Test\Module\Cron\Dto\CronTaskManager\CronTaskPayloadDto;
 use Test\Module\Cron\Dto\CronTaskManager\CronTaskRowDto;
@@ -459,7 +459,7 @@ class CronTaskManagerService
     }
 
     /**
-     * Agent 心跳：校验 nodeId 后返回服务端当前时间（暂不写库）。
+     * Agent 心跳：校验 nodeId 后 upsert last_heartbeat_at（缺行则插入）。
      */
     public function agentHeartbeat(AgentHeartbeatDto $dto): AgentHeartbeatResultDto
     {
@@ -468,11 +468,7 @@ class CronTaskManagerService
             throw CronTaskException::throw('nodeId不能为空', -1);
         }
 
-        $node = (new CronAgentNodeEntity())->loadById($nodeId);
-        if ($node) {
-            $node->last_heartbeat_at = date('Y-m-d H:i:s');
-            $node->save();
-        }
+        $this->cronTaskService->ackNodeHeartbeat((string) $nodeId);
 
         $result = new AgentHeartbeatResultDto();
         $result->setNodeId($nodeId);
@@ -725,7 +721,7 @@ class CronTaskManagerService
         return RuntimeOverviewDto::of(
             ['jobs' => $jobs, 'enabled' => $enabled, 'running' => $running],
             ['lastSuccessAt' => $lastSuccessAt, 'lastErrorAt' => $lastErrorAt, 'processLocal' => $processLocal],
-            ['online' => $nodes['online'], 'offline' => $nodes['offline'], 'unknown' => $nodes['unknown']],
+            ['online' => $nodes['online'], 'offline' => $nodes['offline']],
             $processLocal
                 ? 'Cron 诊断只活在 Cron Worker；本接口聚合 DB 配置与 Agent 心跳，不伪造 running'
                 : '本进程可读到 Cron Runtime 快照',
@@ -868,22 +864,25 @@ class CronTaskManagerService
     }
 
     /**
-     * @return array{total:int,online:int,offline:int,unknown:int}
+     * @return array{total:int,online:int,offline:int}
      */
     protected function countNodeHeartbeat(): array
     {
-        $nodes = CronAgentNodeEntity::query()->field(['last_heartbeat_at'])->select()->toArray();
+        $nodes = CronAgentNodeEntity::query()->field(['last_heartbeat_at', 'heartbeat_interval'])->select()->toArray();
+        $now = time();
         $online = 0;
         $offline = 0;
-        $unknown = 0;
         foreach ($nodes as $node) {
-            $status = CronAgentNodeRowDto::deriveHeartbeatStatus((string)($node['last_heartbeat_at'] ?? ''));
-            if ($status === 'online') {
+            $interval = CronNodeLiveness::normalizeInterval((int)($node['heartbeat_interval'] ?? 0));
+            $status = CronNodeLiveness::status(
+                $now,
+                CronNodeLiveness::parseHeartbeatAt($node['last_heartbeat_at'] ?? null),
+                $interval,
+            );
+            if ($status === CronNodeLiveness::STATUS_ONLINE) {
                 $online++;
-            } elseif ($status === 'offline') {
-                $offline++;
             } else {
-                $unknown++;
+                $offline++;
             }
         }
 
@@ -891,7 +890,6 @@ class CronTaskManagerService
             'total' => count($nodes),
             'online' => $online,
             'offline' => $offline,
-            'unknown' => $unknown,
         ];
     }
 
