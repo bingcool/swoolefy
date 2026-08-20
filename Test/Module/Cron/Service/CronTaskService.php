@@ -108,8 +108,12 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
             }
 
             $arr = $cronForkTask->toArray();
-            // 不改 cron_task.updated_at：手动执行标记来自独立队列表
-            $arr['run_once_requested'] = $this->hasPendingRunOnce((int) $item['id']);
+            // 不改 cron_task.updated_at：手动执行标记来自独立队列表。
+            // 带上全部 pending requestId，Worker 一条 request 对应一次 Execution。
+            $pendingIds = $this->listPendingRunOnceIds((int) $item['id']);
+            $arr['run_once_request_ids'] = $pendingIds;
+            $arr['run_once_request_id'] = $pendingIds[0] ?? null;
+            $arr['run_once_requested'] = $pendingIds !== [];
             $newTaskList[] = $arr;
         }
 
@@ -178,7 +182,10 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
             }
 
             $arr = $cronHttpTask->toArray();
-            $arr['run_once_requested'] = $this->hasPendingRunOnce((int) $item['id']);
+            $pendingIds = $this->listPendingRunOnceIds((int) $item['id']);
+            $arr['run_once_request_ids'] = $pendingIds;
+            $arr['run_once_request_id'] = $pendingIds[0] ?? null;
+            $arr['run_once_requested'] = $pendingIds !== [];
             $newTaskList[] = $arr;
         }
 
@@ -219,11 +226,29 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
     }
 
     /**
-     * Cron Worker 消费手动执行后清队列。
+     * 取出某任务当前最老的一条未消费手动执行请求 ID。
      */
-    public function ackRunOnce(int $cronTaskId): void
+    public function findOnePendingRunOnce(int $cronTaskId): ?int
     {
-        (new CronTaskManagerService())->ackRunOnce($cronTaskId);
+        return (new CronTaskManagerService())->findOnePendingRunOnce($cronTaskId);
+    }
+
+    /**
+     * 列出某任务全部未消费的手动执行请求 ID（FIFO）。
+     *
+     * @return list<int>
+     */
+    public function listPendingRunOnceIds(int $cronTaskId): array
+    {
+        return (new CronTaskManagerService())->listPendingRunOnceIds($cronTaskId);
+    }
+
+    /**
+     * Cron Worker 消费一条手动执行请求后清队列（按 request 主键，不是 cron_id）。
+     */
+    public function ackRunOnce(int $requestId): void
+    {
+        (new CronTaskManagerService())->ackRunOnce($requestId);
     }
 
     /**

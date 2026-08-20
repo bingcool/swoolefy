@@ -45,16 +45,21 @@ namespace Swoolefy\Worker\Cron;
  *   不参与 fingerprint，单独变化不会产生 UPDATE
  * - 仅识别 STATUS_DISABLED ↔ STATUS_ENABLED；其它 status 取值不单独成 ENABLE/DISABLE
  *
- * ENABLE/DISABLE vs DELETE：
- * - DISABLE：desired 仍含该 jobId 且 status=0，RuntimeJob 保留，便于再次 ENABLE
- * - DELETE：desired 缺该 jobId（软删后不再出现、改节点、或成功拉取到空配置），
- *   标记 deleted，未 running 时从 Registry 移除
- *
+     * ENABLE/DISABLE vs DELETE：
+     * - DISABLE：desired 仍含该 jobId 且 status=0，RuntimeJob 保留，便于再次 ENABLE
+     * - DELETE：desired 缺该 jobId（软删后不再出现、改节点、或成功拉取到空配置），
+     *   标记 deleted，未 running 时从 Registry 移除
+     * - 本轮 DB 行存在但 fromArray 失败：由 $protectedJobIds 禁止 DELETE
+     *
  * Last Known Good：
  * 本类无法区分“DB 故障”与“配置确实为空”。空 $desired + 非空 $runtime
  * 会产出全量 DELETE。CronManager::syncFromFetcher() 必须在 fetcher 抛异常时
  * 不调用本方法，才能保留 Last Known Good Runtime（P0-6）。
  * fetcher 成功返回空数组则视为配置侧无任务，按 DELETE 收敛。
+ *
+ * 非法行保护：
+ * $protectedJobIds 中的 jobId 表示“本轮 DB 行存在但无法解析”。
+ * 此类 Job 不得 DELETE；只有查询成功且任务明确不存在才允许 DELETE。
  *
  * @see TaskDefinition::fingerprint()
  * @see TaskDefinition::resolveJobId()
@@ -113,9 +118,10 @@ final class ConfigDiff
      *
      * @param array<string, TaskDefinition> $runtime 当前 Runtime 定义，键为 jobId
      * @param array<string, TaskDefinition> $desired 本轮 DB/配置快照，键为 jobId
+     * @param array<string, bool> $protectedJobIds 本轮 DB 行存在但无法解析的 jobId；禁止 DELETE，保留 Last Known Good
      * @return list<array{op:string,jobId:string,definition:?TaskDefinition}>
      */
-    public function diff(array $runtime, array $desired): array
+    public function diff(array $runtime, array $desired, array $protectedJobIds = []): array
     {
         $ops = [];
 
@@ -189,9 +195,13 @@ final class ConfigDiff
             ];
         }
 
-        // desired 缺席 = 配置侧已去掉该任务（含成功拉取空列表），不是 DISABLE
+        // desired 缺席 = 配置侧已去掉该任务（含成功拉取空列表），不是 DISABLE。
+        // 本轮行存在但无法解析时禁止 DELETE，保留 Last Known Good Runtime。
         foreach ($runtime as $jobId => $current) {
             if (!isset($desired[$jobId])) {
+                if (!empty($protectedJobIds[$jobId])) {
+                    continue;
+                }
                 $ops[] = [
                     'op' => self::DELETE,
                     'jobId' => $jobId,

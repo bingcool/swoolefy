@@ -23,9 +23,9 @@ return [
             // 节点心跳间隔（秒）。start 立刻 ack 一次，再按此间隔 tick。
             'heartbeat_interval' => env('CRON_HEARTBEAT_INTERVAL', 15),
             // 跨进程 Manual Run：Admin 入队后由本 Polling 执行 runOnceNow，再 ack 清队列
-            'run_once_ack' => static function (string $jobId, int $cronTaskId): void {
-                unset($jobId);
-                (new \Test\Module\Cron\Service\CronTaskService())->ackRunOnce($cronTaskId);
+            'run_once_ack' => static function (string $jobId, int $cronTaskId, $result = null, int $requestId = 0): void {
+                unset($jobId, $cronTaskId, $result);
+                (new \Test\Module\Cron\Service\CronTaskService())->ackRunOnce($requestId);
             },
             // 节点心跳落库：upsert cron_agent_node.last_heartbeat_at / heartbeat_interval
             'node_heartbeat_ack' => static function (string $nodeId, int $heartbeatInterval = 15): void {

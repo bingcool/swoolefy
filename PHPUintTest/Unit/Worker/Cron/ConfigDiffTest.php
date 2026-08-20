@@ -51,6 +51,27 @@ final class ConfigDiffTest extends TestCase
     }
 
     /**
+     * P0-2：本轮行存在但无法进入 desired 时，禁止把 Runtime Job 解释成 DELETE。
+     */
+    public function testProtectedInvalidJobIsNotDeleted(): void
+    {
+        $diff = new ConfigDiff();
+        $a = $this->def(1, '15', 1, 'a.sh');
+        $b = $this->def(2, '15', 1, 'b.sh');
+        $c = $this->def(3, '15', 1, 'c.sh');
+        $runtime = ['id:1' => $a, 'id:2' => $b, 'id:3' => $c];
+        $desired = ['id:1' => $a, 'id:3' => $c];
+
+        $ops = $diff->diff($runtime, $desired, ['id:2' => true]);
+        $this->assertNotContains(ConfigDiff::DELETE, array_column($ops, 'op'), '非法行不得 DELETE');
+
+        $ops = $diff->diff($runtime, $desired);
+        $this->assertContains(ConfigDiff::DELETE, array_column($ops, 'op'), '任务明确不存在才允许 DELETE');
+        $deleted = array_values(array_filter($ops, static fn (array $op): bool => $op['op'] === ConfigDiff::DELETE));
+        $this->assertSame(['id:2'], array_column($deleted, 'jobId'));
+    }
+
+    /**
      * 按 id 生成稳定 jobId=id:{n} 的 TaskDefinition。
      */
     private function def(int $id, string $expression, int $status, string $command, string $updatedAt = '2026-01-01'): TaskDefinition

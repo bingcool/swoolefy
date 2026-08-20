@@ -79,4 +79,15 @@ final class ExecutionResult
     {
         return $this->status === self::FAILED;
     }
+
+    /**
+     * 本轮手动执行请求是否应 ack。
+     *
+     * SUCCESS / FAILED 表示请求已被消费（执行成功或失败都算一次 Execution）。
+     * SKIPPED（时间窗 / 重叠）未真正执行该请求，保留队列由下一轮 Polling 再试。
+     */
+    public function isCompleted(): bool
+    {
+        return $this->isSuccess() || $this->isFailed();
+    }
 }

@@ -836,17 +836,69 @@ class CronTaskManagerService
     }
 
     /**
-     * 消费某任务全部待执行的手动请求（Cron Worker Polling 回调）。
+     * 消费单条手动执行请求（Cron Worker Polling 回调）。
+     *
+     * 一条 request 对应一次 Execution，按主键 id ack，不得按 cron_id 清空全部 pending。
      */
-    public function ackRunOnce(int $cronTaskId): void
+    public function ackRunOnce(int $requestId): void
     {
-        if ($cronTaskId <= 0) {
+        if ($requestId <= 0) {
             return;
         }
         CronTaskRunRequestEntity::query()
-            ->where('cron_id', $cronTaskId)
+            ->where('id', $requestId)
             ->whereNull('consumed_at')
             ->update(['consumed_at' => date('Y-m-d H:i:s')]);
+    }
+
+    /**
+     * 取出某任务当前最老的一条未消费手动执行请求 ID（FIFO）。无则 null。
+     */
+    public function findOnePendingRunOnce(int $cronTaskId): ?int
+    {
+        if ($cronTaskId <= 0) {
+            return null;
+        }
+        $row = CronTaskRunRequestEntity::query()
+            ->where('cron_id', $cronTaskId)
+            ->whereNull('consumed_at')
+            ->order('id', 'asc')
+            ->find();
+        if (!$row) {
+            return null;
+        }
+        $attrs = is_array($row) ? $row : $row->toArray();
+        $id = (int) ($attrs['id'] ?? 0);
+
+        return $id > 0 ? $id : null;
+    }
+
+    /**
+     * 列出某任务全部未消费的手动执行请求 ID（FIFO）。
+     *
+     * @return list<int>
+     */
+    public function listPendingRunOnceIds(int $cronTaskId): array
+    {
+        if ($cronTaskId <= 0) {
+            return [];
+        }
+        $rows = CronTaskRunRequestEntity::query()
+            ->where('cron_id', $cronTaskId)
+            ->whereNull('consumed_at')
+            ->order('id', 'asc')
+            ->field(['id'])
+            ->select()
+            ->toArray();
+        $ids = [];
+        foreach ($rows as $row) {
+            $id = (int) ($row['id'] ?? 0);
+            if ($id > 0) {
+                $ids[] = $id;
+            }
+        }
+
+        return $ids;
     }
 
     /**
@@ -854,14 +906,7 @@ class CronTaskManagerService
      */
     public function hasPendingRunOnce(int $cronTaskId): bool
     {
-        if ($cronTaskId <= 0) {
-            return false;
-        }
-
-        return CronTaskRunRequestEntity::query()
-            ->where('cron_id', $cronTaskId)
-            ->whereNull('consumed_at')
-            ->count() > 0;
+        return $this->findOnePendingRunOnce($cronTaskId) !== null;
     }
 
     /**

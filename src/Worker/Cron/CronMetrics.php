@@ -20,7 +20,7 @@ use Swoolefy\Core\Runtime\Metrics\RuntimeMetrics;
  * 名称固定、不含 jobId / cron_name 标签，避免高基数。
  *
  * Gauge：jobs_total / jobs_enabled / jobs_running，由 CronManager::refreshMetrics() 刷新。
- * Counter：runs_total + success/failed/skipped。
+ * Counter：runs_total + success/failed/skipped + scheduler_errors。
  * Histogram：execution_duration 含本轮全部 retry attempt；SKIPPED 不记耗时（未真正执行）。
  * Counter 按一轮 trigger 的最终结果记一次，中间 FAILED attempt 不加。
  *
@@ -50,5 +50,13 @@ final class CronMetrics
         if ($durationSeconds >= 0 && $status !== ExecutionResult::SKIPPED) {
             $this->metrics?->recordCronDuration($durationSeconds);
         }
+    }
+
+    /**
+     * 记录一次 Scheduler arm / Timer 分配失败。指标关闭时 no-op。
+     */
+    public function recordSchedulerError(): void
+    {
+        $this->metrics?->recordCronSchedulerError();
     }
 }

@@ -17,9 +17,9 @@ return [
             'cron_poll_interval' => env('CRON_POLL_INTERVAL', 20),
             'node_id' => env('CRON_NODE_ID'),
             // 跨进程 Manual Run：Admin 入队后由本 Polling 执行 runOnceNow，再 ack 清队列
-            'run_once_ack' => static function (string $jobId, int $cronTaskId): void {
-                unset($jobId);
-                (new \Test\Module\Cron\Service\CronTaskService())->ackRunOnce($cronTaskId);
+            'run_once_ack' => static function (string $jobId, int $cronTaskId, $result = null, int $requestId = 0): void {
+                unset($jobId, $cronTaskId, $result);
+                (new \Test\Module\Cron\Service\CronTaskService())->ackRunOnce($requestId);
             },
             'heartbeat_interval' => env('CRON_HEARTBEAT_INTERVAL', 15),
             'node_heartbeat_ack' => static function (string $nodeId, int $heartbeatInterval = 15): void {

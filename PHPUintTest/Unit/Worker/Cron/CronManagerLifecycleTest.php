@@ -8,6 +8,7 @@ use PHPUintTest\TestCase;
 use PHPUintTest\Unit\Worker\Cron\Support\FrozenCronClock;
 use PHPUintTest\Unit\Worker\Cron\Support\ManualCronTimer;
 use PHPUintTest\Unit\Worker\Cron\Support\RecordingExecutor;
+use PHPUintTest\Unit\Worker\Cron\Support\ThrowingAfterCronTimer;
 use Swoolefy\Core\Runtime\Metrics\MetricsRegistry;
 use Swoolefy\Core\Runtime\Metrics\RuntimeMetrics;
 use Swoolefy\Core\Runtime\RuntimeRegistry;
@@ -443,6 +444,92 @@ final class CronManagerLifecycleTest extends TestCase
         $manager2->start();
         $this->assertSame(0, $called);
         $this->assertSame(0, $timer2->count());
+    }
+
+    /**
+     * P0-2：DB 行存在但无法解析时保留 Last Known Good，不得 DELETE。
+     * 任务明确从快照消失才允许 DELETE。
+     */
+    public function testInvalidRowKeepsLastKnownGoodRuntime(): void
+    {
+        $timer = new ManualCronTimer();
+        $clock = new FrozenCronClock(1000);
+        $rows = [
+            $this->row(1, '15', 1, 'a.sh'),
+            $this->row(2, '15', 1, 'b.sh'),
+            $this->row(3, '15', 1, 'c.sh'),
+        ];
+        $manager = $this->manager(function () use (&$rows) { return $rows; }, new RecordingExecutor(), $timer, $clock);
+        $manager->start();
+        $this->assertSame(3, $manager->registry()->count());
+        $oldB = $manager->registry()->get('id:2')?->definition->command;
+        $this->assertSame(1, $manager->timerCountFor('id:2'));
+
+        $rows = [
+            $this->row(1, '15', 1, 'a.sh'),
+            [
+                'id' => 2,
+                'name' => 'job-2',
+                'expression' => '',
+                'command' => 'broken.sh',
+                'exec_type' => 1,
+                'status' => 1,
+            ],
+            $this->row(3, '15', 1, 'c.sh'),
+        ];
+        $manager->syncFromFetcher();
+
+        $this->assertNotNull($manager->registry()->get('id:1'));
+        $this->assertNotNull($manager->registry()->get('id:2'), '非法配置不得删除 Runtime B');
+        $this->assertSame($oldB, $manager->registry()->get('id:2')?->definition->command);
+        $this->assertSame(1, $manager->timerCountFor('id:2'), 'Last Known Good Timer 必须仍在');
+        $this->assertNotNull($manager->registry()->get('id:3'));
+
+        $rows = [
+            $this->row(1, '15', 1, 'a.sh'),
+            $this->row(3, '15', 1, 'c.sh'),
+        ];
+        $manager->syncFromFetcher();
+        $this->assertNull($manager->registry()->get('id:2'), '任务明确不存在才允许 DELETE');
+        $this->assertSame(0, $manager->timerCountFor('id:2'));
+    }
+
+    /**
+     * P0-3：onTrigger 里 arm 失败必须隔离，不得拖垮 Worker；下一轮 Polling 补回 Timer。
+     */
+    public function testOnTriggerArmFailureIsIsolatedAndReconciled(): void
+    {
+        RuntimeRegistry::initialize(['metrics' => ['enable' => true], 'diagnostics' => ['enable' => true]]);
+        $inner = new ManualCronTimer();
+        $timer = new ThrowingAfterCronTimer($inner);
+        $clock = new FrozenCronClock(0);
+        $executor = new RecordingExecutor();
+        $rows = [$this->row(1, '5', 1, 'keep.sh')];
+        $manager = new CronManager(
+            fetcher: function () use (&$rows) { return $rows; },
+            executor: $executor,
+            timer: $timer,
+            clock: $clock,
+            pollIntervalMs: 0,
+            metrics: new CronMetrics(RuntimeRegistry::metrics()),
+        );
+        $manager->start();
+        $this->assertSame(1, $manager->timerCountFor('id:1'));
+
+        $timer->throwOnAfter = true;
+        $clock->set(5);
+        $timer->advance(5000);
+
+        $this->assertSame([], $executor->commands, 'arm 失败本轮不得继续 Execution');
+        $this->assertNotNull($manager->registry()->get('id:1'), 'Job 必须仍在 Runtime');
+        $this->assertSame(0, $manager->timerCountFor('id:1'), 'arm 失败后 Timer=0');
+        $snapshot = RuntimeRegistry::metrics()?->snapshot();
+        $this->assertGreaterThan(0, $snapshot['counter'][RuntimeMetrics::CRON_SCHEDULER_ERRORS] ?? 0);
+
+        $timer->throwOnAfter = false;
+        $manager->syncFromFetcher();
+        $this->assertSame(1, $manager->timerCountFor('id:1'), '下一轮 Polling 必须 reconcile 补回 Timer');
+        $this->assertSame([], $executor->commands, 'reconcile 只补 Timer，不等于立刻执行');
     }
 
     /**

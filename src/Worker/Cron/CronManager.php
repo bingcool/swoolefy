@@ -34,9 +34,12 @@ use Swoolefy\Exception\CronException;
  * 生命周期：
  * - start()：初始 sync +（Closure fetcher 时）Polling tick + 节点心跳（立刻一次再按 interval tick）；失败保留空 Runtime，后续重试
  * - syncFromFetcher()：fetcher 抛异常 = DB 故障，保留 Last Known Good，绝不 clear all
- * - applyRows()：规范化 + nodeId 过滤后 Diff Apply；单行非法只跳过该行
- * - onTrigger()：先 arm 下一轮，再 Guard / Window / Snapshot /（FAILED 时同轮 retry）；finally 释放 running
+ * - applyRows()：规范化 + nodeId 过滤后 Diff Apply；单行非法只跳过该行，
+ *   已有 Runtime 时禁止误 DELETE（保留 Last Known Good）
+ * - onTrigger()：先 arm 下一轮（异常隔离，失败则等 Polling reconcile），
+ *   再 Guard / Window / Snapshot /（FAILED 时同轮 retry）；finally 释放 running
  * - runOnceNow()：忽略 expression / nextRunAt，立刻用当前 Runtime 定义跑一轮同一管线；不碰 Schedule Timer
+ * - consumeRunOnceRequests()：一条 run_once 请求对应一次 Execution；仅 ack 单条 requestId
  * - 生产触发在 SwooleCronTimer 的 goApp 协程内执行（Swoole 6 proc_open/HTTP 要求）
  * - stop()：清 Polling、清心跳 tick、清全部 Job Timer、释放 Registry；必须显式调用
  *
@@ -95,7 +98,7 @@ final class CronManager
      * @param int|null $nodeId 非空时丢弃其它节点任务（过滤发生在 Diff 之前）
      * @param null|callable(ScheduleEvent|\Swoolefy\Worker\Dto\CronUrlTaskMetaDtoWorker,string,string,int):void $logWriter
      * @param CronMetrics|null $metrics 空则接入 RuntimeRegistry::metrics()；指标关闭时内部为 no-op
-     * @param null|callable(string,int,ExecutionResult):void $runOnceAck 消费手动执行请求后的确认回调
+     * @param null|callable(string,int,ExecutionResult,int):void $runOnceAck 消费一条手动请求后的确认 (jobId, cronTaskId, result, requestId)
      * @param int $heartbeatIntervalSeconds 节点心跳间隔（秒）；&lt;1 回退 {@see CronNodeLiveness::DEFAULT_INTERVAL}
      * @param null|callable(string,int):void $nodeHeartbeatAck 心跳回调 `(string $nodeId, int $interval=…): void`；第二参可选
      */
@@ -189,6 +192,8 @@ final class CronManager
             $this->lastConfigSyncError = $e->getMessage();
             $this->lastConfigSyncAt = $this->clock->now();
             $this->debug('Config sync failed, keep last known good runtime: ' . $e->getMessage());
+            // DB 故障时仍尝试补回丢失的 Schedule Timer（例如上一轮 arm 失败）
+            $this->reconcileMissingTimers();
 
             return false;
         }
@@ -198,6 +203,8 @@ final class CronManager
      * 将 fetcher 行规范化为 TaskDefinition，按 jobId 去重后做最小化 Diff Apply。
      *
      * 单行 fromArray() 失败只跳过该行，不影响本轮其它任务。
+     * 若该行能解析出稳定 jobId 且 Runtime 已有该 Job，则禁止 DELETE，保留 Last Known Good。
+     * 只有 DB 查询成功且任务明确不存在时才允许 DELETE。
      * nodeId 过滤在进入 ConfigDiff 之前完成：改挂其它节点的任务会从 $desired
      * 消失，从而被分类为 DELETE（停止本节点未来调度）。
      *
@@ -208,6 +215,7 @@ final class CronManager
     public function applyRows(array $rows): void
     {
         $desired = [];
+        $invalidJobIds = [];
         foreach ($rows as $row) {
             if (!is_array($row)) {
                 continue;
@@ -216,6 +224,7 @@ final class CronManager
                 $definition = TaskDefinition::fromArray($row);
             } catch (\Throwable $e) {
                 $this->debug('Skip invalid task: ' . $e->getMessage());
+                $this->protectInvalidJobId($row, $invalidJobIds);
                 continue;
             }
             if ($this->nodeId !== null && $definition->nodeId !== null && $definition->nodeId !== $this->nodeId) {
@@ -224,31 +233,36 @@ final class CronManager
             $desired[$definition->jobId] = $definition;
         }
 
-        $ops = $this->diff->diff($this->registry->definitions(), $desired);
+        $ops = $this->diff->diff($this->registry->definitions(), $desired, $invalidJobIds);
         foreach ($ops as $op) {
             $this->applyOp($op['op'], $op['jobId'], $op['definition']);
         }
+        // Active Job 若丢失 Timer（arm 失败），由本轮 Polling 重新武装
+        $this->reconcileMissingTimers();
         $this->refreshMetrics();
     }
 
     /**
      * 消费 fetcher 行上的手动执行标记。
      *
-     * 行字段 `run_once_requested` 为真时，在本节点对已注册 Job 调用 runOnceNow，
-     * 再通过 runOnceAck 清队列。不改 Schedule Timer / nextRunAt。
-     * 同一 job 本轮只跑一次；异常隔离，不得拖垮 Polling。
+     * 一条 RunOnce Request 对应一次 Execution：按 requestId 逐条执行并 ack，
+     * 禁止“执行一次却把同任务全部 pending 标记为已消费”。
+     * 行字段优先 `run_once_request_ids` / `run_once_request_id`；
+     * 兼容旧布尔 `run_once_requested`（视为 1 条匿名请求，requestId=0）。
+     * 不改 Schedule Timer / nextRunAt。异常隔离，不得拖垮 Polling。
+     * SKIPPED 不 ack、本轮停止该 Job 的后续请求，留给下一轮再试。
      *
      * @param list<array<string, mixed>> $rows
      */
     public function consumeRunOnceRequests(array $rows): void
     {
-        $seen = [];
+        $pendingByJob = [];
         foreach ($rows as $row) {
             if (!is_array($row)) {
                 continue;
             }
-            $requested = $row['run_once_requested'] ?? $row['run_once_requested_at'] ?? null;
-            if (empty($requested)) {
+            $requestIds = $this->pendingRunOnceRequestIds($row);
+            if ($requestIds === []) {
                 continue;
             }
             try {
@@ -260,20 +274,46 @@ final class CronManager
             if ($this->nodeId !== null && $definition->nodeId !== null && $definition->nodeId !== $this->nodeId) {
                 continue;
             }
-            if (isset($seen[$definition->jobId])) {
-                continue;
+            $jobId = $definition->jobId;
+            if (!isset($pendingByJob[$jobId])) {
+                $pendingByJob[$jobId] = [
+                    'definition' => $definition,
+                    'ids' => [],
+                    'anonymousCount' => 0,
+                ];
             }
-            $seen[$definition->jobId] = true;
-            try {
-                $result = $this->runOnceNow($definition->jobId);
-            } catch (\Throwable $e) {
-                $result = ExecutionResult::failed('runOnceNow 异常已隔离: ' . $e->getMessage());
+            foreach ($requestIds as $requestId) {
+                if ($requestId > 0) {
+                    $pendingByJob[$jobId]['ids'][$requestId] = $requestId;
+                } else {
+                    $pendingByJob[$jobId]['anonymousCount']++;
+                }
             }
-            if (is_callable($this->runOnceAck) && $definition->cronTaskId > 0) {
+        }
+
+        foreach ($pendingByJob as $jobId => $item) {
+            $queue = array_values($item['ids']);
+            $anonymous = max(0, (int) $item['anonymousCount']);
+            for ($i = 0; $i < $anonymous; $i++) {
+                $queue[] = 0;
+            }
+            foreach ($queue as $requestId) {
                 try {
-                    ($this->runOnceAck)($definition->jobId, $definition->cronTaskId, $result);
+                    $result = $this->runOnceNow($jobId);
                 } catch (\Throwable $e) {
-                    $this->debug('runOnceAck failed: ' . $e->getMessage());
+                    $result = ExecutionResult::failed('runOnceNow 异常已隔离: ' . $e->getMessage());
+                }
+                if (!$result->isCompleted()) {
+                    // SKIPPED：不 ack，本轮不再继续消费该 Job 的后续请求
+                    break;
+                }
+                $definition = $item['definition'];
+                if (is_callable($this->runOnceAck) && $definition->cronTaskId > 0) {
+                    try {
+                        ($this->runOnceAck)($definition->jobId, $definition->cronTaskId, $result, $requestId);
+                    } catch (\Throwable $e) {
+                        $this->debug('runOnceAck failed: ' . $e->getMessage());
+                    }
                 }
             }
         }
@@ -286,6 +326,9 @@ final class CronManager
      * 1. 执行耗时或异常都不能让 Scheduler 永久丢失下一轮
      * 2. 长任务期间下一计划点仍能触发，供 with_block_lapping SKIP
      * 3. SUCCESS / FAILED / SKIPPED / Exception 都不会破坏“Active=1 Timer”
+     *
+     * arm 发生不可预期异常时隔离并返回：此时 job->timerId 已为 0，
+     * 不得继续 Execution，由下一轮 Config Polling reconcileMissingTimers() 补回。
      *
      * Job 已从 Registry 消失（DELETE 后未 running 已移除）则直接返回。
      *
@@ -305,9 +348,16 @@ final class CronManager
         $job->timerId = 0;
         $planned = $job->nextRunAt > 0 ? $job->nextRunAt : $this->clock->now();
 
-        // 先安排下一次 one-shot：执行耗时/异常都不能让 Scheduler 永久丢失下一轮
-        if ($job->isSchedulable()) {
-            $this->scheduler->arm($job, $planned);
+        // 先安排下一次 one-shot：执行耗时/异常都不能让 Scheduler 永久丢失下一轮。
+        // arm 失败必须隔离：此时 Timer=0，本轮不再执行，留给下一轮 Config Polling reconcile。
+        try {
+            if ($job->isSchedulable()) {
+                $this->scheduler->arm($job, $planned);
+            }
+        } catch (\Throwable $e) {
+            $this->debug('Timer arm failed, wait next config polling to reconcile: ' . $e->getMessage());
+            $this->metrics->recordSchedulerError();
+            return;
         }
 
         if (!$job->isSchedulable()) {
@@ -701,6 +751,90 @@ final class CronManager
         // Enable ≠ Immediately Run：等待下一次合法 nextRunAt
         $this->scheduler->arm($job);
         $this->writeDefinitionLog($definition, '', sprintf('【%s】ENABLE 已恢复调度', $definition->cronName));
+    }
+
+    /**
+     * 本轮 DB 行无法解析时，若能得到稳定 jobId 则保护已有 Runtime，禁止误 DELETE。
+     * 其它节点的非法行不保护本节点 Job。
+     *
+     * @param array<string, mixed> $row
+     * @param array<string, bool> $invalidJobIds
+     */
+    private function protectInvalidJobId(array $row, array &$invalidJobIds): void
+    {
+        try {
+            $jobId = TaskDefinition::resolveJobId($row);
+        } catch (\Throwable) {
+            return;
+        }
+        if ($this->nodeId !== null) {
+            $rowNodeId = $row['node_id'] ?? null;
+            if ($rowNodeId !== null && $rowNodeId !== '' && (int) $rowNodeId !== $this->nodeId) {
+                return;
+            }
+        }
+        $invalidJobIds[$jobId] = true;
+    }
+
+    /**
+     * Active Job 若没有有效 Schedule Timer，重新 arm。arm 失败隔离，不得拖垮 Polling。
+     * 供 onTrigger arm 失败后的下一轮 Config Polling 收敛到“Active=1 Timer”。
+     */
+    private function reconcileMissingTimers(): void
+    {
+        foreach ($this->registry->all() as $job) {
+            if (!$job->isSchedulable()) {
+                continue;
+            }
+            if ($this->scheduler->activeTimerCount($job) > 0) {
+                continue;
+            }
+            try {
+                $this->scheduler->arm($job);
+            } catch (\Throwable $e) {
+                $this->debug('Reconcile timer arm failed: ' . $e->getMessage());
+                $this->metrics->recordSchedulerError();
+            }
+        }
+    }
+
+    /**
+     * 从 fetcher 行解析待消费的手动执行请求 ID 列表（FIFO）。
+     *
+     * 优先 `run_once_request_ids`；否则单个 `run_once_request_id`；
+     * 再否则布尔 `run_once_requested`（兼容旧 fetcher），匿名 ID=0，可用
+     * `run_once_pending_count` 表示同轮要执行的次数。
+     *
+     * @param array<string, mixed> $row
+     * @return list<int>
+     */
+    private function pendingRunOnceRequestIds(array $row): array
+    {
+        if (isset($row['run_once_request_ids']) && is_array($row['run_once_request_ids'])) {
+            $ids = [];
+            foreach ($row['run_once_request_ids'] as $id) {
+                $id = (int) $id;
+                if ($id > 0) {
+                    $ids[] = $id;
+                }
+            }
+
+            return array_values(array_unique($ids));
+        }
+
+        $single = (int) ($row['run_once_request_id'] ?? 0);
+        if ($single > 0) {
+            return [$single];
+        }
+
+        $requested = $row['run_once_requested'] ?? $row['run_once_requested_at'] ?? null;
+        if (empty($requested)) {
+            return [];
+        }
+
+        $count = (int) ($row['run_once_pending_count'] ?? 1);
+
+        return array_fill(0, max(1, $count), 0);
     }
 
     /**

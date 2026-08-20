@@ -40,6 +40,8 @@ final class RuntimeMetrics
     public const CRON_RUNS_SKIPPED = 'swoolefy_cron_runs_skipped';
     /** 实际执行耗时（秒）；SKIPPED 不观察。 */
     public const CRON_EXECUTION_DURATION = 'swoolefy_cron_execution_duration_seconds';
+    /** Scheduler arm / Timer 分配失败次数。固定名，无任务标签。 */
+    public const CRON_SCHEDULER_ERRORS = 'swoolefy_cron_scheduler_errors_total';
 
     /**
      * @var array<string, array{fetch_total:int,release_total:int,fetch_error_total:int}>
@@ -148,6 +150,14 @@ final class RuntimeMetrics
             return;
         }
         $this->registry->histogram(self::CRON_EXECUTION_DURATION)->observe($seconds);
+    }
+
+    /**
+     * 记录一次 Scheduler arm / Timer 分配失败。不含 jobId 标签，避免高基数。
+     */
+    public function recordCronSchedulerError(): void
+    {
+        $this->registry->counter(self::CRON_SCHEDULER_ERRORS)->increment();
     }
 
     /** 根据定时内存采样器更新 Worker 运行时 Gauge。 */

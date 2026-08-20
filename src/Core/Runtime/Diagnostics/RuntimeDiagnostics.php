@@ -190,6 +190,7 @@ final class RuntimeDiagnostics
                         RuntimeMetrics::CRON_RUNS_SUCCESS,
                         RuntimeMetrics::CRON_RUNS_FAILED,
                         RuntimeMetrics::CRON_RUNS_SKIPPED,
+                        RuntimeMetrics::CRON_SCHEDULER_ERRORS,
                     ]),
                     'histogram' => $this->only($histogram, [RuntimeMetrics::CRON_EXECUTION_DURATION]),
                 ],
