@@ -96,7 +96,7 @@ final class CronManager
      * @param CronClockInterface $clock 生产用 SystemCronClock，单测注入 FrozenCronClock
      * @param int $pollIntervalMs Closure fetcher 的轮询间隔；静态数组传 0 表示不 Polling
      * @param int|null $nodeId 非空时丢弃其它节点任务（过滤发生在 Diff 之前）
-     * @param null|callable(ScheduleEvent|\Swoolefy\Worker\Dto\CronUrlTaskMetaDtoWorker,string,string,int):void $logWriter
+     * @param null|callable(ScheduleEvent|\Swoolefy\Worker\Dto\CronUrlTaskMetaDtoWorker,string,string,int,array):void $logWriter 第 5 参为可选 Execution 结构化字段；旧 4 参闭包仍兼容
      * @param CronMetrics|null $metrics 空则接入 RuntimeRegistry::metrics()；指标关闭时内部为 no-op
      * @param null|callable(string,int,ExecutionResult,int):void $runOnceAck 消费一条手动请求后的确认 (jobId, cronTaskId, result, requestId)
      * @param int $heartbeatIntervalSeconds 节点心跳间隔（秒）；&lt;1 回退 {@see CronNodeLiveness::DEFAULT_INTERVAL}
@@ -534,31 +534,37 @@ final class CronManager
         $window = $this->timeWindow->evaluate($job->definition, $this->clock->now());
         if (!$window['allowed']) {
             $reason = '时间窗跳过: ' . $window['reason'];
-            $this->recordSkip($job, $reason);
+            $this->recordSkip($job, $reason, $planned, $source);
 
             return ExecutionResult::skipped($reason);
         }
 
         if (!$this->guard->tryBegin($job)) {
             $reason = 'with_block_lapping 重叠跳过';
-            $this->recordSkip($job, $reason);
+            $this->recordSkip($job, $reason, $planned, $source);
 
             return ExecutionResult::skipped($reason);
         }
 
         $snapshot = ExecutionSnapshot::create($job, $planned);
         $job->lastRunAt = $this->clock->now();
+        $startedAt = $this->clock->now();
         $started = microtime(true);
         $result = ExecutionResult::failed('未执行');
         try {
-            $this->writeLog($snapshot, $this->formatStartMessage($job, $source));
+            $this->writeLog(
+                $snapshot,
+                $this->formatStartMessage($job, $source),
+                0,
+                $this->executionPayload($snapshot, $source, ExecutionStatus::RUNNING, $startedAt),
+            );
             $result = $this->runWithRetry($snapshot);
-            $this->writeLog($snapshot, $this->formatResultMessage($job, $result), $result->pid);
+            $this->writeExecutionResult($job, $snapshot, $result, $source, $startedAt, $started);
             $this->metrics->recordRun($result->status, microtime(true) - $started);
         } catch (\Throwable $e) {
             // Job Exception ≠ Worker Exception（含 retry 循环外的兜底）
             $result = ExecutionResult::failed($e->getMessage());
-            $this->writeLog($snapshot, sprintf('【%s】执行异常已隔离: %s', $job->definition->cronName, $e->getMessage()));
+            $this->writeExecutionResult($job, $snapshot, $result, $source, $startedAt, $started);
             $this->metrics->recordRun(ExecutionResult::FAILED, microtime(true) - $started);
         } finally {
             $this->guard->end($this->registry->get($jobId));
@@ -841,7 +847,7 @@ final class CronManager
      * 同一 ExecutionSnapshot 内按 retry 重试 FAILED。
      *
      * 语义：retry=0 只跑 1 次；retry=N 最多 1+N 次（首次 + N 次重试）。
-     * 只重试 FAILED（含 Executor 抛出后隔离成的 FAILED）；SUCCESS 立即结束。
+     * 只重试 FAILED 与 TIMEOUT（含 Executor 抛出后隔离成的 FAILED）；SUCCESS 立即结束。
      * SKIPPED 由 Window / Guard 在进入本方法前处理，不会走到这里。
      * 无 retry_delay 字段，失败后立即重试，不另武装 Timer。
      */
@@ -857,7 +863,7 @@ final class CronManager
                 // 单次 attempt 异常隔离为 FAILED，可继续重试，不得拖垮 Worker
                 $result = ExecutionResult::failed($e->getMessage());
             }
-            if (!$result->isFailed()) {
+            if (!$result->isFailed() && !$result->isTimeout()) {
                 return $result;
             }
             if ($attempt < $maxAttempts) {
@@ -875,40 +881,97 @@ final class CronManager
     }
 
     /**
-     * 时间窗或重叠导致的 SKIP：写 cron_task_log 并计入 skipped 指标，不调用 Executor。
+     * 时间窗或重叠导致的 SKIP：写一条 SKIPPED Execution 并计入 skipped 指标，不调用 Executor。
      */
-    private function recordSkip(RuntimeJob $job, string $reason): void
+    private function recordSkip(RuntimeJob $job, string $reason, int $planned, string $source): void
     {
-        $snapshot = ExecutionSnapshot::create($job, $job->nextRunAt);
-        $this->writeLog($snapshot, sprintf('【%s】SKIP %s', $job->definition->cronName, $reason));
+        $snapshot = ExecutionSnapshot::create($job, $planned);
+        $now = $this->clock->now();
+        $this->writeLog(
+            $snapshot,
+            sprintf('【%s】SKIP %s', $job->definition->cronName, $reason),
+            0,
+            [
+                'status' => ExecutionStatus::SKIPPED,
+                'trigger_type' => ExecutionStatus::triggerType($source),
+                'scheduled_at' => date('Y-m-d H:i:s', $snapshot->plannedAt),
+                'finished_at' => date('Y-m-d H:i:s', $now),
+                'duration_ms' => 0,
+            ],
+        );
         $this->metrics->recordRun(ExecutionResult::SKIPPED);
     }
 
     /**
-     * 执行期日志。logWriter 异常只记 debug，不得回传到 onTrigger。
+     * 将本轮终态 ExecutionResult 写入 cron_task_log（同一 exec_batch_id upsert）。
      */
-    private function writeLog(ExecutionSnapshot $snapshot, string $message, int $pid = 0): void
+    private function writeExecutionResult(
+        RuntimeJob $job,
+        ExecutionSnapshot $snapshot,
+        ExecutionResult $result,
+        string $source,
+        int $startedAt,
+        float $startedMicro,
+    ): void {
+        $durationMs = (int) max(0, round((microtime(true) - $startedMicro) * 1000));
+        $payload = $this->executionPayload($snapshot, $source, ExecutionStatus::fromResult($result), $startedAt);
+        $payload['finished_at'] = date('Y-m-d H:i:s', $this->clock->now());
+        $payload['duration_ms'] = $durationMs;
+        $payload['exit_code'] = $result->exitCode;
+        $payload['http_status'] = $result->httpStatus;
+        $this->writeLog($snapshot, $this->formatResultMessage($job, $result), $result->pid, $payload);
+    }
+
+    /**
+     * 构造落库用的结构化 Execution 字段（不含 message）。
+     *
+     * @return array<string, mixed>
+     */
+    private function executionPayload(ExecutionSnapshot $snapshot, string $source, int $status, int $startedAt): array
     {
-        if ($this->logWriter === null) {
-            return;
-        }
-        try {
-            ($this->logWriter)($snapshot->definition->toLogDto(), $snapshot->execBatchId, $message, $pid);
-        } catch (\Throwable $e) {
-            $this->debug('cron_task_log 写入失败（已隔离）: ' . $e->getMessage());
-        }
+        return [
+            'status' => $status,
+            'trigger_type' => ExecutionStatus::triggerType($source),
+            'scheduled_at' => date('Y-m-d H:i:s', $snapshot->plannedAt),
+            'started_at' => date('Y-m-d H:i:s', $startedAt),
+        ];
+    }
+
+    /**
+     * 执行期日志。logWriter 异常只记 debug，不得回传到 onTrigger。
+     *
+     * @param array<string, mixed> $execution status / duration_ms / exit_code 等结构化字段
+     */
+    private function writeLog(ExecutionSnapshot $snapshot, string $message, int $pid = 0, array $execution = []): void
+    {
+        $this->invokeLogWriter($snapshot->definition->toLogDto(), $snapshot->execBatchId, $message, $pid, $execution);
     }
 
     /**
      * ADD/UPDATE/DELETE/ENABLE/DISABLE 的配置变更日志，execBatchId 通常为空串。
+     * 配置变更不是 Execution，不写 status，避免污染 taskStats。
      */
     private function writeDefinitionLog(TaskDefinition $definition, string $execBatchId, string $message): void
+    {
+        $this->invokeLogWriter($definition->toLogDto(), $execBatchId, $message, 0, []);
+    }
+
+    /**
+     * 调用 logWriter：优先传 5 参（含 Execution 字段）；旧 4 参闭包回退，避免 ArgumentCountError。
+     *
+     * @param array<string, mixed> $execution
+     */
+    private function invokeLogWriter(object $dto, string $execBatchId, string $message, int $pid, array $execution): void
     {
         if ($this->logWriter === null) {
             return;
         }
         try {
-            ($this->logWriter)($definition->toLogDto(), $execBatchId, $message, 0);
+            try {
+                ($this->logWriter)($dto, $execBatchId, $message, $pid, $execution);
+            } catch (\ArgumentCountError) {
+                ($this->logWriter)($dto, $execBatchId, $message, $pid);
+            }
         } catch (\Throwable $e) {
             $this->debug('cron_task_log 写入失败（已隔离）: ' . $e->getMessage());
         }

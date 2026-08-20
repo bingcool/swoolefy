@@ -688,4 +688,15 @@ SQL GROUP BY
 
 这样 Web Admin 的执行次数、成功、失败、跳过、超时、耗时和 Dashboard 统计都建立在可靠的结构化事实数据上，同时不改变当前 Swoolefy Cron 的 DB Polling + Runtime + Scheduler 核心架构。
 
-**建议本次只完成 Execution Status 数据模型、执行结果写入和 `taskStats()`，不要顺便引入 Retry、告警或独立 Metrics 系统。**
+## 21. 实现清单
+
+- [x] 统一 Execution Status 常量（复用 `ExecutionStatus`，含 TIMEOUT / CANCELLED）
+- [x] `cron_task_log` 增加 status / trigger_type / 时间戳 / duration_ms / exit_code / http_status 与索引
+- [x] `message` 仅作人类可读信息，`taskStats()` 不再解析文案
+- [x] Execution 写入：RUNNING → SUCCESS/FAILED/TIMEOUT；重叠/时间窗 → SKIPPED
+- [x] `taskStats()` SQL `GROUP BY status`，半开时间窗，空数据返回完整零值
+- [x] Dashboard / 趋势改为结构化 GROUP BY，不加载 `message`
+- [x] 耗时使用 `AVG/MAX(duration_ms)`，成功率分母明确为 attempted（不含 SKIPPED）
+- [x] 统计与执行列表分离；列表按 `status` 列过滤
+- [x] 历史数据一次性迁移 SQL（无法识别的保持 0，不伪装 PENDING）
+- [x] 聚焦 PHPUnit：状态聚合、message 不影响统计、时间窗、空结构、结构化写入

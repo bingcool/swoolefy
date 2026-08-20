@@ -6,6 +6,7 @@ namespace Test\Module\Cron\Dto\CronTaskManager;
 
 use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Core\Dto\AbstractDto;
+use Swoolefy\Worker\Cron\ExecutionStatus;
 
 /**
  * Cron 任务执行日志行 DTO。
@@ -22,7 +23,8 @@ use Swoolefy\Core\Dto\AbstractDto;
  * - cronId：关联的 cron_task 主键
  * - execBatchId：同一次调度触发的批次号
  * - taskItem：执行时的任务元数据快照（JSON 列）
- * - message：执行结果描述，统计接口会解析其中的关键词与耗时
+ * - message：人类可读运行信息，禁止用于统计
+ * - status / statusName：结构化执行状态
  */
 class CronTaskLogRowDto extends AbstractDto
 {
@@ -37,6 +39,33 @@ class CronTaskLogRowDto extends AbstractDto
 
     #[ApiProperty(description: '执行进程 PID')]
     protected int $pid = 0;
+
+    #[ApiProperty(description: '执行状态整型：0-pending 1-running 2-success 3-failed 4-skipped 5-timeout 6-cancelled')]
+    protected int $status = 0;
+
+    #[ApiProperty(description: '执行状态名称')]
+    protected string $statusName = 'pending';
+
+    #[ApiProperty(description: '触发类型：1-scheduler 2-run_once')]
+    protected int $triggerType = 0;
+
+    #[ApiProperty(description: '计划执行时间')]
+    protected string $scheduledAt = '';
+
+    #[ApiProperty(description: '实际开始时间')]
+    protected string $startedAt = '';
+
+    #[ApiProperty(description: '实际结束时间')]
+    protected string $finishedAt = '';
+
+    #[ApiProperty(description: '执行耗时毫秒')]
+    protected int $durationMs = 0;
+
+    #[ApiProperty(description: 'Shell 退出码')]
+    protected ?int $exitCode = null;
+
+    #[ApiProperty(description: 'HTTP 状态码')]
+    protected ?int $httpStatus = null;
 
     /**
      * 任务项快照，执行时的调度元数据。
@@ -69,6 +98,16 @@ class CronTaskLogRowDto extends AbstractDto
         $dto->setCronId((int)($row['cron_id'] ?? 0));
         $dto->setExecBatchId((string)($row['exec_batch_id'] ?? ''));
         $dto->setPid((int)($row['pid'] ?? 0));
+        $status = (int)($row['status'] ?? ExecutionStatus::PENDING);
+        $dto->setStatus($status);
+        $dto->setStatusName(ExecutionStatus::name($status));
+        $dto->setTriggerType((int)($row['trigger_type'] ?? 0));
+        $dto->setScheduledAt((string)($row['scheduled_at'] ?? ''));
+        $dto->setStartedAt((string)($row['started_at'] ?? ''));
+        $dto->setFinishedAt((string)($row['finished_at'] ?? ''));
+        $dto->setDurationMs((int)($row['duration_ms'] ?? 0));
+        $dto->setExitCode(isset($row['exit_code']) && $row['exit_code'] !== null && $row['exit_code'] !== '' ? (int)$row['exit_code'] : null);
+        $dto->setHttpStatus(isset($row['http_status']) && $row['http_status'] !== null && $row['http_status'] !== '' ? (int)$row['http_status'] : null);
         $ti = $row['task_item'] ?? null;
         if (is_array($ti)) {
             $dto->setTaskItem($ti);
@@ -136,6 +175,114 @@ class CronTaskLogRowDto extends AbstractDto
     public function setPid(int $pid): static
     {
         $this->pid = $pid;
+
+        return $this;
+    }
+
+    public function getStatus(): int
+    {
+        return $this->status;
+    }
+
+    public function setStatus(int $status): static
+    {
+        $this->status = $status;
+
+        return $this;
+    }
+
+    public function getStatusName(): string
+    {
+        return $this->statusName;
+    }
+
+    public function setStatusName(string $statusName): static
+    {
+        $this->statusName = $statusName;
+
+        return $this;
+    }
+
+    public function getTriggerType(): int
+    {
+        return $this->triggerType;
+    }
+
+    public function setTriggerType(int $triggerType): static
+    {
+        $this->triggerType = $triggerType;
+
+        return $this;
+    }
+
+    public function getScheduledAt(): string
+    {
+        return $this->scheduledAt;
+    }
+
+    public function setScheduledAt(string $scheduledAt): static
+    {
+        $this->scheduledAt = $scheduledAt;
+
+        return $this;
+    }
+
+    public function getStartedAt(): string
+    {
+        return $this->startedAt;
+    }
+
+    public function setStartedAt(string $startedAt): static
+    {
+        $this->startedAt = $startedAt;
+
+        return $this;
+    }
+
+    public function getFinishedAt(): string
+    {
+        return $this->finishedAt;
+    }
+
+    public function setFinishedAt(string $finishedAt): static
+    {
+        $this->finishedAt = $finishedAt;
+
+        return $this;
+    }
+
+    public function getDurationMs(): int
+    {
+        return $this->durationMs;
+    }
+
+    public function setDurationMs(int $durationMs): static
+    {
+        $this->durationMs = $durationMs;
+
+        return $this;
+    }
+
+    public function getExitCode(): ?int
+    {
+        return $this->exitCode;
+    }
+
+    public function setExitCode(?int $exitCode): static
+    {
+        $this->exitCode = $exitCode;
+
+        return $this;
+    }
+
+    public function getHttpStatus(): ?int
+    {
+        return $this->httpStatus;
+    }
+
+    public function setHttpStatus(?int $httpStatus): static
+    {
+        $this->httpStatus = $httpStatus;
 
         return $this;
     }

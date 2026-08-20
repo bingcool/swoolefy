@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Test\Module\Cron\Service;
 
 use Swoolefy\Core\Runtime\RuntimeRegistry;
+use Swoolefy\Library\Db\Query;
+use Swoolefy\Library\Db\Raw;
 use Swoolefy\Worker\Cron\CronNodeLiveness;
+use Swoolefy\Worker\Cron\ExecutionStatus;
 use Swoolefy\Worker\Cron\ExpressionParser;
 use Test\Module\Cron\CronAgentNodeEntity;
 use Test\Module\Cron\CronTaskEntity;
@@ -345,7 +348,7 @@ class CronTaskManagerService
             throw CronTaskException::throw('taskId不能为空', -1);
         }
 
-        $qb = CronTaskLogEntity::query()->where([
+        $qb = CronTaskLogEntity::queryNotDeleted()->where([
             'cron_id' => $taskId,
         ]);
         if ($query->getExecBatchId() !== null) {
@@ -357,28 +360,31 @@ class CronTaskManagerService
         if ($query->getEndTime() !== null) {
             $qb->where('created_at', '<=', $query->getEndTime());
         }
+        $statusFilter = $query->getStatus();
+        if ($statusFilter !== null) {
+            $statusCode = ExecutionStatus::fromName($statusFilter);
+            if ($statusCode !== null) {
+                $qb->where('status', $statusCode);
+            }
+        }
         $total = $qb->clone()->count();
         $list = $qb->order('id', 'desc')->limit($query->getOffset(), $query->getPageSize())->select()->toArray();
 
-        $statusFilter = $query->getStatus();
         $pageResult = new TaskLogsPageResult();
         foreach ($list as $row) {
-            if ($statusFilter !== null && ExecutionDetailDto::classifyMessage((string)($row['message'] ?? '')) !== $statusFilter) {
-                continue;
-            }
             $pageResult->addListItem(CronTaskLogRowDto::fromEntityRow($row));
         }
-        $pageResult->setTotal($statusFilter === null ? $total : count($pageResult->getList()));
+        $pageResult->setTotal($total);
 
         return $pageResult;
     }
 
     /**
-     * 根据最近最多 2000 条日志文本粗算执行统计。
+     * 按 cron_task_log.status 做 SQL GROUP BY 统计，不读取 message / task_item。
      *
-     * 成功/失败/跳过靠 message 关键词匹配（中英）；耗时用
-     * 「耗时|duration|cost = N ms|s」正则提取后求平均。
-     * 非严谨状态机统计，仅供运营看板参考。
+     * 时间窗为半开区间：created_at >= start AND created_at < end。
+     * 成功率分母为 attempted = SUCCESS+FAILED+TIMEOUT+CANCELLED（不含 SKIPPED）。
+     * 空数据返回完整零值结构。
      */
     public function taskStats(TaskStatsQueryDto $query): CronTaskStatsResultDto
     {
@@ -387,49 +393,17 @@ class CronTaskManagerService
             throw CronTaskException::throw('taskId不能为空', -1);
         }
 
-        $logs = CronTaskLogEntity::query()->field(['id', 'message', 'created_at'])->where([
-            'cron_id' => $taskId,
-        ])->order('id', 'desc')->limit(0, 2000)->select()->toArray();
+        $rows = $this->fetchStatusCounts($taskId, $query->getStart(), $query->getEnd());
+        $stats = ExecutionStatus::aggregateCounts($rows);
+        $duration = $this->fetchSuccessDuration($taskId, $query->getStart(), $query->getEnd());
+        $stats = ExecutionStatus::withDuration(
+            $stats,
+            $duration['avg'],
+            $duration['max'],
+            $duration['samples'],
+        );
 
-        $total = count($logs);
-        $success = 0;
-        $failed = 0;
-        $skipped = 0;
-        $durationTotalMs = 0.0;
-        $durationSamples = 0;
-
-        foreach ($logs as $log) {
-            $message = (string)($log['message'] ?? '');
-            $normalized = strtolower($message);
-
-            if (strpos($message, '成功') !== false || strpos($normalized, 'success') !== false) {
-                $success++;
-            }
-            if (strpos($message, '失败') !== false || strpos($message, '报错') !== false || strpos($normalized, 'error') !== false || strpos($normalized, 'fail') !== false) {
-                $failed++;
-            }
-            if (strpos($message, '跳过') !== false || strpos($message, '不能执行') !== false || strpos($normalized, 'skip') !== false) {
-                $skipped++;
-            }
-
-            $durationMs = $this->extractDurationMs($message);
-            if ($durationMs > 0) {
-                $durationTotalMs += $durationMs;
-                $durationSamples++;
-            }
-        }
-
-        $result = new CronTaskStatsResultDto();
-        $result->setTaskId($taskId);
-        $result->setTotal($total);
-        $result->setSuccess($success);
-        $result->setFailed($failed);
-        $result->setSkipped($skipped);
-        $result->setSuccessRate($total > 0 ? round(($success / $total) * 100, 2) : 0.0);
-        $result->setAvgDurationMs($durationSamples > 0 ? round($durationTotalMs / $durationSamples, 2) : 0.0);
-        $result->setSamples($durationSamples);
-
-        return $result;
+        return CronTaskStatsResultDto::fromAggregated($taskId, $stats);
     }
 
     /**
@@ -495,13 +469,33 @@ class CronTaskManagerService
 
         $taskItem = $this->normalizeJsonField($dto->getTaskItem());
 
-        CronTaskLogEntity::query()->insert([
+        $row = [
             'cron_id' => $cronId,
             'exec_batch_id' => $dto->getExecBatchId(),
             'pid' => $dto->getPid(),
             'task_item' => is_array($taskItem) ? $taskItem : ['raw' => (string)$taskItem],
             'message' => $message,
-        ]);
+        ];
+        if ($dto->getStatus() !== null) {
+            $row['status'] = $dto->getStatus();
+        }
+        if ($dto->getTriggerType() !== null) {
+            $row['trigger_type'] = $dto->getTriggerType();
+        }
+        if ($dto->getDurationMs() !== null) {
+            $row['duration_ms'] = max(0, $dto->getDurationMs());
+        }
+        if ($dto->getExitCode() !== null) {
+            $row['exit_code'] = $dto->getExitCode();
+        }
+        if ($dto->getHttpStatus() !== null) {
+            $row['http_status'] = $dto->getHttpStatus();
+        }
+        if ($dto->getStatus() !== null) {
+            $row['finished_at'] = date('Y-m-d H:i:s');
+        }
+
+        CronTaskLogEntity::query()->insert($row);
 
         return $cronId;
     }
@@ -528,24 +522,64 @@ class CronTaskManagerService
     }
 
     /**
-     * 从日志 message 提取耗时（毫秒）。
+     * 按 status GROUP BY 计数。只查 status 列，不加载 message / task_item。
      *
-     * 匹配 `耗时|duration|cost` + `=`/`:` + 数字，可选单位 ms（默认）或 s（×1000）。
-     * 未匹配返回 0.0（不计入平均）。
+     * 仅统计有 exec_batch_id 的 Execution 行（排除配置变更日志）。
+     * 时间窗：created_at >= start AND created_at < end。
+     *
+     * @return list<array{status:int|string,total:int|string}>
      */
-    protected function extractDurationMs(string $message): float
+    protected function fetchStatusCounts(?int $cronId, ?string $start = null, ?string $end = null): array
     {
-        if (preg_match('/(?:耗时|duration|cost)\\s*[:=]\\s*(\\d+(?:\\.\\d+)?)\\s*(ms|s)?/i', $message, $match)) {
-            $value = (float)$match[1];
-            $unit = strtolower((string)($match[2] ?? 'ms'));
-            if ($unit === 's') {
-                return $value * 1000;
-            }
+        $qb = $this->newExecutionStatsQuery($cronId, $start, $end);
+        $rows = $qb->field([
+            new Raw('status'),
+            new Raw('COUNT(*) AS total'),
+        ])->group('status')->select()->toArray();
 
-            return $value;
+        return is_array($rows) ? $rows : [];
+    }
+
+    /**
+     * SUCCESS 行的 AVG/MAX(duration_ms)。不从 message 解析耗时。
+     *
+     * @return array{avg:float,max:float,samples:int}
+     */
+    protected function fetchSuccessDuration(?int $cronId, ?string $start = null, ?string $end = null): array
+    {
+        $qb = $this->newExecutionStatsQuery($cronId, $start, $end)
+            ->where('status', ExecutionStatus::SUCCESS);
+        $row = $qb->field([
+            new Raw('AVG(duration_ms) AS avg_duration_ms'),
+            new Raw('MAX(duration_ms) AS max_duration_ms'),
+            new Raw('COUNT(*) AS samples'),
+        ])->find();
+        $data = is_array($row) ? $row : ($row ? $row->toArray() : []);
+
+        return [
+            'avg' => round((float) ($data['avg_duration_ms'] ?? 0), 2),
+            'max' => (float) ($data['max_duration_ms'] ?? 0),
+            'samples' => (int) ($data['samples'] ?? 0),
+        ];
+    }
+
+    /**
+     * Dashboard / taskStats 共用：Execution 行（exec_batch_id 非空），不含 TEXT 列。
+     */
+    protected function newExecutionStatsQuery(?int $cronId, ?string $start = null, ?string $end = null): Query
+    {
+        $qb = CronTaskLogEntity::queryNotDeleted()->where('exec_batch_id', '<>', '');
+        if ($cronId !== null && $cronId > 0) {
+            $qb->where('cron_id', $cronId);
+        }
+        if ($start !== null && $start !== '') {
+            $qb->where('created_at', '>=', $start);
+        }
+        if ($end !== null && $end !== '') {
+            $qb->where('created_at', '<', $end);
         }
 
-        return 0.0;
+        return $qb;
     }
 
     /**
@@ -600,7 +634,7 @@ class CronTaskManagerService
             throw CronTaskException::throw('id和execBatchId不能为空', -1);
         }
 
-        $row = CronTaskLogEntity::query()->where([
+        $row = CronTaskLogEntity::queryNotDeleted()->where([
             'cron_id' => $query->getTaskId(),
             'exec_batch_id' => $query->getExecBatchId(),
         ])->order('id', 'desc')->find();
@@ -612,38 +646,32 @@ class CronTaskManagerService
     }
 
     /**
-     * Dashboard 聚合：任务计数 + 今日日志 + 节点心跳。
+     * Dashboard 聚合：任务计数 + 今日 Execution GROUP BY status + 节点心跳。
      */
     public function dashboardOverview(): DashboardOverviewDto
     {
         $total = (int)CronTaskEntity::queryNotDeleted()->count();
         $enabled = (int)CronTaskEntity::queryNotDeleted()->where('status', 1)->count();
         $todayStart = date('Y-m-d 00:00:00');
-        $logs = CronTaskLogEntity::query()->field(['message'])->where('created_at', '>=', $todayStart)->select()->toArray();
-        $success = 0;
-        $failed = 0;
-        $skipped = 0;
-        foreach ($logs as $log) {
-            $status = ExecutionDetailDto::classifyMessage((string)($log['message'] ?? ''));
-            if ($status === 'success') {
-                $success++;
-            } elseif ($status === 'failed') {
-                $failed++;
-            } elseif ($status === 'skipped') {
-                $skipped++;
-            }
-        }
+        $stats = ExecutionStatus::aggregateCounts($this->fetchStatusCounts(null, $todayStart, null));
         $nodeStats = $this->countNodeHeartbeat();
 
         return DashboardOverviewDto::of(
             ['total' => $total, 'enabled' => $enabled, 'disabled' => max(0, $total - $enabled)],
-            ['today' => count($logs), 'success' => $success, 'failed' => $failed, 'skipped' => $skipped],
+            [
+                'today' => $stats['total'],
+                'success' => $stats['success'],
+                'failed' => $stats['failed'],
+                'skipped' => $stats['skipped'],
+                'timeout' => $stats['timeout'],
+                'cancelled' => $stats['cancelled'],
+            ],
             $nodeStats,
         );
     }
 
     /**
-     * 执行趋势：24h 按小时，7d/30d 按天。
+     * 执行趋势：24h 按小时，7d/30d 按天。按 status GROUP BY 时间桶，不加载 message。
      *
      * @return list<ExecutionTrendBucketDto>
      */
@@ -654,7 +682,7 @@ class CronTaskManagerService
         $days = $range === '30d' ? 30 : ($range === '7d' ? 7 : 1);
         $startTs = $hourly ? time() - 86400 : strtotime('-' . ($days - 1) . ' days 00:00:00');
         $start = date('Y-m-d H:i:s', $startTs);
-        $logs = CronTaskLogEntity::query()->field(['message', 'created_at'])->where('created_at', '>=', $start)->select()->toArray();
+        $fmt = $hourly ? '%Y-%m-%d %H' : '%Y-%m-%d';
 
         $buckets = [];
         if ($hourly) {
@@ -670,22 +698,30 @@ class CronTaskManagerService
             }
         }
 
-        foreach ($logs as $log) {
-            $created = (string)($log['created_at'] ?? '');
-            $ts = strtotime($created);
-            if ($ts === false) {
-                continue;
-            }
-            $key = $hourly ? date('Y-m-d H', $ts) : date('Y-m-d', $ts);
+        $rows = $this->newExecutionStatsQuery(null, $start, null)
+            ->field([
+                new Raw("DATE_FORMAT(created_at, '{$fmt}') AS bucket"),
+                new Raw('status'),
+                new Raw('COUNT(*) AS total'),
+            ])
+            ->group('bucket,status')
+            ->select()
+            ->toArray();
+
+        foreach ($rows as $row) {
+            $key = (string) ($row['bucket'] ?? '');
             if (!isset($buckets[$key])) {
                 continue;
             }
-            $status = ExecutionDetailDto::classifyMessage((string)($log['message'] ?? ''));
-            $row = $buckets[$key]->toDeepArray();
-            $total = (int)$row['total'] + 1;
-            $success = (int)$row['success'] + ($status === 'success' ? 1 : 0);
-            $failed = (int)$row['failed'] + ($status === 'failed' ? 1 : 0);
-            $buckets[$key] = ExecutionTrendBucketDto::of((string)$row['time'], $total, $success, $failed);
+            $statusName = ExecutionStatus::name((int) ($row['status'] ?? -1));
+            $count = (int) ($row['total'] ?? 0);
+            $cur = $buckets[$key]->toDeepArray();
+            $total = (int) $cur['total'] + $count;
+            $success = (int) $cur['success'] + ($statusName === 'success' ? $count : 0);
+            $failed = (int) $cur['failed'] + ($statusName === 'failed' ? $count : 0);
+            $timeout = (int) ($cur['timeout'] ?? 0) + ($statusName === 'timeout' ? $count : 0);
+            $skipped = (int) ($cur['skipped'] ?? 0) + ($statusName === 'skipped' ? $count : 0);
+            $buckets[$key] = ExecutionTrendBucketDto::of((string) $cur['time'], $total, $success, $failed, $timeout, $skipped);
         }
 
         return array_values($buckets);

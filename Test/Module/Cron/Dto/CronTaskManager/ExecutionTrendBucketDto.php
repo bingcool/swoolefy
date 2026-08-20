@@ -24,13 +24,21 @@ class ExecutionTrendBucketDto extends AbstractDto
     #[ApiProperty(description: '失败次数')]
     protected int $failed = 0;
 
-    public static function of(string $time, int $total, int $success, int $failed): self
+    #[ApiProperty(description: '超时次数')]
+    protected int $timeout = 0;
+
+    #[ApiProperty(description: '跳过次数')]
+    protected int $skipped = 0;
+
+    public static function of(string $time, int $total, int $success, int $failed, int $timeout = 0, int $skipped = 0): self
     {
         $dto = new self();
         $dto->time = $time;
         $dto->total = $total;
         $dto->success = $success;
         $dto->failed = $failed;
+        $dto->timeout = $timeout;
+        $dto->skipped = $skipped;
 
         return $dto;
     }

@@ -167,9 +167,23 @@ final class CronAdminDtoTest extends TestCase
 
     public function testClassifyMessage(): void
     {
-        $this->assertSame('success', ExecutionDetailDto::classifyMessage('执行成功 duration=12ms'));
-        $this->assertSame('failed', ExecutionDetailDto::classifyMessage('执行失败 error=1'));
-        $this->assertSame('skipped', ExecutionDetailDto::classifyMessage('命中 cron_skip 跳过'));
+        $this->assertSame('success', ExecutionDetailDto::classifyMessage('【job】SUCCESS duration=12ms'));
+        $this->assertSame('failed', ExecutionDetailDto::classifyMessage('【job】FAILED error=1'));
+        $this->assertSame('skipped', ExecutionDetailDto::classifyMessage('【job】SKIP 命中 cron_skip'));
+        $this->assertSame('unknown', ExecutionDetailDto::classifyMessage('执行失败？'), '无法确认的历史文案不得伪装成 failed');
+    }
+
+    public function testExecutionDetailFromStructuredStatus(): void
+    {
+        $dto = ExecutionDetailDto::fromLogRow([
+            'cron_id' => 1,
+            'exec_batch_id' => 'batch',
+            'status' => 2,
+            'duration_ms' => 12,
+            'message' => '执行失败？',
+        ]);
+        $this->assertSame('success', $dto->getStatus());
+        $this->assertSame(12.0, $dto->getDurationMs());
     }
 
     public function testHeartbeatStatus(): void

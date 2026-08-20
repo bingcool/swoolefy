@@ -20,7 +20,7 @@ namespace Swoolefy\Worker\Cron;
  * - 不判断 cron_between / cron_skip / with_block_lapping（Window / Guard 已处理）
  * - 单个 Job 失败必须返回 ExecutionResult::failed()，不得上抛到 Worker（P0-5）
  *
- * SKIPPED 由 CronManager 管线产生，Executor 只返回 SUCCESS / FAILED。
+ * SKIPPED 由 CronManager 管线产生；Executor 返回 SUCCESS / FAILED / TIMEOUT。
  *
  * @see ShellExecutor
  * @see HttpExecutor

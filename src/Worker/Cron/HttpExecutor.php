@@ -24,7 +24,7 @@ use GuzzleHttp\Exception\GuzzleException;
  * 映射：url ?: command → URL；http_method / http_body / http_headers / http_request_time_out。
  * GET + body 走 query；其它方法 + body 走 json。2xx 为 SUCCESS，其余状态码 FAILED。
  *
- * Timeout / 连接失败 / 非法 URL 只让本轮 Execution Failed，Scheduler 已先 arm 下一轮。
+ * Timeout 记 TIMEOUT；连接失败 / 非法 URL 记 FAILED。Scheduler 已先 arm 下一轮。
  * 响应 body 失败日志截断到 200 字符，避免撑爆 cron_task_log。
  *
  * @see CompositeExecutor
@@ -95,9 +95,26 @@ final class HttpExecutor implements CronExecutorInterface
                 $status,
             );
         } catch (GuzzleException $e) {
-            return ExecutionResult::failed(sprintf('HTTP Timeout/连接失败 url=%s error=%s', $url, $e->getMessage()));
+            $msg = sprintf('HTTP Timeout/连接失败 url=%s error=%s', $url, $e->getMessage());
+            if (self::isTimeoutException($e)) {
+                return ExecutionResult::timeout($msg);
+            }
+
+            return ExecutionResult::failed($msg);
         } catch (\Throwable $e) {
             return ExecutionResult::failed(sprintf('HTTP 执行异常 url=%s error=%s', $url, $e->getMessage()));
         }
+    }
+
+    /**
+     * 判断 Guzzle/cURL 是否为超时（error 28 / timed out），以便写入 TIMEOUT 而非 FAILED。
+     */
+    private static function isTimeoutException(\Throwable $e): bool
+    {
+        $msg = strtolower($e->getMessage());
+
+        return str_contains($msg, 'timeout')
+            || str_contains($msg, 'timed out')
+            || str_contains($msg, 'curl error 28');
     }
 }

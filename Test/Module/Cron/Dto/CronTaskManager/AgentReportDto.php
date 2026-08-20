@@ -42,6 +42,21 @@ class AgentReportDto extends AbstractDto
     #[ApiProperty(description: '执行子进程 PID，shell 任务可能有值')]
     protected ?int $pid = null;
 
+    #[ApiProperty(description: '结构化执行状态（0-6）；缺省不猜测 message')]
+    protected ?int $status = null;
+
+    #[ApiProperty(description: '触发类型：1-scheduler 2-run_once')]
+    protected ?int $triggerType = null;
+
+    #[ApiProperty(description: '执行耗时毫秒')]
+    protected ?int $durationMs = null;
+
+    #[ApiProperty(description: 'Shell 退出码')]
+    protected ?int $exitCode = null;
+
+    #[ApiProperty(description: 'HTTP 状态码')]
+    protected ?int $httpStatus = null;
+
     /** 获取任务 ID */
     public function getCronId(): int
     {
@@ -108,6 +123,66 @@ class AgentReportDto extends AbstractDto
     public function setPid(?int $pid): static
     {
         $this->pid = $pid;
+
+        return $this;
+    }
+
+    public function getStatus(): ?int
+    {
+        return $this->status;
+    }
+
+    public function setStatus(?int $status): static
+    {
+        $this->status = $status;
+
+        return $this;
+    }
+
+    public function getTriggerType(): ?int
+    {
+        return $this->triggerType;
+    }
+
+    public function setTriggerType(?int $triggerType): static
+    {
+        $this->triggerType = $triggerType;
+
+        return $this;
+    }
+
+    public function getDurationMs(): ?int
+    {
+        return $this->durationMs;
+    }
+
+    public function setDurationMs(?int $durationMs): static
+    {
+        $this->durationMs = $durationMs;
+
+        return $this;
+    }
+
+    public function getExitCode(): ?int
+    {
+        return $this->exitCode;
+    }
+
+    public function setExitCode(?int $exitCode): static
+    {
+        $this->exitCode = $exitCode;
+
+        return $this;
+    }
+
+    public function getHttpStatus(): ?int
+    {
+        return $this->httpStatus;
+    }
+
+    public function setHttpStatus(?int $httpStatus): static
+    {
+        $this->httpStatus = $httpStatus;
 
         return $this;
     }

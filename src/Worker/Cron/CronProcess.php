@@ -96,8 +96,8 @@ class CronProcess extends AbstractWorkerProcess
             clock: new SystemCronClock(),
             pollIntervalMs: $this->taskList instanceof \Closure ? max(5, $pollSeconds) * 1000 : 0,
             nodeId: $nodeId === null || $nodeId === '' ? null : (int) $nodeId,
-            logWriter: function (ScheduleEvent|CronUrlTaskMetaDtoWorker $task, string $execBatchId, string $message, int $pid = 0): void {
-                $this->logCronTaskRuntime($task, $execBatchId, $message, $pid);
+            logWriter: function (ScheduleEvent|CronUrlTaskMetaDtoWorker $task, string $execBatchId, string $message, int $pid = 0, array $execution = []): void {
+                $this->logCronTaskRuntime($task, $execBatchId, $message, $pid, $execution);
             },
             runOnceAck: $args['run_once_ack'] ?? null,
             heartbeatIntervalSeconds: $heartbeatSeconds,
@@ -192,6 +192,7 @@ class CronProcess extends AbstractWorkerProcess
      * @param string $execBatchId
      * @param string $message
      * @param int $pid
+     * @param array<string, mixed> $execution
      * @return void
      */
     protected function logCronTaskRuntime(
@@ -199,6 +200,7 @@ class CronProcess extends AbstractWorkerProcess
         string                                 $execBatchId,
         string                                 $message,
         int                                    $pid = 0,
+        array                                  $execution = [],
     )
     {
         if (isset($scheduleTask->cron_task_id) && $scheduleTask->cron_task_id > 0 && !empty($scheduleTask->cron_db_log_class)) {
@@ -207,7 +209,7 @@ class CronProcess extends AbstractWorkerProcess
              */
             $logClass = $scheduleTask->cron_db_log_class;
             try {
-                (new $logClass)->logCronTaskRuntime($scheduleTask, $execBatchId, $message, $pid);
+                (new $logClass)->logCronTaskRuntime($scheduleTask, $execBatchId, $message, $pid, $execution);
             }catch (\Throwable $e) {
                 $errorMsg = "CronTaskInterface logCronTaskRuntime error: {$e->getMessage()}";
                 $logger = LogManager::getInstance()->getLogger(LogManager::CRON_FORK_LOG);

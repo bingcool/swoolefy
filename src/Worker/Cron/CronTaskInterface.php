@@ -43,17 +43,20 @@ interface CronTaskInterface
     /**
      * 写入 cron_task_log。execBatchId 为空串表示配置变更（ADD/UPDATE/DELETE 等）。
      * pid 为子进程 PID；HTTP 任务传 0。
+     * $execution 为结构化 Execution 字段（status / duration_ms 等）；缺省空数组表示仅写 message。
      *
      * @param ScheduleEvent|CronUrlTaskMetaDtoWorker $scheduleTask TaskDefinition::toLogDto() 的结果
      * @param string $execBatchId 本轮 ExecutionSnapshot::execBatchId
-     * @param string $message 已格式化的中文/英文日志
+     * @param string $message 已格式化的中文/英文日志（人类可读，禁止用于统计）
      * @param int $pid Shell 子进程 PID
+     * @param array<string, mixed> $execution 结构化字段：status、trigger_type、scheduled_at、started_at、finished_at、duration_ms、exit_code、http_status
      * @return mixed
      */
     public function logCronTaskRuntime(
         ScheduleEvent|CronUrlTaskMetaDtoWorker $scheduleTask,
         string                                 $execBatchId,
         string                                 $message,
-        int                                    $pid = 0
+        int                                    $pid = 0,
+        array                                  $execution = []
     );
 }

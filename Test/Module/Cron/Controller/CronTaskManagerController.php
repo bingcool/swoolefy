@@ -328,6 +328,9 @@ class CronTaskManagerController extends BController
      ```bash
      curl -X GET 'http://127.0.0.1:9501/api/v1/tasks/stats?taskId=1' \
        -H 'Accept: application/json'
+
+     curl -X GET 'http://127.0.0.1:9501/api/v1/tasks/stats?taskId=1&start=2026-08-01%2000:00:00&end=2026-08-02%2000:00:00' \
+       -H 'Accept: application/json'
      ```
      */
     #[ApiOperation(
@@ -335,18 +338,11 @@ class CronTaskManagerController extends BController
     )]
     public function taskStats(CronTaskStatsQueryRequest $request): CronTaskStatsResponse
     {
-        $stats = $this->cronTaskManagerService->taskStats(TaskStatsQueryDto::of($request->getTaskId()));
-
-        return new CronTaskStatsResponse(
-            $stats->getTaskId(),
-            $stats->getTotal(),
-            $stats->getSuccess(),
-            $stats->getFailed(),
-            $stats->getSkipped(),
-            $stats->getSuccessRate(),
-            $stats->getAvgDurationMs(),
-            $stats->getSamples()
+        $stats = $this->cronTaskManagerService->taskStats(
+            TaskStatsQueryDto::of($request->getTaskId(), $request->getStart(), $request->getEnd())
         );
+
+        return CronTaskStatsResponse::fromDto($stats);
     }
 
     /**
@@ -443,7 +439,12 @@ class CronTaskManagerController extends BController
             ->setMessage($request->getMessage())
             ->setTaskItem($request->getTaskItem())
             ->setExecBatchId($request->getExecBatchId())
-            ->setPid($request->getPid());
+            ->setPid($request->getPid())
+            ->setStatus($request->getStatus())
+            ->setTriggerType($request->getTriggerType())
+            ->setDurationMs($request->getDurationMs())
+            ->setExitCode($request->getExitCode())
+            ->setHttpStatus($request->getHttpStatus());
 
         return new CronAgentReportAckResponse($this->cronTaskManagerService->agentReport($dto));
     }

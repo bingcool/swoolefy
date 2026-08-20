@@ -76,11 +76,62 @@ CREATE TABLE `cron_task_log` (
     `cron_id` bigint NOT NULL DEFAULT '0' COMMENT '关联的cron_task.id',
     `exec_batch_id` varchar(64) NOT NULL DEFAULT '' COMMENT '每轮执行的批次id',
     `pid` int NOT NULL DEFAULT '0' COMMENT '定时脚本执行时的进程pid',
+    `status` tinyint unsigned NOT NULL DEFAULT '0' COMMENT '执行状态：0-pending 1-running 2-success 3-failed 4-skipped 5-timeout 6-cancelled',
+    `trigger_type` tinyint unsigned NOT NULL DEFAULT '1' COMMENT '触发类型：1-scheduler 2-run_once',
+    `scheduled_at` datetime DEFAULT NULL COMMENT '计划执行时间',
+    `started_at` datetime DEFAULT NULL COMMENT '实际开始执行时间',
+    `finished_at` datetime DEFAULT NULL COMMENT '实际结束执行时间',
+    `duration_ms` bigint unsigned NOT NULL DEFAULT '0' COMMENT '执行耗时，毫秒',
+    `exit_code` int DEFAULT NULL COMMENT 'Shell退出码',
+    `http_status` smallint unsigned DEFAULT NULL COMMENT 'HTTP响应状态码',
     `task_item` text DEFAULT NULL COMMENT '执行任务项meta信息',
-    `message` text DEFAULT NULL COMMENT '运行态记录信息',
+    `message` text DEFAULT NULL COMMENT '运行态记录信息（人类可读，禁止用于 taskStats）',
     `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
     `deleted_at` datetime DEFAULT NULL COMMENT '删除时间',
     PRIMARY KEY (`id`),
-    KEY `expression` (`exec_batch_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='定时任务表运行态日志';
+    KEY `expression` (`exec_batch_id`),
+    KEY `idx_cron_id_created_at` (`cron_id`, `created_at`),
+    KEY `idx_cron_status_created_at` (`cron_id`, `status`, `created_at`),
+    KEY `idx_status_created_at` (`status`, `created_at`),
+    KEY `idx_cron_exec_batch` (`cron_id`, `exec_batch_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='定时任务执行记录（Execution Record）';
+
+-- 已有库升级（不要 DROP 表）。taskStats 改为 GROUP BY status，旧表无下列列会报 Unknown column。
+-- 新库按上方 CREATE TABLE 已含，无需再执行。若列/索引已存在，跳过对应语句即可。
+-- ALTER TABLE `cron_task_log`
+--     ADD COLUMN `status` tinyint unsigned NOT NULL DEFAULT 0
+--         COMMENT '执行状态：0-pending 1-running 2-success 3-failed 4-skipped 5-timeout 6-cancelled'
+--         AFTER `pid`,
+--     ADD COLUMN `trigger_type` tinyint unsigned NOT NULL DEFAULT 1
+--         COMMENT '触发类型：1-scheduler 2-run_once'
+--         AFTER `status`,
+--     ADD COLUMN `scheduled_at` datetime DEFAULT NULL
+--         COMMENT '计划执行时间'
+--         AFTER `trigger_type`,
+--     ADD COLUMN `started_at` datetime DEFAULT NULL
+--         COMMENT '实际开始执行时间'
+--         AFTER `scheduled_at`,
+--     ADD COLUMN `finished_at` datetime DEFAULT NULL
+--         COMMENT '实际结束执行时间'
+--         AFTER `started_at`,
+--     ADD COLUMN `duration_ms` bigint unsigned NOT NULL DEFAULT 0
+--         COMMENT '执行耗时，毫秒'
+--         AFTER `finished_at`,
+--     ADD COLUMN `exit_code` int DEFAULT NULL
+--         COMMENT 'Shell退出码'
+--         AFTER `duration_ms`,
+--     ADD COLUMN `http_status` smallint unsigned DEFAULT NULL
+--         COMMENT 'HTTP响应状态码'
+--         AFTER `exit_code`;
+-- ALTER TABLE `cron_task_log` ADD KEY `idx_cron_id_created_at` (`cron_id`, `created_at`);
+-- ALTER TABLE `cron_task_log` ADD KEY `idx_cron_status_created_at` (`cron_id`, `status`, `created_at`);
+-- ALTER TABLE `cron_task_log` ADD KEY `idx_status_created_at` (`status`, `created_at`);
+-- ALTER TABLE `cron_task_log` ADD KEY `idx_cron_exec_batch` (`cron_id`, `exec_batch_id`);
+--
+-- 历史数据一次性迁移：只改能确认的旧文案，无法识别的保持 status=0（不要伪装成真实 PENDING）。
+-- UPDATE `cron_task_log` SET `status` = 4 WHERE `status` = 0 AND (`message` LIKE '%】SKIP %' OR `message` LIKE '%】SKIPPED %' OR `message` = 'skipped');
+-- UPDATE `cron_task_log` SET `status` = 5 WHERE `status` = 0 AND `message` LIKE '%】TIMEOUT %';
+-- UPDATE `cron_task_log` SET `status` = 6 WHERE `status` = 0 AND `message` LIKE '%】CANCELLED %';
+-- UPDATE `cron_task_log` SET `status` = 3 WHERE `status` = 0 AND (`message` LIKE '%】FAILED %' OR `message` LIKE '%执行异常已隔离%' OR `message` = 'failed');
+-- UPDATE `cron_task_log` SET `status` = 2 WHERE `status` = 0 AND (`message` LIKE '%】SUCCESS %' OR `message` = 'success');

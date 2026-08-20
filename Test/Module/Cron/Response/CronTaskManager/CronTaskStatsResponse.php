@@ -6,160 +6,95 @@ namespace Test\Module\Cron\Response\CronTaskManager;
 
 use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Http\BaseResponse;
+use Test\Module\Cron\Dto\CronTaskManager\CronTaskStatsResultDto;
 
 class CronTaskStatsResponse extends BaseResponse
 {
     #[ApiProperty(description: '任务 ID')]
-    protected int $taskId;
+    protected int $taskId = 0;
 
-    #[ApiProperty(description: '样本总数')]
-    protected int $total;
+    #[ApiProperty(description: '执行记录总条数')]
+    protected int $total = 0;
 
-    #[ApiProperty(description: '判定为成功的次数')]
-    protected int $success;
+    #[ApiProperty(description: 'pending 次数')]
+    protected int $pending = 0;
 
-    #[ApiProperty(description: '判定为失败的次数')]
-    protected int $failed;
+    #[ApiProperty(description: 'running 次数')]
+    protected int $running = 0;
 
-    #[ApiProperty(description: '判定为跳过的次数')]
-    protected int $skipped;
+    #[ApiProperty(description: '成功次数')]
+    protected int $success = 0;
 
-    #[ApiProperty(description: '成功率（百分比）')]
-    protected float $successRate;
+    #[ApiProperty(description: '失败次数')]
+    protected int $failed = 0;
 
-    #[ApiProperty(description: '平均耗时（毫秒）')]
-    protected float $avgDurationMs;
+    #[ApiProperty(description: '跳过次数')]
+    protected int $skipped = 0;
 
-    #[ApiProperty(description: '参与耗时统计的样本数')]
-    protected int $samples;
+    #[ApiProperty(description: '超时次数')]
+    protected int $timeout = 0;
 
-    public function __construct(
-        int $taskId,
-        int $total,
-        int $success,
-        int $failed,
-        int $skipped,
-        float $successRate,
-        float $avgDurationMs,
-        int $samples
-    ) {
-        $this->setTaskId($taskId);
-        $this->setTotal($total);
-        $this->setSuccess($success);
-        $this->setFailed($failed);
-        $this->setSkipped($skipped);
-        $this->setSuccessRate($successRate);
-        $this->setAvgDurationMs($avgDurationMs);
-        $this->setSamples($samples);
-    }
+    #[ApiProperty(description: '取消次数')]
+    protected int $cancelled = 0;
 
-    public function getTaskId(): int
+    #[ApiProperty(description: '已结束次数')]
+    protected int $finished = 0;
+
+    #[ApiProperty(description: '成功率分母（不含 skipped）')]
+    protected int $attempted = 0;
+
+    #[ApiProperty(description: '成功率（百分比）；分母为 attempted')]
+    protected float $successRate = 0.0;
+
+    #[ApiProperty(description: 'SUCCESS 行平均耗时（毫秒）')]
+    protected float $avgDurationMs = 0.0;
+
+    #[ApiProperty(description: 'SUCCESS 行最大耗时（毫秒）')]
+    protected float $maxDurationMs = 0.0;
+
+    #[ApiProperty(description: '参与耗时统计的 SUCCESS 行数')]
+    protected int $samples = 0;
+
+    public static function fromDto(CronTaskStatsResultDto $stats): self
     {
-        return $this->taskId;
-    }
+        $response = new self();
+        $response->taskId = $stats->getTaskId();
+        $response->total = $stats->getTotal();
+        $response->pending = $stats->getPending();
+        $response->running = $stats->getRunning();
+        $response->success = $stats->getSuccess();
+        $response->failed = $stats->getFailed();
+        $response->skipped = $stats->getSkipped();
+        $response->timeout = $stats->getTimeout();
+        $response->cancelled = $stats->getCancelled();
+        $response->finished = $stats->getFinished();
+        $response->attempted = $stats->getAttempted();
+        $response->successRate = $stats->getSuccessRate();
+        $response->avgDurationMs = $stats->getAvgDurationMs();
+        $response->maxDurationMs = $stats->getMaxDurationMs();
+        $response->samples = $stats->getSamples();
 
-    public function setTaskId(int $taskId): static
-    {
-        $this->taskId = $taskId;
-
-        return $this;
-    }
-
-    public function getTotal(): int
-    {
-        return $this->total;
-    }
-
-    public function setTotal(int $total): static
-    {
-        $this->total = $total;
-
-        return $this;
-    }
-
-    public function getSuccess(): int
-    {
-        return $this->success;
-    }
-
-    public function setSuccess(int $success): static
-    {
-        $this->success = $success;
-
-        return $this;
-    }
-
-    public function getFailed(): int
-    {
-        return $this->failed;
-    }
-
-    public function setFailed(int $failed): static
-    {
-        $this->failed = $failed;
-
-        return $this;
-    }
-
-    public function getSkipped(): int
-    {
-        return $this->skipped;
-    }
-
-    public function setSkipped(int $skipped): static
-    {
-        $this->skipped = $skipped;
-
-        return $this;
-    }
-
-    public function getSuccessRate(): float
-    {
-        return $this->successRate;
-    }
-
-    public function setSuccessRate(float $successRate): static
-    {
-        $this->successRate = $successRate;
-
-        return $this;
-    }
-
-    public function getAvgDurationMs(): float
-    {
-        return $this->avgDurationMs;
-    }
-
-    public function setAvgDurationMs(float $avgDurationMs): static
-    {
-        $this->avgDurationMs = $avgDurationMs;
-
-        return $this;
-    }
-
-    public function getSamples(): int
-    {
-        return $this->samples;
-    }
-
-    public function setSamples(int $samples): static
-    {
-        $this->samples = $samples;
-
-        return $this;
+        return $response;
     }
 
     public function getData(): array
     {
         return [
-            'taskId' => $this->getTaskId(),
-            'total' => $this->getTotal(),
-            'success' => $this->getSuccess(),
-            'failed' => $this->getFailed(),
-            'skipped' => $this->getSkipped(),
-            'successRate' => $this->getSuccessRate(),
-            'avgDurationMs' => $this->getAvgDurationMs(),
-            'samples' => $this->getSamples(),
+            'taskId' => $this->taskId,
+            'total' => $this->total,
+            'pending' => $this->pending,
+            'running' => $this->running,
+            'success' => $this->success,
+            'failed' => $this->failed,
+            'skipped' => $this->skipped,
+            'timeout' => $this->timeout,
+            'cancelled' => $this->cancelled,
+            'finished' => $this->finished,
+            'attempted' => $this->attempted,
+            'successRate' => $this->successRate,
+            'avgDurationMs' => $this->avgDurationMs,
+            'maxDurationMs' => $this->maxDurationMs,
+            'samples' => $this->samples,
         ];
     }
 }

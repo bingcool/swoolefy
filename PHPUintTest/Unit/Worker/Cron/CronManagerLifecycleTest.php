@@ -16,6 +16,7 @@ use Swoolefy\Worker\Cron\CronManager;
 use Swoolefy\Worker\Cron\CronMetrics;
 use Swoolefy\Worker\Cron\ExecutionResult;
 use Swoolefy\Worker\Cron\ExecutionSnapshot;
+use Swoolefy\Worker\Cron\ExecutionStatus;
 
 /**
  * CronManager 生命周期与不变量（文档 P0/P1）。
@@ -547,9 +548,97 @@ final class CronManagerLifecycleTest extends TestCase
     }
 
     /**
+     * Execution 日志写入结构化 status / trigger_type / duration_ms，不再只靠 message。
+     * 同一 exec_batch_id 的开始(RUNNING)与结束(SUCCESS)都会带 status。
+     */
+    public function testExecutionLogWriterReceivesStructuredStatus(): void
+    {
+        $timer = new ManualCronTimer();
+        $clock = new FrozenCronClock(0);
+        $writes = [];
+        $manager = $this->manager(
+            fn () => [$this->row(1, '5', 1, 'ok.sh')],
+            new RecordingExecutor(),
+            $timer,
+            $clock,
+            null,
+            function ($task, string $batchId, string $message, int $pid = 0, array $execution = []) use (&$writes): void {
+                $writes[] = [
+                    'batch' => $batchId,
+                    'message' => $message,
+                    'pid' => $pid,
+                    'execution' => $execution,
+                ];
+            },
+        );
+        $manager->start();
+        $clock->set(5);
+        $timer->advance(5000);
+
+        $statuses = array_map(static fn (array $w) => $w['execution']['status'] ?? null, $writes);
+        $this->assertContains(ExecutionStatus::RUNNING, $statuses);
+        $this->assertContains(ExecutionStatus::SUCCESS, $statuses);
+        $running = null;
+        $final = null;
+        foreach ($writes as $write) {
+            $status = $write['execution']['status'] ?? null;
+            if ($status === ExecutionStatus::RUNNING) {
+                $running = $write;
+            }
+            if ($status === ExecutionStatus::SUCCESS) {
+                $final = $write;
+            }
+        }
+        $this->assertNotNull($running);
+        $this->assertNotNull($final);
+        $this->assertSame(ExecutionStatus::TRIGGER_SCHEDULER, $final['execution']['trigger_type']);
+        $this->assertArrayHasKey('duration_ms', $final['execution']);
+        $this->assertArrayHasKey('finished_at', $final['execution']);
+        $this->assertSame($running['batch'], $final['batch']);
+    }
+
+    /**
+     * 重叠 SKIP 必须写入 SKIPPED Execution，保证每一次计划调度都有结果行。
+     */
+    public function testSkipWritesSkippedStatus(): void
+    {
+        $timer = new ManualCronTimer();
+        $clock = new FrozenCronClock(0);
+        $writes = [];
+        $executor = new RecordingExecutor(function () use ($timer, $clock): void {
+            $clock->advance(5);
+            $timer->advance(5000);
+        });
+        $manager = $this->manager(
+            fn () => [$this->row(1, '5', 1, 'sleep.sh', '2026-01-01', 1)],
+            $executor,
+            $timer,
+            $clock,
+            null,
+            function ($task, string $batchId, string $message, int $pid = 0, array $execution = []) use (&$writes): void {
+                $writes[] = $execution;
+            },
+        );
+        $manager->start();
+        $clock->set(5);
+        $timer->advance(5000);
+
+        $skip = null;
+        foreach ($writes as $execution) {
+            if (($execution['status'] ?? null) === ExecutionStatus::SKIPPED) {
+                $skip = $execution;
+            }
+        }
+        $this->assertNotNull($skip, 'SKIPPED 必须落库');
+        $this->assertSame(0, $skip['duration_ms']);
+        $this->assertArrayHasKey('finished_at', $skip);
+    }
+
+    /**
      * 构造关闭 Polling 的 CronManager，便于手动推进 Timer。
      *
      * @param callable():list<array<string,mixed>> $fetcher
+     * @param null|callable $logWriter
      */
     private function manager(
         callable $fetcher,
@@ -557,6 +646,7 @@ final class CronManagerLifecycleTest extends TestCase
         ManualCronTimer $timer,
         FrozenCronClock $clock,
         ?int $nodeId = null,
+        $logWriter = null,
     ): CronManager {
         return new CronManager(
             fetcher: $fetcher,
@@ -565,6 +655,7 @@ final class CronManagerLifecycleTest extends TestCase
             clock: $clock,
             pollIntervalMs: 0,
             nodeId: $nodeId,
+            logWriter: $logWriter,
         );
     }
 

@@ -141,7 +141,7 @@ final class ExecutorAndWindowTest extends TestCase
     }
 
     /**
-     * Guzzle Timeout 只让本轮 FAILED，消息含 timeout，不拖垮调用方。
+     * Guzzle Timeout 记 TIMEOUT，消息含 timeout，不拖垮调用方。
      */
     public function testHttpTimeoutIsolated(): void
     {
@@ -152,7 +152,9 @@ final class ExecutorAndWindowTest extends TestCase
             );
         });
         $result = $executor->run($this->httpSnapshot('http://example.test/timeout'));
-        $this->assertSame(ExecutionResult::FAILED, $result->status);
+        $this->assertSame(ExecutionResult::TIMEOUT, $result->status);
+        $this->assertTrue($result->isTimeout());
+        $this->assertTrue($result->isCompleted());
         $this->assertStringContainsString('timeout', strtolower($result->message));
     }
 

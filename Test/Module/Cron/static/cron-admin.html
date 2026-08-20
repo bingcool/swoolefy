@@ -61,7 +61,7 @@
     <div class="page-head"><div><h2 style="margin:0">Dashboard</h2><p style="color:#909399;margin:6px 0 0">任务、今日执行与节点心跳聚合</p></div></div>
     <div class="stat-row">
       <el-card shadow="never"><div>任务总数</div><h2>{{ overview.tasks.total }}</h2><div>启用 {{ overview.tasks.enabled }} / 禁用 {{ overview.tasks.disabled }}</div></el-card>
-      <el-card shadow="never"><div>今日执行</div><h2>{{ overview.executions.today }}</h2><div>成功 {{ overview.executions.success }} / 失败 {{ overview.executions.failed }}</div></el-card>
+      <el-card shadow="never"><div>今日执行</div><h2>{{ overview.executions.today }}</h2><div>成功 {{ overview.executions.success }} / 失败 {{ overview.executions.failed }} / 超时 {{ overview.executions.timeout || 0 }}</div></el-card>
       <el-card shadow="never"><div>节点</div><h2>{{ overview.nodes.total }}</h2><div>在线 {{ overview.nodes.online }} / 离线 {{ overview.nodes.offline }}</div></el-card>
       <el-card shadow="never"><div>跳过</div><h2>{{ overview.executions.skipped }}</h2><div>今日 SKIP</div></el-card>
     </div>
@@ -79,6 +79,8 @@
         <el-table-column prop="total" label="总计"></el-table-column>
         <el-table-column prop="success" label="成功"></el-table-column>
         <el-table-column prop="failed" label="失败"></el-table-column>
+        <el-table-column prop="timeout" label="超时"></el-table-column>
+        <el-table-column prop="skipped" label="跳过"></el-table-column>
       </el-table>
     </el-card>
   </div>
@@ -253,7 +255,7 @@
     </el-card>
     <el-card shadow="never" style="margin-top:12px" v-if="stats">
       <div slot="header">执行统计</div>
-      总计 {{ stats.total }} · 成功 {{ stats.success }} · 失败 {{ stats.failed }} · 跳过 {{ stats.skipped }} · 成功率 {{ stats.successRate }}% · 平均耗时 {{ stats.avgDurationMs }}ms
+      总计 {{ stats.total }} · 成功 {{ stats.success }} · 失败 {{ stats.failed }} · 跳过 {{ stats.skipped }} · 超时 {{ stats.timeout || 0 }} · 取消 {{ stats.cancelled || 0 }} · 成功率 {{ stats.successRate }}%（分母 attempted={{ stats.attempted }}，不含跳过） · 平均 {{ stats.avgDurationMs }}ms · 最大 {{ stats.maxDurationMs || 0 }}ms
     </el-card>
   </div>
 </script>
@@ -270,12 +272,17 @@
             <el-option value="success" label="成功"></el-option>
             <el-option value="failed" label="失败"></el-option>
             <el-option value="skipped" label="跳过"></el-option>
+            <el-option value="timeout" label="超时"></el-option>
+            <el-option value="cancelled" label="取消"></el-option>
+            <el-option value="running" label="执行中"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item><el-button type="primary" @click="load">查询</el-button></el-form-item>
       </el-form>
       <el-table :data="items" v-loading="loading">
         <el-table-column prop="execBatchId" label="批次" min-width="160"></el-table-column>
+        <el-table-column prop="statusName" label="状态" width="90"></el-table-column>
+        <el-table-column prop="durationMs" label="耗时ms" width="90"></el-table-column>
         <el-table-column prop="pid" label="PID" width="80"></el-table-column>
         <el-table-column prop="message" label="消息" min-width="280"></el-table-column>
         <el-table-column prop="createdAt" label="时间" width="160"></el-table-column>
@@ -381,7 +388,7 @@ function formatNextRunAt(row) {
 
 const Dashboard = {
   template: '#tpl-dashboard',
-  data() { return { overview: { tasks:{total:0,enabled:0,disabled:0}, executions:{today:0,success:0,failed:0,skipped:0}, nodes:{total:0,online:0,offline:0} }, trend: [], range: '24h' }; },
+  data() { return { overview: { tasks:{total:0,enabled:0,disabled:0}, executions:{today:0,success:0,failed:0,skipped:0,timeout:0,cancelled:0}, nodes:{total:0,online:0,offline:0} }, trend: [], range: '24h' }; },
   created() { this.load(); this.loadTrend(); },
   methods: {
     async load() { try { this.overview = await api('/dashboard/overview'); } catch (e) { toastErr(e); } },

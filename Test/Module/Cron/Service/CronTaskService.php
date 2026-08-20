@@ -5,6 +5,7 @@ namespace Test\Module\Cron\Service;
 use Swoolefy\Core\Schedule\ScheduleEvent;
 use Swoolefy\Worker\Cron\CronNodeLiveness;
 use Swoolefy\Worker\Cron\CronProcess;
+use Swoolefy\Worker\Cron\ExecutionStatus;
 use Swoolefy\Worker\Dto\CronUrlTaskMetaDtoWorker;
 use Test\Module\Cron\CronAgentNodeEntity;
 use Test\Module\Cron\CronTaskEntity;
@@ -195,26 +196,60 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
     /**
      * Worker 执行过程写入运行日志（cron_task_log）。
      *
-     * task_item 存完整调度元数据快照，便于事后排查当时配置。
+     * 同一 exec_batch_id 只保留一条 Execution 行：开始为 RUNNING，结束 UPDATE 终态。
+     * 配置变更（exec_batch_id 空串）始终 INSERT，不写入执行 status。
+     * $execution 只覆盖显式给出的结构化字段，避免 PID 回调把 status 打回 0。
      *
      * @param ScheduleEvent|CronUrlTaskMetaDtoWorker $scheduleTask 当前执行的任务元数据
      * @param string $execBatchId 本轮执行批次 ID
-     * @param string $message 运行消息（成功/失败/跳过等文案，管理端统计会解析）
+     * @param string $message 人类可读运行信息（不用于 taskStats）
      * @param int $pid 子进程 PID，无则 0
+     * @param array<string, mixed> $execution 结构化字段
      */
     public function logCronTaskRuntime(
         ScheduleEvent|CronUrlTaskMetaDtoWorker $scheduleTask,
         string $execBatchId,
         string $message,
         int $pid = 0,
+        array $execution = [],
     ) {
-        CronTaskLogEntity::query()->insert([
-            'cron_id' => $scheduleTask->cron_task_id,
+        $cronId = (int) $scheduleTask->cron_task_id;
+        $row = [
+            'cron_id' => $cronId,
             'exec_batch_id' => $execBatchId,
             'pid' => $pid,
             'task_item' => $scheduleTask->toArray(),
             'message' => $message,
-        ]);
+        ];
+        foreach (['status', 'trigger_type', 'scheduled_at', 'started_at', 'finished_at', 'duration_ms', 'exit_code', 'http_status'] as $field) {
+            if (array_key_exists($field, $execution)) {
+                $row[$field] = $execution[$field];
+            }
+        }
+
+        if ($execBatchId !== '') {
+            $existing = CronTaskLogEntity::queryNotDeleted()
+                ->where([
+                    'cron_id' => $cronId,
+                    'exec_batch_id' => $execBatchId,
+                ])
+                ->order('id', 'asc')
+                ->find();
+            if ($existing) {
+                $id = is_array($existing) ? (int) ($existing['id'] ?? 0) : (int) $existing->id;
+                if ($id > 0) {
+                    unset($row['cron_id'], $row['exec_batch_id']);
+                    CronTaskLogEntity::query()->where(['id' => $id])->update($row);
+
+                    return;
+                }
+            }
+            if (!isset($row['status'])) {
+                $row['status'] = ExecutionStatus::RUNNING;
+            }
+        }
+
+        CronTaskLogEntity::query()->insert($row);
     }
 
     /**
