@@ -2,82 +2,13 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Swoolefy Cron Admin - Execution</title>
-  <link rel="stylesheet" href="/cron-admin/assets/css/common.css">
-  <link rel="stylesheet" href="/cron-admin/assets/css/execution.css">
+  <title>Redirecting...</title>
+  <script>
+    (function () {
+      var taskId = (new URLSearchParams(window.location.search)).get('taskId');
+      window.location.replace('/cron-admin#/executions' + (taskId ? '?taskId=' + encodeURIComponent(taskId) : ''));
+    })();
+  </script>
 </head>
-<body>
-<div class="app-shell">
-  <header class="topbar">
-    <div class="brand">Swoolefy Cron Admin</div>
-    <nav class="nav-links">
-      <a href="/cron-admin/index.html">任务列表</a>
-      <a href="/cron-admin/task.html">创建任务</a>
-      <a href="/cron-admin/execution.html">执行记录</a>
-    </nav>
-  </header>
-  <main class="container">
-    <div class="page-head">
-      <div>
-        <h1 class="title">执行记录</h1>
-        <p class="subtitle">按任务、状态、批次过滤，进入单次执行日志</p>
-      </div>
-    </div>
-
-    <section class="card">
-      <div class="filters">
-        <div class="field">
-          <label for="taskId">任务 ID</label>
-          <input id="taskId" type="number" min="1">
-        </div>
-        <div class="field">
-          <label for="status">状态</label>
-          <select id="status">
-            <option value="">全部</option>
-            <option value="success">success</option>
-            <option value="failed">failed</option>
-            <option value="running">running</option>
-            <option value="pending">pending</option>
-            <option value="skipped">skipped</option>
-            <option value="timeout">timeout</option>
-            <option value="cancelled">cancelled</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="execBatchId">批次 ID</label>
-          <input id="execBatchId" placeholder="batch-xxx">
-        </div>
-        <div class="field">
-          <label>&nbsp;</label>
-          <button id="query-execution-btn" class="primary">查询</button>
-        </div>
-      </div>
-      <table>
-        <thead>
-        <tr>
-          <th>批次</th>
-          <th>状态</th>
-          <th>PID</th>
-          <th>开始时间</th>
-          <th>结束时间</th>
-          <th>耗时</th>
-          <th>Exit Code</th>
-          <th>执行结果</th>
-          <th>操作</th>
-        </tr>
-        </thead>
-        <tbody id="execution-table-body"></tbody>
-      </table>
-      <div id="execution-pagination" class="pagination"></div>
-    </section>
-  </main>
-</div>
-
-<script src="/cron-admin/assets/js/common.js"></script>
-<script src="/cron-admin/assets/js/execution.js"></script>
-<script>
-  window.CronAdminCommon.bindTopNav('/cron-admin/execution.html');
-</script>
-</body>
+<body></body>
 </html>

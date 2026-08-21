@@ -26,25 +26,34 @@ Route::get('/cron-admin/log.html', [
 Route::get('/cron-admin/assets/css/common.css', [
     'dispatch_route' => [CronAdminController::class, 'assets'],
 ]);
-Route::get('/cron-admin/assets/css/task.css', [
-    'dispatch_route' => [CronAdminController::class, 'assets'],
-]);
-Route::get('/cron-admin/assets/css/execution.css', [
-    'dispatch_route' => [CronAdminController::class, 'assets'],
-]);
-Route::get('/cron-admin/assets/css/log.css', [
+Route::get('/cron-admin/assets/css/pages.css', [
     'dispatch_route' => [CronAdminController::class, 'assets'],
 ]);
 Route::get('/cron-admin/assets/js/common.js', [
     'dispatch_route' => [CronAdminController::class, 'assets'],
 ]);
-Route::get('/cron-admin/assets/js/task.js', [
+Route::get('/cron-admin/assets/js/app.js', [
     'dispatch_route' => [CronAdminController::class, 'assets'],
 ]);
-Route::get('/cron-admin/assets/js/execution.js', [
+Route::get('/cron-admin/assets/js/dashboard.js', [
     'dispatch_route' => [CronAdminController::class, 'assets'],
 ]);
-Route::get('/cron-admin/assets/js/log.js', [
+Route::get('/cron-admin/assets/js/tasks.js', [
+    'dispatch_route' => [CronAdminController::class, 'assets'],
+]);
+Route::get('/cron-admin/assets/js/editor.js', [
+    'dispatch_route' => [CronAdminController::class, 'assets'],
+]);
+Route::get('/cron-admin/assets/js/detail.js', [
+    'dispatch_route' => [CronAdminController::class, 'assets'],
+]);
+Route::get('/cron-admin/assets/js/executions.js', [
+    'dispatch_route' => [CronAdminController::class, 'assets'],
+]);
+Route::get('/cron-admin/assets/js/nodes.js', [
+    'dispatch_route' => [CronAdminController::class, 'assets'],
+]);
+Route::get('/cron-admin/assets/js/runtime.js', [
     'dispatch_route' => [CronAdminController::class, 'assets'],
 ]);
 

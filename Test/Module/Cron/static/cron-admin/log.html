@@ -2,75 +2,14 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Swoolefy Cron Admin - Log</title>
-  <link rel="stylesheet" href="/cron-admin/assets/css/common.css">
-  <link rel="stylesheet" href="/cron-admin/assets/css/log.css">
+  <title>Redirecting...</title>
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      window.location.replace('/cron-admin#/executions/log?taskId=' + encodeURIComponent(params.get('taskId') || '')
+        + '&execBatchId=' + encodeURIComponent(params.get('execBatchId') || ''));
+    })();
+  </script>
 </head>
-<body>
-<div class="app-shell">
-  <header class="topbar">
-    <div class="brand">Swoolefy Cron Admin</div>
-    <nav class="nav-links">
-      <a href="/cron-admin/index.html">任务列表</a>
-      <a href="/cron-admin/task.html">创建任务</a>
-      <a href="/cron-admin/execution.html">执行记录</a>
-    </nav>
-  </header>
-  <main class="container">
-    <div class="page-head">
-      <div>
-        <h1 class="title">执行日志</h1>
-        <p class="subtitle">单次执行详情、stdout/stderr 与下载</p>
-      </div>
-      <div class="actions">
-        <button id="back-execution-btn">返回执行记录</button>
-        <button id="refresh-log-btn">刷新</button>
-        <button id="download-log-btn" class="primary">下载日志</button>
-      </div>
-    </div>
-
-    <section class="card">
-      <div class="meta-grid">
-        <div class="meta-item"><span class="k">Task ID</span><b id="meta-task-id">-</b></div>
-        <div class="meta-item"><span class="k">Exec Batch</span><b id="meta-batch">-</b></div>
-        <div class="meta-item"><span class="k">状态</span><b id="meta-status">-</b></div>
-        <div class="meta-item"><span class="k">PID</span><b id="meta-pid">-</b></div>
-        <div class="meta-item"><span class="k">开始时间</span><b id="meta-started">-</b></div>
-        <div class="meta-item"><span class="k">结束时间</span><b id="meta-finished">-</b></div>
-        <div class="meta-item"><span class="k">耗时</span><b id="meta-duration">-</b></div>
-        <div class="meta-item"><span class="k">Exit Code</span><b id="meta-exit-code">-</b></div>
-        <div class="meta-item"><span class="k">HTTP Status</span><b id="meta-http-status">-</b></div>
-        <div class="meta-item"><span class="k">日志大小</span><b id="meta-log-size">-</b></div>
-      </div>
-    </section>
-
-    <section class="card log-block">
-      <h3>stdout</h3>
-      <pre id="stdout-log" class="log-pre"></pre>
-    </section>
-
-    <section class="card log-block">
-      <h3>stderr</h3>
-      <pre id="stderr-log" class="log-pre"></pre>
-    </section>
-
-    <section class="card log-block">
-      <h3>任务快照 taskItem</h3>
-      <pre id="task-item" class="log-pre"></pre>
-    </section>
-
-    <section class="card log-block">
-      <h3>原始消息 message</h3>
-      <pre id="raw-message" class="log-pre"></pre>
-    </section>
-  </main>
-</div>
-
-<script src="/cron-admin/assets/js/common.js"></script>
-<script src="/cron-admin/assets/js/log.js"></script>
-<script>
-  window.CronAdminCommon.bindTopNav('/cron-admin/execution.html');
-</script>
-</body>
+<body></body>
 </html>

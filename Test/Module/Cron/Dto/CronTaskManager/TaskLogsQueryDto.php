@@ -15,17 +15,17 @@ use Swoolefy\Core\Dto\AbstractDto;
  * **生产者**：{@see \Test\Module\Cron\Controller\CronTaskManagerController::taskLogs} 从
  * {@see \Test\Module\Cron\Request\CronTaskManager\TaskLogsQueryRequest} 映射字段。
  *
- * **消费者**：{@see \Test\Module\Cron\Service\CronTaskManagerService::taskLogs} 按 cron_id 过滤
+ * **消费者**：{@see \Test\Module\Cron\Service\CronTaskManagerService::taskLogs} 可选按 cron_id 过滤
  * 并返回 {@see \Test\Module\Cron\Response\CronTaskManager\TaskLogsPageResult}。
  *
  * **关键字段语义**：
- * - taskId：关联的 cron_task 主键（对应日志表 cron_id 列），必须 >0
+ * - taskId：关联的 cron_task 主键（对应日志表 cron_id 列）；null 表示不过滤
  * - page / pageSize：分页参数，setter 自动校正为 ≥1
  */
 class TaskLogsQueryDto extends AbstractDto
 {
-    #[ApiProperty(description: '关联的定时任务 ID（cron_task_log.cron_id）')]
-    protected int $taskId = 0;
+    #[ApiProperty(description: '关联的定时任务 ID（cron_task_log.cron_id）；null 表示不过滤')]
+    protected ?int $taskId = null;
 
     #[ApiProperty(description: '当前页码，从 1 开始')]
     protected int $page = 1;
@@ -46,13 +46,13 @@ class TaskLogsQueryDto extends AbstractDto
     protected ?string $endTime = null;
 
     /** 获取任务 ID */
-    public function getTaskId(): int
+    public function getTaskId(): ?int
     {
         return $this->taskId;
     }
 
     /** 设置任务 ID */
-    public function setTaskId(int $taskId): static
+    public function setTaskId(?int $taskId): static
     {
         $this->taskId = $taskId;
 

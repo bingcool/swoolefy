@@ -364,18 +364,16 @@ class CronTaskManagerService
     }
 
     /**
-     * 分页查询某任务的执行日志（cron_id = taskId，id 倒序）。
+     * 分页查询执行日志（可选 cron_id = taskId，created_at 倒序）。
      */
     public function taskLogs(TaskLogsQueryDto $query): TaskLogsPageResult
     {
         $taskId = $query->getTaskId();
-        if ($taskId <= 0) {
-            throw CronTaskException::throw('taskId不能为空', -1);
-        }
 
-        $qb = CronTaskLogEntity::queryNotDeleted()->where([
-            'cron_id' => $taskId,
-        ]);
+        $qb = CronTaskLogEntity::queryNotDeleted();
+        if ($taskId !== null && $taskId > 0) {
+            $qb->where(['cron_id' => $taskId]);
+        }
         if ($query->getExecBatchId() !== null) {
             $qb->where('exec_batch_id', $query->getExecBatchId());
         }
@@ -393,7 +391,7 @@ class CronTaskManagerService
             }
         }
         $total = $qb->clone()->count();
-        $list = $qb->order('id', 'desc')->limit($query->getOffset(), $query->getPageSize())->select()->toArray();
+        $list = $qb->order('created_at', 'desc')->limit($query->getOffset(), $query->getPageSize())->select()->toArray();
 
         $pageResult = new TaskLogsPageResult();
         foreach ($list as $row) {

@@ -13,7 +13,9 @@ use Test\Module\Cron\Dto\CronTaskManager\ExecutionDetailDto;
 use Test\Module\Cron\Dto\CronTaskManager\ExpressionPreviewDto;
 use Test\Module\Cron\Dto\CronTaskManager\ListTasksQueryDto;
 use Test\Module\Cron\Request\CronTaskManager\ListTasksRequest;
+use Test\Module\Cron\Request\CronTaskManager\TaskLogsQueryRequest;
 use Test\Module\Cron\Service\CronTaskManagerService;
+use Test\Module\Cron\Dto\CronTaskManager\TaskLogsQueryDto;
 
 /**
  * Admin 展示层 DTO / 表达式预览（不依赖 DB）。
@@ -157,6 +159,42 @@ final class CronAdminDtoTest extends TestCase
         $this->assertSame(1, $query->getStatus());
         $this->assertSame(1786977160, $query->getNodeId());
         $this->assertSame(0, $query->getOffset());
+    }
+
+    public function testTaskLogsQueryOptionalTaskId(): void
+    {
+        $validate = new RequestValidate(HttpRequestHarness::requestInput(
+            'GET',
+            '/api/v1/tasks/logs',
+            ['page' => '1', 'pageSize' => '20'],
+        ));
+        $params = ['page' => '1', 'pageSize' => '20'];
+        $validate->applyStringToIntCoercion($params, TaskLogsQueryRequest::class);
+
+        $this->assertArrayNotHasKey('taskId', $params);
+
+        $request = (new TaskLogsQueryRequest())
+            ->setPage($params['page'])
+            ->setPageSize($params['pageSize']);
+
+        $query = (new TaskLogsQueryDto())
+            ->setTaskId($request->getTaskId())
+            ->setPage($request->getPage())
+            ->setPageSize($request->getPageSize());
+
+        $this->assertNull($query->getTaskId());
+        $this->assertSame(1, $query->getPage());
+        $this->assertSame(20, $query->getPageSize());
+
+        $paramsWithTask = ['page' => '1', 'pageSize' => '20', 'taskId' => '7'];
+        $validate->applyStringToIntCoercion($paramsWithTask, TaskLogsQueryRequest::class);
+        $this->assertSame(7, $paramsWithTask['taskId']);
+
+        $filtered = (new TaskLogsQueryDto())
+            ->setTaskId($paramsWithTask['taskId'])
+            ->setPage(1)
+            ->setPageSize(20);
+        $this->assertSame(7, $filtered->getTaskId());
     }
 
     public function testLinuxCronExpressionType(): void

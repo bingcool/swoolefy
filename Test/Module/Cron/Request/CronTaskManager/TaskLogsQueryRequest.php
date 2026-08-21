@@ -14,10 +14,10 @@ use Swoolefy\Http\BasePageRequest;
  */
 class TaskLogsQueryRequest extends BasePageRequest
 {
-    #[ApiProperty(description: '任务主键ID')]
-    #[ValidationRule(rule: 'required|int', message: 'taskId 不能为空')]
+    #[ApiProperty(description: '任务主键ID，不传则返回全部任务日志')]
+    #[ValidationRule(rule: 'nullable|int', message: 'taskId 必须是整数')]
     #[StringToInt]
-    protected int $taskId = 0;
+    protected ?int $taskId = null;
 
     #[ApiProperty(description: '执行批次 ID')]
     protected ?string $execBatchId = null;
@@ -31,12 +31,12 @@ class TaskLogsQueryRequest extends BasePageRequest
     #[ApiProperty(description: '结束时间（含）')]
     protected ?string $endTime = null;
 
-    public function getTaskId(): int
+    public function getTaskId(): ?int
     {
         return $this->taskId;
     }
 
-    public function setTaskId(int $taskId): static
+    public function setTaskId(?int $taskId): static
     {
         $this->taskId = $taskId;
 

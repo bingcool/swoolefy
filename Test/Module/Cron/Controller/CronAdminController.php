@@ -53,13 +53,16 @@ class CronAdminController extends BController
             'execution.html',
             'log.html',
             'assets/css/common.css',
-            'assets/css/task.css',
-            'assets/css/execution.css',
-            'assets/css/log.css',
+            'assets/css/pages.css',
             'assets/js/common.js',
-            'assets/js/task.js',
-            'assets/js/execution.js',
-            'assets/js/log.js',
+            'assets/js/app.js',
+            'assets/js/dashboard.js',
+            'assets/js/tasks.js',
+            'assets/js/editor.js',
+            'assets/js/detail.js',
+            'assets/js/executions.js',
+            'assets/js/nodes.js',
+            'assets/js/runtime.js',
         ];
 
         $normalized = trim(str_replace('\\', '/', $relativePath), '/');

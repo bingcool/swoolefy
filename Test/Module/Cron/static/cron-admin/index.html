@@ -2,85 +2,489 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Swoolefy Cron Admin - Tasks</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Swoolefy Cron Admin</title>
+  <link rel="stylesheet" href="https://unpkg.com/element-ui@2.15.14/lib/theme-chalk/index.css">
   <link rel="stylesheet" href="/cron-admin/assets/css/common.css">
-  <link rel="stylesheet" href="/cron-admin/assets/css/task.css">
+  <link rel="stylesheet" href="/cron-admin/assets/css/pages.css">
 </head>
 <body>
-<div class="app-shell">
-  <header class="topbar">
-    <div class="brand">Swoolefy Cron Admin</div>
-    <nav class="nav-links">
-      <a href="/cron-admin/index.html">任务列表</a>
-      <a href="/cron-admin/task.html">创建任务</a>
-      <a href="/cron-admin/execution.html">执行记录</a>
-    </nav>
-  </header>
-  <main class="container">
-    <div class="page-head">
-      <div>
-        <h1 class="title">任务列表</h1>
-        <p class="subtitle">任务搜索、筛选、启停、立即执行与进入执行记录</p>
-      </div>
-      <div class="actions">
-        <button id="create-btn" class="primary">创建任务</button>
-      </div>
-    </div>
-
-    <section class="card">
-      <div class="filters">
-        <div class="field">
-          <label for="keyword">关键词</label>
-          <input id="keyword" placeholder="任务名称">
-        </div>
-        <div class="field">
-          <label for="status">状态</label>
-          <select id="status">
-            <option value="">全部</option>
-            <option value="1">启用</option>
-            <option value="0">禁用</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="execType">执行类型</label>
-          <select id="execType">
-            <option value="">全部</option>
-            <option value="1">Shell</option>
-            <option value="2">HTTP</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>&nbsp;</label>
-          <button id="query-btn" class="primary">查询</button>
+<div id="app">
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">Swoolefy Cron<small>Production Admin</small></div>
+      <nav class="nav">
+        <router-link to="/dashboard"><i class="el-icon-data-line"></i> Dashboard</router-link>
+        <router-link to="/tasks"><i class="el-icon-s-order"></i> 计划任务</router-link>
+        <router-link to="/executions"><i class="el-icon-time"></i> 执行记录</router-link>
+        <router-link to="/nodes"><i class="el-icon-monitor"></i> Cron Nodes</router-link>
+        <router-link to="/runtime"><i class="el-icon-odometer"></i> Runtime</router-link>
+      </nav>
+    </aside>
+    <main class="main">
+      <div class="top">
+        <div>
+          <div class="breadcrumb">{{ breadcrumbPath }}</div>
+          <h1 class="title">{{ pageTitle }}</h1>
+          <p class="subtitle" v-if="pageSubtitle">{{ pageSubtitle }}</p>
         </div>
       </div>
-      <table>
-        <thead>
-        <tr>
-          <th>ID</th>
-          <th>名称</th>
-          <th>表达式</th>
-          <th>类型</th>
-          <th>执行方式</th>
-          <th>状态</th>
-          <th>节点</th>
-          <th>下次执行</th>
-          <th>更新时间</th>
-          <th>操作</th>
-        </tr>
-        </thead>
-        <tbody id="task-table-body"></tbody>
-      </table>
-      <div id="task-pagination" class="pagination"></div>
-    </section>
-  </main>
+      <div class="content-area"><router-view></router-view></div>
+    </main>
+  </div>
 </div>
 
-<script src="/cron-admin/assets/js/common.js"></script>
-<script src="/cron-admin/assets/js/task.js"></script>
-<script>
-  window.CronAdminCommon.bindTopNav('/cron-admin/index.html');
+<script type="text/x-template" id="tpl-dashboard">
+  <div>
+    <div class="stat-row">
+      <div class="panel stat-card"><div>任务总数</div><h2>{{ overview.tasks.total }}</h2><div class="meta">启用 {{ overview.tasks.enabled }} / 禁用 {{ overview.tasks.disabled }}</div></div>
+      <div class="panel stat-card"><div>今日执行</div><h2>{{ overview.executions.today }}</h2><div class="meta">成功 {{ overview.executions.success }} / 失败 {{ overview.executions.failed }} / 超时 {{ overview.executions.timeout || 0 }}</div></div>
+      <div class="panel stat-card"><div>节点</div><h2>{{ overview.nodes.total }}</h2><div class="meta">在线 {{ overview.nodes.online }} / 离线 {{ overview.nodes.offline }}</div></div>
+      <div class="panel stat-card"><div>跳过</div><h2>{{ overview.executions.skipped }}</h2><div class="meta">今日 SKIP</div></div>
+    </div>
+    <div class="panel">
+      <div class="page-head" style="margin-bottom:12px">
+        <b>执行趋势</b>
+        <el-radio-group v-model="range" size="mini" @change="loadTrend">
+          <el-radio-button label="24h">24h</el-radio-button>
+          <el-radio-button label="7d">7d</el-radio-button>
+          <el-radio-button label="30d">30d</el-radio-button>
+        </el-radio-group>
+      </div>
+      <el-table :data="trend" size="small">
+        <el-table-column prop="time" label="时间"></el-table-column>
+        <el-table-column prop="total" label="总计"></el-table-column>
+        <el-table-column prop="success" label="成功"></el-table-column>
+        <el-table-column prop="failed" label="失败"></el-table-column>
+        <el-table-column prop="timeout" label="超时"></el-table-column>
+        <el-table-column prop="skipped" label="跳过"></el-table-column>
+      </el-table>
+    </div>
+  </div>
 </script>
+
+<script type="text/x-template" id="tpl-tasks">
+  <div>
+    <div class="page-head">
+      <div></div>
+      <div class="actions"><el-button type="primary" icon="el-icon-plus" @click="$router.push('/tasks/create')">创建任务</el-button></div>
+    </div>
+    <div class="panel">
+      <el-form :inline="true" size="small" @submit.native.prevent="search">
+        <el-form-item label="关键词"><el-input v-model="query.keyword" clearable placeholder="任务名称"></el-input></el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="query.status" clearable placeholder="全部" style="width:110px">
+            <el-option :value="1" label="启用"></el-option>
+            <el-option :value="0" label="禁用"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="节点">
+          <el-select v-model="query.nodeId" clearable placeholder="全部" style="width:160px">
+            <el-option v-for="n in nodes" :key="n.id" :value="n.id" :label="n.nodeName"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="类型">
+          <el-select v-model="query.execType" clearable placeholder="全部" style="width:110px">
+            <el-option :value="1" label="Shell"></el-option>
+            <el-option :value="2" label="HTTP"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item><el-button type="primary" @click="search">查询</el-button></el-form-item>
+      </el-form>
+      <el-table :data="items" v-loading="loading" @selection-change="sel=$event">
+        <el-table-column type="selection" width="42"></el-table-column>
+        <el-table-column prop="name" label="名称" min-width="140"></el-table-column>
+        <el-table-column prop="expression" label="Expression" width="140">
+          <template slot-scope="s"><span class="mono">{{ s.row.expression }}</span><el-tag size="mini" style="margin-left:6px">{{ s.row.expressionType }}</el-tag></template>
+        </el-table-column>
+        <el-table-column prop="nodeId" label="Node" width="70"></el-table-column>
+        <el-table-column label="Type" width="80">
+          <template slot-scope="s"><el-tag size="mini" :type="s.row.execType===2?'warning':'primary'">{{ s.row.execType===2?'HTTP':'Shell' }}</el-tag></template>
+        </el-table-column>
+        <el-table-column label="Status" width="120">
+          <template slot-scope="s">
+            <div class="task-status-switch">
+              <el-switch :value="s.row.status" :active-value="1" :inactive-value="0" @change="value => toggle(s.row, value)"></el-switch>
+              <span>{{ s.row.status===1?'启用':'禁用' }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="retry" label="Retry" width="70"></el-table-column>
+        <el-table-column label="下次执行" width="170"><template slot-scope="s">{{ formatNextRun(s.row) }}</template></el-table-column>
+        <el-table-column prop="updatedAt" label="Updated" width="160"></el-table-column>
+        <el-table-column label="操作" width="330" fixed="right">
+          <template slot-scope="s">
+            <div class="task-action-group">
+              <el-button size="mini" class="task-action-btn btn-detail" @click="$router.push('/tasks/detail/'+s.row.id)">详情</el-button>
+              <el-button size="mini" class="task-action-btn btn-edit" @click="$router.push('/tasks/edit/'+s.row.id)">编辑</el-button>
+              <el-button size="mini" class="task-action-btn btn-run" @click="runOnce(s.row)">手动执行</el-button>
+              <el-button size="mini" class="task-action-btn btn-log" @click="$router.push('/executions?taskId='+s.row.id)">查看日志</el-button>
+              <el-button size="mini" class="task-action-btn btn-copy" @click="dup(s.row)">复制</el-button>
+              <el-button size="mini" class="task-action-btn btn-delete" @click="remove(s.row)">删除</el-button>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <el-button size="mini" :disabled="!sel.length" @click="batch(1)">批量启用</el-button>
+          <el-button size="mini" :disabled="!sel.length" @click="batch(0)">批量停用</el-button>
+        </div>
+        <el-pagination background layout="total, prev, pager, next" :total="total" :page-size="query.pageSize" :current-page.sync="query.page" @current-change="load"></el-pagination>
+      </div>
+    </div>
+  </div>
+</script>
+
+<script type="text/x-template" id="tpl-editor">
+  <div>
+    <div class="page-head">
+      <div></div>
+      <div class="actions">
+        <el-button @click="cancel">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="save">保存任务</el-button>
+      </div>
+    </div>
+    <div class="editor-layout">
+      <div class="panel">
+        <section class="section">
+          <h2 class="section-title">基础信息</h2>
+          <div class="section-desc">任务名称和节点决定任务的管理归属。</div>
+          <div class="grid">
+            <div class="field">
+              <label>任务名称 <span class="req">*</span></label>
+              <input v-model="form.name" placeholder="例如：订单同步">
+              <div class="help">任务名称必须唯一。</div>
+            </div>
+            <div class="field">
+              <label>执行节点 <span class="req">*</span></label>
+              <select v-model.number="form.nodeId">
+                <option v-for="n in nodes" :key="n.id" :value="n.id">{{ n.nodeName }}（{{ n.nodeIp }}）</option>
+              </select>
+            </div>
+            <div class="field full">
+              <label>描述</label>
+              <textarea v-model="form.description" placeholder="描述这个计划任务的用途"></textarea>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2 class="section-title">调度配置</h2>
+          <div class="section-desc">Swoolefy Cron 支持秒级 Interval 与 Linux Cron 两种表达式。</div>
+          <div class="expr-types">
+            <div class="expr-type" :class="{active: exprType==='interval'}" @click="setExprType('interval')">
+              <div class="radio"><i class="radio-dot"></i>每 N 秒</div>
+              <small>适合 5s、15s、30s 等高频任务</small>
+            </div>
+            <div class="expr-type" :class="{active: exprType==='cron'}" @click="setExprType('cron')">
+              <div class="radio"><i class="radio-dot"></i>Linux Cron</div>
+              <small>分钟级标准 Cron 表达式</small>
+            </div>
+          </div>
+          <div v-if="exprType==='interval'">
+            <div class="grid">
+              <div class="field">
+                <label>执行间隔（秒） <span class="req">*</span></label>
+                <input type="number" min="5" v-model.number="intervalSec">
+                <div class="help">例如 15 表示每 15 秒执行一次（引擎下限 5 秒）。</div>
+              </div>
+              <div class="field">
+                <label>表达式</label>
+                <input class="mono" :value="String(intervalSec||15)" readonly>
+              </div>
+            </div>
+          </div>
+          <div v-else>
+            <div class="field">
+              <label>Linux Cron 表达式 <span class="req">*</span></label>
+              <input class="mono" v-model="cronExpr" placeholder="*/5 * * * *">
+              <div class="help">分钟级标准 Linux Cron，例如 <span class="mono">*/5 * * * *</span> 表示每 5 分钟执行。</div>
+            </div>
+          </div>
+          <div class="expr-preview">
+            <div :class="preview.valid ? 'valid' : 'invalid'">{{ preview.valid ? '✓ 表达式有效' : '✗ 表达式无效' }}</div>
+            <div>{{ preview.description || '-' }}</div>
+            <div class="next-runs">
+              <span v-for="t in preview.nextRuns" :key="t">{{ t }}</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2 class="section-title">执行配置</h2>
+          <div class="section-desc">选择任务执行类型。不同类型使用不同执行参数。</div>
+          <div class="field" style="margin-bottom:16px">
+            <label>执行类型 <span class="req">*</span></label>
+            <div class="segmented">
+              <label><input type="radio" name="execType" :checked="form.execType===1" @change="setExecType('shell')"><span>Shell</span></label>
+              <label><input type="radio" name="execType" :checked="form.execType===2" @change="setExecType('http')"><span>HTTP</span></label>
+            </div>
+          </div>
+          <div v-if="form.execType===1">
+            <div class="field">
+              <label>Command <span class="req">*</span></label>
+              <textarea class="mono" v-model="form.command" placeholder="/bin/bash /opt/scripts/task.sh"></textarea>
+              <div class="help">Shell Command 将由目标 Cron Node 执行，请确认命令来源可信。</div>
+            </div>
+          </div>
+          <div v-else>
+            <div class="grid">
+              <div class="field full">
+                <label>Request URL <span class="req">*</span></label>
+                <input v-model="form.command" placeholder="http://127.0.0.1:9501/index/index">
+              </div>
+              <div class="field">
+                <label>HTTP Method</label>
+                <select v-model="form.httpMethod">
+                  <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Timeout（秒）</label>
+                <input type="number" min="0" v-model.number="form.httpRequestTimeOut">
+              </div>
+              <div class="field full">
+                <label>HTTP Headers</label>
+                <textarea class="mono" v-model="headersText" placeholder='{"Content-Type":"application/json"}'></textarea>
+              </div>
+              <div class="field full">
+                <label>HTTP Body</label>
+                <textarea class="mono" v-model="bodyText" placeholder='{"type":"incremental"}'></textarea>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2 class="section-title">执行策略</h2>
+          <div class="section-desc">控制任务是否允许重叠，以及允许 / 跳过执行的时间范围。</div>
+          <div class="toggle-row" style="margin-bottom:15px">
+            <div><b>阻塞重叠执行</b><div class="help">上一次执行尚未完成时，不再启动新的执行。</div></div>
+            <label class="toggle"><input type="checkbox" :checked="form.withBlockLapping===1" @change="form.withBlockLapping = $event.target.checked ? 1 : 0"><i class="slider"></i></label>
+          </div>
+          <div class="grid">
+            <div class="field">
+              <label>允许执行时间段 cron_between</label>
+              <textarea class="mono" v-model="betweenText" placeholder='例如：[{"start":"09:00","end":"18:00"}]'></textarea>
+              <div class="help">留空表示不限制。</div>
+            </div>
+            <div class="field">
+              <label>跳过时间段 cron_skip</label>
+              <textarea class="mono" v-model="skipText" placeholder='例如：[{"start":"12:00","end":"13:00"}]'></textarea>
+              <div class="help">命中跳过时间段时，本次调度直接跳过。</div>
+            </div>
+          </div>
+          <div class="field" style="margin-top:16px">
+            <label>失败重试</label>
+            <input type="number" min="0" v-model.number="form.retry">
+            <div class="help">不含首次；0=不重试。</div>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2 class="section-title">任务状态</h2>
+          <div class="toggle-row">
+            <div><b>{{ isEdit ? '启用任务' : '创建后立即启用' }}</b><div class="help">启用后 Worker 下次 Polling 会加载该任务。</div></div>
+            <label class="toggle"><input type="checkbox" :checked="form.status===1" @change="form.status = $event.target.checked ? 1 : 0"><i class="slider"></i></label>
+          </div>
+        </section>
+
+        <div class="footer-actions" v-if="isEdit">
+          <el-button type="danger" plain @click="remove">删除任务</el-button>
+          <el-button @click="cancel">取消</el-button>
+          <el-button type="primary" :loading="saving" @click="save">保存任务</el-button>
+        </div>
+      </div>
+
+      <aside class="panel preview-card">
+        <div class="preview-head">
+          <div class="preview-title">任务预览</div>
+          <span class="badge" :class="{disabled: form.status!==1}">{{ form.status===1?'启用':'禁用' }}</span>
+        </div>
+        <div class="task-name">{{ form.name || '未命名任务' }}</div>
+        <div class="task-desc">{{ form.description || '暂无描述' }}</div>
+        <div class="kv"><span>执行节点</span><b>{{ nodeLabel }}</b></div>
+        <div class="kv"><span>调度类型</span><b>{{ exprType==='interval'?'每 N 秒':'Linux Cron' }}</b></div>
+        <div class="kv"><span>表达式</span><b class="mono">{{ form.expression }}</b></div>
+        <div class="kv"><span>执行类型</span><b>{{ form.execType===2?'HTTP':'Shell' }}</b></div>
+        <div class="kv"><span>防重叠</span><b>{{ form.withBlockLapping?'是':'否' }}</b></div>
+        <div class="kv"><span>Retry</span><b>{{ form.retry }}</b></div>
+        <div class="callout">
+          <b>配置链路</b><br>
+          保存后只写入 <span class="mono">cron_task</span>。Cron Worker 通过数据库 Polling 发现配置变化，再更新 Runtime Job / Timer。
+        </div>
+        <div class="callout info">
+          <b>生产提示</b><br>
+          Shell Command 属于高风险配置；HTTP Headers 中的 Token / Cookie 等敏感信息不应在列表接口中明文返回。
+        </div>
+      </aside>
+    </div>
+  </div>
+</script>
+
+<script type="text/x-template" id="tpl-detail">
+  <div>
+    <div class="page-head">
+      <div></div>
+      <div class="actions">
+        <el-button @click="$router.push('/tasks/edit/'+id)">编辑</el-button>
+        <el-button type="primary" @click="runOnce">执行一次</el-button>
+      </div>
+    </div>
+    <div class="panel" v-loading="loading">
+      <el-descriptions :column="2" border>
+        <el-descriptions-item label="ID">{{ row.id }}</el-descriptions-item>
+        <el-descriptions-item label="节点">{{ row.nodeId }}</el-descriptions-item>
+        <el-descriptions-item label="表达式"><span class="mono">{{ row.expression }}</span> <el-tag size="mini">{{ row.expressionType }}</el-tag></el-descriptions-item>
+        <el-descriptions-item label="类型">{{ row.execType===2?'HTTP':'Shell' }}</el-descriptions-item>
+        <el-descriptions-item label="状态"><el-tag :type="row.status===1?'success':'info'" size="mini">{{ row.status===1?'启用':'禁用' }}</el-tag></el-descriptions-item>
+        <el-descriptions-item label="Retry">{{ row.retry }}</el-descriptions-item>
+        <el-descriptions-item label="防重叠">{{ row.withBlockLapping?'是':'否' }}</el-descriptions-item>
+        <el-descriptions-item label="Command" :span="2"><span class="mono">{{ row.command }}</span></el-descriptions-item>
+        <el-descriptions-item label="描述" :span="2">{{ row.description || '-' }}</el-descriptions-item>
+      </el-descriptions>
+    </div>
+    <div class="panel" style="margin-top:16px" v-if="stats">
+      <h3 style="margin-top:0">执行统计</h3>
+      总计 {{ stats.total }} · 成功 {{ stats.success }} · 失败 {{ stats.failed }} · 跳过 {{ stats.skipped }} · 超时 {{ stats.timeout || 0 }} · 取消 {{ stats.cancelled || 0 }} · 成功率 {{ stats.successRate }}% · 平均 {{ stats.avgDurationMs }}ms
+    </div>
+  </div>
+</script>
+
+<script type="text/x-template" id="tpl-executions">
+  <div>
+    <div class="panel">
+      <el-form :inline="true" size="small" @submit.native.prevent="search">
+        <el-form-item label="任务ID"><el-input v-model="query.taskId" clearable placeholder="可选，留空查全部"></el-input></el-form-item>
+        <el-form-item label="批次"><el-input v-model="query.execBatchId" clearable></el-input></el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="query.status" clearable style="width:120px">
+            <el-option value="success" label="成功"></el-option>
+            <el-option value="failed" label="失败"></el-option>
+            <el-option value="skipped" label="跳过"></el-option>
+            <el-option value="timeout" label="超时"></el-option>
+            <el-option value="cancelled" label="取消"></el-option>
+            <el-option value="running" label="执行中"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item><el-button type="primary" @click="search">查询</el-button></el-form-item>
+      </el-form>
+      <el-table :data="items" v-loading="loading">
+        <el-table-column prop="cronId" label="任务ID" width="80"></el-table-column>
+        <el-table-column prop="execBatchId" label="批次" min-width="160"></el-table-column>
+        <el-table-column prop="statusName" label="状态" width="90"></el-table-column>
+        <el-table-column prop="durationMs" label="耗时ms" width="90"></el-table-column>
+        <el-table-column prop="pid" label="PID" width="80"></el-table-column>
+        <el-table-column prop="message" label="消息" min-width="220"></el-table-column>
+        <el-table-column prop="createdAt" label="时间" width="160"></el-table-column>
+        <el-table-column label="操作" width="140">
+          <template slot-scope="s">
+            <el-button type="text" @click="detail(s.row)">详情</el-button>
+            <el-button type="text" @click="viewLog(s.row)">日志</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-pagination style="margin-top:12px" background layout="total, prev, pager, next" :total="total" :page-size="query.pageSize" :current-page.sync="query.page" @current-change="load"></el-pagination>
+    </div>
+    <el-dialog title="执行详情" :visible.sync="dlg" width="640px">
+      <pre class="mono" style="white-space:pre-wrap">{{ execDetail ? JSON.stringify(execDetail, null, 2) : '' }}</pre>
+    </el-dialog>
+  </div>
+</script>
+
+<script type="text/x-template" id="tpl-execution-log">
+  <div>
+    <div class="page-head">
+      <div></div>
+      <div class="actions">
+        <el-button @click="back">返回执行记录</el-button>
+        <el-button @click="refresh">刷新</el-button>
+        <el-button type="primary" @click="download">下载日志</el-button>
+      </div>
+    </div>
+    <div class="panel" v-loading="loading">
+      <div class="meta-grid">
+        <div class="meta-item"><span class="k">Task ID</span><b>{{ detail && detail.taskId || taskId || '-' }}</b></div>
+        <div class="meta-item"><span class="k">Exec Batch</span><b>{{ detail && detail.execBatchId || execBatchId || '-' }}</b></div>
+        <div class="meta-item"><span class="k">状态</span><b>{{ detail && detail.status || '-' }}</b></div>
+        <div class="meta-item"><span class="k">PID</span><b>{{ detail && detail.pid || '-' }}</b></div>
+        <div class="meta-item"><span class="k">开始时间</span><b>{{ detail && detail.startedAt || '-' }}</b></div>
+        <div class="meta-item"><span class="k">结束时间</span><b>{{ detail && detail.finishedAt || '-' }}</b></div>
+        <div class="meta-item"><span class="k">耗时</span><b>{{ detail ? detail.durationMs + 'ms' : '-' }}</b></div>
+        <div class="meta-item"><span class="k">Exit Code</span><b>{{ detail && detail.exitCode != null ? detail.exitCode : '-' }}</b></div>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:16px"><h3 style="margin-top:0">stdout</h3><pre class="log-pre">{{ detail && (detail.stdout || detail.message) || '-' }}</pre></div>
+    <div class="panel" style="margin-top:16px"><h3 style="margin-top:0">stderr</h3><pre class="log-pre">{{ detail && detail.stderr || '-' }}</pre></div>
+    <div class="panel" style="margin-top:16px"><h3 style="margin-top:0">taskItem</h3><pre class="log-pre">{{ detail ? JSON.stringify(detail.taskItem || {}, null, 2) : '-' }}</pre></div>
+  </div>
+</script>
+
+<script type="text/x-template" id="tpl-nodes">
+  <div>
+    <div class="page-head">
+      <div></div>
+      <div class="actions"><el-button type="primary" @click="open()">新建节点</el-button></div>
+    </div>
+    <div class="panel">
+      <el-table :data="items" v-loading="loading">
+        <el-table-column prop="id" label="ID" width="60"></el-table-column>
+        <el-table-column prop="nodeName" label="名称"></el-table-column>
+        <el-table-column prop="nodeIp" label="IP"></el-table-column>
+        <el-table-column label="状态" width="100">
+          <template slot-scope="s"><el-tag size="mini" :type="s.row.status==='online'?'success':'danger'">{{ s.row.status==='online'?'online':'offline' }}</el-tag></template>
+        </el-table-column>
+        <el-table-column prop="lastHeartbeatAt" label="心跳" width="160"></el-table-column>
+        <el-table-column prop="taskCount" label="任务数" width="80"></el-table-column>
+        <el-table-column prop="remark" label="备注"></el-table-column>
+        <el-table-column label="操作" width="140">
+          <template slot-scope="s">
+            <el-button type="text" @click="open(s.row)">编辑</el-button>
+            <el-button type="text" style="color:#f56c6c" @click="remove(s.row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
+    <el-dialog :title="form.id?'编辑节点':'新建节点'" :visible.sync="dlg" width="480px">
+      <el-form label-width="80px" size="small">
+        <el-form-item label="名称"><el-input v-model="form.nodeName"></el-input></el-form-item>
+        <el-form-item label="IP"><el-input v-model="form.nodeIp"></el-input></el-form-item>
+        <el-form-item label="备注"><el-input v-model="form.remark"></el-input></el-form-item>
+      </el-form>
+      <span slot="footer"><el-button @click="dlg=false">取消</el-button><el-button type="primary" @click="save">保存</el-button></span>
+    </el-dialog>
+  </div>
+</script>
+
+<script type="text/x-template" id="tpl-runtime">
+  <div>
+    <el-alert :title="overview.note" type="info" :closable="false" style="margin-bottom:16px"></el-alert>
+    <div class="stat-row">
+      <div class="panel stat-card"><div>Jobs</div><h2>{{ overview.scheduler.jobs }}</h2></div>
+      <div class="panel stat-card"><div>Enabled</div><h2>{{ overview.scheduler.enabled }}</h2></div>
+      <div class="panel stat-card"><div>Running</div><h2>{{ overview.scheduler.running }}</h2></div>
+      <div class="panel stat-card"><div>Nodes online</div><h2>{{ overview.nodes.online }}</h2></div>
+    </div>
+    <div class="panel">
+      <div class="kv"><span>lastSuccessAt</span><b>{{ overview.sync.lastSuccessAt || '-' }}</b></div>
+      <div class="kv"><span>lastErrorAt</span><b>{{ overview.sync.lastErrorAt || '-' }}</b></div>
+      <div class="kv"><span>processLocal</span><b>{{ overview.sync.processLocal ? '是' : '否' }}</b></div>
+    </div>
+  </div>
+</script>
+
+<script src="https://unpkg.com/vue@2.7.16/dist/vue.js"></script>
+<script src="https://unpkg.com/vue-router@3.6.5/dist/vue-router.js"></script>
+<script src="https://unpkg.com/element-ui@2.15.14/lib/index.js"></script>
+<script src="/cron-admin/assets/js/common.js"></script>
+<script src="/cron-admin/assets/js/dashboard.js"></script>
+<script src="/cron-admin/assets/js/tasks.js"></script>
+<script src="/cron-admin/assets/js/editor.js"></script>
+<script src="/cron-admin/assets/js/detail.js"></script>
+<script src="/cron-admin/assets/js/executions.js"></script>
+<script src="/cron-admin/assets/js/nodes.js"></script>
+<script src="/cron-admin/assets/js/runtime.js"></script>
+<script src="/cron-admin/assets/js/app.js"></script>
 </body>
 </html>
