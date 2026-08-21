@@ -260,44 +260,44 @@ class CronForkRunner
         }
 
         $scheduleModelOptionField = AbstractKernel::getScheduleModelOptionField();
-        if (isset($extend[$scheduleModelOptionField]) && str_contains(strtolower($extend[$scheduleModelOptionField]), 'cron')) {
-            $command = $execBinFile .' '.$execScript.' ' . $argvOption."\n echo $? >&3; echo $! >&4";
+        $runType = 'other';
+        if (isset($extend[$scheduleModelOptionField]) && str_contains(strtolower((string) $extend[$scheduleModelOptionField]), 'cron')) {
             $runType = CronForkTaskMetaDtoWorker::RUN_TYPE;
-        }else {
-            if (!str_starts_with($execBinFile, 'nohup')) {
-                $execScript = str_replace( '2>&1'," ", $execScript);
-                $execScript = rtrim($execScript, '&');
-                $command = 'nohup '.$execBinFile .' '.$execScript.' ' . $argvOption.' 2>&1 &';
-            }else {
-                $command = $execBinFile .' '.$execScript.' ' . $argvOption;
-            }
-            $command = trim($command). "\n echo $? >&3; echo $! >&4";
-            $runType = 'other';
         }
+        $execScript = str_replace('2>&1', ' ', $execScript);
+        $execScript = rtrim($execScript, '&');
+        $command = trim($execBinFile . ' ' . $execScript . ' ' . $argvOption);
 
         $command     = trim($command);
         $descriptors = array(
-            // stdout
-            0 => array('pipe', 'r'),
             // stdin
+            0 => array('pipe', 'r'),
+            // stdout
             1 => array('pipe', 'w'),
             // stderr
             2 => array('pipe', 'w'),
-            // return exist code
-            3 => array('pipe', 'w'),
-            // return daemon process pid
-            4 => array('pipe', 'w'),
         );
 
         $fn = function ($command, $descriptors, $callable) use($extend, $runType) {
             // in $callable forbidden create coroutine, because $proc_process had been bind in current coroutine
+            $pipes = [];
+            $proc_process = null;
             try {
                 $proc_process = proc_open($command, $descriptors, $pipes);
                 if (!is_resource($proc_process)) {
                     throw new SystemException("【{$this->cronName}】Proc Open Command 【{$command}】 failed.");
                 }
                 $status = proc_get_status($proc_process);
-                $status['pid'] = (int)trim(fgets($pipes[4], 10));
+                $status['pid'] = (int) ($status['pid'] ?? 0);
+                if (isset($pipes[0]) && is_resource($pipes[0])) {
+                    @fclose($pipes[0]);
+                }
+                if (isset($pipes[1]) && is_resource($pipes[1])) {
+                    @stream_set_blocking($pipes[1], false);
+                }
+                if (isset($pipes[2]) && is_resource($pipes[2])) {
+                    @stream_set_blocking($pipes[2], false);
+                }
 
                 $runProcessMetaDto = $this->createRunProcessMeta($status['pid'] ?? -1, $command);
 
@@ -330,16 +330,22 @@ class CronForkRunner
                     $this->debug("【{$this->cronName}】拉起后当前runProcessMetaPool的Size=".count($this->runProcessMetaPool));
                 }
                 call_user_func_array($callable, $params);
-                return $statusProperty;
+                $waitResult = $this->waitForProcessExitAndDrainPipes($proc_process, $pipes, $status['pid']);
+                $waitResult['pid'] = (int) ($statusProperty['pid'] ?? 0);
+                return $waitResult;
             } catch (\Throwable $e) {
                 $msg = "【{$this->cronName}】CommandRunner ErrorMsg={$e->getMessage()},trace={$e->getTraceAsString()}";
                 fmtPrintError($msg);
                 throw new SystemException($msg, $e->getCode());
             } finally {
                 foreach ($pipes as $pipe) {
-                    @fclose($pipe);
+                    if (is_resource($pipe)) {
+                        @fclose($pipe);
+                    }
                 }
-                proc_close($proc_process);
+                if (is_resource($proc_process)) {
+                    proc_close($proc_process);
+                }
             }
         };
 
@@ -349,12 +355,105 @@ class CronForkRunner
             };
         }
 
-        if (\Swoole\Coroutine::getCid() >= 0) {
-            goApp(function () use ($fn, $callable, $command, $descriptors) {
-                $fn($command, $descriptors, $callable);
-            });
-        } else {
-            $fn($command, $descriptors, $callable);
+        return $fn($command, $descriptors, $callable);
+    }
+
+    /**
+     * 持续 drain stdout/stderr 并等待子进程退出，避免 pipe 写满导致 child 阻塞。
+     *
+     * @param resource $procProcess
+     * @param array<int, mixed> $pipes
+     * @return array<string, mixed>
+     */
+    private function waitForProcessExitAndDrainPipes($procProcess, array $pipes, int $pid): array
+    {
+        $maxCaptureBytes = 1024 * 1024;
+        $stdout = '';
+        $stderr = '';
+        $stdoutTruncated = false;
+        $stderrTruncated = false;
+        $lastStatus = ['running' => false, 'exitcode' => -1, 'signaled' => false, 'termsig' => 0];
+
+        while (true) {
+            $this->appendPipeContent($pipes[1] ?? null, $stdout, $stdoutTruncated, $maxCaptureBytes);
+            $this->appendPipeContent($pipes[2] ?? null, $stderr, $stderrTruncated, $maxCaptureBytes);
+            $status = proc_get_status($procProcess);
+            if (is_array($status)) {
+                $lastStatus = $status + $lastStatus;
+            }
+            if (!$lastStatus['running']) {
+                break;
+            }
+            if (\Swoole\Coroutine::getCid() >= 0) {
+                System::sleep(0.01);
+            } else {
+                usleep(10000);
+            }
+        }
+
+        // 进程退出后继续读到 EOF，确保不丢尾部输出。
+        for ($i = 0; $i < 5; $i++) {
+            $before = strlen($stdout) + strlen($stderr);
+            $this->appendPipeContent($pipes[1] ?? null, $stdout, $stdoutTruncated, $maxCaptureBytes);
+            $this->appendPipeContent($pipes[2] ?? null, $stderr, $stderrTruncated, $maxCaptureBytes);
+            $after = strlen($stdout) + strlen($stderr);
+            if ($after === $before) {
+                break;
+            }
+            if (\Swoole\Coroutine::getCid() >= 0) {
+                System::sleep(0.005);
+            } else {
+                usleep(5000);
+            }
+        }
+
+        $exitCode = (int) ($lastStatus['exitcode'] ?? -1);
+        if ($exitCode < 0) {
+            $closeCode = proc_close($procProcess);
+            $exitCode = is_int($closeCode) ? $closeCode : $exitCode;
+        }
+
+        return [
+            'pid' => $pid,
+            'exit_code' => $exitCode,
+            'signaled' => !empty($lastStatus['signaled']),
+            'term_signal' => (int) ($lastStatus['termsig'] ?? 0),
+            'stdout' => $stdout,
+            'stderr' => $stderr,
+            'stdout_truncated' => $stdoutTruncated,
+            'stderr_truncated' => $stderrTruncated,
+        ];
+    }
+
+    /**
+     * 读取并消费管道内容；超过上限后继续读取但不再累计，避免死锁。
+     *
+     * @param mixed $pipe
+     */
+    private function appendPipeContent($pipe, string &$buffer, bool &$truncated, int $limitBytes): void
+    {
+        if (!is_resource($pipe)) {
+            return;
+        }
+        while (true) {
+            $chunk = stream_get_contents($pipe);
+            if ($chunk === false || $chunk === '') {
+                break;
+            }
+            if ($truncated) {
+                continue;
+            }
+            $remaining = $limitBytes - strlen($buffer);
+            if ($remaining <= 0) {
+                $truncated = true;
+                continue;
+            }
+            if (strlen($chunk) > $remaining) {
+                $buffer .= substr($chunk, 0, $remaining);
+                $truncated = true;
+                continue;
+            }
+            $buffer .= $chunk;
         }
     }
 

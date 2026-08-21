@@ -938,6 +938,48 @@ class CronTaskManagerService
     }
 
     /**
+     * 批量列出多任务未消费的手动执行请求 ID（FIFO，按 request id 升序）。
+     *
+     * @param list<int> $cronTaskIds
+     * @return array<int, list<int>> key=cron_id，value=request_id 列表
+     */
+    public function listPendingRunOnceIdsByCronTaskIds(array $cronTaskIds): array
+    {
+        $normalized = [];
+        foreach ($cronTaskIds as $cronTaskId) {
+            $id = (int) $cronTaskId;
+            if ($id > 0) {
+                $normalized[$id] = $id;
+            }
+        }
+        if ($normalized === []) {
+            return [];
+        }
+        $ids = array_values($normalized);
+        $rows = CronTaskRunRequestEntity::query()
+            ->whereIn('cron_id', $ids)
+            ->whereNull('consumed_at')
+            ->order('id', 'asc')
+            ->field(['id', 'cron_id'])
+            ->select()
+            ->toArray();
+        $grouped = [];
+        foreach ($rows as $row) {
+            $cronId = (int) ($row['cron_id'] ?? 0);
+            $requestId = (int) ($row['id'] ?? 0);
+            if ($cronId <= 0 || $requestId <= 0) {
+                continue;
+            }
+            if (!isset($grouped[$cronId])) {
+                $grouped[$cronId] = [];
+            }
+            $grouped[$cronId][] = $requestId;
+        }
+
+        return $grouped;
+    }
+
+    /**
      * 是否有未消费的手动执行请求。
      */
     public function hasPendingRunOnce(int $cronTaskId): bool

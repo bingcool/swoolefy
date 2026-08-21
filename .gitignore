@@ -15,7 +15,6 @@ swag.php
 /*Service
 /GenerateSdk
 Test/.env
-Test/.env
 .DS_Store
 
 .phpunit.cache

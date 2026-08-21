@@ -46,12 +46,15 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
             'node_id' => $nodeId,
             'exec_type' => $execType,
         ])->select()->toArray();
+        $pendingByTaskId = $this->listPendingRunOnceIdsByCronTaskIds(
+            array_map(static fn (array $item): int => (int) ($item['id'] ?? 0), $list)
+        );
 
         if ($execType == CronProcess::EXEC_FORK_TYPE) {
-            $taskList = $this->fetchShellCronTask($list);
+            $taskList = $this->fetchShellCronTask($list, $pendingByTaskId);
             return $taskList;
         } elseif ($execType == CronProcess::EXEC_URL_TYPE) {
-            $taskList = $this->fetchHttpCronTask($list);
+            $taskList = $this->fetchHttpCronTask($list, $pendingByTaskId);
             return $taskList;
         } else {
             throw new \Exception('exec_type error');
@@ -65,9 +68,10 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
      * 若 exec_script 含 `script.php` 且 `--c=`，标记为 swoolefy RUN_TYPE，否则 run_type 置空（其它语言脚本）。
      *
      * @param list<array<string, mixed>> $taskList 引用传入的原始行（当前实现未改写元素，仅遍历）
+     * @param array<int, list<int>> $pendingByTaskId key=cron_task.id，value=未消费 request_id 列表
      * @return list<array<string, mixed>>
      */
-    public function fetchShellCronTask(&$taskList)
+    public function fetchShellCronTask(&$taskList, array $pendingByTaskId = [])
     {
         $newTaskList = [];
         foreach ($taskList as $item) {
@@ -111,7 +115,7 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
             $arr = $cronForkTask->toArray();
             // 不改 cron_task.updated_at：手动执行标记来自独立队列表。
             // 带上全部 pending requestId，Worker 一条 request 对应一次 Execution。
-            $pendingIds = $this->listPendingRunOnceIds((int) $item['id']);
+            $pendingIds = $pendingByTaskId[(int) ($item['id'] ?? 0)] ?? [];
             $arr['run_once_request_ids'] = $pendingIds;
             $arr['run_once_request_id'] = $pendingIds[0] ?? null;
             $arr['run_once_requested'] = $pendingIds !== [];
@@ -125,12 +129,13 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
      * 将 DB 行转为 HTTP URL 调度元数据（{@see CronUrlTaskMetaDtoWorker}）。
      *
      * exec_script → url；http_body → params；http_headers → headers。
-     * request_time_out：配置 &lt;120 时抬到 120；&gt;120 用配置值；未配置默认 120。
+     * request_time_out：配置值 &gt;0 时严格使用；0/空回退默认 120。
      *
      * @param list<array<string, mixed>> $taskList
+     * @param array<int, list<int>> $pendingByTaskId key=cron_task.id，value=未消费 request_id 列表
      * @return list<array<string, mixed>>
      */
-    public function fetchHttpCronTask(&$taskList)
+    public function fetchHttpCronTask(&$taskList, array $pendingByTaskId = [])
     {
         $newTaskList = [];
         foreach ($taskList as $item) {
@@ -173,17 +178,11 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
             }
 
             $cronHttpTask->connect_time_out = 30;
-
-            if (!empty($item['http_request_time_out']) && $item['http_request_time_out'] < 120) {
-                $cronHttpTask->request_time_out = 120;
-            } elseif (!empty($item['http_request_time_out']) && $item['http_request_time_out'] > 120) {
-                $cronHttpTask->request_time_out = $item['http_request_time_out'];
-            } else {
-                $cronHttpTask->request_time_out = 120;
-            }
+            $configuredTimeout = isset($item['http_request_time_out']) ? (int) $item['http_request_time_out'] : 0;
+            $cronHttpTask->request_time_out = $configuredTimeout > 0 ? $configuredTimeout : 120;
 
             $arr = $cronHttpTask->toArray();
-            $pendingIds = $this->listPendingRunOnceIds((int) $item['id']);
+            $pendingIds = $pendingByTaskId[(int) ($item['id'] ?? 0)] ?? [];
             $arr['run_once_request_ids'] = $pendingIds;
             $arr['run_once_request_id'] = $pendingIds[0] ?? null;
             $arr['run_once_requested'] = $pendingIds !== [];
@@ -276,6 +275,17 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
     public function listPendingRunOnceIds(int $cronTaskId): array
     {
         return (new CronTaskManagerService())->listPendingRunOnceIds($cronTaskId);
+    }
+
+    /**
+     * 批量列出多任务未消费请求，避免 fetchCronTask 的 N+1 查询。
+     *
+     * @param list<int> $cronTaskIds
+     * @return array<int, list<int>>
+     */
+    public function listPendingRunOnceIdsByCronTaskIds(array $cronTaskIds): array
+    {
+        return (new CronTaskManagerService())->listPendingRunOnceIdsByCronTaskIds($cronTaskIds);
     }
 
     /**

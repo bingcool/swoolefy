@@ -30,7 +30,7 @@ use Swoolefy\Worker\Dto\CronUrlTaskMetaDtoWorker;
  * fingerprint() 只覆盖调度/执行元数据，不含 status。
  * status 变化走 ConfigDiff 的 ENABLE / DISABLE，避免“只改停启用却重建 Timer 定义”。
  * retry 计入 fingerprint：改重试次数会 UPDATE（换定义，进行中的 Snapshot 仍冻结旧值）。
- * cronName、cronTaskId、nodeId、output、extend、cronDbLogClass、cronMetaOrigin、raw
+ * cronName、cronTaskId、nodeId、output、extend、updatedAt、cronDbLogClass、cronMetaOrigin、raw
  * 不参与 fingerprint，单独变化不会产生 UPDATE。
  *
  * @see ConfigDiff
@@ -244,7 +244,6 @@ final class TaskDefinition
             $this->runType,
             $this->forkType,
             $this->argv,
-            $this->updatedAt,
             $this->timezone,
             $this->retry,
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '');

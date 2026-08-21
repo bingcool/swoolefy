@@ -39,6 +39,41 @@ final class CronRunOnceAckTest extends TestCase
         $this->assertStringContainsString("run_once_request_id", $src);
     }
 
+    public function testFetcherUsesBatchPendingRequestQueryWithoutNPlusOne(): void
+    {
+        $serviceSrc = (string) file_get_contents(
+            (new \ReflectionClass(CronTaskService::class))->getFileName()
+        );
+        $managerSrc = (string) file_get_contents(
+            (new \ReflectionClass(CronTaskManagerService::class))->getFileName()
+        );
+
+        $this->assertStringContainsString('listPendingRunOnceIdsByCronTaskIds', $serviceSrc);
+        $this->assertStringContainsString('listPendingRunOnceIdsByCronTaskIds', $managerSrc);
+        $this->assertStringContainsString("whereIn('cron_id', \$ids)", $managerSrc);
+        $this->assertStringNotContainsString(
+            "listPendingRunOnceIds((int) \$item['id'])",
+            $serviceSrc,
+            'fetchCronTask 不应对每个任务单独查询 pending request',
+        );
+    }
+
+    public function testHttpTimeoutRespectsPositiveConfig(): void
+    {
+        $src = (string) file_get_contents(
+            (new \ReflectionClass(CronTaskService::class))->getFileName()
+        );
+        $this->assertStringContainsString(
+            '$cronHttpTask->request_time_out = $configuredTimeout > 0 ? $configuredTimeout : 120;',
+            $src,
+        );
+        $this->assertStringNotContainsString(
+            "http_request_time_out']) && \$item['http_request_time_out'] < 120",
+            $src,
+            'Worker 不应把 30/60 等用户配置强行抬到 120',
+        );
+    }
+
     public function testWorkerConfAcksByRequestId(): void
     {
         $root = dirname(__DIR__, 4);

@@ -72,6 +72,19 @@ final class ConfigDiffTest extends TestCase
     }
 
     /**
+     * P1-5：updated_at 不属于调度行为字段，单独变化不得触发 UPDATE。
+     */
+    public function testUpdatedAtOnlyChangeIsNoop(): void
+    {
+        $diff = new ConfigDiff();
+        $old = $this->def(1, '15', 1, 'a.sh', '2026-01-01');
+        $new = $this->def(1, '15', 1, 'a.sh', '2026-02-01');
+
+        $ops = $diff->diff(['id:1' => $old], ['id:1' => $new]);
+        $this->assertSame([ConfigDiff::NOOP], array_column($ops, 'op'));
+    }
+
+    /**
      * 按 id 生成稳定 jobId=id:{n} 的 TaskDefinition。
      */
     private function def(int $id, string $expression, int $status, string $command, string $updatedAt = '2026-01-01'): TaskDefinition

@@ -100,14 +100,12 @@ class CronForkProcess extends CronProcess
             }
 
             if ($forkType == self::FORK_TYPE_PROC_OPEN) {
-                $pidHolder = [0];
-                $runner->procOpen($scheduleTask->exec_bin_file, $scheduleTask->exec_script, $argv, function ($pipe0, $pipe1, $pipe2, $statusProperty) use ($scheduleTask, $execBatchId, &$pidHolder) {
+                $procResult = $runner->procOpen($scheduleTask->exec_bin_file, $scheduleTask->exec_script, $argv, function ($pipe0, $pipe1, $pipe2, $statusProperty) use ($scheduleTask, $execBatchId) {
                     $statusProperty['exec_batch_id'] = $execBatchId;
-                    $pidHolder[0] = (int) ($statusProperty['pid'] ?? 0);
                     $this->receiveCallBack($pipe0, $pipe1, $pipe2, $statusProperty, $scheduleTask);
                 }, $extend);
 
-                return ExecutionResult::success('cron_fork proc_open 已拉起', $pidHolder[0], 0);
+                return $this->buildProcOpenExecutionResult($procResult, $scheduleTask->cron_name);
             }
 
             $output = !empty($scheduleTask->output) ? $scheduleTask->output : '/dev/null';
@@ -248,5 +246,51 @@ class CronForkProcess extends CronProcess
     protected function isSwoolefyRunType($runType)
     {
         return str_contains(strtolower($runType), ScheduleEvent::RUN_TYPE);
+    }
+
+    /**
+     * 把 proc_open 的真实终态映射成 ExecutionResult，禁止“仅拉起成功就 SUCCESS”。
+     *
+     * @param array<string, mixed> $result
+     */
+    protected function buildProcOpenExecutionResult(array $result, string $cronName): ExecutionResult
+    {
+        $pid = (int) ($result['pid'] ?? 0);
+        $exitCode = isset($result['exit_code']) ? (int) $result['exit_code'] : null;
+        $signaled = !empty($result['signaled']);
+        $termSignal = (int) ($result['term_signal'] ?? 0);
+        $stderr = trim((string) ($result['stderr'] ?? ''));
+        $stdout = trim((string) ($result['stdout'] ?? ''));
+        $tail = '';
+        if ($stderr !== '') {
+            $tail = $stderr;
+        } elseif ($stdout !== '') {
+            $tail = $stdout;
+        }
+        if ($tail !== '' && strlen($tail) > 200) {
+            $tail = substr($tail, -200);
+        }
+        $tailMessage = $tail !== '' ? ', tail=' . $tail : '';
+
+        if ($signaled) {
+            return ExecutionResult::failed(
+                "cron_fork proc_open 结束(signal={$termSignal},pid={$pid},exitCode={$exitCode}{$tailMessage})",
+                $pid,
+                $exitCode,
+            );
+        }
+        if ($exitCode === 0) {
+            return ExecutionResult::success(
+                "cron_fork proc_open 执行成功(pid={$pid},exitCode=0)",
+                $pid,
+                0,
+            );
+        }
+
+        return ExecutionResult::failed(
+            "cron_fork proc_open 执行失败(pid={$pid},exitCode={$exitCode}{$tailMessage})",
+            $pid,
+            $exitCode,
+        );
     }
 }
