@@ -11,6 +11,42 @@ use Test\Module\Cron\Controller\CronTaskManagerController;
 Route::get('/cron-admin', [
     'dispatch_route' => [CronAdminController::class, 'index'],
 ]);
+Route::get('/cron-admin/index.html', [
+    'dispatch_route' => [CronAdminController::class, 'assets'],
+]);
+Route::get('/cron-admin/task.html', [
+    'dispatch_route' => [CronAdminController::class, 'assets'],
+]);
+Route::get('/cron-admin/execution.html', [
+    'dispatch_route' => [CronAdminController::class, 'assets'],
+]);
+Route::get('/cron-admin/log.html', [
+    'dispatch_route' => [CronAdminController::class, 'assets'],
+]);
+Route::get('/cron-admin/assets/css/common.css', [
+    'dispatch_route' => [CronAdminController::class, 'assets'],
+]);
+Route::get('/cron-admin/assets/css/task.css', [
+    'dispatch_route' => [CronAdminController::class, 'assets'],
+]);
+Route::get('/cron-admin/assets/css/execution.css', [
+    'dispatch_route' => [CronAdminController::class, 'assets'],
+]);
+Route::get('/cron-admin/assets/css/log.css', [
+    'dispatch_route' => [CronAdminController::class, 'assets'],
+]);
+Route::get('/cron-admin/assets/js/common.js', [
+    'dispatch_route' => [CronAdminController::class, 'assets'],
+]);
+Route::get('/cron-admin/assets/js/task.js', [
+    'dispatch_route' => [CronAdminController::class, 'assets'],
+]);
+Route::get('/cron-admin/assets/js/execution.js', [
+    'dispatch_route' => [CronAdminController::class, 'assets'],
+]);
+Route::get('/cron-admin/assets/js/log.js', [
+    'dispatch_route' => [CronAdminController::class, 'assets'],
+]);
 
 Route::group([
     'prefix' => 'api/v1',

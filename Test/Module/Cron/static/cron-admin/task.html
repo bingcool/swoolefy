@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Swoolefy Cron Admin - Task</title>
+  <link rel="stylesheet" href="/cron-admin/assets/css/common.css">
+  <link rel="stylesheet" href="/cron-admin/assets/css/task.css">
+</head>
+<body>
+<div class="app-shell">
+  <header class="topbar">
+    <div class="brand">Swoolefy Cron Admin</div>
+    <nav class="nav-links">
+      <a href="/cron-admin/index.html">任务列表</a>
+      <a href="/cron-admin/task.html">创建任务</a>
+      <a href="/cron-admin/execution.html">执行记录</a>
+    </nav>
+  </header>
+  <main class="container">
+    <div class="page-head">
+      <div>
+        <h1 class="title" id="page-title">创建任务</h1>
+        <p class="subtitle">创建与编辑复用同一页面（/task.html?id=xxx）</p>
+      </div>
+      <div class="actions">
+        <button id="cancel-task-btn">取消</button>
+        <button id="save-task-btn" class="primary">保存任务</button>
+      </div>
+    </div>
+
+    <section class="card">
+      <div class="task-form-grid">
+        <div class="field">
+          <label for="task-name">任务名称</label>
+          <input id="task-name" placeholder="例如：订单同步">
+        </div>
+        <div class="field">
+          <label for="nodeId">执行节点</label>
+          <select id="nodeId"></select>
+        </div>
+        <div class="field">
+          <label for="expression">Cron 表达式 / 间隔秒</label>
+          <input id="expression" class="mono" placeholder="*/5 * * * * 或 15">
+          <div class="hint">纯数字视为 interval（每 N 秒），其余按 Linux Cron 解析。</div>
+        </div>
+        <div class="field">
+          <label for="execType">执行类型</label>
+          <select id="execType">
+            <option value="1">Shell</option>
+            <option value="2">HTTP</option>
+          </select>
+        </div>
+        <div class="field full">
+          <label for="command">命令 / URL</label>
+          <textarea id="command" class="mono" placeholder="shell 命令或 http url"></textarea>
+        </div>
+
+        <div class="field http-only" style="display:none">
+          <label for="httpMethod">HTTP Method</label>
+          <select id="httpMethod">
+            <option value="GET">GET</option>
+            <option value="POST">POST</option>
+            <option value="PUT">PUT</option>
+            <option value="DELETE">DELETE</option>
+          </select>
+        </div>
+        <div class="field http-only" style="display:none">
+          <label for="httpRequestTimeOut">HTTP Timeout(秒)</label>
+          <input id="httpRequestTimeOut" type="number" value="30" min="0">
+        </div>
+        <div class="field full http-only" style="display:none">
+          <label for="httpHeaders">HTTP Headers(JSON)</label>
+          <textarea id="httpHeaders" class="mono" placeholder='{"Content-Type":"application/json"}'></textarea>
+        </div>
+        <div class="field full http-only" style="display:none">
+          <label for="httpBody">HTTP Body(JSON)</label>
+          <textarea id="httpBody" class="mono"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="retry">失败重试次数</label>
+          <input id="retry" type="number" value="0" min="0">
+        </div>
+        <div class="field">
+          <label for="withBlockLapping">阻塞重叠执行</label>
+          <select id="withBlockLapping">
+            <option value="0">否</option>
+            <option value="1">是</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="statusSwitch">任务状态</label>
+          <select id="statusSwitch">
+            <option value="1">启用</option>
+            <option value="0">禁用</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <button id="preview-btn">预览表达式</button>
+        </div>
+
+        <div class="field full">
+          <label for="description">任务描述</label>
+          <textarea id="description"></textarea>
+        </div>
+        <div class="field full">
+          <label for="cronBetween">cron_between(JSON)</label>
+          <textarea id="cronBetween" class="mono" placeholder='[{"start":"09:00","end":"18:00"}]'></textarea>
+        </div>
+        <div class="field full">
+          <label for="cronSkip">cron_skip(JSON)</label>
+          <textarea id="cronSkip" class="mono" placeholder='[{"start":"12:00","end":"13:00"}]'></textarea>
+        </div>
+      </div>
+      <div class="expr-preview">
+        <h4>表达式预览</h4>
+        <div id="preview-desc">-</div>
+        <ul id="preview-runs" class="next-run-list"><li>-</li></ul>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="/cron-admin/assets/js/common.js"></script>
+<script src="/cron-admin/assets/js/task.js"></script>
+<script>
+  window.CronAdminCommon.bindTopNav('/cron-admin/task.html');
+</script>
+</body>
+</html>

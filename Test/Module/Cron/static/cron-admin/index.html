@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Swoolefy Cron Admin - Tasks</title>
+  <link rel="stylesheet" href="/cron-admin/assets/css/common.css">
+  <link rel="stylesheet" href="/cron-admin/assets/css/task.css">
+</head>
+<body>
+<div class="app-shell">
+  <header class="topbar">
+    <div class="brand">Swoolefy Cron Admin</div>
+    <nav class="nav-links">
+      <a href="/cron-admin/index.html">任务列表</a>
+      <a href="/cron-admin/task.html">创建任务</a>
+      <a href="/cron-admin/execution.html">执行记录</a>
+    </nav>
+  </header>
+  <main class="container">
+    <div class="page-head">
+      <div>
+        <h1 class="title">任务列表</h1>
+        <p class="subtitle">任务搜索、筛选、启停、立即执行与进入执行记录</p>
+      </div>
+      <div class="actions">
+        <button id="create-btn" class="primary">创建任务</button>
+      </div>
+    </div>
+
+    <section class="card">
+      <div class="filters">
+        <div class="field">
+          <label for="keyword">关键词</label>
+          <input id="keyword" placeholder="任务名称">
+        </div>
+        <div class="field">
+          <label for="status">状态</label>
+          <select id="status">
+            <option value="">全部</option>
+            <option value="1">启用</option>
+            <option value="0">禁用</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="execType">执行类型</label>
+          <select id="execType">
+            <option value="">全部</option>
+            <option value="1">Shell</option>
+            <option value="2">HTTP</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <button id="query-btn" class="primary">查询</button>
+        </div>
+      </div>
+      <table>
+        <thead>
+        <tr>
+          <th>ID</th>
+          <th>名称</th>
+          <th>表达式</th>
+          <th>类型</th>
+          <th>执行方式</th>
+          <th>状态</th>
+          <th>节点</th>
+          <th>下次执行</th>
+          <th>更新时间</th>
+          <th>操作</th>
+        </tr>
+        </thead>
+        <tbody id="task-table-body"></tbody>
+      </table>
+      <div id="task-pagination" class="pagination"></div>
+    </section>
+  </main>
+</div>
+
+<script src="/cron-admin/assets/js/common.js"></script>
+<script src="/cron-admin/assets/js/task.js"></script>
+<script>
+  window.CronAdminCommon.bindTopNav('/cron-admin/index.html');
+</script>
+</body>
+</html>

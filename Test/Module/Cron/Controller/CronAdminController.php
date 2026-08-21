@@ -6,22 +6,69 @@ namespace Test\Module\Cron\Controller;
 
 use Swoolefy\Annotation\ApiOperation;
 use Swoolefy\Core\Controller\BController;
+use Swoole\Http\Status as HttpStatus;
+use Swoolefy\Exception\DispatchException;
+use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\ResponseOutput;
 
 /**
- * 提供 Cron Web Admin 静态页（vue-element-admin 风格 SPA）。
+ * 提供 Cron Web Admin 静态页（拆分后的多页面结构）。
  */
 class CronAdminController extends BController
 {
     /**
-     * 内联输出 Test/Module/Cron/static/cron-admin.html。
+     * 入口页：/cron-admin，默认返回 index.html。
      *
      * Route: GET /cron-admin
      */
     #[ApiOperation('Cron Admin UI')]
     public function index(ResponseOutput $response): void
     {
-        $file = dirname(__DIR__) . '/static/cron-admin.html';
-        $response->download($file, 'cron-admin.html', true);
+        $this->renderStaticFile('index.html', $response);
+    }
+
+    /**
+     * 多页面资源分发：/cron-admin/*.html 与 /cron-admin/assets/*。
+     *
+     * Route: GET /cron-admin/{path}
+     */
+    #[ApiOperation('Cron Admin UI Static Assets')]
+    public function assets(RequestInput $request, ResponseOutput $response): void
+    {
+        $uri = (string) parse_url($request->getRequestUri(), PHP_URL_PATH);
+        $prefix = '/cron-admin/';
+        if (!str_starts_with($uri, $prefix)) {
+            throw new DispatchException('Invalid cron-admin asset path', HttpStatus::NOT_FOUND);
+        }
+
+        $relativePath = substr($uri, strlen($prefix));
+        $this->renderStaticFile($relativePath, $response);
+    }
+
+    private function renderStaticFile(string $relativePath, ResponseOutput $response): void
+    {
+        $allowed = [
+            'index.html',
+            'task.html',
+            'execution.html',
+            'log.html',
+            'assets/css/common.css',
+            'assets/css/task.css',
+            'assets/css/execution.css',
+            'assets/css/log.css',
+            'assets/js/common.js',
+            'assets/js/task.js',
+            'assets/js/execution.js',
+            'assets/js/log.js',
+        ];
+
+        $normalized = trim(str_replace('\\', '/', $relativePath), '/');
+        if ($normalized === '' || !in_array($normalized, $allowed, true)) {
+            throw new DispatchException('Cron admin resource not found: ' . $relativePath, HttpStatus::NOT_FOUND);
+        }
+
+        $baseDir = dirname(__DIR__) . '/static/cron-admin/';
+        $file = $baseDir . $normalized;
+        $response->download($file, basename($normalized), true);
     }
 }

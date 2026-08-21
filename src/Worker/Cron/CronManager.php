@@ -162,6 +162,8 @@ final class CronManager
             $this->heartbeatTimerId = 0;
         }
         $this->scheduler->clearAll($this->registry);
+        // Worker stop 时释放 CronForkRunner 静态实例，避免跨生命周期残留。
+        CronForkRunner::removeAllRunners(true);
         $this->timer->clearAll();
         $this->registry->clear();
         $this->started = false;
@@ -714,8 +716,20 @@ final class CronManager
         // 当前 Execution 继续；只移除未来调度。若未在跑则立即释放。
         if (!$job->running) {
             $this->registry->remove($jobId);
+            $this->releaseRunnerForDefinition($definition);
         }
         $this->writeDefinitionLog($definition, '', sprintf('【%s】DELETE 已停止未来调度', $definition->cronName));
+    }
+
+    /**
+     * 仅在任务不再 running 时尝试释放 runner，避免删任务后静态实例长期滞留。
+     */
+    private function releaseRunnerForDefinition(TaskDefinition $definition): void
+    {
+        if ($definition->cronName === '') {
+            return;
+        }
+        CronForkRunner::removeRunnerIfIdle(md5($definition->cronName));
     }
 
     /**

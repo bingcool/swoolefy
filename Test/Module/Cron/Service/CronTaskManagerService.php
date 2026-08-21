@@ -282,8 +282,33 @@ class CronTaskManagerService
     public function listNodes(): array
     {
         $list = CronAgentNodeEntity::query()->order('id', 'desc')->select()->toArray();
+        if ($list === []) {
+            return [];
+        }
+        $nodeIds = [];
+        foreach ($list as $row) {
+            $nodeId = (int) ($row['id'] ?? 0);
+            if ($nodeId > 0) {
+                $nodeIds[$nodeId] = $nodeId;
+            }
+        }
+        $counts = [];
+        if ($nodeIds !== []) {
+            $rows = CronTaskEntity::queryNotDeleted()
+                ->whereIn('node_id', array_values($nodeIds))
+                ->field([
+                    new Raw('node_id'),
+                    new Raw('COUNT(*) AS total'),
+                ])
+                ->group('node_id')
+                ->select()
+                ->toArray();
+            foreach ($rows as $row) {
+                $counts[(int) ($row['node_id'] ?? 0)] = (int) ($row['total'] ?? 0);
+            }
+        }
         foreach ($list as &$row) {
-            $row['task_count'] = (int)CronTaskEntity::queryNotDeleted()->where('node_id', (int)($row['id'] ?? 0))->count();
+            $row['task_count'] = (int) ($counts[(int)($row['id'] ?? 0)] ?? 0);
         }
         unset($row);
 
@@ -820,16 +845,43 @@ class CronTaskManagerService
     public function batchSwitchStatus(BatchStatusDto $dto): BatchStatusResultDto
     {
         $status = $dto->getStatus();
-        if (!in_array($status, [0, 1], true) || $dto->getIds() === []) {
+        $ids = $this->normalizePositiveIds($dto->getIds());
+        if (!in_array($status, [0, 1], true) || $ids === []) {
             throw CronTaskException::throw('参数错误', -1);
         }
-        $updated = [];
-        foreach ($dto->getIds() as $id) {
-            $ack = $this->switchTaskStatus(SwitchTaskStatusDto::of($id, $status));
-            $updated[] = $ack->getId();
+
+        $conn = (new CronTaskEntity())->getConnection();
+        $conn->beginTransaction();
+        try {
+            $existsRows = CronTaskEntity::queryNotDeleted()
+                ->whereIn('id', $ids)
+                ->field(['id'])
+                ->select()
+                ->toArray();
+            $exists = [];
+            foreach ($existsRows as $row) {
+                $exists[(int) ($row['id'] ?? 0)] = true;
+            }
+            foreach ($ids as $id) {
+                if (!isset($exists[$id])) {
+                    throw CronTaskException::throw("任务不存在: {$id}", -1);
+                }
+            }
+
+            CronTaskEntity::queryNotDeleted()
+                ->whereIn('id', $ids)
+                ->update([
+                    'status' => $status,
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ]);
+
+            $conn->commit();
+        } catch (\Throwable $e) {
+            $conn->rollBack();
+            throw $e;
         }
 
-        return BatchStatusResultDto::of($updated, $status);
+        return BatchStatusResultDto::of($ids, $status);
     }
 
     /**
@@ -1076,5 +1128,23 @@ class CronTaskManagerService
         }
 
         return $candidate;
+    }
+
+    /**
+     * @param list<int|string> $ids
+     * @return list<int>
+     */
+    private function normalizePositiveIds(array $ids): array
+    {
+        $normalized = [];
+        foreach ($ids as $id) {
+            $value = (int) $id;
+            if ($value <= 0 || isset($normalized[$value])) {
+                continue;
+            }
+            $normalized[$value] = true;
+        }
+
+        return array_map('intval', array_keys($normalized));
     }
 }

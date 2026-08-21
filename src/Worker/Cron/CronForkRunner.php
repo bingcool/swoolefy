@@ -158,6 +158,47 @@ class CronForkRunner
     }
 
     /**
+     * 仅在 Runner 无运行中进程时释放实例，避免删除后立刻复用时丢失并发上下文。
+     */
+    public static function removeRunnerIfIdle(string $runnerName): bool
+    {
+        if (!isset(static::$instances[$runnerName])) {
+            return true;
+        }
+        $runner = static::$instances[$runnerName];
+        $runner->gcExitProcess();
+        if (count($runner->runProcessMetaPool) > 0) {
+            return false;
+        }
+        self::debug("Remove idle runner:{$runnerName}");
+        unset(static::$instances[$runnerName]);
+
+        return true;
+    }
+
+    /**
+     * Worker stop 可强制清理全部 Runner；默认仅清理 idle Runner。
+     *
+     * @return int 已释放 Runner 数量
+     */
+    public static function removeAllRunners(bool $force = false): int
+    {
+        $removed = 0;
+        foreach (array_keys(static::$instances) as $runnerName) {
+            if ($force) {
+                static::removeRunner($runnerName);
+                $removed++;
+                continue;
+            }
+            if (static::removeRunnerIfIdle($runnerName)) {
+                $removed++;
+            }
+        }
+
+        return $removed;
+    }
+
+    /**
      * 执行外部系统程序，包括php,shell so on
      * 禁止swoole提供的process->exec，因为swoole的process->exec调用的程序会替换当前子进程
      * @param string $execBinFile
@@ -305,15 +346,18 @@ class CronForkRunner
                 if (isset($extend[$cronScriptPidFileOption]) || $runType == CronForkTaskMetaDtoWorker::RUN_TYPE) {
                     $cronScriptPidFile = $extend[$cronScriptPidFileOption];
                     $runProcessMetaDto->pid = 0;
-                    // 稍微延迟等待脚本的pid文件写入完成
-                    $maxWaitTime = 5;
-                    while ($maxWaitTime > 0) {
+                    // 非阻塞轮询 pid 文件：最多等待 5 秒，每 100ms 检查一次。
+                    $deadline = microtime(true) + 5.0;
+                    while (microtime(true) < $deadline) {
                         if (is_file($cronScriptPidFile)) {
                             $runProcessMetaDto->pid = (int)trim(file_get_contents($cronScriptPidFile));
                             break;
                         }
-                        sleep(1);
-                        $maxWaitTime--;
+                        if (\Swoole\Coroutine::getCid() >= 0) {
+                            System::sleep(0.1);
+                        } else {
+                            usleep(100000);
+                        }
                     }
                     $runProcessMetaDto->pid_file = $cronScriptPidFile;
                     $this->debug("【{$this->cronName}】拉起新的(swoolefy script)进程pid_file:".$runProcessMetaDto->pid_file);
