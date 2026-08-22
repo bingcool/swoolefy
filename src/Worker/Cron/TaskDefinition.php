@@ -339,6 +339,16 @@ final class TaskDefinition
      */
     private static function normalizeWindows(mixed $value): array
     {
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            if (is_array($decoded)) {
+                $value = $decoded;
+            } else {
+                $pair = self::parseWindowString($value);
+                return $pair === null ? [] : [$pair];
+            }
+        }
+
         if (!is_array($value) || $value === []) {
             return [];
         }
@@ -349,9 +359,6 @@ final class TaskDefinition
 
         $windows = [];
         foreach ($value as $item) {
-            if (!is_array($item)) {
-                continue;
-            }
             $normalized = self::windowPair($item);
             if ($normalized !== null) {
                 $windows[] = $normalized;
@@ -364,16 +371,62 @@ final class TaskDefinition
     /**
      * 单窗 → [start, end]；无法识别则 null。
      *
-     * @param array<mixed> $window
+     * @param mixed $window
      * @return array{0:mixed,1:mixed}|null
      */
-    private static function windowPair(array $window): ?array
+    private static function windowPair(mixed $window): ?array
     {
+        if (is_string($window)) {
+            return self::parseWindowString($window);
+        }
+        if (!is_array($window)) {
+            return null;
+        }
         if (isset($window['start'], $window['end'])) {
             return [$window['start'], $window['end']];
         }
         if (isset($window[0], $window[1]) && !is_array($window[0])) {
             return [$window[0], $window[1]];
+        }
+
+        return null;
+    }
+
+    /**
+     * 历史字符串窗兼容：支持 `HH:MM-HH:MM`、`start - end` 及可解析 JSON 字符串。
+     *
+     * @return array{0:string,1:string}|null
+     */
+    private static function parseWindowString(string $value): ?array
+    {
+        $text = trim($value);
+        if ($text === '') {
+            return null;
+        }
+        $decoded = json_decode($text, true);
+        if (is_array($decoded)) {
+            $pair = self::windowPair($decoded);
+            if ($pair !== null) {
+                return [(string) $pair[0], (string) $pair[1]];
+            }
+        }
+
+        if (preg_match('/^([0-2]?\d:[0-5]\d(?::[0-5]\d)?)\s*(?:-|~|to)\s*([0-2]?\d:[0-5]\d(?::[0-5]\d)?)$/i', $text, $m) === 1) {
+            return [$m[1], $m[2]];
+        }
+        if (preg_match('/^(.+?)\s+-\s+(.+)$/', $text, $m) === 1) {
+            $start = trim($m[1]);
+            $end = trim($m[2]);
+            if ($start !== '' && $end !== '') {
+                return [$start, $end];
+            }
+        }
+        if (preg_match('/^(.+?)\s*(?:,|\|)\s*(.+)$/', $text, $m) === 1) {
+            $start = trim($m[1]);
+            $end = trim($m[2]);
+            if ($start !== '' && $end !== '') {
+                return [$start, $end];
+            }
         }
 
         return null;

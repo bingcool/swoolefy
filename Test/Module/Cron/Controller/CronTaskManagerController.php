@@ -314,6 +314,8 @@ class CronTaskManagerController extends BController
             ->setPageSize($request->getPageSize())
             ->setExecBatchId($request->getExecBatchId())
             ->setStatus($request->getStatus())
+            ->setExecType($request->getExecType())
+            ->setTaskName($request->getTaskName())
             ->setStartTime($request->getStartTime())
             ->setEndTime($request->getEndTime());
 

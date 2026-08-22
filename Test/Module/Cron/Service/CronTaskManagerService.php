@@ -369,10 +369,31 @@ class CronTaskManagerService
     public function taskLogs(TaskLogsQueryDto $query): TaskLogsPageResult
     {
         $taskId = $query->getTaskId();
+        $execType = $query->getExecType();
+        $taskName = $query->getTaskName();
 
         $qb = CronTaskLogEntity::queryNotDeleted();
         if ($taskId !== null && $taskId > 0) {
             $qb->where(['cron_id' => $taskId]);
+        }
+        if ($execType !== null || ($taskName !== null && $taskName !== '')) {
+            $taskIds = $this->queryTaskIdsByExecTypeAndName($execType, $taskName);
+            if ($taskIds === []) {
+                $pageResult = new TaskLogsPageResult();
+                $pageResult->setTotal(0);
+
+                return $pageResult;
+            }
+            if ($taskId !== null && $taskId > 0) {
+                if (!isset($taskIds[$taskId])) {
+                    $pageResult = new TaskLogsPageResult();
+                    $pageResult->setTotal(0);
+
+                    return $pageResult;
+                }
+            } else {
+                $qb->whereIn('cron_id', array_values($taskIds));
+            }
         }
         if ($query->getExecBatchId() !== null) {
             $qb->where('exec_batch_id', $query->getExecBatchId());
@@ -392,9 +413,11 @@ class CronTaskManagerService
         }
         $total = $qb->clone()->count();
         $list = $qb->order('created_at', 'desc')->limit($query->getOffset(), $query->getPageSize())->select()->toArray();
+        $taskNameMap = $this->mapTaskNamesByCronIds($this->collectCronIds($list));
 
         $pageResult = new TaskLogsPageResult();
         foreach ($list as $row) {
+            $row['task_name'] = (string) ($taskNameMap[(int) ($row['cron_id'] ?? 0)] ?? '');
             $pageResult->addListItem(CronTaskLogRowDto::fromEntityRow($row));
         }
         $pageResult->setTotal($total);
@@ -591,7 +614,9 @@ class CronTaskManagerService
      */
     protected function newExecutionStatsQuery(?int $cronId, ?string $start = null, ?string $end = null): Query
     {
-        $qb = CronTaskLogEntity::queryNotDeleted()->where('exec_batch_id', '<>', '');
+        $qb = CronTaskLogEntity::queryNotDeleted()
+            ->whereNotNull('exec_batch_id')
+            ->where('exec_batch_id', '<>', '');
         if ($cronId !== null && $cronId > 0) {
             $qb->where('cron_id', $cronId);
         }
@@ -694,7 +719,7 @@ class CronTaskManagerService
     }
 
     /**
-     * 执行趋势：24h 按小时，7d/30d 按天。按 status GROUP BY 时间桶，不加载 message。
+     * 执行趋势：24h 按小时，7d/15d 按天。按 status GROUP BY 时间桶，不加载 message。
      *
      * @return list<ExecutionTrendBucketDto>
      */
@@ -702,15 +727,16 @@ class CronTaskManagerService
     {
         $range = $query->getRange();
         $hourly = $range === '24h';
-        $days = $range === '30d' ? 30 : ($range === '7d' ? 7 : 1);
-        $startTs = $hourly ? time() - 86400 : strtotime('-' . ($days - 1) . ' days 00:00:00');
+        $days = $range === '15d' ? 15 : ($range === '7d' ? 7 : 1);
+        $hourAnchor = strtotime(date('Y-m-d H:00:00'));
+        $startTs = $hourly ? ($hourAnchor - 23 * 3600) : strtotime('-' . ($days - 1) . ' days 00:00:00');
         $start = date('Y-m-d H:i:s', $startTs);
         $fmt = $hourly ? '%Y-%m-%d %H' : '%Y-%m-%d';
 
         $buckets = [];
         if ($hourly) {
             for ($i = 23; $i >= 0; $i--) {
-                $ts = time() - $i * 3600;
+                $ts = $hourAnchor - $i * 3600;
                 $key = date('Y-m-d H', $ts);
                 $buckets[$key] = ExecutionTrendBucketDto::of(date('H:00', $ts), 0, 0, 0);
             }
@@ -722,10 +748,16 @@ class CronTaskManagerService
         }
 
         $rows = $this->newExecutionStatsQuery(null, $start, null)
+            ->whereIn('status', [
+                ExecutionStatus::SUCCESS,
+                ExecutionStatus::FAILED,
+                ExecutionStatus::TIMEOUT,
+                ExecutionStatus::SKIPPED,
+            ])
             ->field([
                 new Raw("DATE_FORMAT(created_at, '{$fmt}') AS bucket"),
                 new Raw('status'),
-                new Raw('COUNT(*) AS total'),
+                new Raw('COUNT(DISTINCT exec_batch_id) AS total'),
             ])
             ->group('bucket,status')
             ->select()
@@ -736,18 +768,47 @@ class CronTaskManagerService
             if (!isset($buckets[$key])) {
                 continue;
             }
-            $statusName = ExecutionStatus::name((int) ($row['status'] ?? -1));
+            $status = (int) ($row['status'] ?? -1);
             $count = (int) ($row['total'] ?? 0);
-            $cur = $buckets[$key]->toDeepArray();
-            $total = (int) $cur['total'] + $count;
-            $success = (int) $cur['success'] + ($statusName === 'success' ? $count : 0);
-            $failed = (int) $cur['failed'] + ($statusName === 'failed' ? $count : 0);
-            $timeout = (int) ($cur['timeout'] ?? 0) + ($statusName === 'timeout' ? $count : 0);
-            $skipped = (int) ($cur['skipped'] ?? 0) + ($statusName === 'skipped' ? $count : 0);
-            $buckets[$key] = ExecutionTrendBucketDto::of((string) $cur['time'], $total, $success, $failed, $timeout, $skipped);
+            $buckets[$key] = $this->applyTrendStatusCount($buckets[$key], $status, $count);
         }
 
-        return array_values($buckets);
+        return array_reverse(array_values($buckets));
+    }
+
+    /**
+     * 将单条分组统计折叠到时间桶，只累加四类终态。
+     */
+    protected function applyTrendStatusCount(ExecutionTrendBucketDto $bucket, int $status, int $count): ExecutionTrendBucketDto
+    {
+        if ($count <= 0) {
+            return $bucket;
+        }
+        $cur = $bucket->toDeepArray();
+        $success = (int) ($cur['success'] ?? 0);
+        $failed = (int) ($cur['failed'] ?? 0);
+        $timeout = (int) ($cur['timeout'] ?? 0);
+        $skipped = (int) ($cur['skipped'] ?? 0);
+        if ($status === ExecutionStatus::SUCCESS) {
+            $success += $count;
+        } elseif ($status === ExecutionStatus::FAILED) {
+            $failed += $count;
+        } elseif ($status === ExecutionStatus::TIMEOUT) {
+            $timeout += $count;
+        } elseif ($status === ExecutionStatus::SKIPPED) {
+            $skipped += $count;
+        } else {
+            return $bucket;
+        }
+
+        return ExecutionTrendBucketDto::of(
+            (string) ($cur['time'] ?? ''),
+            $success + $failed + $timeout + $skipped,
+            $success,
+            $failed,
+            $timeout,
+            $skipped,
+        );
     }
 
     /**
@@ -1144,5 +1205,72 @@ class CronTaskManagerService
         }
 
         return array_map('intval', array_keys($normalized));
+    }
+
+    /**
+     * @return array<int, int> key/value 都是 cron_task.id，便于 whereIn 与快速判断。
+     */
+    private function queryTaskIdsByExecTypeAndName(?int $execType, ?string $taskName): array
+    {
+        $qb = CronTaskEntity::queryNotDeleted()->field(['id']);
+        if ($execType !== null) {
+            $qb->where('exec_type', $execType);
+        }
+        if ($taskName !== null && $taskName !== '') {
+            $qb->where('cron_name', 'like', '%' . $taskName . '%');
+        }
+        $rows = $qb->select()->toArray();
+        $taskIds = [];
+        foreach ($rows as $row) {
+            $id = (int) ($row['id'] ?? 0);
+            if ($id > 0) {
+                $taskIds[$id] = $id;
+            }
+        }
+
+        return $taskIds;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return list<int>
+     */
+    private function collectCronIds(array $rows): array
+    {
+        $cronIds = [];
+        foreach ($rows as $row) {
+            $cronId = (int) ($row['cron_id'] ?? 0);
+            if ($cronId > 0) {
+                $cronIds[$cronId] = $cronId;
+            }
+        }
+
+        return array_values($cronIds);
+    }
+
+    /**
+     * @param list<int> $cronIds
+     * @return array<int, string> key=cron_id value=cron_name
+     */
+    private function mapTaskNamesByCronIds(array $cronIds): array
+    {
+        if ($cronIds === []) {
+            return [];
+        }
+        $rows = CronTaskEntity::queryNotDeleted()
+            ->whereIn('id', $cronIds)
+            ->field(['id', 'cron_name'])
+            ->select()
+            ->toArray();
+        $map = [];
+        foreach ($rows as $row) {
+            $id = (int) ($row['id'] ?? 0);
+            if ($id <= 0) {
+                continue;
+            }
+            $map[$id] = (string) ($row['cron_name'] ?? '');
+        }
+
+        return $map;
     }
 }

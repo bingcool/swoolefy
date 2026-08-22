@@ -7,6 +7,7 @@ namespace Test\Module\Cron\Request\CronTaskManager;
 
 use Test\Module\Cron\Dto\CronTaskManager\CronTimeRangeDto;
 use InvalidArgumentException;
+use stdClass;
 use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Annotation\StringToInt;
 use Swoolefy\Annotation\Validation\ValidationRule;
@@ -220,15 +221,11 @@ class CronTaskCreateRequest extends BaseRequest
     }
 
     /**
-     * @param array<int, CronTimeRangeDto>|null $cronBetween
+     * @param array<int, CronTimeRangeDto|array<string, mixed>|stdClass>|string|null $cronBetween
      */
-    public function setCronBetween(?array $cronBetween): static
+    public function setCronBetween(mixed $cronBetween): static
     {
-        $cronBetween = $cronBetween ?? [];
-        if ($cronBetween !== [] && !($cronBetween[0] instanceof CronTimeRangeDto)) {
-            throw new InvalidArgumentException('cronBetween items must be instances of CronTimeRangeDto');
-        }
-        $this->cronBetween = $cronBetween;
+        $this->cronBetween = $this->normalizeTimeRanges($cronBetween, 'cronBetween') ?? [];
 
         return $this;
     }
@@ -249,14 +246,11 @@ class CronTaskCreateRequest extends BaseRequest
     }
 
     /**
-     * @param array<int, CronTimeRangeDto> $cronSkip
+     * @param array<int, CronTimeRangeDto|array<string, mixed>|stdClass>|string|null $cronSkip
      */
-    public function setCronSkip(array $cronSkip): static
+    public function setCronSkip(mixed $cronSkip): static
     {
-        if ($cronSkip !== [] && !($cronSkip[0] instanceof CronTimeRangeDto)) {
-            throw new InvalidArgumentException('cronSkip items must be instances of CronTimeRangeDto');
-        }
-        $this->cronSkip = $cronSkip;
+        $this->cronSkip = $this->normalizeTimeRanges($cronSkip, 'cronSkip') ?? [];
 
         return $this;
     }
@@ -349,5 +343,55 @@ class CronTaskCreateRequest extends BaseRequest
         }
 
         return $out === [] ? null : $out;
+    }
+
+    /**
+     * @param array<int, CronTimeRangeDto|array<string, mixed>|stdClass>|string|null $ranges
+     * @return array<int, CronTimeRangeDto>|null
+     */
+    protected function normalizeTimeRanges(mixed $ranges, string $fieldName): ?array
+    {
+        if ($ranges === null || $ranges === []) {
+            return $ranges;
+        }
+
+        if (is_string($ranges)) {
+            $decoded = json_decode($ranges, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $ranges = $decoded;
+            }
+        }
+
+        if (!is_array($ranges)) {
+            throw new InvalidArgumentException(sprintf('%s must be an array, JSON string, or null', $fieldName));
+        }
+
+        $normalized = [];
+        foreach ($ranges as $item) {
+            if ($item instanceof CronTimeRangeDto) {
+                $normalized[] = $item;
+                continue;
+            }
+
+            if ($item instanceof stdClass) {
+                $item = get_object_vars($item);
+            }
+
+            if (!is_array($item)) {
+                throw new InvalidArgumentException(sprintf('%s items must be CronTimeRangeDto or {start,end} objects', $fieldName));
+            }
+
+            $start = trim((string)($item['start'] ?? ''));
+            $end = trim((string)($item['end'] ?? ''));
+            if ($start === '' || $end === '') {
+                throw new InvalidArgumentException(sprintf('%s items require non-empty start and end', $fieldName));
+            }
+
+            $dto = new CronTimeRangeDto();
+            $dto->setStart($start)->setEnd($end);
+            $normalized[] = $dto;
+        }
+
+        return $normalized;
     }
 }

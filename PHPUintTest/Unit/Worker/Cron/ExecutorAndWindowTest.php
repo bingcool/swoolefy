@@ -62,6 +62,43 @@ final class ExecutorAndWindowTest extends TestCase
     }
 
     /**
+     * HTTP 任务的 cron_skip 需兼容新旧格式，并在命中窗口时返回 SKIP。
+     */
+    public function testHttpSkipWindowSupportsObjectArrayAndStringFormats(): void
+    {
+        $filter = new TimeWindowFilter();
+        $now = strtotime('2026-08-15 17:00:00');
+        $base = [
+            'id' => 2,
+            'name' => 'http-skip',
+            'expression' => '15',
+            'exec_type' => 2,
+            'command' => 'http://example.test/ping',
+            'url' => 'http://example.test/ping',
+        ];
+
+        $objectWindow = TaskDefinition::fromArray($base + [
+            'cron_skip' => [['start' => '16:58', 'end' => '17:59']],
+        ]);
+        $this->assertSame('cron_skip', $filter->evaluate($objectWindow, $now)['reason']);
+
+        $indexedWindow = TaskDefinition::fromArray($base + [
+            'cron_skip' => [['16:58', '17:59']],
+        ]);
+        $this->assertSame('cron_skip', $filter->evaluate($indexedWindow, $now)['reason']);
+
+        $stringWindow = TaskDefinition::fromArray($base + [
+            'cron_skip' => ['16:58-17:59'],
+        ]);
+        $this->assertSame('cron_skip', $filter->evaluate($stringWindow, $now)['reason']);
+
+        $jsonStringWindow = TaskDefinition::fromArray($base + [
+            'cron_skip' => '[{"start":"16:58","end":"17:59"}]',
+        ]);
+        $this->assertSame('cron_skip', $filter->evaluate($jsonStringWindow, $now)['reason']);
+    }
+
+    /**
      * with_block_lapping=1：tryBegin 在已 running 时返回 false（SKIP），end 后可再 begin。
      */
     public function testGuardCheckAndMarkIsAtomicForBlockLapping(): void

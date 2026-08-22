@@ -106,14 +106,14 @@ class Event extends EventHandler
             // ProcessManager::getInstance()->addProcess('TestSdk', \Test\Process\TestSdk\TestRequest::class);
 
             // Nacos 配置变更 → reload Worker / Task 进程
-            ProcessManager::getInstance()->addProcess(
-                'nacos-config-reload',
-                \Test\Process\NacosProcess\NacosConfigReload::class,
-                true,
-                [],
-                null,
-                true,
-            );
+//            ProcessManager::getInstance()->addProcess(
+//                'nacos-config-reload',
+//                \Test\Process\NacosProcess\NacosConfigReload::class,
+//                true,
+//                [],
+//                null,
+//                true,
+//            );
 
             // Udp服务测试
             // ProcessManager::getInstance()->addProcess('cdp-test', \Test\Process\UdpTestProcess\Udp::class);

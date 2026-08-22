@@ -35,18 +35,19 @@ final class TimeWindowFilter
     /**
      * 判断 $now 是否落在允许窗内。reason 仅为 cron_between / cron_skip，供日志。
      *
-     * @return array{allowed:bool,reason:string}
+     * @return array{allowed:bool,reason:string,window:string}
      */
     public function evaluate(TaskDefinition $definition, int $now): array
     {
         if (!$this->insideBetween($definition->cronBetween, $now)) {
-            return ['allowed' => false, 'reason' => 'cron_between'];
+            return ['allowed' => false, 'reason' => 'cron_between', 'window' => ''];
         }
-        if ($this->insideSkip($definition->cronSkip, $now)) {
-            return ['allowed' => false, 'reason' => 'cron_skip'];
+        $skipWindow = $this->insideSkip($definition->cronSkip, $now);
+        if ($skipWindow !== null) {
+            return ['allowed' => false, 'reason' => 'cron_skip', 'window' => $skipWindow];
         }
 
-        return ['allowed' => true, 'reason' => ''];
+        return ['allowed' => true, 'reason' => '', 'window' => ''];
     }
 
     /**
@@ -69,19 +70,19 @@ final class TimeWindowFilter
     }
 
     /**
-     * 空窗 = 不跳过；否则任一窗命中即 true（本轮 SKIP）。
+     * 空窗 = 不跳过；否则任一窗命中即返回对应窗口文案（本轮 SKIP）。
      *
      * @param list<array<int, mixed>> $windows
      */
-    private function insideSkip(array $windows, int $now): bool
+    private function insideSkip(array $windows, int $now): ?string
     {
         foreach ($windows as $window) {
             if ($this->inWindow($window, $now)) {
-                return true;
+                return $this->windowLabel($window);
             }
         }
 
-        return false;
+        return null;
     }
 
     /**
@@ -130,5 +131,21 @@ final class TimeWindowFilter
     private function isTimeOfDay(string $value): bool
     {
         return preg_match('/^([01]?\d|2[0-3]):[0-5]?\d(:[0-5]?\d)?$/', $value) === 1;
+    }
+
+    /**
+     * 将窗口格式化为 "start-end" 便于 SKIP 文案展示。
+     *
+     * @param array<int, mixed> $window
+     */
+    private function windowLabel(array $window): string
+    {
+        $start = trim((string) ($window[0] ?? ''));
+        $end = trim((string) ($window[1] ?? ''));
+        if ($start === '' || $end === '') {
+            return '';
+        }
+
+        return $start . '-' . $end;
     }
 }

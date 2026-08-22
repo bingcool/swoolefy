@@ -39,6 +39,12 @@ class TaskLogsQueryDto extends AbstractDto
     #[ApiProperty(description: '结果状态：pending/running/success/failed/skipped/timeout/cancelled，空表示不过滤')]
     protected ?string $status = null;
 
+    #[ApiProperty(description: '执行类型：1=shell, 2=http；null 表示不过滤')]
+    protected ?int $execType = null;
+
+    #[ApiProperty(description: '任务名称（cron_task.cron_name）模糊查询，空表示不过滤')]
+    protected ?string $taskName = null;
+
     #[ApiProperty(description: '开始时间（含）')]
     protected ?string $startTime = null;
 
@@ -119,6 +125,30 @@ class TaskLogsQueryDto extends AbstractDto
     public function setStatus(?string $status): static
     {
         $this->status = $status !== null && trim($status) !== '' ? strtolower(trim($status)) : null;
+
+        return $this;
+    }
+
+    public function getExecType(): ?int
+    {
+        return $this->execType;
+    }
+
+    public function setExecType(?int $execType): static
+    {
+        $this->execType = in_array($execType, [1, 2], true) ? $execType : null;
+
+        return $this;
+    }
+
+    public function getTaskName(): ?string
+    {
+        return $this->taskName;
+    }
+
+    public function setTaskName(?string $taskName): static
+    {
+        $this->taskName = $taskName !== null && trim($taskName) !== '' ? trim($taskName) : null;
 
         return $this;
     }

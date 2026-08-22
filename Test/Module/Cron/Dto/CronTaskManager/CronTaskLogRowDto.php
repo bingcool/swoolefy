@@ -34,6 +34,9 @@ class CronTaskLogRowDto extends AbstractDto
     #[ApiProperty(description: '关联任务 ID')]
     protected int $cronId = 0;
 
+    #[ApiProperty(description: '任务名称')]
+    protected string $taskName = '';
+
     #[ApiProperty(description: '执行批次 ID')]
     protected string $execBatchId = '';
 
@@ -96,6 +99,7 @@ class CronTaskLogRowDto extends AbstractDto
         $dto = new self();
         $dto->setId((int)($row['id'] ?? 0));
         $dto->setCronId((int)($row['cron_id'] ?? 0));
+        $dto->setTaskName((string)($row['task_name'] ?? $row['cron_name'] ?? ''));
         $dto->setExecBatchId((string)($row['exec_batch_id'] ?? ''));
         $dto->setPid((int)($row['pid'] ?? 0));
         $status = (int)($row['status'] ?? ExecutionStatus::PENDING);
@@ -147,6 +151,18 @@ class CronTaskLogRowDto extends AbstractDto
     public function setCronId(int $cronId): static
     {
         $this->cronId = $cronId;
+
+        return $this;
+    }
+
+    public function getTaskName(): string
+    {
+        return $this->taskName;
+    }
+
+    public function setTaskName(string $taskName): static
+    {
+        $this->taskName = $taskName;
 
         return $this;
     }

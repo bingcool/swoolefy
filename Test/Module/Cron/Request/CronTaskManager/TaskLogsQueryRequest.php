@@ -25,6 +25,14 @@ class TaskLogsQueryRequest extends BasePageRequest
     #[ApiProperty(description: '结果状态：pending/running/success/failed/skipped/timeout/cancelled')]
     protected ?string $status = null;
 
+    #[ApiProperty(description: '执行类型：1=shell, 2=http')]
+    #[ValidationRule(rule: 'nullable|int', message: 'execType 必须是整数')]
+    #[StringToInt]
+    protected ?int $execType = null;
+
+    #[ApiProperty(description: '任务名称（模糊搜索）')]
+    protected ?string $taskName = null;
+
     #[ApiProperty(description: '开始时间（含）')]
     protected ?string $startTime = null;
 
@@ -63,6 +71,30 @@ class TaskLogsQueryRequest extends BasePageRequest
     public function setStatus(?string $status): static
     {
         $this->status = $status;
+
+        return $this;
+    }
+
+    public function getExecType(): ?int
+    {
+        return $this->execType;
+    }
+
+    public function setExecType(?int $execType): static
+    {
+        $this->execType = $execType;
+
+        return $this;
+    }
+
+    public function getTaskName(): ?string
+    {
+        return $this->taskName;
+    }
+
+    public function setTaskName(?string $taskName): static
+    {
+        $this->taskName = $taskName;
 
         return $this;
     }

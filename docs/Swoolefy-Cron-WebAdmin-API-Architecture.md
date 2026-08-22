@@ -337,7 +337,7 @@ GET /api/v1/dashboard/execution-trend?range=24h
 支持：
 
 ```text
-24h / 7d / 30d
+24h / 7d / 15d
 ```
 
 返回每个时间桶：

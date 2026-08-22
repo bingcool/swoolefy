@@ -186,15 +186,23 @@ final class CronAdminDtoTest extends TestCase
         $this->assertSame(1, $query->getPage());
         $this->assertSame(20, $query->getPageSize());
 
-        $paramsWithTask = ['page' => '1', 'pageSize' => '20', 'taskId' => '7'];
+        $paramsWithTask = ['page' => '1', 'pageSize' => '20', 'taskId' => '7', 'taskName' => '  sync  '];
         $validate->applyStringToIntCoercion($paramsWithTask, TaskLogsQueryRequest::class);
         $this->assertSame(7, $paramsWithTask['taskId']);
 
-        $filtered = (new TaskLogsQueryDto())
+        $requestWithTask = (new TaskLogsQueryRequest())
             ->setTaskId($paramsWithTask['taskId'])
+            ->setTaskName($paramsWithTask['taskName'])
             ->setPage(1)
             ->setPageSize(20);
+
+        $filtered = (new TaskLogsQueryDto())
+            ->setTaskId($requestWithTask->getTaskId())
+            ->setTaskName($requestWithTask->getTaskName())
+            ->setPage($requestWithTask->getPage())
+            ->setPageSize($requestWithTask->getPageSize());
         $this->assertSame(7, $filtered->getTaskId());
+        $this->assertSame('sync', $filtered->getTaskName());
     }
 
     public function testLinuxCronExpressionType(): void

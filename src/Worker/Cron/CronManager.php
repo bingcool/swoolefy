@@ -536,6 +536,12 @@ final class CronManager
         $window = $this->timeWindow->evaluate($job->definition, $this->clock->now());
         if (!$window['allowed']) {
             $reason = '时间窗跳过: ' . $window['reason'];
+            if (($window['reason'] ?? '') === 'cron_skip') {
+                $skipWindow = trim((string) ($window['window'] ?? ''));
+                $reason = $skipWindow !== ''
+                    ? sprintf('时间窗跳过: cron_skip，命中跳过时段[%s]', $skipWindow)
+                    : '时间窗跳过: cron_skip，命中跳过时段';
+            }
             $this->recordSkip($job, $reason, $planned, $source);
 
             return ExecutionResult::skipped($reason);

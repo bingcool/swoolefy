@@ -12,7 +12,7 @@ use Swoolefy\Core\Dto\AbstractDto;
  */
 class ExecutionTrendQueryDto extends AbstractDto
 {
-    #[ApiProperty(description: '24h / 7d / 30d')]
+    #[ApiProperty(description: '24h / 7d / 15d')]
     protected string $range = '24h';
 
     public static function of(string $range): self
@@ -31,7 +31,7 @@ class ExecutionTrendQueryDto extends AbstractDto
     public function setRange(string $range): static
     {
         $range = strtolower(trim($range));
-        $this->range = in_array($range, ['24h', '7d', '30d'], true) ? $range : '24h';
+        $this->range = in_array($range, ['24h', '7d', '15d'], true) ? $range : '24h';
 
         return $this;
     }

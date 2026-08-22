@@ -14,8 +14,8 @@
         cronExpr: '*/5 * * * *',
         headersText: '',
         bodyText: '',
-        betweenText: '',
-        skipText: '',
+        betweenItems: [],
+        skipItems: [],
         preview: { valid: true, description: '', nextRuns: [] },
         form: {
           name: '',
@@ -84,8 +84,14 @@
             }
             this.headersText = row.httpHeaders ? JSON.stringify(row.httpHeaders, null, 2) : '';
             this.bodyText = row.httpBody ? JSON.stringify(row.httpBody, null, 2) : '';
-            this.betweenText = row.cronBetween && row.cronBetween.length ? JSON.stringify(row.cronBetween, null, 2) : '';
-            this.skipText = row.cronSkip && row.cronSkip.length ? JSON.stringify(row.cronSkip, null, 2) : '';
+            this.betweenItems = this.deserializeRangeItems(
+              row.cronBetween != null ? row.cronBetween : row.cron_between,
+              'cron_between'
+            );
+            this.skipItems = this.deserializeRangeItems(
+              row.cronSkip != null ? row.cronSkip : row.cron_skip,
+              'cron_skip'
+            );
           } catch (e) {
             common.toastErr(this, e);
           }
@@ -98,6 +104,77 @@
       },
       setExecType: function (type) {
         this.form.execType = type === 'http' ? 2 : 1;
+      },
+      addBetweenItem: function () {
+        this.betweenItems.push({ start: '', end: '' });
+      },
+      removeBetweenItem: function (index) {
+        this.betweenItems.splice(index, 1);
+      },
+      addSkipItem: function () {
+        this.skipItems.push({ start: '', end: '' });
+      },
+      removeSkipItem: function (index) {
+        this.skipItems.splice(index, 1);
+      },
+      parseRangeSource: function (source, label) {
+        if (source === null || source === undefined || source === '') return [];
+        if (Array.isArray(source)) return source;
+        if (typeof source === 'object') return [source];
+        if (typeof source !== 'string') return [];
+        var text = source.trim();
+        if (!text) return [];
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          var relaxed = text
+            .replace(/([{,]\s*)(start|end)\s*:/g, '$1"$2":')
+            .replace(/'/g, '"');
+          try {
+            return JSON.parse(relaxed);
+          } catch (e2) {
+            throw new Error(label + ' 格式无效，请使用数组结构');
+          }
+        }
+      },
+      deserializeRangeItems: function (source, label) {
+        var ranges = [];
+        try {
+          ranges = this.parseRangeSource(source, label);
+        } catch (e) {
+          this.$message.warning(e.message);
+          return [];
+        }
+        if (!Array.isArray(ranges)) return [];
+        return ranges.reduce(function (acc, item) {
+          var start = '';
+          var end = '';
+          if (Array.isArray(item)) {
+            start = item[0];
+            end = item[1];
+          } else if (item && typeof item === 'object') {
+            start = item.start;
+            end = item.end;
+          }
+          start = start == null ? '' : String(start).trim();
+          end = end == null ? '' : String(end).trim();
+          if (!start && !end) return acc;
+          acc.push({ start: start, end: end });
+          return acc;
+        }, []);
+      },
+      serializeRangeItems: function (items, label) {
+        var normalized = [];
+        (items || []).forEach(function (item, idx) {
+          var start = item && item.start != null ? String(item.start).trim() : '';
+          var end = item && item.end != null ? String(item.end).trim() : '';
+          if (!start && !end) return;
+          if (!start || !end) {
+            throw new Error(label + ' 第 ' + (idx + 1) + ' 项 start/end 不能为空');
+          }
+          normalized.push({ start: start, end: end });
+        });
+        return normalized;
       },
       syncExpr: function () {
         this.form.expression = this.exprType === 'interval'
@@ -129,8 +206,8 @@
           var payload = Object.assign({}, this.form, {
             httpHeaders: common.parseJsonOrNull(this.headersText, 'Headers'),
             httpBody: common.parseJsonOrNull(this.bodyText, 'Body'),
-            cronBetween: common.parseJsonOrNull(this.betweenText, 'cron_between'),
-            cronSkip: common.parseJsonOrNull(this.skipText, 'cron_skip')
+            cronBetween: this.serializeRangeItems(this.betweenItems, 'cron_between'),
+            cronSkip: this.serializeRangeItems(this.skipItems, 'cron_skip')
           });
           this.saving = true;
           if (this.isEdit) {

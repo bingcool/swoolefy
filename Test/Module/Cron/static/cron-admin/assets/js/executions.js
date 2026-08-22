@@ -12,7 +12,7 @@
         loading: false,
         dlg: false,
         execDetail: null,
-        query: { taskId: '', page: 1, pageSize: 20, execBatchId: '', status: '' }
+        query: { taskId: '', taskName: '', page: 1, pageSize: 20, execBatchId: '', status: '', execType: '' }
       };
     },
     created: function () {
@@ -29,6 +29,34 @@
       }
     },
     methods: {
+      normalizeStatus: function (row) {
+        var raw = String((row && (row.statusName || row.status)) || '').trim().toLowerCase();
+        if (raw === 'success' || raw === 'succeeded' || raw === 'ok' || raw === '成功') return 'success';
+        if (raw === 'failed' || raw === 'failure' || raw === 'error' || raw === '失败') return 'failed';
+        if (raw === 'timeout' || raw === 'timed_out' || raw === '超时') return 'timeout';
+        if (raw === 'cancelled' || raw === 'canceled' || raw === '取消') return 'cancelled';
+        if (raw === 'running' || raw === 'processing' || raw === '执行中') return 'running';
+        if (raw === 'skipped' || raw === 'skip' || raw === '跳过') return 'skipped';
+        return 'default';
+      },
+      statusClass: function (row) {
+        return 'status-' + this.normalizeStatus(row);
+      },
+      statusText: function (row) {
+        var raw = String((row && (row.statusName || row.status)) || '').trim().toLowerCase();
+        if (raw === 'pending') return '注册定时任务';
+        var key = this.normalizeStatus(row);
+        var map = {
+          success: '成功',
+          failed: '失败',
+          timeout: '超时',
+          cancelled: '取消',
+          running: '执行中',
+          skipped: '跳过',
+          default: row && (row.statusName || row.status) ? String(row.statusName || row.status) : '未知'
+        };
+        return map[key];
+      },
       load: async function () {
         this.loading = true;
         try {
@@ -38,8 +66,13 @@
           });
           var taskId = String(this.query.taskId || '').trim();
           if (taskId) qs.set('taskId', taskId);
+          var taskName = String(this.query.taskName || '').trim();
+          if (taskName) qs.set('taskName', taskName);
           if (this.query.execBatchId) qs.set('execBatchId', this.query.execBatchId);
           if (this.query.status) qs.set('status', this.query.status);
+          if (this.query.execType !== '' && this.query.execType !== null && this.query.execType !== undefined) {
+            qs.set('execType', String(this.query.execType));
+          }
           var d = await common.api('/tasks/logs?' + qs.toString());
           this.items = (d && d.list) || [];
           this.total = (d && d.total) || 0;

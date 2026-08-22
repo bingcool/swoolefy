@@ -112,11 +112,6 @@ abstract class HttpServer extends BaseServer
      */
     public function start()
     {
-        // 无控制面组合不拦启动（兼容），只告警一次；请求侧统一 503 结束，避免悬挂
-        if (SystemEnv::isWorkerService() && !self::shouldServeWorkerServiceHttpControlPlane()) {
-            error_log('Warning: WorkerService HTTP control plane is unavailable; requests will receive HTTP 503.');
-        }
-
         /**
          * start
          */

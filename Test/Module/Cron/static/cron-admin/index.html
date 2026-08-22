@@ -48,7 +48,7 @@
         <el-radio-group v-model="range" size="mini" @change="loadTrend">
           <el-radio-button label="24h">24h</el-radio-button>
           <el-radio-button label="7d">7d</el-radio-button>
-          <el-radio-button label="30d">30d</el-radio-button>
+          <el-radio-button label="15d">15d</el-radio-button>
         </el-radio-group>
       </div>
       <el-table :data="trend" size="small">
@@ -137,7 +137,7 @@
 </script>
 
 <script type="text/x-template" id="tpl-editor">
-  <div>
+  <div class="task-editor-page">
     <div class="page-head">
       <div></div>
       <div class="actions">
@@ -146,25 +146,25 @@
       </div>
     </div>
     <div class="editor-layout">
-      <div class="panel">
+      <div class="panel task-editor-form">
         <section class="section">
           <h2 class="section-title">基础信息</h2>
           <div class="section-desc">任务名称和节点决定任务的管理归属。</div>
           <div class="grid">
             <div class="field">
               <label>任务名称 <span class="req">*</span></label>
-              <input v-model="form.name" placeholder="例如：订单同步">
+              <input class="form-control" v-model="form.name" placeholder="例如：订单同步">
               <div class="help">任务名称必须唯一。</div>
             </div>
             <div class="field">
               <label>执行节点 <span class="req">*</span></label>
-              <select v-model.number="form.nodeId">
+              <select class="form-select" v-model.number="form.nodeId">
                 <option v-for="n in nodes" :key="n.id" :value="n.id">{{ n.nodeName }}（{{ n.nodeIp }}）</option>
               </select>
             </div>
             <div class="field full">
               <label>描述</label>
-              <textarea v-model="form.description" placeholder="描述这个计划任务的用途"></textarea>
+              <textarea class="form-textarea" v-model="form.description" placeholder="描述这个计划任务的用途"></textarea>
             </div>
           </div>
         </section>
@@ -186,19 +186,19 @@
             <div class="grid">
               <div class="field">
                 <label>执行间隔（秒） <span class="req">*</span></label>
-                <input type="number" min="5" v-model.number="intervalSec">
+                <input class="form-control" type="number" min="5" v-model.number="intervalSec">
                 <div class="help">例如 15 表示每 15 秒执行一次（引擎下限 5 秒）。</div>
               </div>
               <div class="field">
                 <label>表达式</label>
-                <input class="mono" :value="String(intervalSec||15)" readonly>
+                <input class="form-control mono" :value="String(intervalSec||15)" readonly>
               </div>
             </div>
           </div>
           <div v-else>
             <div class="field">
               <label>Linux Cron 表达式 <span class="req">*</span></label>
-              <input class="mono" v-model="cronExpr" placeholder="*/5 * * * *">
+              <input class="form-control mono" v-model="cronExpr" placeholder="*/5 * * * *">
               <div class="help">分钟级标准 Linux Cron，例如 <span class="mono">*/5 * * * *</span> 表示每 5 分钟执行。</div>
             </div>
           </div>
@@ -214,7 +214,7 @@
         <section class="section">
           <h2 class="section-title">执行配置</h2>
           <div class="section-desc">选择任务执行类型。不同类型使用不同执行参数。</div>
-          <div class="field" style="margin-bottom:16px">
+          <div class="field field-gap-bottom">
             <label>执行类型 <span class="req">*</span></label>
             <div class="segmented">
               <label><input type="radio" name="execType" :checked="form.execType===1" @change="setExecType('shell')"><span>Shell</span></label>
@@ -224,7 +224,7 @@
           <div v-if="form.execType===1">
             <div class="field">
               <label>Command <span class="req">*</span></label>
-              <textarea class="mono" v-model="form.command" placeholder="/bin/bash /opt/scripts/task.sh"></textarea>
+              <textarea class="form-textarea mono" v-model="form.command" placeholder="/bin/bash /opt/scripts/task.sh"></textarea>
               <div class="help">Shell Command 将由目标 Cron Node 执行，请确认命令来源可信。</div>
             </div>
           </div>
@@ -232,25 +232,25 @@
             <div class="grid">
               <div class="field full">
                 <label>Request URL <span class="req">*</span></label>
-                <input v-model="form.command" placeholder="http://127.0.0.1:9501/index/index">
+                <input class="form-control" v-model="form.command" placeholder="http://127.0.0.1:9501/index/index">
               </div>
               <div class="field">
                 <label>HTTP Method</label>
-                <select v-model="form.httpMethod">
+                <select class="form-select" v-model="form.httpMethod">
                   <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option>
                 </select>
               </div>
               <div class="field">
                 <label>Timeout（秒）</label>
-                <input type="number" min="0" v-model.number="form.httpRequestTimeOut">
+                <input class="form-control" type="number" min="0" v-model.number="form.httpRequestTimeOut">
               </div>
               <div class="field full">
                 <label>HTTP Headers</label>
-                <textarea class="mono" v-model="headersText" placeholder='{"Content-Type":"application/json"}'></textarea>
+                <textarea class="form-textarea mono" v-model="headersText" placeholder='{"Content-Type":"application/json"}'></textarea>
               </div>
               <div class="field full">
                 <label>HTTP Body</label>
-                <textarea class="mono" v-model="bodyText" placeholder='{"type":"incremental"}'></textarea>
+                <textarea class="form-textarea mono" v-model="bodyText" placeholder='{"type":"incremental"}'></textarea>
               </div>
             </div>
           </div>
@@ -259,25 +259,47 @@
         <section class="section">
           <h2 class="section-title">执行策略</h2>
           <div class="section-desc">控制任务是否允许重叠，以及允许 / 跳过执行的时间范围。</div>
-          <div class="toggle-row" style="margin-bottom:15px">
+          <div class="toggle-row toggle-row-gap-bottom">
             <div><b>阻塞重叠执行</b><div class="help">上一次执行尚未完成时，不再启动新的执行。</div></div>
             <label class="toggle"><input type="checkbox" :checked="form.withBlockLapping===1" @change="form.withBlockLapping = $event.target.checked ? 1 : 0"><i class="slider"></i></label>
           </div>
           <div class="grid">
             <div class="field">
               <label>允许执行时间段 cron_between</label>
-              <textarea class="mono" v-model="betweenText" placeholder='例如：[{"start":"09:00","end":"18:00"}]'></textarea>
+              <div class="time-range-list">
+                <div class="time-range-head">
+                  <span class="help">留空表示不限制。</span>
+                  <button type="button" class="btn-inline" @click="addBetweenItem">添加时段</button>
+                </div>
+                <div v-if="!betweenItems.length" class="time-range-empty">暂无时段</div>
+                <div v-for="(item, idx) in betweenItems" :key="'between-'+idx" class="time-range-item">
+                  <input class="form-control mono" v-model="item.start" placeholder="start，例如 09:00">
+                  <input class="form-control mono" v-model="item.end" placeholder="end，例如 18:00">
+                  <button type="button" class="btn-inline danger" @click="removeBetweenItem(idx)">删除</button>
+                </div>
+              </div>
               <div class="help">留空表示不限制。</div>
             </div>
             <div class="field">
               <label>跳过时间段 cron_skip</label>
-              <textarea class="mono" v-model="skipText" placeholder='例如：[{"start":"12:00","end":"13:00"}]'></textarea>
+              <div class="time-range-list">
+                <div class="time-range-head">
+                  <span class="help">命中跳过时间段时，本次调度直接跳过。</span>
+                  <button type="button" class="btn-inline" @click="addSkipItem">添加时段</button>
+                </div>
+                <div v-if="!skipItems.length" class="time-range-empty">暂无时段</div>
+                <div v-for="(item, idx) in skipItems" :key="'skip-'+idx" class="time-range-item">
+                  <input class="form-control mono" v-model="item.start" placeholder="start，例如 12:00">
+                  <input class="form-control mono" v-model="item.end" placeholder="end，例如 13:00">
+                  <button type="button" class="btn-inline danger" @click="removeSkipItem(idx)">删除</button>
+                </div>
+              </div>
               <div class="help">命中跳过时间段时，本次调度直接跳过。</div>
             </div>
           </div>
-          <div class="field" style="margin-top:16px">
+          <div class="field field-gap-top">
             <label>失败重试</label>
-            <input type="number" min="0" v-model.number="form.retry">
+            <input class="form-control" type="number" min="0" v-model.number="form.retry">
             <div class="help">不含首次；0=不重试。</div>
           </div>
         </section>
@@ -341,6 +363,22 @@
         <el-descriptions-item label="状态"><el-tag :type="row.status===1?'success':'info'" size="mini">{{ row.status===1?'启用':'禁用' }}</el-tag></el-descriptions-item>
         <el-descriptions-item label="Retry">{{ row.retry }}</el-descriptions-item>
         <el-descriptions-item label="防重叠">{{ row.withBlockLapping?'是':'否' }}</el-descriptions-item>
+        <el-descriptions-item label="允许执行时段" :span="2">
+          <div v-if="cronBetweenItems.length" class="detail-range-list">
+            <div v-for="(item, idx) in cronBetweenItems" :key="'between-'+idx" class="detail-range-item mono">
+              {{ item.start }} - {{ item.end }}
+            </div>
+          </div>
+          <span v-else class="detail-range-empty">不限制</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="跳过执行时段" :span="2">
+          <div v-if="cronSkipItems.length" class="detail-range-list">
+            <div v-for="(item, idx) in cronSkipItems" :key="'skip-'+idx" class="detail-range-item mono">
+              {{ item.start }} - {{ item.end }}
+            </div>
+          </div>
+          <span v-else class="detail-range-empty">无</span>
+        </el-descriptions-item>
         <el-descriptions-item label="Command" :span="2"><span class="mono">{{ row.command }}</span></el-descriptions-item>
         <el-descriptions-item label="描述" :span="2">{{ row.description || '-' }}</el-descriptions-item>
       </el-descriptions>
@@ -357,9 +395,11 @@
     <div class="panel">
       <el-form :inline="true" size="small" @submit.native.prevent="search">
         <el-form-item label="任务ID"><el-input v-model="query.taskId" clearable placeholder="可选，留空查全部"></el-input></el-form-item>
+        <el-form-item label="任务名称"><el-input v-model="query.taskName" clearable placeholder="支持模糊搜索"></el-input></el-form-item>
         <el-form-item label="批次"><el-input v-model="query.execBatchId" clearable></el-input></el-form-item>
         <el-form-item label="状态">
           <el-select v-model="query.status" clearable style="width:120px">
+            <el-option value="pending" label="注册定时任务"></el-option>
             <el-option value="success" label="成功"></el-option>
             <el-option value="failed" label="失败"></el-option>
             <el-option value="skipped" label="跳过"></el-option>
@@ -368,12 +408,24 @@
             <el-option value="running" label="执行中"></el-option>
           </el-select>
         </el-form-item>
+        <el-form-item label="执行类型">
+          <el-select v-model="query.execType" clearable placeholder="全部" style="width:120px">
+            <el-option :value="''" label="全部"></el-option>
+            <el-option :value="1" label="shell"></el-option>
+            <el-option :value="2" label="http"></el-option>
+          </el-select>
+        </el-form-item>
         <el-form-item><el-button type="primary" @click="search">查询</el-button></el-form-item>
       </el-form>
       <el-table :data="items" v-loading="loading">
         <el-table-column prop="cronId" label="任务ID" width="80"></el-table-column>
+        <el-table-column prop="taskName" label="任务名称" min-width="150"></el-table-column>
         <el-table-column prop="execBatchId" label="批次" min-width="160"></el-table-column>
-        <el-table-column prop="statusName" label="状态" width="90"></el-table-column>
+        <el-table-column label="状态" width="110">
+          <template slot-scope="s">
+            <span class="status-pill" :class="statusClass(s.row)">{{ statusText(s.row) }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="durationMs" label="耗时ms" width="90"></el-table-column>
         <el-table-column prop="pid" label="PID" width="80"></el-table-column>
         <el-table-column prop="message" label="消息" min-width="220"></el-table-column>

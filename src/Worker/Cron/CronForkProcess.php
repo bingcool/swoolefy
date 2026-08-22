@@ -256,29 +256,20 @@ class CronForkProcess extends CronProcess
     protected function buildProcOpenExecutionResult(array $result, string $cronName): ExecutionResult
     {
         $pid = (int) ($result['pid'] ?? 0);
-        $exitCode = isset($result['exit_code']) ? (int) $result['exit_code'] : null;
+        $hasExitCode = array_key_exists('exit_code', $result) && $result['exit_code'] !== null && $result['exit_code'] !== '';
+        $exitCode = $hasExitCode ? (int) $result['exit_code'] : null;
         $signaled = !empty($result['signaled']);
         $termSignal = (int) ($result['term_signal'] ?? 0);
-        $stderr = trim((string) ($result['stderr'] ?? ''));
-        $stdout = trim((string) ($result['stdout'] ?? ''));
-        $tail = '';
-        if ($stderr !== '') {
-            $tail = $stderr;
-        } elseif ($stdout !== '') {
-            $tail = $stdout;
-        }
-        if ($tail !== '' && strlen($tail) > 200) {
-            $tail = substr($tail, -200);
-        }
-        $tailMessage = $tail !== '' ? ', tail=' . $tail : '';
+        $tailMessage = $this->buildProcOpenTailMessage($result);
 
-        if ($signaled) {
+        if ($pid <= 0) {
             return ExecutionResult::failed(
-                "cron_fork proc_open 结束(signal={$termSignal},pid={$pid},exitCode={$exitCode}{$tailMessage})",
+                "cron_fork proc_open 拉起异常(pid={$pid},exitCode={$exitCode}{$tailMessage})",
                 $pid,
                 $exitCode,
             );
         }
+
         if ($exitCode === 0) {
             return ExecutionResult::success(
                 "cron_fork proc_open 执行成功(pid={$pid},exitCode=0)",
@@ -287,10 +278,57 @@ class CronForkProcess extends CronProcess
             );
         }
 
+        if ($signaled || $termSignal > 0) {
+            return ExecutionResult::failed(
+                "cron_fork proc_open 结束(signal={$termSignal},pid={$pid},exitCode={$exitCode}{$tailMessage})",
+                $pid,
+                $exitCode,
+            );
+        }
+
         return ExecutionResult::failed(
             "cron_fork proc_open 执行失败(pid={$pid},exitCode={$exitCode}{$tailMessage})",
             $pid,
             $exitCode,
         );
+    }
+
+    /**
+     * 优先使用 stderr 的尾部，避免把大段输出直接写进 message。
+     *
+     * @param array<string, mixed> $result
+     */
+    private function buildProcOpenTailMessage(array $result): string
+    {
+        $stderr = trim((string) ($result['stderr'] ?? ''));
+        $stdout = trim((string) ($result['stdout'] ?? ''));
+        $source = '';
+        $tail = '';
+        if ($stderr !== '') {
+            $source = 'stderr';
+            $tail = $stderr;
+        } elseif ($stdout !== '') {
+            $source = 'stdout';
+            $tail = $stdout;
+        }
+
+        if ($tail === '') {
+            return '';
+        }
+
+        $isTruncated = $source === 'stderr' ? !empty($result['stderr_truncated']) : !empty($result['stdout_truncated']);
+        if (strlen($tail) > 200) {
+            $tail = substr($tail, -200);
+            $isTruncated = true;
+        }
+
+        $tail = preg_replace('/\s+/', ' ', $tail) ?? $tail;
+        $tail = trim($tail);
+        if ($tail === '') {
+            return '';
+        }
+
+        $truncateNote = $isTruncated ? ', truncated=1' : '';
+        return ", tailSource={$source}{$truncateNote}, tail={$tail}";
     }
 }

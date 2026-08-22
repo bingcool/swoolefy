@@ -59,6 +59,69 @@ final class CronForkProcessExecutionResultTest extends TestCase
         $this->assertStringContainsString('signal=15', $result->message);
     }
 
+    public function testProcOpenTermSignalWithoutSignaledStillFailed(): void
+    {
+        $result = $this->mapResult([
+            'pid' => 88,
+            'exit_code' => 0,
+            'signaled' => false,
+            'term_signal' => 9,
+            'stdout' => '',
+            'stderr' => '',
+        ]);
+
+        $this->assertSame(ExecutionResult::FAILED, $result->status);
+        $this->assertStringContainsString('signal=9', $result->message);
+    }
+
+    public function testProcOpenPidNotPositiveAlwaysFailed(): void
+    {
+        $result = $this->mapResult([
+            'pid' => 0,
+            'exit_code' => 0,
+            'signaled' => false,
+            'term_signal' => 0,
+            'stdout' => 'ok',
+            'stderr' => '',
+        ]);
+
+        $this->assertSame(ExecutionResult::FAILED, $result->status);
+        $this->assertStringContainsString('拉起异常', $result->message);
+    }
+
+    public function testProcOpenMissingExitCodeMapsToFailed(): void
+    {
+        $result = $this->mapResult([
+            'pid' => 123,
+            'signaled' => false,
+            'term_signal' => 0,
+            'stdout' => '',
+            'stderr' => 'fatal',
+        ]);
+
+        $this->assertSame(ExecutionResult::FAILED, $result->status);
+        $this->assertNull($result->exitCode);
+        $this->assertStringContainsString('exitCode=', $result->message);
+    }
+
+    public function testProcOpenTailUsesStderrAndTruncatedHint(): void
+    {
+        $result = $this->mapResult([
+            'pid' => 321,
+            'exit_code' => 5,
+            'signaled' => false,
+            'term_signal' => 0,
+            'stdout' => str_repeat('x', 400),
+            'stderr' => "err line 1\nerr line 2",
+            'stderr_truncated' => true,
+        ]);
+
+        $this->assertSame(ExecutionResult::FAILED, $result->status);
+        $this->assertStringContainsString('tailSource=stderr', $result->message);
+        $this->assertStringContainsString('truncated=1', $result->message);
+        $this->assertStringNotContainsString("\n", $result->message);
+    }
+
     public function testRunnerSourceContainsDrainAndWaitPath(): void
     {
         $src = (string) file_get_contents(

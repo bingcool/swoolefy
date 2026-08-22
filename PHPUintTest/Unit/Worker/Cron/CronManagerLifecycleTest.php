@@ -317,6 +317,7 @@ final class CronManagerLifecycleTest extends TestCase
         $timer = new ManualCronTimer();
         $clock = new FrozenCronClock(strtotime('2026-08-15 10:00:00'));
         $executor = new RecordingExecutor();
+        $messages = [];
         $manager = new CronManager(
             fetcher: fn () => [[
                 'id' => 1,
@@ -331,12 +332,24 @@ final class CronManagerLifecycleTest extends TestCase
             timer: $timer,
             clock: $clock,
             pollIntervalMs: 0,
+            logWriter: function ($task, string $batchId, string $message) use (&$messages): void {
+                unset($task, $batchId);
+                $messages[] = $message;
+            },
             metrics: new CronMetrics(RuntimeRegistry::metrics()),
         );
         $manager->start();
         $clock->set(strtotime('2026-08-15 10:00:05'));
         $timer->advance(5000);
         $this->assertSame([], $executor->commands, 'cron_skip 内应 SKIP');
+        $this->assertTrue(
+            array_reduce(
+                $messages,
+                static fn (bool $carry, string $message): bool => $carry || (str_contains($message, '跳过时段') && str_contains($message, '10:00:00-10:00:30')),
+                false,
+            ),
+            '命中 cron_skip 时消息需包含跳过时段及窗口值',
+        );
         $diag = $manager->diagnostics();
         $this->assertSame(1, $diag['job_count']);
         $this->assertSame(1, $diag['enabled_count']);
