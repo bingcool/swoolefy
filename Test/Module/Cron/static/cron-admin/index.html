@@ -4,12 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Swoolefy Cron Admin</title>
-  <link rel="stylesheet" href="https://unpkg.com/element-ui@2.15.14/lib/theme-chalk/index.css">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="dns-prefetch" href="//cdn.jsdelivr.net">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-ui@2.15.14/lib/theme-chalk/index.css">
   <link rel="stylesheet" href="/cron-admin/assets/css/common.css">
   <link rel="stylesheet" href="/cron-admin/assets/css/pages.css">
 </head>
 <body>
-<div id="app">
+<div id="app" v-cloak>
   <div class="app">
     <aside class="sidebar">
       <div class="brand">Swoolefy Cron<small>Production Admin</small></div>
@@ -23,10 +25,15 @@
     </aside>
     <main class="main">
       <div class="top">
-        <div>
+        <div class="top-inner">
           <div class="breadcrumb">{{ breadcrumbPath }}</div>
           <h1 class="title">{{ pageTitle }}</h1>
           <p class="subtitle" v-if="pageSubtitle">{{ pageSubtitle }}</p>
+        </div>
+        <div class="top-skeleton" aria-hidden="true">
+          <span class="top-skeleton-line"></span>
+          <span class="top-skeleton-line lg"></span>
+          <span class="top-skeleton-line sm"></span>
         </div>
       </div>
       <div class="content-area"><router-view></router-view></div>
@@ -37,10 +44,10 @@
 <script type="text/x-template" id="tpl-dashboard">
   <div>
     <div class="stat-row">
-      <div class="panel stat-card"><div>任务总数</div><h2>{{ overview.tasks.total }}</h2><div class="meta">启用 {{ overview.tasks.enabled }} / 禁用 {{ overview.tasks.disabled }}</div></div>
-      <div class="panel stat-card"><div>今日执行</div><h2>{{ overview.executions.today }}</h2><div class="meta">成功 {{ overview.executions.success }} / 失败 {{ overview.executions.failed }} / 超时 {{ overview.executions.timeout || 0 }}</div></div>
-      <div class="panel stat-card"><div>节点</div><h2>{{ overview.nodes.total }}</h2><div class="meta">在线 {{ overview.nodes.online }} / 离线 {{ overview.nodes.offline }}</div></div>
-      <div class="panel stat-card"><div>跳过</div><h2>{{ overview.executions.skipped }}</h2><div class="meta">今日 SKIP</div></div>
+      <div class="panel stat-card"><div>任务总数</div><h2>{{ overview.tasks.total }}</h2><div class="meta"><span class="status-mark status-enabled">启用 {{ overview.tasks.enabled }}</span> / <span class="status-mark status-disabled">禁用 {{ overview.tasks.disabled }}</span></div></div>
+      <div class="panel stat-card"><div>今日执行</div><h2>{{ overview.executions.today }}</h2><div class="meta"><span class="status-mark status-success">成功 {{ overview.executions.success }}</span> / <span class="status-mark status-failed">失败 {{ overview.executions.failed }}</span> / <span class="status-mark status-timeout">超时 {{ overview.executions.timeout || 0 }}</span></div></div>
+      <div class="panel stat-card"><div>节点</div><h2>{{ overview.nodes.total }}</h2><div class="meta"><span class="status-mark status-online">在线 {{ overview.nodes.online }}</span> / <span class="status-mark status-offline">离线 {{ overview.nodes.offline }}</span></div></div>
+      <div class="panel stat-card"><div>跳过</div><h2>{{ overview.executions.skipped }}</h2><div class="meta"><span class="status-mark status-skipped">今日 SKIP</span></div></div>
     </div>
     <div class="panel">
       <div class="page-head" style="margin-bottom:12px">
@@ -54,10 +61,18 @@
       <el-table :data="trend" size="small">
         <el-table-column prop="time" label="时间"></el-table-column>
         <el-table-column prop="total" label="总计"></el-table-column>
-        <el-table-column prop="success" label="成功"></el-table-column>
-        <el-table-column prop="failed" label="失败"></el-table-column>
-        <el-table-column prop="timeout" label="超时"></el-table-column>
-        <el-table-column prop="skipped" label="跳过"></el-table-column>
+        <el-table-column prop="success" label="成功">
+          <template slot-scope="s"><span class="status-mark status-success">{{ s.row.success }}</span></template>
+        </el-table-column>
+        <el-table-column prop="failed" label="失败">
+          <template slot-scope="s"><span class="status-mark status-failed">{{ s.row.failed }}</span></template>
+        </el-table-column>
+        <el-table-column prop="timeout" label="超时">
+          <template slot-scope="s"><span class="status-mark status-timeout">{{ s.row.timeout }}</span></template>
+        </el-table-column>
+        <el-table-column prop="skipped" label="跳过">
+          <template slot-scope="s"><span class="status-mark status-skipped">{{ s.row.skipped }}</span></template>
+        </el-table-column>
       </el-table>
     </div>
   </div>
@@ -71,7 +86,7 @@
     </div>
     <div class="panel">
       <el-form :inline="true" size="small" @submit.native.prevent="search">
-        <el-form-item label="关键词"><el-input v-model="query.keyword" clearable placeholder="任务名称"></el-input></el-form-item>
+        <el-form-item label="任务名称"><el-input v-model="query.keyword" clearable placeholder="任务名称"></el-input></el-form-item>
         <el-form-item label="状态">
           <el-select v-model="query.status" clearable placeholder="全部" style="width:110px">
             <el-option :value="1" label="启用"></el-option>
@@ -152,12 +167,12 @@
           <div class="section-desc">任务名称和节点决定任务的管理归属。</div>
           <div class="grid">
             <div class="field">
-              <label>任务名称 <span class="req">*</span></label>
+              <label>任务名称 <span class="required-mark">*</span></label>
               <input class="form-control" v-model="form.name" placeholder="例如：订单同步">
               <div class="help">任务名称必须唯一。</div>
             </div>
             <div class="field">
-              <label>执行节点 <span class="req">*</span></label>
+              <label>执行节点 <span class="required-mark">*</span></label>
               <select class="form-select" v-model.number="form.nodeId">
                 <option v-for="n in nodes" :key="n.id" :value="n.id">{{ n.nodeName }}（{{ n.nodeIp }}）</option>
               </select>
@@ -185,7 +200,7 @@
           <div v-if="exprType==='interval'">
             <div class="grid">
               <div class="field">
-                <label>执行间隔（秒） <span class="req">*</span></label>
+                <label>执行间隔（秒） <span class="required-mark">*</span></label>
                 <input class="form-control" type="number" min="5" v-model.number="intervalSec">
                 <div class="help">例如 15 表示每 15 秒执行一次（引擎下限 5 秒）。</div>
               </div>
@@ -197,7 +212,7 @@
           </div>
           <div v-else>
             <div class="field">
-              <label>Linux Cron 表达式 <span class="req">*</span></label>
+              <label>Linux Cron 表达式 <span class="required-mark">*</span></label>
               <input class="form-control mono" v-model="cronExpr" placeholder="*/5 * * * *">
               <div class="help">分钟级标准 Linux Cron，例如 <span class="mono">*/5 * * * *</span> 表示每 5 分钟执行。</div>
             </div>
@@ -215,7 +230,7 @@
           <h2 class="section-title">执行配置</h2>
           <div class="section-desc">选择任务执行类型。不同类型使用不同执行参数。</div>
           <div class="field field-gap-bottom">
-            <label>执行类型 <span class="req">*</span></label>
+            <label>执行类型 <span class="required-mark">*</span></label>
             <div class="segmented">
               <label><input type="radio" name="execType" :checked="form.execType===1" @change="setExecType('shell')"><span>Shell</span></label>
               <label><input type="radio" name="execType" :checked="form.execType===2" @change="setExecType('http')"><span>HTTP</span></label>
@@ -223,7 +238,7 @@
           </div>
           <div v-if="form.execType===1">
             <div class="field">
-              <label>Command <span class="req">*</span></label>
+              <label>Command <span class="required-mark">*</span></label>
               <textarea class="form-textarea mono" v-model="form.command" placeholder="/bin/bash /opt/scripts/task.sh"></textarea>
               <div class="help">Shell Command 将由目标 Cron Node 执行，请确认命令来源可信。</div>
             </div>
@@ -231,7 +246,7 @@
           <div v-else>
             <div class="grid">
               <div class="field full">
-                <label>Request URL <span class="req">*</span></label>
+                <label>Request URL <span class="required-mark">*</span></label>
                 <input class="form-control" v-model="form.command" placeholder="http://127.0.0.1:9501/index/index">
               </div>
               <div class="field">
@@ -485,7 +500,7 @@
         <el-table-column prop="nodeName" label="名称"></el-table-column>
         <el-table-column prop="nodeIp" label="IP"></el-table-column>
         <el-table-column label="状态" width="100">
-          <template slot-scope="s"><el-tag size="mini" :type="s.row.status==='online'?'success':'danger'">{{ s.row.status==='online'?'online':'offline' }}</el-tag></template>
+          <template slot-scope="s"><span class="status-pill" :class="s.row.status==='online' ? 'status-online' : 'status-offline'">{{ s.row.status==='online'?'online':'offline' }}</span></template>
         </el-table-column>
         <el-table-column prop="lastHeartbeatAt" label="心跳" width="160"></el-table-column>
         <el-table-column prop="taskCount" label="任务数" width="80"></el-table-column>
@@ -500,8 +515,14 @@
     </div>
     <el-dialog :title="form.id?'编辑节点':'新建节点'" :visible.sync="dlg" width="480px">
       <el-form label-width="80px" size="small">
-        <el-form-item label="名称"><el-input v-model="form.nodeName"></el-input></el-form-item>
-        <el-form-item label="IP"><el-input v-model="form.nodeIp"></el-input></el-form-item>
+        <el-form-item>
+          <template slot="label">名称 <span class="required-mark">*</span></template>
+          <el-input v-model="form.nodeName"></el-input>
+        </el-form-item>
+        <el-form-item>
+          <template slot="label">IP <span class="required-mark">*</span></template>
+          <el-input v-model="form.nodeIp"></el-input>
+        </el-form-item>
         <el-form-item label="备注"><el-input v-model="form.remark"></el-input></el-form-item>
       </el-form>
       <span slot="footer"><el-button @click="dlg=false">取消</el-button><el-button type="primary" @click="save">保存</el-button></span>
@@ -526,17 +547,17 @@
   </div>
 </script>
 
-<script src="https://unpkg.com/vue@2.7.16/dist/vue.js"></script>
-<script src="https://unpkg.com/vue-router@3.6.5/dist/vue-router.js"></script>
-<script src="https://unpkg.com/element-ui@2.15.14/lib/index.js"></script>
-<script src="/cron-admin/assets/js/common.js"></script>
-<script src="/cron-admin/assets/js/dashboard.js"></script>
-<script src="/cron-admin/assets/js/tasks.js"></script>
-<script src="/cron-admin/assets/js/editor.js"></script>
-<script src="/cron-admin/assets/js/detail.js"></script>
-<script src="/cron-admin/assets/js/executions.js"></script>
-<script src="/cron-admin/assets/js/nodes.js"></script>
-<script src="/cron-admin/assets/js/runtime.js"></script>
-<script src="/cron-admin/assets/js/app.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/vue@2.7.16/dist/vue.min.js'"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/vue-router@3.6.5/dist/vue-router.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/vue-router@3.6.5/dist/vue-router.min.js'"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/element-ui@2.15.14/lib/index.js" onerror="this.onerror=null;this.src='https://unpkg.com/element-ui@2.15.14/lib/index.js'"></script>
+<script defer src="/cron-admin/assets/js/common.js"></script>
+<script defer src="/cron-admin/assets/js/dashboard.js"></script>
+<script defer src="/cron-admin/assets/js/tasks.js"></script>
+<script defer src="/cron-admin/assets/js/editor.js"></script>
+<script defer src="/cron-admin/assets/js/detail.js"></script>
+<script defer src="/cron-admin/assets/js/executions.js"></script>
+<script defer src="/cron-admin/assets/js/nodes.js"></script>
+<script defer src="/cron-admin/assets/js/runtime.js"></script>
+<script defer src="/cron-admin/assets/js/app.js"></script>
 </body>
 </html>

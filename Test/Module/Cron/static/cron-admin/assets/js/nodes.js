@@ -35,11 +35,21 @@
         this.dlg = true;
       },
       save: async function () {
+        var nodeName = this.form.nodeName ? String(this.form.nodeName).trim() : '';
+        var nodeIp = this.form.nodeIp ? String(this.form.nodeIp).trim() : '';
+        if (!nodeName || !nodeIp) {
+          this.$message.warning('请填写节点名称和IP');
+          return;
+        }
         try {
+          var payload = Object.assign({}, this.form, {
+            nodeName: nodeName,
+            nodeIp: nodeIp
+          });
           if (this.form.id) {
-            await common.api('/nodes', { method: 'PUT', body: this.form });
+            await common.api('/nodes', { method: 'PUT', body: payload });
           } else {
-            await common.api('/nodes', { method: 'POST', body: this.form });
+            await common.api('/nodes', { method: 'POST', body: payload });
           }
           this.dlg = false;
           this.$message.success('已保存');

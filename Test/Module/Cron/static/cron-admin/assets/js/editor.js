@@ -65,8 +65,15 @@
     methods: {
       syncPreviewMeta: function () {},
       init: async function () {
+        var taskDetail = null;
         try {
-          var d = await common.api('/nodes');
+          var reqs = [common.api('/nodes')];
+          if (this.isEdit) {
+            reqs.push(common.api('/tasks/detail?id=' + this.$route.params.id));
+          }
+          var results = await Promise.all(reqs);
+          var d = results[0];
+          taskDetail = results[1] || null;
           this.nodes = (d && d.list) || [];
           if (!this.form.nodeId && this.nodes[0]) this.form.nodeId = this.nodes[0].id;
         } catch (e) {
@@ -74,7 +81,10 @@
         }
         if (this.isEdit) {
           try {
-            var row = await common.api('/tasks/detail?id=' + this.$route.params.id);
+            var row = taskDetail;
+            if (!row) {
+              row = await common.api('/tasks/detail?id=' + this.$route.params.id);
+            }
             this.form = Object.assign(this.form, row);
             this.exprType = row.expressionType || common.detectExprType(row.expression);
             if (this.exprType === 'interval') {

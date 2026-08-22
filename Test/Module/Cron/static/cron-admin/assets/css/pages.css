@@ -29,6 +29,42 @@
   font-size: 12px;
 }
 
+.status-mark {
+  font-weight: 600;
+}
+
+.status-mark.status-enabled {
+  color: #2563eb;
+}
+
+.status-mark.status-disabled {
+  color: #6b7280;
+}
+
+.status-mark.status-success {
+  color: #16a34a;
+}
+
+.status-mark.status-failed {
+  color: #dc2626;
+}
+
+.status-mark.status-timeout {
+  color: #d97706;
+}
+
+.status-mark.status-skipped {
+  color: #64748b;
+}
+
+.status-mark.status-online {
+  color: #16a34a;
+}
+
+.status-mark.status-offline {
+  color: #9f1239;
+}
+
 .editor-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 330px;
@@ -126,8 +162,10 @@
   line-height: 1.35;
 }
 
+.required-mark,
 .req {
   color: var(--red);
+  font-weight: 700;
 }
 
 .task-editor-page {
@@ -595,6 +633,18 @@
   color: #6b7280;
   background: #f8fafc;
   border-color: #e2e8f0;
+}
+
+.status-pill.status-online {
+  color: #166534;
+  background: #dcfce7;
+  border-color: #bbf7d0;
+}
+
+.status-pill.status-offline {
+  color: #9f1239;
+  background: #fdf2f8;
+  border-color: #fbcfe8;
 }
 
 .log-pre {

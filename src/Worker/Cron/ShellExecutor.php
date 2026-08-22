@@ -30,6 +30,8 @@ namespace Swoolefy\Worker\Cron;
  */
 final class ShellExecutor implements CronExecutorInterface
 {
+    private const MAX_CAPTURE_BYTES = 1024 * 1024;
+
     /**
      * @param null|callable(ExecutionSnapshot):ExecutionResult $forkRunner CronForkProcess / CronForkRunner 执行钩子
      */
@@ -66,18 +68,54 @@ final class ShellExecutor implements CronExecutorInterface
 
             $status = proc_get_status($process);
             $pid = (int) ($status['pid'] ?? 0);
+            if (isset($pipes[0]) && is_resource($pipes[0])) {
+                fclose($pipes[0]);
+            }
             if (isset($pipes[1]) && is_resource($pipes[1])) {
-                stream_get_contents($pipes[1]);
+                stream_set_blocking($pipes[1], false);
             }
             if (isset($pipes[2]) && is_resource($pipes[2])) {
-                stream_get_contents($pipes[2]);
+                stream_set_blocking($pipes[2], false);
+            }
+
+            $stdout = '';
+            $stderr = '';
+            $stdoutTruncated = false;
+            $stderrTruncated = false;
+            $lastStatus = ['running' => false, 'exitcode' => -1];
+            while (true) {
+                $this->appendPipeContent($pipes[1] ?? null, $stdout, $stdoutTruncated, self::MAX_CAPTURE_BYTES);
+                $this->appendPipeContent($pipes[2] ?? null, $stderr, $stderrTruncated, self::MAX_CAPTURE_BYTES);
+                $status = proc_get_status($process);
+                if (is_array($status)) {
+                    $lastStatus = $status + $lastStatus;
+                }
+                if (!$lastStatus['running']) {
+                    break;
+                }
+                usleep(10000);
+            }
+            for ($i = 0; $i < 5; $i++) {
+                $before = strlen($stdout) + strlen($stderr);
+                $this->appendPipeContent($pipes[1] ?? null, $stdout, $stdoutTruncated, self::MAX_CAPTURE_BYTES);
+                $this->appendPipeContent($pipes[2] ?? null, $stderr, $stderrTruncated, self::MAX_CAPTURE_BYTES);
+                $after = strlen($stdout) + strlen($stderr);
+                if ($before === $after) {
+                    break;
+                }
+                usleep(5000);
             }
             foreach ($pipes as $pipe) {
                 if (is_resource($pipe)) {
                     fclose($pipe);
                 }
             }
-            $exitCode = proc_close($process);
+            $exitCode = (int) ($lastStatus['exitcode'] ?? -1);
+            if ($exitCode < 0) {
+                $exitCode = proc_close($process);
+            } else {
+                proc_close($process);
+            }
             if ($exitCode === 0) {
                 return ExecutionResult::success(
                     sprintf('Shell 执行成功 command=%s pid=%d', $command, $pid),
@@ -87,7 +125,13 @@ final class ShellExecutor implements CronExecutorInterface
             }
 
             return ExecutionResult::failed(
-                sprintf('Shell 非零退出 command=%s pid=%d exit=%d', $command, $pid, $exitCode),
+                sprintf(
+                    'Shell 非零退出 command=%s pid=%d exit=%d%s',
+                    $command,
+                    $pid,
+                    $exitCode,
+                    $this->buildTailMessage($stdout, $stderr, $stdoutTruncated, $stderrTruncated),
+                ),
                 $pid,
                 $exitCode,
             );
@@ -116,5 +160,67 @@ final class ShellExecutor implements CronExecutorInterface
         }
 
         return trim($definition->command !== '' ? $definition->command : $definition->execScript);
+    }
+
+    /**
+     * 读取并消费管道内容；超过上限后继续读取但不再累计，避免子进程阻塞。
+     */
+    private function appendPipeContent($pipe, string &$buffer, bool &$truncated, int $limitBytes): void
+    {
+        if (!is_resource($pipe)) {
+            return;
+        }
+        while (true) {
+            $chunk = stream_get_contents($pipe);
+            if ($chunk === false || $chunk === '') {
+                break;
+            }
+            if ($truncated) {
+                continue;
+            }
+            $remaining = $limitBytes - strlen($buffer);
+            if ($remaining <= 0) {
+                $truncated = true;
+                continue;
+            }
+            if (strlen($chunk) > $remaining) {
+                $buffer .= substr($chunk, 0, $remaining);
+                $truncated = true;
+                continue;
+            }
+            $buffer .= $chunk;
+        }
+    }
+
+    private function buildTailMessage(
+        string $stdout,
+        string $stderr,
+        bool $stdoutTruncated,
+        bool $stderrTruncated
+    ): string {
+        $source = '';
+        $tail = '';
+        $isTruncated = false;
+        if (trim($stderr) !== '') {
+            $source = 'stderr';
+            $tail = trim($stderr);
+            $isTruncated = $stderrTruncated;
+        } elseif (trim($stdout) !== '') {
+            $source = 'stdout';
+            $tail = trim($stdout);
+            $isTruncated = $stdoutTruncated;
+        } else {
+            return '';
+        }
+        if (strlen($tail) > 200) {
+            $tail = substr($tail, -200);
+            $isTruncated = true;
+        }
+        $tail = trim((string) preg_replace('/\s+/', ' ', $tail));
+        if ($tail === '') {
+            return '';
+        }
+
+        return sprintf(', tailSource=%s%s, tail=%s', $source, $isTruncated ? ', truncated=1' : '', $tail);
     }
 }

@@ -129,7 +129,7 @@ class IndexController extends BController
     public function testLog1(RequestInput $requestInput): array
     {
         RunLog::info('test11111-log-id=' . rand(1, 1000));
-
+        var_dump("测试 RunLog 业务日志写入");
         return [
             'Controller' => $requestInput->getControllerId(),
             'Action' => $requestInput->getActionId(),

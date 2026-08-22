@@ -72,14 +72,18 @@
       load: async function () {
         this.loading = true;
         try {
-          this.row = await common.api('/tasks/detail?id=' + this.id);
+          var detailAndStats = await Promise.all([
+            common.api('/tasks/detail?id=' + this.id),
+            common.api('/tasks/stats?taskId=' + this.id)
+          ]);
+          this.row = detailAndStats[0];
           this.cronBetweenItems = this.normalizeRangeItems(
             this.row.cronBetween != null ? this.row.cronBetween : this.row.cron_between
           );
           this.cronSkipItems = this.normalizeRangeItems(
             this.row.cronSkip != null ? this.row.cronSkip : this.row.cron_skip
           );
-          this.stats = await common.api('/tasks/stats?taskId=' + this.id);
+          this.stats = detailAndStats[1];
         } catch (e) {
           common.toastErr(this, e);
         } finally {

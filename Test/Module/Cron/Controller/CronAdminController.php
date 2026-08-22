@@ -72,6 +72,18 @@ class CronAdminController extends BController
 
         $baseDir = dirname(__DIR__) . '/static/cron-admin/';
         $file = $baseDir . $normalized;
+        $isAsset = str_starts_with($normalized, 'assets/');
+
+        if ($isAsset) {
+            $etag = '"' . sha1($normalized . '|' . (string) @filemtime($file) . '|' . (string) @filesize($file)) . '"';
+            $response->withHeader('Cache-Control', 'public, max-age=600, stale-while-revalidate=60');
+            $response->withHeader('ETag', $etag);
+        } else {
+            $response->withHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            $response->withHeader('Pragma', 'no-cache');
+            $response->withHeader('Expires', '0');
+        }
+
         $response->download($file, basename($normalized), true);
     }
 }
