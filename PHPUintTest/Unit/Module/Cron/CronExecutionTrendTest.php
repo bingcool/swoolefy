@@ -43,4 +43,24 @@ final class CronExecutionTrendTest extends TestCase
         $this->assertSame(4, $data['skipped']);
         $this->assertSame(10, $data['total']);
     }
+
+    public function testDashboardTodayTotalMatchesTrendLogicExcludingSkipped(): void
+    {
+        $service = (new \ReflectionClass(CronTaskManagerService::class))->newInstanceWithoutConstructor();
+        $method = (new \ReflectionClass(CronTaskManagerService::class))->getMethod('foldDashboardExecCounts');
+        $method->setAccessible(true);
+
+        $counts = $method->invoke($service, [
+            ['status' => ExecutionStatus::SUCCESS, 'total' => 5],
+            ['status' => ExecutionStatus::FAILED, 'total' => 2],
+            ['status' => ExecutionStatus::TIMEOUT, 'total' => 1],
+            ['status' => ExecutionStatus::SKIPPED, 'total' => 4],
+        ]);
+
+        $this->assertSame(8, $counts['today'], 'today = success+failed+timeout，不含 skipped');
+        $this->assertSame(5, $counts['success']);
+        $this->assertSame(2, $counts['failed']);
+        $this->assertSame(1, $counts['timeout']);
+        $this->assertSame(4, $counts['skipped']);
+    }
 }

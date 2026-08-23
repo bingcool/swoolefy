@@ -272,7 +272,7 @@ class CronTaskManagerController extends BController
     }
 
     /**
-     * 删除 Cron Agent 节点。
+     * 删除 Cron Agent 节点（软删 deleted_at，不物理删行）。
      *
      * Route: DELETE /api/v1/nodes
      *

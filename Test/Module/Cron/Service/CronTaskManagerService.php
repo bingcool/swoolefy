@@ -281,7 +281,7 @@ class CronTaskManagerService
      */
     public function listNodes(): array
     {
-        $list = CronAgentNodeEntity::query()->order('id', 'desc')->select()->toArray();
+        $list = CronAgentNodeEntity::queryNotDeleted()->order('id', 'desc')->select()->toArray();
         if ($list === []) {
             return [];
         }
@@ -342,9 +342,11 @@ class CronTaskManagerService
     }
 
     /**
-     * 删除 Cron Agent 节点。
+     * 删除 Cron Agent 节点（软删 deleted_at）。
      *
-     * @return int 已删除的节点 id
+     * 与列表同一可见性：loadById 只找 deleted_at IS NULL 的行。
+     *
+     * @return int 已软删的节点 id（与入参一致，供 DeleteAck Response）
      */
     public function deleteNode(NodeIdDto $dto): int
     {
@@ -587,6 +589,68 @@ class CronTaskManagerService
     }
 
     /**
+     * Dashboard 趋势与今日概览共用：终态 SUCCESS/FAILED/TIMEOUT/SKIPPED，按 DISTINCT exec_batch_id 计数。
+     *
+     * @return list<array{status:int|string,total:int|string}>
+     */
+    protected function fetchDistinctExecStatusCounts(?int $cronId, ?string $start = null, ?string $end = null): array
+    {
+        $rows = $this->newExecutionStatsQuery($cronId, $start, $end)
+            ->whereIn('status', [
+                ExecutionStatus::SUCCESS,
+                ExecutionStatus::FAILED,
+                ExecutionStatus::TIMEOUT,
+                ExecutionStatus::SKIPPED,
+            ])
+            ->field([
+                new Raw('status'),
+                new Raw('COUNT(DISTINCT exec_batch_id) AS total'),
+            ])
+            ->group('status')
+            ->select()
+            ->toArray();
+
+        return is_array($rows) ? $rows : [];
+    }
+
+    /**
+     * 将 DISTINCT exec_batch_id 分组行折叠为 Dashboard executions 字段。
+     * today = success+failed+timeout（与趋势 total 同源，但不含 SKIPPED）。
+     *
+     * @param list<array{status:int|string,total:int|string}> $rows
+     * @return array{today:int,success:int,failed:int,skipped:int,timeout:int,cancelled:int}
+     */
+    protected function foldDashboardExecCounts(array $rows): array
+    {
+        $success = 0;
+        $failed = 0;
+        $timeout = 0;
+        $skipped = 0;
+        foreach ($rows as $row) {
+            $status = (int) ($row['status'] ?? -1);
+            $count = (int) ($row['total'] ?? 0);
+            if ($status === ExecutionStatus::SUCCESS) {
+                $success = $count;
+            } elseif ($status === ExecutionStatus::FAILED) {
+                $failed = $count;
+            } elseif ($status === ExecutionStatus::TIMEOUT) {
+                $timeout = $count;
+            } elseif ($status === ExecutionStatus::SKIPPED) {
+                $skipped = $count;
+            }
+        }
+
+        return [
+            'today' => $success + $failed + $timeout,
+            'success' => $success,
+            'failed' => $failed,
+            'skipped' => $skipped,
+            'timeout' => $timeout,
+            'cancelled' => 0,
+        ];
+    }
+
+    /**
      * SUCCESS 行的 AVG/MAX(duration_ms)。不从 message 解析耗时。
      *
      * @return array{avg:float,max:float,samples:int}
@@ -694,26 +758,21 @@ class CronTaskManagerService
     }
 
     /**
-     * Dashboard 聚合：任务计数 + 今日 Execution GROUP BY status + 节点心跳。
+     * Dashboard 聚合：任务计数 + 今日 Execution（与趋势同源 COUNT DISTINCT exec_batch_id）+ 节点心跳。
      */
     public function dashboardOverview(): DashboardOverviewDto
     {
         $total = (int)CronTaskEntity::queryNotDeleted()->count();
         $enabled = (int)CronTaskEntity::queryNotDeleted()->where('status', 1)->count();
         $todayStart = date('Y-m-d 00:00:00');
-        $stats = ExecutionStatus::aggregateCounts($this->fetchStatusCounts(null, $todayStart, null));
+        $execCounts = $this->foldDashboardExecCounts(
+            $this->fetchDistinctExecStatusCounts(null, $todayStart, null),
+        );
         $nodeStats = $this->countNodeHeartbeat();
 
         return DashboardOverviewDto::of(
             ['total' => $total, 'enabled' => $enabled, 'disabled' => max(0, $total - $enabled)],
-            [
-                'today' => $stats['total'],
-                'success' => $stats['success'],
-                'failed' => $stats['failed'],
-                'skipped' => $stats['skipped'],
-                'timeout' => $stats['timeout'],
-                'cancelled' => $stats['cancelled'],
-            ],
+            $execCounts,
             $nodeStats,
         );
     }
@@ -1103,7 +1162,10 @@ class CronTaskManagerService
      */
     protected function countNodeHeartbeat(): array
     {
-        $nodes = CronAgentNodeEntity::query()->field(['last_heartbeat_at', 'heartbeat_interval'])->select()->toArray();
+        $nodes = CronAgentNodeEntity::queryNotDeleted()
+            ->field(['last_heartbeat_at', 'heartbeat_interval'])
+            ->select()
+            ->toArray();
         $now = time();
         $online = 0;
         $offline = 0;

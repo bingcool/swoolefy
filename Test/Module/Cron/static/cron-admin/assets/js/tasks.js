@@ -53,7 +53,7 @@
         var status = nextStatus === undefined ? (row.status === 1 ? 0 : 1) : Number(nextStatus);
         try {
           await common.api('/tasks/status', { method: 'PUT', body: { id: row.id, status: status } });
-          this.$message.success('已更新');
+          common.toastTaskStatus(this, status, row.name);
           this.load();
         } catch (e) {
           common.toastErr(this, e);
@@ -95,7 +95,7 @@
             method: 'PUT',
             body: { ids: this.sel.map(function (x) { return x.id; }), status: status }
           });
-          this.$message.success('批量已更新');
+          common.toastTaskStatus(this, status, this.sel.map(function (x) { return x.name; }));
           this.load();
         } catch (e) {
           common.toastErr(this, e);

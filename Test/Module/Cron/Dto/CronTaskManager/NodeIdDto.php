@@ -15,9 +15,9 @@ use Swoolefy\Core\Dto\AbstractDto;
  * **生产者**：{@see \Test\Module\Cron\Controller\CronTaskManagerController::deleteNode} 通过
  * {@see static::of} 从 Request 的 id 构造。
  *
- * **消费者**：{@see \Test\Module\Cron\Service\CronTaskManagerService::deleteNode} 校验 id 并执行删除。
+ * **消费者**：{@see \Test\Module\Cron\Service\CronTaskManagerService::deleteNode} 校验 id 并软删（deleted_at）。
  *
- * **关键字段语义**：id 为 cron_agent_node 表主键，必须 >0 且记录存在。
+ * **关键字段语义**：id 为 cron_agent_node 表主键，必须 >0 且未软删（deleted_at IS NULL）。
  */
 class NodeIdDto extends AbstractDto
 {

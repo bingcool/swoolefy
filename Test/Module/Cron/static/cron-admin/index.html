@@ -46,8 +46,8 @@
     <div class="stat-row">
       <div class="panel stat-card"><div>任务总数</div><h2>{{ overview.tasks.total }}</h2><div class="meta"><span class="status-mark status-enabled">启用 {{ overview.tasks.enabled }}</span> / <span class="status-mark status-disabled">禁用 {{ overview.tasks.disabled }}</span></div></div>
       <div class="panel stat-card"><div>今日执行</div><h2>{{ overview.executions.today }}</h2><div class="meta"><span class="status-mark status-success">成功 {{ overview.executions.success }}</span> / <span class="status-mark status-failed">失败 {{ overview.executions.failed }}</span> / <span class="status-mark status-timeout">超时 {{ overview.executions.timeout || 0 }}</span></div></div>
-      <div class="panel stat-card"><div>节点</div><h2>{{ overview.nodes.total }}</h2><div class="meta"><span class="status-mark status-online">在线 {{ overview.nodes.online }}</span> / <span class="status-mark status-offline">离线 {{ overview.nodes.offline }}</span></div></div>
       <div class="panel stat-card"><div>跳过</div><h2>{{ overview.executions.skipped }}</h2><div class="meta"><span class="status-mark status-skipped">今日 SKIP</span></div></div>
+      <div class="panel stat-card"><div>节点</div><h2>{{ overview.nodes.total }}</h2><div class="meta"><span class="status-mark status-online">在线 {{ overview.nodes.online }}</span> / <span class="status-mark status-offline">离线 {{ overview.nodes.offline }}</span></div></div>
     </div>
     <div class="panel">
       <div class="page-head" style="margin-bottom:12px">

@@ -22,6 +22,16 @@
     vm.$message.error((err && err.message) || String(err));
   }
 
+  function toastTaskStatus(vm, status, names) {
+    var label = Array.isArray(names) ? names.join('、') : String(names || '');
+    var msg = Number(status) === 1 ? '已启用[' + label + ']' : '已禁用[' + label + ']';
+    if (Number(status) === 1) {
+      vm.$message.success(msg);
+    } else {
+      vm.$message.warning(msg);
+    }
+  }
+
   function formatNextRunAt(row) {
     if (!row) return '-';
     var ts = row.nextRunAt;
@@ -55,6 +65,7 @@
     API: API,
     api: api,
     toastErr: toastErr,
+    toastTaskStatus: toastTaskStatus,
     formatNextRunAt: formatNextRunAt,
     parseJsonOrNull: parseJsonOrNull,
     detectExprType: detectExprType

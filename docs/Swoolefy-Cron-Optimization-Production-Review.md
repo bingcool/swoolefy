@@ -1066,16 +1066,18 @@ SELECT *
 当前：
 
 ```php
-deleteNode()
+deleteNode()  // Entity::delete() → 软删 deleted_at
 ```
 
 基本流程是：
 
 ```text
-load node
+load node（deleted_at IS NULL）
 ↓
-delete node
+软删 node（写 deleted_at）
 ```
+
+列表 / Dashboard / requireNode 与删除使用同一可见性（`queryNotDeleted` / `loadById`）。
 
 而没有看到删除前强制检查：
 

@@ -21,7 +21,7 @@ class DashboardOverviewDto extends AbstractDto
     /**
      * @var array{today:int,success:int,failed:int,skipped:int,timeout:int,cancelled:int}
      */
-    #[ApiProperty(description: '今日执行计数（按 cron_task_log.status GROUP BY）')]
+    #[ApiProperty(description: '今日执行计数：与趋势同源 COUNT(DISTINCT exec_batch_id)；today=success+failed+timeout（不含 skipped）')]
     protected array $executions = ['today' => 0, 'success' => 0, 'failed' => 0, 'skipped' => 0, 'timeout' => 0, 'cancelled' => 0];
 
     /**

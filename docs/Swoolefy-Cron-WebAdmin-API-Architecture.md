@@ -15,7 +15,7 @@
 | POST/PUT | `/api/v1/tasks/status` | 启停任务 |
 | GET | `/api/v1/nodes` | 节点列表 |
 | POST | `/api/v1/nodes` | 创建节点 |
-| DELETE | `/api/v1/nodes` | 删除节点 |
+| DELETE | `/api/v1/nodes` | 软删节点（写 `deleted_at`） |
 | GET | `/api/v1/tasks/logs` | 执行日志 |
 | GET | `/api/v1/tasks/stats` | 任务统计 |
 | GET | `/api/v1/agent/tasks` | Agent 拉取任务 |
@@ -355,7 +355,7 @@ GET /api/v1/dashboard/execution-trend?range=24h
 ```text
 GET  /nodes
 POST /nodes
-DELETE /nodes
+DELETE /nodes   # 软删：UPDATE deleted_at，列表/详情不再返回
 ```
 
 citeturn3view0

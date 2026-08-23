@@ -319,6 +319,11 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
 
             return;
         }
+        // 已软删节点不再自动插入，避免 DELETE /nodes 后被心跳「复活」
+        $trashed = CronAgentNodeEntity::withoutTrashed()->where('id', $id)->limit(1)->find();
+        if (is_array($trashed) && $trashed !== []) {
+            return;
+        }
         CronAgentNodeEntity::query()->insert([
             'id' => $id,
             'node_name' => 'node-' . $id,

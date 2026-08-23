@@ -380,7 +380,9 @@ Test 应用的 `CronTaskManagerController` 是 **写 `cron_task` 的 HTTP Admin*
 
 Cron Worker 在 `start()` 时立刻调用 `node_heartbeat_ack`，再按 `heartbeat_interval`（默认 **15** 秒）`tick`。`stop()` 清除该 Timer。ack 异常隔离，不得拖垮 Polling / Job。
 
-Test 实现 `CronTaskService::ackNodeHeartbeat($nodeId, $heartbeatInterval)`：更新 `cron_agent_node.last_heartbeat_at`，并写入该节点自己的 `heartbeat_interval`；行不存在则按 `id=$nodeId` 插入。
+Test 实现 `CronTaskService::ackNodeHeartbeat($nodeId, $heartbeatInterval)`：更新 `cron_agent_node.last_heartbeat_at`，并写入该节点自己的 `heartbeat_interval`；行不存在则按 `id=$nodeId` 插入。**已软删节点（`deleted_at` 非空）不再更新或自动插入**，避免 Admin 删除后被 Worker 心跳复活。
+
+Admin `DELETE /api/v1/nodes` 与任务删除一致：Entity 软删写 `deleted_at`；列表 / 详情 / Dashboard 统计使用 `CronAgentNodeEntity::queryNotDeleted()`。
 
 **存活公式**（`CronNodeLiveness::status($now, $lastHeartbeatAt, $interval)`，Admin 列表 / 详情 / Dashboard 共用）：
 
@@ -528,6 +530,13 @@ ALTER TABLE `cron_task`
 列已存在则跳过。同文件里该 `ALTER` 以注释形式保留，避免整文件导入时与 `CREATE TABLE` 冲突。
 
 `cron_agent_node.heartbeat_interval` 同理：新库 CREATE 已含（默认 15）；旧表见上文「节点心跳与存活」的 `ALTER`。
+
+`cron_agent_node.deleted_at`：新库 CREATE 已含；旧表执行：
+
+```sql
+ALTER TABLE `cron_agent_node`
+    ADD COLUMN `deleted_at` datetime DEFAULT NULL COMMENT '删除时间' AFTER `updated_at`;
+```
 
 ### 启动 Test WorkerCron
 

@@ -49,6 +49,7 @@ CREATE TABLE `cron_agent_node` (
     `heartbeat_interval` int unsigned NOT NULL DEFAULT '15' COMMENT '该节点心跳间隔（秒）；Ack 时由 Worker 写入，Admin 按节点自身间隔判定存活',
     `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    `deleted_at` datetime DEFAULT NULL COMMENT '删除时间',
     PRIMARY KEY (`id`),
     KEY `idx_last_heartbeat` (`last_heartbeat_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Cron Agent 节点';
@@ -58,6 +59,10 @@ CREATE TABLE `cron_agent_node` (
 -- 若列已存在，跳过本段即可。
 -- ALTER TABLE `cron_agent_node`
 --     ADD COLUMN `heartbeat_interval` int unsigned NOT NULL DEFAULT '15' COMMENT '该节点心跳间隔（秒）；Ack 时由 Worker 写入，Admin 按节点自身间隔判定存活' AFTER `last_heartbeat_at`;
+
+-- 节点软删除（DELETE /api/v1/nodes 写 deleted_at，不物理删行）。新库 CREATE 已含 deleted_at。
+-- ALTER TABLE `cron_agent_node`
+--     ADD COLUMN `deleted_at` datetime DEFAULT NULL COMMENT '删除时间' AFTER `updated_at`;
 
 CREATE TABLE `cron_task_run_request` (
     `id` bigint unsigned NOT NULL AUTO_INCREMENT,
