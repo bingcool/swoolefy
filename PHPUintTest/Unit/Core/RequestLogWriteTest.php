@@ -48,6 +48,8 @@ final class RequestLogWriteTest extends TestCase
         $this->assertFileExists($logFile);
         $this->assertStringContainsString('/request/', $logFile);
         $this->assertStringContainsString('request-', $logFile);
+        $this->assertStringNotContainsString('/request_log/', $logFile);
+        $this->assertMatchesRegularExpression('/\/request\/\d{8}\/request-\d{2}h\.log$/', $logFile);
 
         sleep(2);
         $logger->addInfo('second write');
