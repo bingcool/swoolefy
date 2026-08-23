@@ -310,7 +310,7 @@ class SystemEnv
     {
         if (SystemEnv::isWorkerService()) {
             $path = pathinfo($pidFile);
-            return $path['dirname'] . '/' . WORKER_SERVICE_NAME . '/' . $path['filename'] . '_worker.' . $path['extension'];
+            $pidFile = $path['dirname'] . '/' . WORKER_SERVICE_NAME . '/' . $path['filename'] . '_worker.' . $path['extension'];
         }
         return $pidFile;
     }
