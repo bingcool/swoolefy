@@ -223,15 +223,13 @@ class MainCliScript extends AbstractScriptProcess
         if ($waitTime > 0) {
             \Swoole\Coroutine\System::sleep($waitTime);
         }
+        $pidFile = Swfy::getConf()['setting']['pid_file'];
         $swooleMasterPid = Swfy::getMasterPid();
         $exist = \Swoole\Process::kill($swooleMasterPid, 0);
-
         if($exist && !$this->exitAll) {
-            $pidFile = Swfy::getConf()['setting']['pid_file'];
             if (is_file($pidFile)) {
                 @unlink($pidFile);
-            }else {
-                $pidFile = parseScriptPidFile($pidFile);
+            } else {
                 if (is_file($pidFile)) {
                     @unlink($pidFile);
                 }
@@ -243,12 +241,12 @@ class MainCliScript extends AbstractScriptProcess
 
             if ($force) {
                 @\Swoole\Process::kill($swooleMasterPid, SIGKILL);
-            }else {
+            } else {
                 @\Swoole\Process::kill($swooleMasterPid, SIGTERM);
             }
             fmtPrintInfo("script end! ");
             $this->exitAll = true;
-        }else if ($exist) {
+        } else if ($exist) {
             // strict kill exit process
             \Swoole\Coroutine\System::sleep(5);
             if (\Swoole\Process::kill($swooleMasterPid, 0)) {
@@ -270,7 +268,7 @@ class MainCliScript extends AbstractScriptProcess
     public static function parseClass()
     {
         $command = getenv('c');
-        if(empty($command)) {
+        if (empty($command)) {
             throw new SystemException("【Error】Missing cli command param. eg: --c=fixed:user:name --name=xxxx ");
         }
 

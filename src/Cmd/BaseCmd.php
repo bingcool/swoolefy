@@ -431,16 +431,17 @@ class BaseCmd extends Command
     protected function makeDirLogAndPid(array &$config)
     {
         // 创建日志目录
-        if (isset($config['setting']['log_file'])) {
-            $path = pathinfo($config['setting']['log_file'], PATHINFO_DIRNAME);
+        $pidFile = $config['setting']['log_file'] ?? null;
+        if (isset($pidFile)) {
+            $path = pathinfo($pidFile, PATHINFO_DIRNAME);
             if (!is_dir($path)) {
                 mkdir($path, 0777, true);
             }
         }
 
         // 创建 PID 目录
-        if (isset($config['setting']['pid_file'])) {
-            $path = pathinfo($config['setting']['pid_file'], PATHINFO_DIRNAME);
+        if (isset($pidFile)) {
+            $path = pathinfo($pidFile, PATHINFO_DIRNAME);
             if (!is_dir($path)) {
                 mkdir($path, 0777, true);
             }
@@ -454,12 +455,9 @@ class BaseCmd extends Command
         }
 
         // Script 模式下修正 PID 文件名（加端口后缀），并清理已死亡进程的 PID 文件
-        if (isset($config['setting']['pid_file'])) {
-            $path = pathinfo($config['setting']['pid_file'], PATHINFO_DIRNAME);
-            $config['setting']['pid_file'] = parseScriptPidFile($config['setting']['pid_file']);
-
+        if (isset($pidFile)) {
             // 仅清理当前 PID 文件（如果对应进程已死亡）
-            PidFileManager::removeIfDead($config['setting']['pid_file']);
+            PidFileManager::removeIfDead($pidFile);
         }
 
         if (!isset($config['app_conf'])) {

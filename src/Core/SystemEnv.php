@@ -310,7 +310,13 @@ class SystemEnv
     {
         if (SystemEnv::isWorkerService()) {
             $path = pathinfo($pidFile);
-            $pidFile = $path['dirname'] . '/' . WORKER_SERVICE_NAME . '/' . $path['filename'] . '_worker.' . $path['extension'];
+            if (SystemEnv::isScriptService()) {
+                $command = SystemEnv::getOption('c');
+                $fileName = $path['filename'] . '_worker:'.$command.'_'.WORKER_PORT.'.'.$path['extension'];
+            } else {
+                $fileName = $path['filename'] . '_worker.' . $path['extension'];
+            }
+            $pidFile = $path['dirname'] . '/' . WORKER_SERVICE_NAME . '/' . $fileName;
         }
         return $pidFile;
     }
