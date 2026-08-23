@@ -302,7 +302,8 @@ class CronForkRunner
 
         $scheduleModelOptionField = AbstractKernel::getScheduleModelOptionField();
         $runType = 'other';
-        if (isset($extend[$scheduleModelOptionField]) && str_contains(strtolower((string) $extend[$scheduleModelOptionField]), 'cron')) {
+        if ((isset($extend['run_type']) && $extend['run_type'] == CronForkTaskMetaDtoWorker::RUN_TYPE)
+            || (isset($extend[$scheduleModelOptionField]) && str_contains(strtolower((string) $extend[$scheduleModelOptionField]), 'cron'))) {
             $runType = CronForkTaskMetaDtoWorker::RUN_TYPE;
         }
         $execScript = str_replace('2>&1', ' ', $execScript);

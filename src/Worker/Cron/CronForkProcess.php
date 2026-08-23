@@ -16,6 +16,7 @@ use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Schedule\DynamicCallFn;
 use Swoolefy\Core\Schedule\ScheduleEvent;
 use Swoolefy\Script\AbstractKernel;
+use Swoolefy\Worker\Dto\CronForkTaskMetaDtoWorker;
 
 /**
  * Shell / swoolefy script Cron Worker。
@@ -87,6 +88,7 @@ class CronForkProcess extends CronProcess
                 (new DynamicCallFn())->generatePidFile($scheduleTask);
                 $scheduleTask->argv['daemon'] = 1;
                 $scheduleTask->argv[$scheduleModelOption] = $scheduleModelValue;
+                $scheduleTask->argv['run_type'] = CronForkTaskMetaDtoWorker::RUN_TYPE;
                 $forkType = CronForkProcess::FORK_TYPE_PROC_OPEN;
             }
 

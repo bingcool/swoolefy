@@ -13,6 +13,7 @@ namespace Swoolefy\Worker\Cron;
 
 use Swoolefy\Core\Schedule\ScheduleEvent;
 use Swoolefy\Exception\CronException;
+use Swoolefy\Worker\Dto\CronForkTaskMetaDtoWorker;
 use Swoolefy\Worker\Dto\CronUrlTaskMetaDtoWorker;
 
 /**
@@ -150,6 +151,11 @@ final class TaskDefinition
         $retry = (int) ($item['retry'] ?? 0);
         if ($retry < 0) {
             $retry = 0;
+        }
+
+        // !!! More important swoolefy script
+        if (str_contains($execScript, 'script') && str_contains($execScript, '--c')) {
+            $item['run_type'] = CronForkTaskMetaDtoWorker::RUN_TYPE;
         }
 
         return new self(

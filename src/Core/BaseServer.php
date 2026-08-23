@@ -253,7 +253,7 @@ class BaseServer
     }
 
     /**
-     * cron调用script时命令中带有option参数 --schedule_model=cron ----cron_script_pid_file=xxxxxxxx
+     * cron调用script时命令中带有option参数 --schedule_model=cron --cron_script_pid_file=xxxxxxxx
      *
      * @return void
      */
