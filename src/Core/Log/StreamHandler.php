@@ -208,10 +208,16 @@ class StreamHandler extends AbstractProcessingHandler
             }
         }
 
+        // Missing/rotated files must not call stat(): with a throwing error handler
+        // (SwoolefyException::handleError) even @stat emits ErrorException.
+        if (!is_file($filePath)) {
+            return true;
+        }
+
         clearstatcache(true, $filePath);
-        $pathStat = @stat($filePath);
+        $pathStat = stat($filePath);
         if (!is_array($pathStat) || !isset($pathStat['ino'], $pathStat['dev'])) {
-            return false;
+            return true;
         }
 
         return ((int)$pathStat['ino'] !== (int)$this->streamInode) || ((int)$pathStat['dev'] !== (int)$this->streamDevice);

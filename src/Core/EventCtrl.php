@@ -42,6 +42,9 @@ class EventCtrl implements EventCtrlInterface
             \Swoolefy\Script\MainCliScript::parseClass();
         }
         // log register
+        if (\defined('LOG_PATH') && !is_dir(LOG_PATH)) {
+            @mkdir(LOG_PATH, 0777, true);
+        }
         if (SystemEnv::isDaemonService() || SystemEnv::isCronService() || SystemEnv::cronScheduleScriptModel()) {
             \Swoolefy\Worker\AbstractWorkerProcess::registerLogComponents();
         } else {

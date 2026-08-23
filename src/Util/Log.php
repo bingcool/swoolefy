@@ -250,15 +250,14 @@ class Log
     protected function getDateLogFile(string $date, string $logFilePath)
     {
         $fileInfo = pathinfo($logFilePath);
+        $this->ensureLogDirectory($fileInfo['dirname']);
         if (!str_contains($fileInfo['dirname'], $date)) {
             $logDatePath = $fileInfo['dirname'].DIRECTORY_SEPARATOR.$date;
         }else {
             $logDatePath = $fileInfo['dirname'];
         }
 
-        if (!is_dir($logDatePath)) {
-            mkdir($logDatePath, 0777, true);
-        }
+        $this->ensureLogDirectory($logDatePath);
 
         if ($this->hourly) {
             $hour = join("",[date('H', time()), 'h']);
@@ -268,6 +267,20 @@ class Log
         }
 
         return $logDatePath.DIRECTORY_SEPARATOR.$fileName;
+    }
+
+    /**
+     * Ensure a log directory exists (recursive), matching project mkdir conventions.
+     */
+    protected function ensureLogDirectory(string $dir): void
+    {
+        if ($dir === '' || is_dir($dir)) {
+            return;
+        }
+
+        if (!@mkdir($dir, 0777, true) && !is_dir($dir)) {
+            throw new \RuntimeException('Failed to create log directory: ' . $dir);
+        }
     }
 
     /**
