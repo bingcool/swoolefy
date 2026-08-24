@@ -106,7 +106,7 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
             }
 
             // swoolefy 脚本：script.php + --c= 走框架 RUN_TYPE；其它语言脚本留空
-            if (!empty($item['exec_script']) && (str_contains($item['exec_script'], 'script.php') && str_contains($item['exec_script'], '--c='))) {
+            if (!empty($cronForkTask->exec_script) && (str_contains($cronForkTask->exec_script, 'script.php') && str_contains($cronForkTask->exec_script, '--c='))) {
                 $cronForkTask->run_type = ScheduleEvent::RUN_TYPE;
             } else {
                 $cronForkTask->run_type = '';

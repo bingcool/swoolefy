@@ -295,7 +295,13 @@ class SystemEnv
     {
         if (SystemEnv::isWorkerService()) {
             $path = pathinfo($logFile);
-            return $path['dirname'] . '/' . WORKER_SERVICE_NAME . '/' . $path['filename'] . '_worker.' . $path['extension'];
+            if (SystemEnv::isScriptService()) {
+                $command = SystemEnv::getOption('c');
+                $fileName = $path['filename'] . '_worker:'.$command.'.'.$path['extension'];
+            } else {
+                $fileName = $path['filename'] . '_worker.' . $path['extension'];
+            }
+            return $path['dirname'] . '/' . WORKER_SERVICE_NAME . '/' . $fileName;
         }
         return $logFile;
     }

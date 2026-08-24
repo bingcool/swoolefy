@@ -98,7 +98,7 @@ class CronForkProcess extends CronProcess
             $isNextHandle = $runner->isNextHandle(true, 120);
             if (!$isNextHandle) {
                 $logger?->addInfo("【{$scheduleTask->cron_name}】cron_fork任务达到最大限制并发数，禁止fork进程", false, $scheduleTaskItems);
-                return ExecutionResult::failed('达到最大限制并发数，禁止 fork');
+                return ExecutionResult::failed('cron_fork任务达到最大限制并发数，禁止fork，本次执行失败');
             }
 
             if ($forkType == self::FORK_TYPE_PROC_OPEN) {
@@ -266,7 +266,7 @@ class CronForkProcess extends CronProcess
 
         if ($pid <= 0) {
             return ExecutionResult::failed(
-                "cron_fork proc_open 拉起异常(pid={$pid},exitCode={$exitCode}{$tailMessage})",
+                "cron_fork proc_open 拉起异常(pid={$pid}, exitCode={$exitCode}{$tailMessage})",
                 $pid,
                 $exitCode,
             );
@@ -274,7 +274,7 @@ class CronForkProcess extends CronProcess
 
         if ($exitCode === 0) {
             return ExecutionResult::success(
-                "cron_fork proc_open 执行成功(pid={$pid},exitCode=0)",
+                "cron_fork proc_open 执行成功(pid={$pid}, exitCode=0)",
                 $pid,
                 0,
             );
@@ -282,14 +282,14 @@ class CronForkProcess extends CronProcess
 
         if ($signaled || $termSignal > 0) {
             return ExecutionResult::failed(
-                "cron_fork proc_open 结束(signal={$termSignal},pid={$pid},exitCode={$exitCode}{$tailMessage})",
+                "cron_fork proc_open 结束(signal={$termSignal}, pid={$pid}, exitCode={$exitCode}{$tailMessage})",
                 $pid,
                 $exitCode,
             );
         }
 
         return ExecutionResult::failed(
-            "cron_fork proc_open 执行失败(pid={$pid},exitCode={$exitCode}{$tailMessage})",
+            "cron_fork proc_open 执行失败(pid={$pid}, exitCode={$exitCode}{$tailMessage})",
             $pid,
             $exitCode,
         );
@@ -319,8 +319,8 @@ class CronForkProcess extends CronProcess
         }
 
         $isTruncated = $source === 'stderr' ? !empty($result['stderr_truncated']) : !empty($result['stdout_truncated']);
-        if (strlen($tail) > 200) {
-            $tail = substr($tail, -200);
+        if (strlen($tail) > 500) {
+            $tail = substr($tail, -500);
             $isTruncated = true;
         }
 

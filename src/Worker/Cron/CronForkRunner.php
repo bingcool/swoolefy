@@ -346,13 +346,15 @@ class CronForkRunner
                 $cronScriptPidFileOption = AbstractKernel::getCronScriptPidFileOptionField();
                 if (isset($extend[$cronScriptPidFileOption]) || $runType == CronForkTaskMetaDtoWorker::RUN_TYPE) {
                     $cronScriptPidFile = $extend[$cronScriptPidFileOption];
-                    $runProcessMetaDto->pid = 0;
-                    // 非阻塞轮询 pid 文件：最多等待 5 秒，每 100ms 检查一次。
-                    $deadline = microtime(true) + 5.0;
+                    // 非阻塞轮询 pid 文件：最多等待 10 秒，每 100ms 检查一次。
+                    $deadline = microtime(true) + env('CRON_MAX_WAIT_FORK_TIME', 10.0);
                     while (microtime(true) < $deadline) {
                         if (is_file($cronScriptPidFile)) {
-                            $runProcessMetaDto->pid = (int)trim(file_get_contents($cronScriptPidFile));
-                            break;
+                            $pidNum = trim(file_get_contents($cronScriptPidFile));
+                            if (is_numeric($pidNum) && $pidNum > 0) {
+                                $runProcessMetaDto->pid = $pidNum;
+                                break;
+                            }
                         }
                         if (\Swoole\Coroutine::getCid() >= 0) {
                             System::sleep(0.1);
