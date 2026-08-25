@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Swoolefy\Cmd\Infrastructure;
 
 use Swoolefy\Cmd\Support\ProcessTreeTerminator;
+use Swoolefy\Core\Swfy;
 
 /**
  * PID 文件管理器：读取、校验、目录创建、清理。
@@ -51,6 +52,21 @@ final class PidFileManager
             mkdir($dir, 0777, true);
         }
 
+        return $pidFile;
+    }
+
+    /**
+     * 获取pidFile
+     *
+     * @return string
+     *
+     */
+    public static function getPidFile(): string
+    {
+        $pidFile = Swfy::getConf()['setting']['pid_file'] ?? '';
+        if (empty($pidFile)) {
+            $pidFile = PidFileManager::resolve(APP_NAME);
+        }
         return $pidFile;
     }
 

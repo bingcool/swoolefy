@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Script;
 
+use Swoolefy\Cmd\Infrastructure\PidFileManager;
 use Swoolefy\Library\CurlProxy\OpentelemetryMiddleware;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Exec;
@@ -223,7 +224,8 @@ class MainCliScript extends AbstractScriptProcess
         if ($waitTime > 0) {
             \Swoole\Coroutine\System::sleep($waitTime);
         }
-        $pidFile = Swfy::getConf()['setting']['pid_file'];
+
+        $pidFile = PidFileManager::getPidFile();
         $swooleMasterPid = Swfy::getMasterPid();
         $exist = \Swoole\Process::kill($swooleMasterPid, 0);
         if($exist && !$this->exitAll) {
