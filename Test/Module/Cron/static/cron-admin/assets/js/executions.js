@@ -12,13 +12,14 @@
         loading: false,
         dlg: false,
         execDetail: null,
-        query: { taskId: '', taskName: '', page: 1, pageSize: 20, execBatchId: '', status: '', execType: '' }
+        query: { taskId: '', taskName: '', page: 1, pageSize: 20, execBatchId: '', status: '', execType: '', triggerType: '', startTime: '', endTime: '', executionTimeRange: [] }
       };
     },
     created: function () {
       if (this.$route.query.taskId) {
         this.query.taskId = String(this.$route.query.taskId);
       }
+      this.syncExecutionTimeRange();
       this.load();
     },
     watch: {
@@ -29,6 +30,27 @@
       }
     },
     methods: {
+      syncExecutionTimeRange: function () {
+        var startTime = String(this.query.startTime || '').trim();
+        var endTime = String(this.query.endTime || '').trim();
+        if (startTime && endTime) {
+          this.query.executionTimeRange = [startTime, endTime];
+          return;
+        }
+        this.query.executionTimeRange = [];
+        this.query.startTime = '';
+        this.query.endTime = '';
+      },
+      syncStartEndFromRange: function () {
+        var range = this.query.executionTimeRange;
+        if (Array.isArray(range) && range.length === 2) {
+          this.query.startTime = String(range[0] || '').trim();
+          this.query.endTime = String(range[1] || '').trim();
+          return;
+        }
+        this.query.startTime = '';
+        this.query.endTime = '';
+      },
       normalizeStatus: function (row) {
         var raw = String((row && (row.statusName || row.status)) || '').trim().toLowerCase();
         if (raw === 'success' || raw === 'succeeded' || raw === 'ok' || raw === '成功') return 'success';
@@ -57,7 +79,26 @@
         };
         return map[key];
       },
+      triggerTypeText: function (row) {
+        var triggerType = Number(row && row.triggerType);
+        if (triggerType === 1) return '定时';
+        if (triggerType === 2) return '手动执行';
+        return '未知';
+      },
+      validateTimeRange: function () {
+        var range = this.query.executionTimeRange;
+        if (!Array.isArray(range) || range.length === 0) {
+          return true;
+        }
+        if (range.length !== 2) {
+          this.$message.warning('执行时间筛选需同时选择开始执行时间和结束执行时间');
+          return false;
+        }
+        return true;
+      },
       load: async function () {
+        this.syncStartEndFromRange();
+        if (!this.validateTimeRange()) return;
         this.loading = true;
         try {
           var qs = new URLSearchParams({
@@ -73,6 +114,13 @@
           if (this.query.execType !== '' && this.query.execType !== null && this.query.execType !== undefined) {
             qs.set('execType', String(this.query.execType));
           }
+          if (this.query.triggerType !== '' && this.query.triggerType !== null && this.query.triggerType !== undefined) {
+            qs.set('triggerType', String(this.query.triggerType));
+          }
+          var startTime = String(this.query.startTime || '').trim();
+          if (startTime) qs.set('startTime', startTime);
+          var endTime = String(this.query.endTime || '').trim();
+          if (endTime) qs.set('endTime', endTime);
           var d = await common.api('/tasks/logs?' + qs.toString());
           this.items = (d && d.list) || [];
           this.total = (d && d.total) || 0;
@@ -83,13 +131,18 @@
         }
       },
       search: function () {
+        this.syncStartEndFromRange();
+        if (!this.validateTimeRange()) return;
         this.query.page = 1;
         this.load();
       },
       detail: async function (row) {
         try {
+          var logId = row && row.id ? ('&logId=' + encodeURIComponent(String(row.id))) : '';
           this.execDetail = await common.api(
-            '/tasks/execution?id=' + row.cronId + '&execBatchId=' + encodeURIComponent(row.execBatchId)
+            '/tasks/execution?id=' + encodeURIComponent(row.cronId)
+              + '&execBatchId=' + encodeURIComponent(row.execBatchId)
+              + logId
           );
           this.dlg = true;
         } catch (e) {
@@ -99,7 +152,7 @@
       viewLog: function (row) {
         this.$router.push({
           path: '/executions/log',
-          query: { taskId: row.cronId, execBatchId: row.execBatchId }
+          query: { taskId: row.cronId, execBatchId: row.execBatchId, logId: row.id }
         });
       }
     }
@@ -116,6 +169,9 @@
       },
       execBatchId: function () {
         return this.$route.query.execBatchId || '';
+      },
+      logId: function () {
+        return this.$route.query.logId || '';
       }
     },
     created: function () {
@@ -129,9 +185,12 @@
         }
         this.loading = true;
         try {
+          var logId = String(this.logId || '').trim();
+          var logIdQuery = logId ? ('&logId=' + encodeURIComponent(logId)) : '';
           this.detail = await common.api(
             '/tasks/execution?id=' + encodeURIComponent(this.taskId)
               + '&execBatchId=' + encodeURIComponent(this.execBatchId)
+              + logIdQuery
           );
         } catch (e) {
           common.toastErr(this, e);
@@ -151,6 +210,7 @@
         var content = [
           '[taskId]', String(this.taskId), '',
           '[execBatchId]', String(this.execBatchId), '',
+          '[logId]', String(this.logId || ''), '',
           '[stdout]', this.detail.stdout || this.detail.message || '', '',
           '[stderr]', this.detail.stderr || '', '',
           '[taskItem]', JSON.stringify(this.detail.taskItem || {}, null, 2)

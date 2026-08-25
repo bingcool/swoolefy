@@ -42,6 +42,9 @@ class TaskLogsQueryDto extends AbstractDto
     #[ApiProperty(description: '执行类型：1=shell, 2=http；null 表示不过滤')]
     protected ?int $execType = null;
 
+    #[ApiProperty(description: '触发类型：1=定时, 2=手动执行；null 表示不过滤')]
+    protected ?int $triggerType = null;
+
     #[ApiProperty(description: '任务名称（cron_task.cron_name）模糊查询，空表示不过滤')]
     protected ?string $taskName = null;
 
@@ -137,6 +140,18 @@ class TaskLogsQueryDto extends AbstractDto
     public function setExecType(?int $execType): static
     {
         $this->execType = in_array($execType, [1, 2], true) ? $execType : null;
+
+        return $this;
+    }
+
+    public function getTriggerType(): ?int
+    {
+        return $this->triggerType;
+    }
+
+    public function setTriggerType(?int $triggerType): static
+    {
+        $this->triggerType = in_array($triggerType, [1, 2], true) ? $triggerType : null;
 
         return $this;
     }

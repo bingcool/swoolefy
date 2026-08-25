@@ -106,9 +106,9 @@ class CronAgentReportRequest extends BaseRequest
         return $this;
     }
 
-    public function getPid(): int
+    public function getPid(): ?int
     {
-        return (int)($this->pid ?? 0);
+        return $this->pid;
     }
 
     public function setPid(?int $pid): static

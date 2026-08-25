@@ -36,4 +36,21 @@ final class TaskLogsQueryDtoTest extends TestCase
         $dto->setTaskName('   ');
         $this->assertNull($dto->getTaskName());
     }
+
+    public function testTriggerTypeOnlyKeepsSchedulerOrManual(): void
+    {
+        $dto = new TaskLogsQueryDto();
+
+        $dto->setTriggerType(1);
+        $this->assertSame(1, $dto->getTriggerType());
+
+        $dto->setTriggerType(2);
+        $this->assertSame(2, $dto->getTriggerType());
+
+        $dto->setTriggerType(0);
+        $this->assertNull($dto->getTriggerType());
+
+        $dto->setTriggerType(3);
+        $this->assertNull($dto->getTriggerType());
+    }
 }

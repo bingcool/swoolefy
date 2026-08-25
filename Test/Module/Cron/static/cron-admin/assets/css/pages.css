@@ -687,6 +687,37 @@
   color: var(--muted);
 }
 
+.execution-range-picker.el-date-editor.el-input__inner {
+  width: 380px;
+  height: 36px;
+  border-radius: 4px;
+  border-color: #dcdfe6;
+  padding-right: 38px;
+}
+
+.execution-range-picker .el-range-input {
+  font-size: 13px;
+  color: #606266;
+}
+
+.execution-range-picker .el-range-input::placeholder {
+  color: #c0c4cc;
+}
+
+.execution-range-picker .el-range-separator {
+  color: #909399;
+  line-height: 28px;
+  padding: 0 10px;
+}
+
+.execution-range-picker .el-range__icon {
+  position: absolute;
+  right: 10px;
+  left: auto;
+  color: #c0c4cc;
+  line-height: 28px;
+}
+
 @media (max-width: 1050px) {
   .editor-layout,
   .stat-row,

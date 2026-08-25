@@ -60,7 +60,7 @@
       },
       remove: async function (row) {
         try {
-          await this.$confirm('确认删除节点 ' + row.nodeName + '？');
+          await common.confirmDelete(this, '确认删除节点 ' + row.nodeName + '？');
           await common.api('/nodes', { method: 'DELETE', body: { id: row.id } });
           this.$message.success('已删除');
           this.load();

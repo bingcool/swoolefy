@@ -235,7 +235,7 @@
       },
       remove: async function () {
         try {
-          await this.$confirm('确认删除任务？');
+          await common.confirmDelete(this, '确认删除任务？');
           await common.api('/tasks?id=' + encodeURIComponent(this.form.id), {
             method: 'DELETE',
             body: { id: Number(this.form.id) }

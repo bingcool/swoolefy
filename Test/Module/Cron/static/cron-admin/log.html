@@ -7,7 +7,8 @@
     (function () {
       var params = new URLSearchParams(window.location.search);
       window.location.replace('/cron-admin#/executions/log?taskId=' + encodeURIComponent(params.get('taskId') || '')
-        + '&execBatchId=' + encodeURIComponent(params.get('execBatchId') || ''));
+        + '&execBatchId=' + encodeURIComponent(params.get('execBatchId') || '')
+        + '&logId=' + encodeURIComponent(params.get('logId') || ''));
     })();
   </script>
 </head>

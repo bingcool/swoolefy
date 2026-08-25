@@ -376,9 +376,9 @@ class CronForkRunner
                     $this->runProcessMetaPool[] = $runProcessMetaDto;
                     $this->debug("【{$this->cronName}】拉起后当前runProcessMetaPool的Size=".count($this->runProcessMetaPool));
                 }
-                call_user_func_array($callable, $params);
                 $waitResult = $this->waitForProcessExitAndDrainPipes($proc_process, $pipes, $status['pid']);
                 $waitResult['pid'] = (int) ($statusProperty['pid'] ?? 0);
+                call_user_func_array($callable, $params);
                 return $waitResult;
             } catch (\Throwable $e) {
                 $msg = "【{$this->cronName}】CommandRunner ErrorMsg={$e->getMessage()},trace={$e->getTraceAsString()}";

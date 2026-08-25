@@ -14,6 +14,11 @@ use Swoolefy\Http\BaseRequest;
  */
 class ExecutionDetailRequest extends BaseRequest
 {
+    #[ApiProperty(description: '日志行 ID（优先定位单条执行记录）')]
+    #[ValidationRule(rule: 'nullable|int', message: 'logId 必须是整数')]
+    #[StringToInt]
+    protected ?int $logId = null;
+
     #[ApiProperty(description: '任务 ID')]
     #[ValidationRule(rule: 'required|int', message: 'id 不能为空')]
     #[StringToInt]
@@ -22,6 +27,18 @@ class ExecutionDetailRequest extends BaseRequest
     #[ApiProperty(description: '执行批次 ID')]
     #[ValidationRule(rule: 'required|string', message: 'execBatchId 不能为空')]
     protected string $execBatchId = '';
+
+    public function getLogId(): ?int
+    {
+        return $this->logId;
+    }
+
+    public function setLogId(?int $logId): static
+    {
+        $this->logId = $logId;
+
+        return $this;
+    }
 
     public function getId(): int
     {

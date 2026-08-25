@@ -33,7 +33,8 @@
     if (path.indexOf('/cron-admin/log.html') !== -1) {
       var params = new URLSearchParams(search);
       window.location.replace('/cron-admin#/executions/log?taskId=' + encodeURIComponent(params.get('taskId') || '')
-        + '&execBatchId=' + encodeURIComponent(params.get('execBatchId') || ''));
+        + '&execBatchId=' + encodeURIComponent(params.get('execBatchId') || '')
+        + '&logId=' + encodeURIComponent(params.get('logId') || ''));
       return true;
     }
     if (path.indexOf('/cron-admin/index.html') !== -1 && !hash) {

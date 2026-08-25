@@ -366,15 +366,18 @@ class CronTaskManagerService
     }
 
     /**
-     * 分页查询执行日志（可选 cron_id = taskId，created_at 倒序）。
+     * 分页查询执行日志（可选 cron_id = taskId，id 倒序）。
      */
     public function taskLogs(TaskLogsQueryDto $query): TaskLogsPageResult
     {
         $taskId = $query->getTaskId();
         $execType = $query->getExecType();
+        $triggerType = $query->getTriggerType();
         $taskName = $query->getTaskName();
 
         $qb = CronTaskLogEntity::queryNotDeleted();
+        // 执行记录页默认只展示带 exec_batch_id 的执行行，排除配置变更审计行。
+        $qb->whereNotNull('exec_batch_id')->where('exec_batch_id', '<>', '');
         if ($taskId !== null && $taskId > 0) {
             $qb->where(['cron_id' => $taskId]);
         }
@@ -400,6 +403,9 @@ class CronTaskManagerService
         if ($query->getExecBatchId() !== null) {
             $qb->where('exec_batch_id', $query->getExecBatchId());
         }
+        if ($triggerType !== null) {
+            $qb->where('trigger_type', $triggerType);
+        }
         if ($query->getStartTime() !== null) {
             $qb->where('created_at', '>=', $query->getStartTime());
         }
@@ -414,7 +420,7 @@ class CronTaskManagerService
             }
         }
         $total = $qb->clone()->count();
-        $list = $qb->order('created_at', 'desc')->limit($query->getOffset(), $query->getPageSize())->select()->toArray();
+        $list = $qb->order('id', 'desc')->limit($query->getOffset(), $query->getPageSize())->select()->toArray();
         $taskNameMap = $this->mapTaskNamesByCronIds($this->collectCronIds($list));
 
         $pageResult = new TaskLogsPageResult();
@@ -520,10 +526,12 @@ class CronTaskManagerService
         $row = [
             'cron_id' => $cronId,
             'exec_batch_id' => $dto->getExecBatchId(),
-            'pid' => $dto->getPid(),
             'task_item' => is_array($taskItem) ? $taskItem : ['raw' => (string)$taskItem],
             'message' => $message,
         ];
+        if ($dto->getPid() !== null) {
+            $row['pid'] = max(0, $dto->getPid());
+        }
         if ($dto->getStatus() !== null) {
             $row['status'] = $dto->getStatus();
         }
@@ -541,6 +549,26 @@ class CronTaskManagerService
         }
         if ($dto->getStatus() !== null) {
             $row['finished_at'] = date('Y-m-d H:i:s');
+        }
+
+        $execBatchId = trim((string)($row['exec_batch_id'] ?? ''));
+        if ($execBatchId !== '') {
+            $existing = CronTaskLogEntity::queryNotDeleted()
+                ->where([
+                    'cron_id' => $cronId,
+                    'exec_batch_id' => $execBatchId,
+                ])
+                ->order('id', 'asc')
+                ->find();
+            if ($existing) {
+                $id = is_array($existing) ? (int)($existing['id'] ?? 0) : (int)$existing->id;
+                if ($id > 0) {
+                    unset($row['cron_id'], $row['exec_batch_id']);
+                    CronTaskLogEntity::query()->where(['id' => $id])->update($row);
+
+                    return $cronId;
+                }
+            }
         }
 
         CronTaskLogEntity::query()->insert($row);
@@ -742,14 +770,23 @@ class CronTaskManagerService
      */
     public function getExecution(ExecutionDetailQueryDto $query): ExecutionDetailDto
     {
-        if ($query->getTaskId() <= 0 || $query->getExecBatchId() === '') {
-            throw CronTaskException::throw('id和execBatchId不能为空', -1);
+        $logId = $query->getLogId();
+        $taskId = $query->getTaskId();
+        $execBatchId = $query->getExecBatchId();
+        if (($logId === null || $logId <= 0) && ($taskId <= 0 || $execBatchId === '')) {
+            throw CronTaskException::throw('logId或(id和execBatchId)至少提供一组', -1);
         }
 
-        $row = CronTaskLogEntity::queryNotDeleted()->where([
-            'cron_id' => $query->getTaskId(),
-            'exec_batch_id' => $query->getExecBatchId(),
-        ])->order('id', 'desc')->find();
+        $queryBuilder = CronTaskLogEntity::query();
+        if ($logId !== null && $logId > 0) {
+            // logId 是执行日志主键，联合传参时优先按 logId 精确命中。
+            $row = $queryBuilder->where('id', $logId)->first();
+        } else {
+            $row = $queryBuilder->where([
+                'cron_id' => $taskId,
+                'exec_batch_id' => $execBatchId,
+            ])->order('id', 'desc')->first();
+        }
         if (!$row) {
             throw CronTaskException::throw('执行记录不存在', -1);
         }
@@ -1069,7 +1106,7 @@ class CronTaskManagerService
             ->where('cron_id', $cronTaskId)
             ->whereNull('consumed_at')
             ->order('id', 'asc')
-            ->find();
+            ->first();
         if (!$row) {
             return null;
         }

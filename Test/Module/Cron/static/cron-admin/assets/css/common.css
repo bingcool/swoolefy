@@ -198,6 +198,87 @@ body {
   color: #1e40af;
 }
 
+.cron-confirm-dialog.el-message-box {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.cron-confirm-dialog .el-message-box__header {
+  padding-bottom: 4px;
+}
+
+.cron-confirm-dialog .el-message-box__title {
+  font-weight: 600;
+}
+
+.cron-confirm-dialog .el-message-box__btns .el-button {
+  border-radius: 6px;
+}
+
+.cron-confirm-success .el-message-box__title,
+.cron-confirm-success .el-message-box__status {
+  color: #67c23a;
+}
+
+.cron-confirm-success .cron-confirm-ok.el-button--primary {
+  background-color: #67c23a;
+  border-color: #67c23a;
+}
+
+.cron-confirm-success .cron-confirm-ok.el-button--primary:hover,
+.cron-confirm-success .cron-confirm-ok.el-button--primary:focus {
+  background-color: #85ce61;
+  border-color: #85ce61;
+}
+
+.cron-confirm-warning .el-message-box__title,
+.cron-confirm-warning .el-message-box__status {
+  color: #e6a23c;
+}
+
+.cron-confirm-warning .cron-confirm-ok.el-button--primary {
+  background-color: #e6a23c;
+  border-color: #e6a23c;
+}
+
+.cron-confirm-warning .cron-confirm-ok.el-button--primary:hover,
+.cron-confirm-warning .cron-confirm-ok.el-button--primary:focus {
+  background-color: #ebb563;
+  border-color: #ebb563;
+}
+
+.cron-confirm-danger .el-message-box__title,
+.cron-confirm-danger .el-message-box__status {
+  color: #f56c6c;
+}
+
+.cron-confirm-danger .cron-confirm-ok.el-button--primary {
+  background-color: #f56c6c;
+  border-color: #f56c6c;
+}
+
+.cron-confirm-danger .cron-confirm-ok.el-button--primary:hover,
+.cron-confirm-danger .cron-confirm-ok.el-button--primary:focus {
+  background-color: #f78989;
+  border-color: #f78989;
+}
+
+.cron-confirm-info .el-message-box__title,
+.cron-confirm-info .el-message-box__status {
+  color: #409eff;
+}
+
+.cron-confirm-info .cron-confirm-ok.el-button--primary {
+  background-color: #409eff;
+  border-color: #409eff;
+}
+
+.cron-confirm-info .cron-confirm-ok.el-button--primary:hover,
+.cron-confirm-info .cron-confirm-ok.el-button--primary:focus {
+  background-color: #66b1ff;
+  border-color: #66b1ff;
+}
+
 @media (max-width: 1050px) {
   .sidebar {
     width: 200px;

@@ -52,11 +52,13 @@
       toggle: async function (row, nextStatus) {
         var status = nextStatus === undefined ? (row.status === 1 ? 0 : 1) : Number(nextStatus);
         try {
+          await common.confirmTaskStatusChange(this, status, row.name);
           await common.api('/tasks/status', { method: 'PUT', body: { id: row.id, status: status } });
           common.toastTaskStatus(this, status, row.name);
           this.load();
         } catch (e) {
-          common.toastErr(this, e);
+          if (e !== 'cancel') common.toastErr(this, e);
+          this.$forceUpdate();
         }
       },
       runOnce: async function (row) {
@@ -78,7 +80,7 @@
       },
       remove: async function (row) {
         try {
-          await this.$confirm('确认删除 ' + row.name + '？');
+          await common.confirmDelete(this, '确认删除 ' + row.name + '？');
           await common.api('/tasks?id=' + encodeURIComponent(row.id), {
             method: 'DELETE',
             body: { id: Number(row.id) }
@@ -91,6 +93,7 @@
       },
       batch: async function (status) {
         try {
+          await common.confirmTaskStatusChange(this, status, this.sel.map(function (x) { return x.name; }));
           await common.api('/tasks/batch-status', {
             method: 'PUT',
             body: { ids: this.sel.map(function (x) { return x.id; }), status: status }
@@ -98,7 +101,7 @@
           common.toastTaskStatus(this, status, this.sel.map(function (x) { return x.name; }));
           this.load();
         } catch (e) {
-          common.toastErr(this, e);
+          if (e !== 'cancel') common.toastErr(this, e);
         }
       },
       formatNextRun: function (row) {

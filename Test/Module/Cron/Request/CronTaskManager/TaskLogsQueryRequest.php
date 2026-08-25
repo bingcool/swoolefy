@@ -30,6 +30,11 @@ class TaskLogsQueryRequest extends BasePageRequest
     #[StringToInt]
     protected ?int $execType = null;
 
+    #[ApiProperty(description: '触发类型：1=定时, 2=手动执行')]
+    #[ValidationRule(rule: 'nullable|int', message: 'triggerType 必须是整数')]
+    #[StringToInt]
+    protected ?int $triggerType = null;
+
     #[ApiProperty(description: '任务名称（模糊搜索）')]
     protected ?string $taskName = null;
 
@@ -38,6 +43,12 @@ class TaskLogsQueryRequest extends BasePageRequest
 
     #[ApiProperty(description: '结束时间（含）')]
     protected ?string $endTime = null;
+
+    #[ApiProperty(description: '创建开始时间（含），startTime 别名')]
+    protected ?string $createdStart = null;
+
+    #[ApiProperty(description: '创建结束时间（含），endTime 别名')]
+    protected ?string $createdEnd = null;
 
     public function getTaskId(): ?int
     {
@@ -87,6 +98,18 @@ class TaskLogsQueryRequest extends BasePageRequest
         return $this;
     }
 
+    public function getTriggerType(): ?int
+    {
+        return $this->triggerType;
+    }
+
+    public function setTriggerType(?int $triggerType): static
+    {
+        $this->triggerType = $triggerType;
+
+        return $this;
+    }
+
     public function getTaskName(): ?string
     {
         return $this->taskName;
@@ -101,7 +124,11 @@ class TaskLogsQueryRequest extends BasePageRequest
 
     public function getStartTime(): ?string
     {
-        return $this->startTime;
+        if ($this->startTime !== null && trim($this->startTime) !== '') {
+            return trim($this->startTime);
+        }
+
+        return $this->createdStart !== null && trim($this->createdStart) !== '' ? trim($this->createdStart) : null;
     }
 
     public function setStartTime(?string $startTime): static
@@ -113,12 +140,40 @@ class TaskLogsQueryRequest extends BasePageRequest
 
     public function getEndTime(): ?string
     {
-        return $this->endTime;
+        if ($this->endTime !== null && trim($this->endTime) !== '') {
+            return trim($this->endTime);
+        }
+
+        return $this->createdEnd !== null && trim($this->createdEnd) !== '' ? trim($this->createdEnd) : null;
     }
 
     public function setEndTime(?string $endTime): static
     {
         $this->endTime = $endTime;
+
+        return $this;
+    }
+
+    public function getCreatedStart(): ?string
+    {
+        return $this->createdStart !== null && trim($this->createdStart) !== '' ? trim($this->createdStart) : null;
+    }
+
+    public function setCreatedStart(?string $createdStart): static
+    {
+        $this->createdStart = $createdStart;
+
+        return $this;
+    }
+
+    public function getCreatedEnd(): ?string
+    {
+        return $this->createdEnd !== null && trim($this->createdEnd) !== '' ? trim($this->createdEnd) : null;
+    }
+
+    public function setCreatedEnd(?string $createdEnd): static
+    {
+        $this->createdEnd = $createdEnd;
 
         return $this;
     }

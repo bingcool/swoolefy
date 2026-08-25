@@ -63,6 +63,7 @@ class ExecutionDetailDto extends AbstractDto
      */
     public static function fromLogRow(array $row): self
     {
+        var_dump($row);
         $dto = new self();
         $dto->taskId = (int) ($row['cron_id'] ?? 0);
         $dto->execBatchId = (string) ($row['exec_batch_id'] ?? '');
@@ -86,7 +87,7 @@ class ExecutionDetailDto extends AbstractDto
             ? (int) $row['http_status'] : null;
         $ti = $row['task_item'] ?? [];
         $dto->taskItem = is_array($ti) ? $ti : [];
-
+        var_dump($dto);
         return $dto;
     }
 

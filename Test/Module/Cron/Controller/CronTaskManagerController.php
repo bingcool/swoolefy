@@ -315,6 +315,7 @@ class CronTaskManagerController extends BController
             ->setExecBatchId($request->getExecBatchId())
             ->setStatus($request->getStatus())
             ->setExecType($request->getExecType())
+            ->setTriggerType($request->getTriggerType())
             ->setTaskName($request->getTaskName())
             ->setStartTime($request->getStartTime())
             ->setEndTime($request->getEndTime());
@@ -497,7 +498,9 @@ class CronTaskManagerController extends BController
     public function getExecution(ExecutionDetailRequest $request): ExecutionDetailResponse
     {
         return new ExecutionDetailResponse(
-            $this->cronTaskManagerService->getExecution(ExecutionDetailQueryDto::of($request->getId(), $request->getExecBatchId()))
+            $this->cronTaskManagerService->getExecution(
+                ExecutionDetailQueryDto::of($request->getId(), $request->getExecBatchId(), $request->getLogId())
+            )
         );
     }
 

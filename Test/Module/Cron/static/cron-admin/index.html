@@ -119,7 +119,7 @@
         <el-table-column label="Status" width="120">
           <template slot-scope="s">
             <div class="task-status-switch">
-              <el-switch :value="s.row.status" :active-value="1" :inactive-value="0" @change="value => toggle(s.row, value)"></el-switch>
+              <el-switch :key="'st-'+s.row.id+'-'+s.row.status" :value="s.row.status" :active-value="1" :inactive-value="0" @change="value => toggle(s.row, value)"></el-switch>
               <span>{{ s.row.status===1?'启用':'禁用' }}</span>
             </div>
           </template>
@@ -134,7 +134,7 @@
               <el-button size="mini" class="task-action-btn btn-edit" @click="$router.push('/tasks/edit/'+s.row.id)">编辑</el-button>
               <el-button size="mini" class="task-action-btn btn-run" @click="runOnce(s.row)">手动执行</el-button>
               <el-button size="mini" class="task-action-btn btn-log" @click="$router.push('/executions?taskId='+s.row.id)">查看日志</el-button>
-              <el-button size="mini" class="task-action-btn btn-copy" @click="dup(s.row)">复制</el-button>
+              <!-- 复制功能临时隐藏，仅展示层下线，保留前端方法/后端接口便于恢复 -->
               <el-button size="mini" class="task-action-btn btn-delete" @click="remove(s.row)">删除</el-button>
             </div>
           </template>
@@ -430,12 +430,35 @@
             <el-option :value="2" label="http"></el-option>
           </el-select>
         </el-form-item>
+        <el-form-item label="触发类型">
+          <el-select v-model="query.triggerType" clearable placeholder="全部" style="width:120px">
+            <el-option :value="''" label="全部"></el-option>
+            <el-option :value="1" label="定时"></el-option>
+            <el-option :value="2" label="手动执行"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="执行时间">
+          <el-date-picker
+            v-model="query.executionTimeRange"
+            class="execution-range-picker"
+            type="datetimerange"
+            value-format="yyyy-MM-dd HH:mm:ss"
+            format="yyyy-MM-dd HH:mm:ss"
+            clearable
+            range-separator="→"
+            start-placeholder="开始执行时间"
+            end-placeholder="结束执行时间">
+          </el-date-picker>
+        </el-form-item>
         <el-form-item><el-button type="primary" @click="search">查询</el-button></el-form-item>
       </el-form>
       <el-table :data="items" v-loading="loading">
         <el-table-column prop="cronId" label="任务ID" width="80"></el-table-column>
         <el-table-column prop="taskName" label="任务名称" min-width="150"></el-table-column>
         <el-table-column prop="execBatchId" label="批次" min-width="160"></el-table-column>
+        <el-table-column label="触发类型" width="100">
+          <template slot-scope="s">{{ triggerTypeText(s.row) }}</template>
+        </el-table-column>
         <el-table-column label="状态" width="110">
           <template slot-scope="s">
             <span class="status-pill" :class="statusClass(s.row)">{{ statusText(s.row) }}</span>
