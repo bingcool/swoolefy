@@ -647,6 +647,90 @@
   border-color: #fbcfe8;
 }
 
+.text-muted {
+  color: var(--muted);
+}
+
+/* Cron Nodes page — underline tabs */
+.nodes-page-tabs {
+  margin-bottom: 4px;
+}
+
+.nodes-page-tabs .nodes-tabs > .el-tabs__header {
+  margin: 0 0 16px;
+}
+
+.nodes-page-tabs .nodes-tabs .el-tabs__nav-wrap::after {
+  height: 1px;
+  background-color: var(--line);
+}
+
+.nodes-page-tabs .nodes-tabs .el-tabs__nav {
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+
+.nodes-page-tabs .nodes-tabs .el-tabs__item {
+  position: relative;
+  height: auto;
+  line-height: 1.5;
+  padding: 0 0 12px;
+  margin-right: 40px;
+  border-radius: 0;
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--text);
+  border: none;
+  background: transparent;
+  transition: color 0.2s ease;
+}
+
+.nodes-page-tabs .nodes-tabs .el-tabs__item:last-child {
+  margin-right: 0;
+}
+
+.nodes-page-tabs .nodes-tabs .el-tabs__item:hover {
+  color: var(--primary);
+  background: transparent;
+}
+
+.nodes-page-tabs .nodes-tabs .el-tabs__item.is-active {
+  color: var(--primary);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.nodes-page-tabs .nodes-tabs .el-tabs__item.is-active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background-color: var(--primary);
+  pointer-events: none;
+}
+
+.nodes-page-tabs .nodes-tabs .el-tabs__active-bar {
+  display: none;
+}
+
+.nodes-page-tabs .cron-tab-label {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.nodes-page-tabs .nodes-tabs .el-tabs__content {
+  overflow: visible;
+}
+
+.nodes-page-tabs .nodes-tabs .page-head {
+  margin-bottom: 14px;
+}
+
 .log-pre {
   white-space: pre-wrap;
   word-break: break-word;

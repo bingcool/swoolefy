@@ -7,9 +7,9 @@ use Swoolefy\Worker\Cron\CronNodeLiveness;
 use Swoolefy\Worker\Cron\CronProcess;
 use Swoolefy\Worker\Cron\ExecutionStatus;
 use Swoolefy\Worker\Dto\CronUrlTaskMetaDtoWorker;
-use Test\Module\Cron\CronAgentNodeEntity;
-use Test\Module\Cron\CronTaskEntity;
-use Test\Module\Cron\CronTaskLogEntity;
+use Test\Module\Cron\Entity\CronAgentNodeEntity;
+use Test\Module\Cron\Entity\CronTaskEntity;
+use Test\Module\Cron\Entity\CronTaskLogEntity;
 
 /**
  * Cron Worker 侧任务拉取与运行日志写入。

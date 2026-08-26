@@ -23,6 +23,7 @@ use Swoolefy\Core\Dto\AbstractDto;
  * - keyword：任务名称模糊搜索（name LIKE）
  * - status：0=禁用，1=启用；null 表示不过滤
  * - nodeId：绑定 Agent 节点 ID；null 表示不过滤
+ * - groupId：节点所属分组 ID；-1 表示仅未分组节点；null 表示不过滤
  * - execType：1=shell，2=http；null 表示不过滤
  */
 class ListTasksQueryDto extends AbstractDto
@@ -41,6 +42,9 @@ class ListTasksQueryDto extends AbstractDto
 
     #[ApiProperty(description: '绑定的 Agent 节点 ID；null 表示不过滤')]
     protected ?int $nodeId = null;
+
+    #[ApiProperty(description: '节点分组 ID；-1 表示未分组节点；null 表示不过滤')]
+    protected ?int $groupId = null;
 
     #[ApiProperty(description: '执行类型：1=shell，2=http；null 表示不过滤')]
     protected ?int $execType = null;
@@ -115,6 +119,20 @@ class ListTasksQueryDto extends AbstractDto
     public function setNodeId(?int $nodeId): static
     {
         $this->nodeId = $nodeId;
+
+        return $this;
+    }
+
+    /** 获取节点分组 ID 过滤条件 */
+    public function getGroupId(): ?int
+    {
+        return $this->groupId;
+    }
+
+    /** 设置节点分组 ID 过滤条件 */
+    public function setGroupId(?int $groupId): static
+    {
+        $this->groupId = $groupId;
 
         return $this;
     }

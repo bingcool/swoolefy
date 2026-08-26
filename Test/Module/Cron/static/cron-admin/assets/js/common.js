@@ -65,6 +65,15 @@
     }
   }
 
+  function formatDurationMs(ms) {
+    if (ms === null || ms === undefined || ms === '') return '-';
+    var n = Number(ms);
+    if (!isFinite(n)) return '-';
+    if (n === 0) return '0';
+    if (n > 100) return n + 'ms(约' + (n / 1000).toFixed(1) + 's)';
+    return n + 'ms';
+  }
+
   function formatNextRunAt(row) {
     if (!row) return '-';
     var ts = row.nextRunAt;
@@ -102,6 +111,7 @@
     confirmTaskStatusChange: confirmTaskStatusChange,
     confirmDelete: confirmDelete,
     toastTaskStatus: toastTaskStatus,
+    formatDurationMs: formatDurationMs,
     formatNextRunAt: formatNextRunAt,
     parseJsonOrNull: parseJsonOrNull,
     detectExprType: detectExprType

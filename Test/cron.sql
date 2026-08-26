@@ -40,8 +40,31 @@ INSERT INTO `cron_task` (`id`, `cron_name`, `expression`, `command`, `exec_type`
 INSERT INTO `cron_task` (`id`, `cron_name`, `expression`, `command`, `exec_type`, `status`, `with_block_lapping`, `description`, `cron_between`, `cron_skip`, `http_method`, `http_body`, `http_headers`, `http_request_time_out`, `created_at`, `updated_at`, `deleted_at`) VALUES (6, '修复用户数据', '25', 'php script.php start Test --c=test:script', 1, 1, 0, '', NULL, NULL, '', NULL, NULL, 0, '2025-04-27 09:51:55', '2025-04-27 19:53:01', NULL);
 
 
+CREATE TABLE `cron_agent_node_group` (
+    `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+    `group_name` varchar(128) NOT NULL DEFAULT '' COMMENT '分组名称（唯一）',
+    `remark` varchar(256) NOT NULL DEFAULT '' COMMENT '备注',
+    `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uniq_group_name` (`group_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Cron Agent 节点分组';
+
+-- 已有库升级（不要 DROP 表）。节点分组 API：GET/POST/PUT/DELETE /api/v1/node-groups。
+-- 新库按上方 CREATE TABLE 已含，无需再执行。若表已存在，跳过本段即可。
+-- CREATE TABLE `cron_agent_node_group` (
+--     `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+--     `group_name` varchar(128) NOT NULL DEFAULT '' COMMENT '分组名称（唯一）',
+--     `remark` varchar(256) NOT NULL DEFAULT '' COMMENT '备注',
+--     `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+--     `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+--     PRIMARY KEY (`id`),
+--     UNIQUE KEY `uniq_group_name` (`group_name`)
+-- ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Cron Agent 节点分组';
+
 CREATE TABLE `cron_agent_node` (
     `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+    `group_id` int unsigned DEFAULT NULL COMMENT '所属分组ID（cron_agent_node_group.id）；历史数据可空',
     `node_name` varchar(128) NOT NULL DEFAULT '' COMMENT '节点名称',
     `node_ip` varchar(64) NOT NULL DEFAULT '' COMMENT '节点IP',
     `remark` varchar(256) NOT NULL DEFAULT '' COMMENT '备注',
@@ -51,6 +74,7 @@ CREATE TABLE `cron_agent_node` (
     `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
     `deleted_at` datetime DEFAULT NULL COMMENT '删除时间',
     PRIMARY KEY (`id`),
+    KEY `idx_group_id` (`group_id`),
     KEY `idx_last_heartbeat` (`last_heartbeat_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Cron Agent 节点';
 
@@ -63,6 +87,12 @@ CREATE TABLE `cron_agent_node` (
 -- 节点软删除（DELETE /api/v1/nodes 写 deleted_at，不物理删行）。新库 CREATE 已含 deleted_at。
 -- ALTER TABLE `cron_agent_node`
 --     ADD COLUMN `deleted_at` datetime DEFAULT NULL COMMENT '删除时间' AFTER `updated_at`;
+
+-- 节点所属分组。新库 CREATE 已含 group_id。历史节点允许为空（列表显示「未分组」）；新建/更新节点 API 必填。
+-- 若列已存在，跳过本段即可。
+-- ALTER TABLE `cron_agent_node`
+--     ADD COLUMN `group_id` int unsigned DEFAULT NULL COMMENT '所属分组ID（cron_agent_node_group.id）；历史数据可空' AFTER `id`,
+--     ADD KEY `idx_group_id` (`group_id`);
 
 CREATE TABLE `cron_task_run_request` (
     `id` bigint unsigned NOT NULL AUTO_INCREMENT,

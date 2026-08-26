@@ -16,7 +16,7 @@ use Swoolefy\Core\Dto\AbstractDto;
  * 后逐字段 put 构造。
  *
  * **消费者**：{@see \Test\Module\Cron\Service\CronTaskManagerService} 调用 {@see toEntityArray}
- * 转为 snake_case 关联数组后写入 {@see \Test\Module\Cron\CronTaskEntity}。
+ * 转为 snake_case 关联数组后写入 {@see \Test\Module\Cron\Entity\CronTaskEntity}。
  *
  * **关键字段语义**：
  * - 各字段默认为 null 表示「未提交」；仅被 put* 方法标记的字段会出现在 toEntityArray 输出中

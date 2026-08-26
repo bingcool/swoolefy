@@ -28,6 +28,11 @@ class ListTasksRequest extends BasePageRequest
     #[StringToInt]
     protected ?int $nodeId = null;
 
+    #[ApiProperty(description: '节点分组 ID；-1 表示未分组节点')]
+    #[ValidationRule(rule: 'nullable|int', message: 'groupId 必须是整数')]
+    #[StringToInt]
+    protected ?int $groupId = null;
+
     #[ApiProperty(description: '执行类型：1=shell, 2=http')]
     #[ValidationRule(rule: 'nullable|int', message: 'execType 必须是整数')]
     #[StringToInt]
@@ -65,6 +70,18 @@ class ListTasksRequest extends BasePageRequest
     public function setNodeId(?int $nodeId): static
     {
         $this->nodeId = $nodeId;
+
+        return $this;
+    }
+
+    public function getGroupId(): ?int
+    {
+        return $this->groupId;
+    }
+
+    public function setGroupId(?int $groupId): static
+    {
+        $this->groupId = $groupId;
 
         return $this;
     }

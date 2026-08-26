@@ -31,11 +31,11 @@ class ClientModel extends Model {
     }
 
     /**
+     * return null：数据库自增
      * @return int|mixed
      */
     public function createPkValue()
     {
-        sleep(1);
-        return time();
+        return null;
     }
 }

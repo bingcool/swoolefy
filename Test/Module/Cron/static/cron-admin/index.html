@@ -93,9 +93,14 @@
             <el-option :value="0" label="禁用"></el-option>
           </el-select>
         </el-form-item>
+        <el-form-item label="节点分组">
+          <el-select v-model="query.groupId" clearable placeholder="全部" style="width:140px" @change="onFilterGroupChange">
+            <el-option v-for="g in groupOptions" :key="'tg-'+g.id" :value="g.id" :label="g.groupName"></el-option>
+          </el-select>
+        </el-form-item>
         <el-form-item label="节点">
           <el-select v-model="query.nodeId" clearable placeholder="全部" style="width:160px">
-            <el-option v-for="n in nodes" :key="n.id" :value="n.id" :label="n.nodeName"></el-option>
+            <el-option v-for="n in filteredNodes" :key="n.id" :value="n.id" :label="n.nodeName"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="类型">
@@ -111,6 +116,9 @@
         <el-table-column prop="name" label="名称" min-width="140"></el-table-column>
         <el-table-column prop="expression" label="Expression" width="140">
           <template slot-scope="s"><span class="mono">{{ s.row.expression }}</span><el-tag size="mini" style="margin-left:6px">{{ s.row.expressionType }}</el-tag></template>
+        </el-table-column>
+        <el-table-column prop="groupName" label="节点分组" width="120" show-overflow-tooltip>
+          <template slot-scope="s"><span :class="groupNameOf(s.row) !== '-' ? '' : 'text-muted'">{{ groupNameOf(s.row) }}</span></template>
         </el-table-column>
         <el-table-column prop="nodeId" label="Node" width="70"></el-table-column>
         <el-table-column label="Type" width="80">
@@ -172,9 +180,16 @@
               <div class="help">任务名称必须唯一。</div>
             </div>
             <div class="field">
+              <label>节点分组 <span class="required-mark">*</span></label>
+              <select class="form-select" v-model.number="selectedGroupId">
+                <option v-for="g in groupOptions" :key="'eg-'+g.id" :value="g.id">{{ g.groupName }}</option>
+              </select>
+              <div class="help" v-if="!groupOptions.length">请先在 Cron Nodes「节点分组」页创建分组。</div>
+            </div>
+            <div class="field">
               <label>执行节点 <span class="required-mark">*</span></label>
-              <select class="form-select" v-model.number="form.nodeId">
-                <option v-for="n in nodes" :key="n.id" :value="n.id">{{ n.nodeName }}（{{ n.nodeIp }}）</option>
+              <select class="form-select" v-model.number="form.nodeId" :disabled="!nodesInGroup.length">
+                <option v-for="n in nodesInGroup" :key="n.id" :value="n.id">{{ n.nodeName }}（{{ n.nodeIp }}）</option>
               </select>
             </div>
             <div class="field full">
@@ -412,7 +427,7 @@
         <el-form-item label="任务ID"><el-input v-model="query.taskId" clearable placeholder="可选，留空查全部"></el-input></el-form-item>
         <el-form-item label="任务名称"><el-input v-model="query.taskName" clearable placeholder="支持模糊搜索"></el-input></el-form-item>
         <el-form-item label="批次"><el-input v-model="query.execBatchId" clearable></el-input></el-form-item>
-        <el-form-item label="状态">
+        <el-form-item label="流水状态">
           <el-select v-model="query.status" clearable style="width:120px">
             <el-option value="pending" label="注册定时任务"></el-option>
             <el-option value="success" label="成功"></el-option>
@@ -459,12 +474,14 @@
         <el-table-column label="触发类型" width="100">
           <template slot-scope="s">{{ triggerTypeText(s.row) }}</template>
         </el-table-column>
-        <el-table-column label="状态" width="110">
+        <el-table-column label="流水状态" width="110">
           <template slot-scope="s">
             <span class="status-pill" :class="statusClass(s.row)">{{ statusText(s.row) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="durationMs" label="耗时ms" width="90"></el-table-column>
+        <el-table-column label="耗时ms" min-width="150">
+          <template slot-scope="s">{{ formatDurationMs(s.row.durationMs) }}</template>
+        </el-table-column>
         <el-table-column prop="pid" label="PID" width="80"></el-table-column>
         <el-table-column prop="message" label="消息" min-width="220"></el-table-column>
         <el-table-column prop="createdAt" label="时间" width="160"></el-table-column>
@@ -501,7 +518,7 @@
         <div class="meta-item"><span class="k">PID</span><b>{{ detail && detail.pid || '-' }}</b></div>
         <div class="meta-item"><span class="k">开始时间</span><b>{{ detail && detail.startedAt || '-' }}</b></div>
         <div class="meta-item"><span class="k">结束时间</span><b>{{ detail && detail.finishedAt || '-' }}</b></div>
-        <div class="meta-item"><span class="k">耗时</span><b>{{ detail ? detail.durationMs + 'ms' : '-' }}</b></div>
+        <div class="meta-item"><span class="k">耗时</span><b>{{ formatDurationMs(detail && detail.durationMs) }}</b></div>
         <div class="meta-item"><span class="k">Exit Code</span><b>{{ detail && detail.exitCode != null ? detail.exitCode : '-' }}</b></div>
       </div>
     </div>
@@ -513,33 +530,71 @@
 
 <script type="text/x-template" id="tpl-nodes">
   <div>
-    <div class="page-head">
-      <div></div>
-      <div class="actions"><el-button type="primary" @click="open()">新建节点</el-button></div>
+    <div class="nodes-page-tabs">
+    <el-tabs v-model="activeTab" class="nodes-tabs" @tab-click="onTabClick">
+      <el-tab-pane name="nodes">
+        <span slot="label" class="cron-tab-label">agent节点</span>
+        <div class="page-head">
+          <div></div>
+          <div class="actions"><el-button type="primary" @click="openNode()">新建节点</el-button></div>
+        </div>
+        <div class="panel">
+          <el-table :data="items" v-loading="loading">
+            <el-table-column prop="id" label="ID" width="60"></el-table-column>
+            <el-table-column prop="nodeName" label="名称"></el-table-column>
+            <el-table-column prop="nodeIp" label="IP"></el-table-column>
+            <el-table-column label="所属分组" width="140">
+              <template slot-scope="s"><span :class="s.row.groupName ? '' : 'text-muted'">{{ s.row.groupName || '未分组' }}</span></template>
+            </el-table-column>
+            <el-table-column label="状态" width="100">
+              <template slot-scope="s"><span class="status-pill" :class="s.row.status==='online' ? 'status-online' : 'status-offline'">{{ s.row.status==='online'?'online':'offline' }}</span></template>
+            </el-table-column>
+            <el-table-column prop="lastHeartbeatAt" label="心跳" width="160"></el-table-column>
+            <el-table-column prop="taskCount" label="任务数" width="80"></el-table-column>
+            <el-table-column prop="remark" label="备注"></el-table-column>
+            <el-table-column label="操作" width="140">
+              <template slot-scope="s">
+                <el-button type="text" @click="openNode(s.row)">编辑</el-button>
+                <el-button type="text" style="color:#f56c6c" @click="removeNode(s.row)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </el-tab-pane>
+      <el-tab-pane name="groups">
+        <span slot="label" class="cron-tab-label">节点分组</span>
+        <div class="page-head">
+          <div></div>
+          <div class="actions"><el-button type="primary" @click="openGroup()">新建分组</el-button></div>
+        </div>
+        <div class="panel">
+          <el-table class="node-group-table" :data="groups" v-loading="groupLoading" fit>
+            <el-table-column prop="id" label="ID" width="64"></el-table-column>
+            <el-table-column prop="groupName" label="分组名称" min-width="140" show-overflow-tooltip></el-table-column>
+            <el-table-column prop="nodeCount" label="节点数" width="80"></el-table-column>
+            <el-table-column prop="remark" label="备注" min-width="160" show-overflow-tooltip></el-table-column>
+            <el-table-column prop="updatedAt" label="更新时间" width="168"></el-table-column>
+            <el-table-column label="操作" width="120">
+              <template slot-scope="s">
+                <el-button type="text" @click="openGroup(s.row)">编辑</el-button>
+                <el-button type="text" style="color:#f56c6c" @click="removeGroup(s.row)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </el-tab-pane>
+    </el-tabs>
     </div>
-    <div class="panel">
-      <el-table :data="items" v-loading="loading">
-        <el-table-column prop="id" label="ID" width="60"></el-table-column>
-        <el-table-column prop="nodeName" label="名称"></el-table-column>
-        <el-table-column prop="nodeIp" label="IP"></el-table-column>
-        <el-table-column label="状态" width="100">
-          <template slot-scope="s"><span class="status-pill" :class="s.row.status==='online' ? 'status-online' : 'status-offline'">{{ s.row.status==='online'?'online':'offline' }}</span></template>
-        </el-table-column>
-        <el-table-column prop="lastHeartbeatAt" label="心跳" width="160"></el-table-column>
-        <el-table-column prop="taskCount" label="任务数" width="80"></el-table-column>
-        <el-table-column prop="remark" label="备注"></el-table-column>
-        <el-table-column label="操作" width="140">
-          <template slot-scope="s">
-            <el-button type="text" @click="open(s.row)">编辑</el-button>
-            <el-button type="text" style="color:#f56c6c" @click="remove(s.row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </div>
-    <el-dialog :title="form.id?'编辑节点':'新建节点'" :visible.sync="dlg" width="480px">
-      <el-form label-width="80px" size="small">
+    <el-dialog :title="form.id?'编辑Agent节点':'新建Agent节点'" :visible.sync="dlg" width="480px">
+      <el-form label-width="130px" size="small">
         <el-form-item>
-          <template slot="label">名称 <span class="required-mark">*</span></template>
+          <template slot="label">所属分组 <span class="required-mark">*</span></template>
+          <el-select v-model="form.groupId" placeholder="请选择分组" style="width:100%">
+            <el-option v-for="g in groups" :key="'ng-'+g.id" :value="g.id" :label="g.groupName"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <template slot="label">Agent节点名称 <span class="required-mark">*</span></template>
           <el-input v-model="form.nodeName"></el-input>
         </el-form-item>
         <el-form-item>
@@ -548,7 +603,17 @@
         </el-form-item>
         <el-form-item label="备注"><el-input v-model="form.remark"></el-input></el-form-item>
       </el-form>
-      <span slot="footer"><el-button @click="dlg=false">取消</el-button><el-button type="primary" @click="save">保存</el-button></span>
+      <span slot="footer"><el-button @click="dlg=false">取消</el-button><el-button type="primary" @click="saveNode">保存</el-button></span>
+    </el-dialog>
+    <el-dialog :title="groupForm.id?'编辑分组':'新建分组'" :visible.sync="groupDlg" width="480px">
+      <el-form label-width="90px" size="small">
+        <el-form-item>
+          <template slot="label">分组名称 <span class="required-mark">*</span></template>
+          <el-input v-model="groupForm.groupName"></el-input>
+        </el-form-item>
+        <el-form-item label="备注"><el-input v-model="groupForm.remark"></el-input></el-form-item>
+      </el-form>
+      <span slot="footer"><el-button @click="groupDlg=false">取消</el-button><el-button type="primary" @click="saveGroup">保存</el-button></span>
     </el-dialog>
   </div>
 </script>
@@ -575,7 +640,7 @@
 <script defer src="https://cdn.jsdelivr.net/npm/element-ui@2.15.14/lib/index.js" onerror="this.onerror=null;this.src='https://unpkg.com/element-ui@2.15.14/lib/index.js'"></script>
 <script defer src="/cron-admin/assets/js/common.js"></script>
 <script defer src="/cron-admin/assets/js/dashboard.js"></script>
-<script defer src="/cron-admin/assets/js/tasks.js"></script>
+<script defer src="/cron-admin/assets/js/tasks.js?v=task-group"></script>
 <script defer src="/cron-admin/assets/js/editor.js"></script>
 <script defer src="/cron-admin/assets/js/detail.js"></script>
 <script defer src="/cron-admin/assets/js/executions.js"></script>

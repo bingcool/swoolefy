@@ -116,6 +116,23 @@ Route::group([
         'dispatch_route' => [CronTaskManagerController::class, 'deleteNode'],
     ]);
 
+    // 节点分组
+    Route::get('/node-groups', [
+        'dispatch_route' => [CronTaskManagerController::class, 'listNodeGroups'],
+    ]);
+    Route::post('/node-groups', [
+        'dispatch_route' => [CronTaskManagerController::class, 'createNodeGroup'],
+    ]);
+    Route::put('/node-groups', [
+        'dispatch_route' => [CronTaskManagerController::class, 'updateNodeGroup'],
+    ]);
+    Route::get('/node-groups/detail', [
+        'dispatch_route' => [CronTaskManagerController::class, 'getNodeGroup'],
+    ]);
+    Route::delete('/node-groups', [
+        'dispatch_route' => [CronTaskManagerController::class, 'deleteNodeGroup'],
+    ]);
+
     // 日志监控
     Route::get('/tasks/logs', [
         'dispatch_route' => [CronTaskManagerController::class, 'taskLogs'],

@@ -21,7 +21,10 @@ class ListTasksResponse extends BasePageResultResponse
     {
         $items = [];
         foreach ($this->data->getList() as $row) {
-            $items[] = $row->toDeepArray();
+            $item = $row->toDeepArray();
+            $item['groupId'] = $row->getGroupId();
+            $item['groupName'] = $row->getGroupName();
+            $items[] = $item;
         }
 
         return [

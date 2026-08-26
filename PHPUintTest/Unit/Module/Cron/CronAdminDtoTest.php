@@ -14,6 +14,8 @@ use Test\Module\Cron\Dto\CronTaskManager\ExpressionPreviewDto;
 use Test\Module\Cron\Dto\CronTaskManager\ListTasksQueryDto;
 use Test\Module\Cron\Request\CronTaskManager\ListTasksRequest;
 use Test\Module\Cron\Request\CronTaskManager\TaskLogsQueryRequest;
+use Test\Module\Cron\Response\CronTaskManager\ListTasksPageResult;
+use Test\Module\Cron\Response\CronTaskManager\ListTasksResponse;
 use Test\Module\Cron\Service\CronTaskManagerService;
 use Test\Module\Cron\Dto\CronTaskManager\TaskLogsQueryDto;
 
@@ -106,6 +108,63 @@ final class CronAdminDtoTest extends TestCase
         $this->assertSame('shell-1', $dto->getName());
         $this->assertSame(1786977160, $dto->getNodeId());
         $this->assertSame(0, $dto->getRetry());
+    }
+
+    public function testRowMapsGroupFieldsFromSnakeAndCamel(): void
+    {
+        $snake = CronTaskRowDto::fromEntityRow([
+            'id' => 1,
+            'node_id' => 3,
+            'group_id' => 9,
+            'group_name' => 'php',
+            'cron_name' => 't',
+            'expression' => '15',
+            'command' => 'x',
+            'exec_type' => 1,
+        ], 1000);
+        $this->assertSame(9, $snake->getGroupId());
+        $this->assertSame('php', $snake->getGroupName());
+        $json = $snake->toDeepArray();
+        $this->assertSame(9, $json['groupId']);
+        $this->assertSame('php', $json['groupName']);
+
+        $camel = CronTaskRowDto::fromEntityRow([
+            'id' => 2,
+            'nodeId' => 4,
+            'groupId' => 8,
+            'groupName' => 'python',
+            'cron_name' => 't2',
+            'expression' => '15',
+            'command' => 'x',
+            'exec_type' => 1,
+        ], 1000);
+        $this->assertSame(4, $camel->getNodeId());
+        $this->assertSame(8, $camel->getGroupId());
+        $this->assertSame('python', $camel->getGroupName());
+    }
+
+    public function testListTasksResponseIncludesGroupFields(): void
+    {
+        $page = new ListTasksPageResult();
+        $page->setPage(1)->setPageSize(20)->setTotal(1);
+        $page->addListItem(CronTaskRowDto::fromEntityRow([
+            'id' => 11,
+            'node_id' => 3,
+            'group_id' => 1,
+            'group_name' => 'php',
+            'cron_name' => 'shell-1',
+            'expression' => '15',
+            'command' => 'x',
+            'exec_type' => 1,
+        ], 1000));
+        $data = (new ListTasksResponse($page))->getData();
+        $this->assertSame(1, $data['total']);
+        $this->assertArrayHasKey('groupId', $data['list'][0]);
+        $this->assertArrayHasKey('groupName', $data['items'][0]);
+        $this->assertSame(1, $data['list'][0]['groupId']);
+        $this->assertSame('php', $data['list'][0]['groupName']);
+        $this->assertSame(1, $data['items'][0]['groupId']);
+        $this->assertSame('php', $data['items'][0]['groupName']);
     }
 
     public function testRowRetryDefaultsToZeroWhenMissing(): void

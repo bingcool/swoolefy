@@ -63,32 +63,70 @@ class ExecutionDetailDto extends AbstractDto
      */
     public static function fromLogRow(array $row): self
     {
-        var_dump($row);
         $dto = new self();
-        $dto->taskId = (int) ($row['cron_id'] ?? 0);
-        $dto->execBatchId = (string) ($row['exec_batch_id'] ?? '');
-        $dto->pid = (int) ($row['pid'] ?? 0);
-        $dto->message = (string) ($row['message'] ?? '');
-        $statusCode = (int) ($row['status'] ?? ExecutionStatus::PENDING);
+        $dto->taskId = (int) (self::pick($row, 'cron_id', 'cronId') ?? 0);
+        $dto->execBatchId = (string) (self::pick($row, 'exec_batch_id', 'execBatchId') ?? '');
+        $dto->pid = (int) (self::pick($row, 'pid') ?? 0);
+        $dto->message = (string) (self::pick($row, 'message') ?? '');
+        $statusCode = (int) (self::pick($row, 'status') ?? ExecutionStatus::PENDING);
         $dto->statusCode = $statusCode;
         $dto->status = ExecutionStatus::name($statusCode);
-        $dto->triggerType = (int) ($row['trigger_type'] ?? 0);
-        $dto->scheduledAt = (string) ($row['scheduled_at'] ?? '');
-        $started = (string) ($row['started_at'] ?? '');
-        $finished = (string) ($row['finished_at'] ?? '');
-        $created = (string) ($row['created_at'] ?? '');
-        $updated = (string) ($row['updated_at'] ?? $created);
+        $dto->triggerType = (int) (self::pick($row, 'trigger_type', 'triggerType') ?? 0);
+        $dto->scheduledAt = (string) (self::pick($row, 'scheduled_at', 'scheduledAt') ?? '');
+        $started = (string) (self::pick($row, 'started_at', 'startedAt') ?? '');
+        $finished = (string) (self::pick($row, 'finished_at', 'finishedAt') ?? '');
+        $created = (string) (self::pick($row, 'created_at', 'createdAt') ?? '');
+        $updated = (string) (self::pick($row, 'updated_at', 'updatedAt') ?? $created);
         $dto->startedAt = $started !== '' ? $started : $created;
         $dto->finishedAt = $finished !== '' ? $finished : $updated;
-        $dto->durationMs = (float) ($row['duration_ms'] ?? 0);
-        $dto->exitCode = isset($row['exit_code']) && $row['exit_code'] !== null && $row['exit_code'] !== ''
-            ? (int) $row['exit_code'] : null;
-        $dto->httpStatus = isset($row['http_status']) && $row['http_status'] !== null && $row['http_status'] !== ''
-            ? (int) $row['http_status'] : null;
-        $ti = $row['task_item'] ?? [];
-        $dto->taskItem = is_array($ti) ? $ti : [];
-        var_dump($dto);
+        $dto->durationMs = (float) (self::pick($row, 'duration_ms', 'durationMs') ?? 0);
+        $exitCode = self::pick($row, 'exit_code', 'exitCode');
+        $dto->exitCode = $exitCode !== null && $exitCode !== ''
+            ? (int) $exitCode : null;
+        $httpStatus = self::pick($row, 'http_status', 'httpStatus');
+        $dto->httpStatus = $httpStatus !== null && $httpStatus !== ''
+            ? (int) $httpStatus : null;
+        $dto->taskItem = self::normalizeTaskItem(self::pick($row, 'task_item', 'taskItem'));
+
         return $dto;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private static function pick(array $row, string $snake, ?string $camel = null): mixed
+    {
+        if (array_key_exists($snake, $row)) {
+            return $row[$snake];
+        }
+        if ($camel !== null && array_key_exists($camel, $row)) {
+            return $row[$camel];
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function normalizeTaskItem(mixed $value): array
+    {
+        if ($value === null || $value === '') {
+            return [];
+        }
+        if (is_array($value)) {
+            return $value;
+        }
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+
+            return ['raw' => $value];
+        }
+
+        return ['raw' => (string) $value];
     }
 
     public function getTaskId(): int

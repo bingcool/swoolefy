@@ -9,10 +9,12 @@ use Test\Module\Cron\Dto\CronTaskManager\AgentReportDto;
 use Test\Module\Cron\Dto\CronTaskManager\AgentTasksQueryDto;
 use Test\Module\Cron\Dto\CronTaskManager\BatchStatusDto;
 use Test\Module\Cron\Dto\CronTaskManager\CreateNodeDto;
+use Test\Module\Cron\Dto\CronTaskManager\CreateNodeGroupDto;
 use Test\Module\Cron\Dto\CronTaskManager\ExecutionDetailQueryDto;
 use Test\Module\Cron\Dto\CronTaskManager\ExecutionTrendQueryDto;
 use Test\Module\Cron\Dto\CronTaskManager\ExpressionPreviewDto;
 use Test\Module\Cron\Dto\CronTaskManager\ListTasksQueryDto;
+use Test\Module\Cron\Dto\CronTaskManager\NodeGroupIdDto;
 use Test\Module\Cron\Dto\CronTaskManager\NodeIdDto;
 use Test\Module\Cron\Dto\CronTaskManager\SwitchTaskStatusDto;
 use Test\Module\Cron\Dto\CronTaskManager\TaskIdDto;
@@ -20,12 +22,16 @@ use Test\Module\Cron\Dto\CronTaskManager\TaskLogsQueryDto;
 use Test\Module\Cron\Dto\CronTaskManager\TaskPayloadInputDto;
 use Test\Module\Cron\Dto\CronTaskManager\TaskStatsQueryDto;
 use Test\Module\Cron\Dto\CronTaskManager\UpdateNodeDto;
+use Test\Module\Cron\Dto\CronTaskManager\UpdateNodeGroupDto;
 use Test\Module\Cron\Dto\CronTaskManager\UpdateTaskCommandDto;
 use Test\Module\Cron\Request\CronTaskManager\BatchStatusRequest;
 use Test\Module\Cron\Request\CronTaskManager\CronAgentHeartbeatRequest;
 use Test\Module\Cron\Request\CronTaskManager\CronAgentReportRequest;
 use Test\Module\Cron\Request\CronTaskManager\CronAgentTasksQueryRequest;
 use Test\Module\Cron\Request\CronTaskManager\CronNodeCreateRequest;
+use Test\Module\Cron\Request\CronTaskManager\CronNodeGroupCreateRequest;
+use Test\Module\Cron\Request\CronTaskManager\CronNodeGroupIdRequest;
+use Test\Module\Cron\Request\CronTaskManager\CronNodeGroupUpdateRequest;
 use Test\Module\Cron\Request\CronTaskManager\CronNodeIdRequest;
 use Test\Module\Cron\Request\CronTaskManager\CronNodeUpdateRequest;
 use Test\Module\Cron\Request\CronTaskManager\CronTaskCreateRequest;
@@ -43,6 +49,8 @@ use Test\Module\Cron\Response\CronTaskManager\CronAgentHeartbeatResponse;
 use Test\Module\Cron\Response\CronTaskManager\CronAgentReportAckResponse;
 use Test\Module\Cron\Response\CronTaskManager\CronAgentTasksResponse;
 use Test\Module\Cron\Response\CronTaskManager\CronDeleteAckResponse;
+use Test\Module\Cron\Response\CronTaskManager\CronNodeGroupListResponse;
+use Test\Module\Cron\Response\CronTaskManager\CronNodeGroupRowResponse;
 use Test\Module\Cron\Response\CronTaskManager\CronNodeListResponse;
 use Test\Module\Cron\Response\CronTaskManager\CronNodeRowResponse;
 use Test\Module\Cron\Response\CronTaskManager\CronTaskRowResponse;
@@ -77,7 +85,7 @@ class CronTaskManagerController extends BController
      * Route: GET /api/v1/tasks
      *
      ```bash
-     curl -X GET 'http://127.0.0.1:9501/api/v1/tasks?page=1&pageSize=20&keyword=&status=1&nodeId=1&execType=1' \
+     curl -X GET 'http://127.0.0.1:9501/api/v1/tasks?page=1&pageSize=20&keyword=&status=1&groupId=1&nodeId=1&execType=1' \
        -H 'Accept: application/json'
      ```
      */
@@ -92,6 +100,7 @@ class CronTaskManagerController extends BController
             ->setKeyword($request->getKeyword())
             ->setStatus($request->getStatus())
             ->setNodeId($request->getNodeId())
+            ->setGroupId($request->getGroupId())
             ->setExecType($request->getExecType());
 
         return new ListTasksResponse($this->cronTaskManagerService->listTasks($query));
@@ -254,6 +263,7 @@ class CronTaskManagerController extends BController
        -d '{
          "nodeName": "agent-1",
          "nodeIp": "127.0.0.1",
+         "groupId": 1,
          "remark": "local agent"
        }'
      ```
@@ -266,6 +276,7 @@ class CronTaskManagerController extends BController
         $dto = (new CreateNodeDto())
             ->setNodeName($request->getNodeName())
             ->setNodeIp($request->getNodeIp())
+            ->setGroupId($request->getGroupId())
             ->setRemark($request->getRemark());
 
         return new CronNodeRowResponse($this->cronTaskManagerService->createNode($dto));
@@ -562,9 +573,97 @@ class CronTaskManagerController extends BController
             ->setId($request->getId())
             ->setNodeName($request->getNodeName())
             ->setNodeIp($request->getNodeIp())
+            ->setGroupId($request->getGroupId())
             ->setRemark($request->getRemark());
 
         return new CronNodeRowResponse($this->cronTaskManagerService->updateNode($dto));
+    }
+
+    /**
+     * 查询节点分组列表。
+     *
+     * Route: GET /api/v1/node-groups
+     *
+     ```bash
+     curl -X GET 'http://127.0.0.1:9501/api/v1/node-groups' \
+       -H 'Accept: application/json'
+     ```
+     */
+    #[ApiOperation("查询节点分组列表")]
+    public function listNodeGroups(): CronNodeGroupListResponse
+    {
+        return new CronNodeGroupListResponse($this->cronTaskManagerService->listNodeGroups());
+    }
+
+    /**
+     * 创建节点分组。
+     *
+     * Route: POST /api/v1/node-groups
+     *
+     ```bash
+     curl -X POST 'http://127.0.0.1:9501/api/v1/node-groups' \
+       -H 'Content-Type: application/json' \
+       -H 'Accept: application/json' \
+       -d '{"groupName": "php", "remark": "PHP agents"}'
+     ```
+     */
+    #[ApiOperation("创建节点分组")]
+    public function createNodeGroup(CronNodeGroupCreateRequest $request): CronNodeGroupRowResponse
+    {
+        $dto = (new CreateNodeGroupDto())
+            ->setGroupName($request->getGroupName())
+            ->setRemark($request->getRemark());
+
+        return new CronNodeGroupRowResponse($this->cronTaskManagerService->createNodeGroup($dto));
+    }
+
+    /**
+     * 更新节点分组。
+     *
+     * Route: PUT /api/v1/node-groups
+     */
+    #[ApiOperation("更新节点分组")]
+    public function updateNodeGroup(CronNodeGroupUpdateRequest $request): CronNodeGroupRowResponse
+    {
+        $dto = (new UpdateNodeGroupDto())
+            ->setId($request->getId())
+            ->setGroupName($request->getGroupName())
+            ->setRemark($request->getRemark());
+
+        return new CronNodeGroupRowResponse($this->cronTaskManagerService->updateNodeGroup($dto));
+    }
+
+    /**
+     * 节点分组详情。
+     *
+     * Route: GET /api/v1/node-groups/detail?id=
+     */
+    #[ApiOperation("查询节点分组详情")]
+    public function getNodeGroup(CronNodeGroupIdRequest $request): CronNodeGroupRowResponse
+    {
+        return new CronNodeGroupRowResponse(
+            $this->cronTaskManagerService->getNodeGroup(NodeGroupIdDto::of($request->getId()))
+        );
+    }
+
+    /**
+     * 删除节点分组。分组下仍有节点时拒绝。
+     *
+     * Route: DELETE /api/v1/node-groups
+     *
+     ```bash
+     curl -X DELETE 'http://127.0.0.1:9501/api/v1/node-groups' \
+       -H 'Content-Type: application/json' \
+       -H 'Accept: application/json' \
+       -d '{"id": 1}'
+     ```
+     */
+    #[ApiOperation("删除节点分组")]
+    public function deleteNodeGroup(CronNodeGroupIdRequest $request): CronDeleteAckResponse
+    {
+        $id = $this->cronTaskManagerService->deleteNodeGroup(NodeGroupIdDto::of($request->getId()));
+
+        return new CronDeleteAckResponse($id);
     }
 
     /**

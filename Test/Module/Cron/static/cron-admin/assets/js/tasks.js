@@ -11,13 +11,33 @@
         total: 0,
         loading: false,
         nodes: [],
+        groups: [],
         sel: [],
-        query: { page: 1, pageSize: 20, keyword: '', status: '', nodeId: '', execType: '' }
+        query: { page: 1, pageSize: 20, keyword: '', status: '', groupId: '', nodeId: '', execType: '' }
       };
     },
     created: function () {
       this.loadNodes();
+      this.loadGroups();
       this.load();
+    },
+    computed: {
+      groupOptions: function () {
+        var groups = (this.groups || []).slice();
+        var hasUngrouped = (this.nodes || []).some(function (n) { return !n.groupId; });
+        if (hasUngrouped) {
+          groups = [{ id: -1, groupName: '未分组' }].concat(groups);
+        }
+        return groups;
+      },
+      filteredNodes: function () {
+        var gid = Number(this.query.groupId);
+        if (this.query.groupId === '' || this.query.groupId === null || Number.isNaN(gid)) return this.nodes;
+        return (this.nodes || []).filter(function (n) {
+          var nid = n.groupId || 0;
+          return gid === -1 ? nid === 0 : nid === gid;
+        });
+      }
     },
     methods: {
       loadNodes: async function () {
@@ -26,6 +46,20 @@
           this.nodes = (d && d.list) || [];
         } catch (e) {
           common.toastErr(this, e);
+        }
+      },
+      loadGroups: async function () {
+        try {
+          var d = await common.api('/node-groups');
+          this.groups = (d && d.list) || [];
+        } catch (e) {
+          common.toastErr(this, e);
+        }
+      },
+      onFilterGroupChange: function () {
+        var ids = this.filteredNodes.map(function (n) { return n.id; });
+        if (this.query.nodeId !== '' && ids.indexOf(this.query.nodeId) === -1) {
+          this.query.nodeId = '';
         }
       },
       load: async function () {
@@ -37,8 +71,15 @@
             if (self.query[k] !== '' && self.query[k] !== null) qs.set(k, self.query[k]);
           });
           var d = await common.api('/tasks?' + qs.toString());
-          this.items = d.items || d.list || [];
-          this.total = d.total || 0;
+          this.items = ((d && d.items) || (d && d.list) || []).map(function (row) {
+            row = row || {};
+            if (!row.groupName && row.group_name) row.groupName = row.group_name;
+            if ((row.groupId === undefined || row.groupId === null) && row.group_id != null) {
+              row.groupId = row.group_id;
+            }
+            return row;
+          });
+          this.total = (d && d.total) || 0;
         } catch (e) {
           common.toastErr(this, e);
         } finally {
@@ -106,6 +147,29 @@
       },
       formatNextRun: function (row) {
         return common.formatNextRunAt(row);
+      },
+      groupNameOf: function (row) {
+        if (!row) return '-';
+        var name = row.groupName || row.group_name;
+        if (name) return name;
+        var nid = Number(row.nodeId || row.node_id || 0);
+        var nodes = this.nodes || [];
+        for (var i = 0; i < nodes.length; i++) {
+          if (Number(nodes[i].id) === nid) {
+            var nname = nodes[i].groupName || nodes[i].group_name;
+            if (nname) return nname;
+            break;
+          }
+        }
+        var gid = Number(row.groupId || row.group_id || 0);
+        if (!gid) return '-';
+        var groups = this.groups || [];
+        for (var j = 0; j < groups.length; j++) {
+          if (Number(groups[j].id) === gid) {
+            return groups[j].groupName || groups[j].group_name || '-';
+          }
+        }
+        return '-';
       }
     }
   };

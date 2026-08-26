@@ -25,6 +25,11 @@ class CronNodeUpdateRequest extends BaseRequest
     #[ApiProperty(description: '节点 IP')]
     protected ?string $nodeIp = null;
 
+    #[ApiProperty(description: '所属分组 ID')]
+    #[ValidationRule(rule: 'required|int', message: 'groupId 不能为空')]
+    #[StringToInt]
+    protected int $groupId = 0;
+
     #[ApiProperty(description: '备注')]
     protected ?string $remark = null;
 
@@ -60,6 +65,18 @@ class CronNodeUpdateRequest extends BaseRequest
     public function setNodeIp(?string $nodeIp): static
     {
         $this->nodeIp = $nodeIp;
+
+        return $this;
+    }
+
+    public function getGroupId(): int
+    {
+        return $this->groupId;
+    }
+
+    public function setGroupId(int $groupId): static
+    {
+        $this->groupId = $groupId;
 
         return $this;
     }

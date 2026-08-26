@@ -21,6 +21,7 @@ use Swoolefy\Worker\Cron\CronNodeLiveness;
  *
  * **关键字段语义**：
  * - nodeName / nodeIp：Agent 节点的标识信息，创建时必填
+ * - groupId / groupName：所属分组；历史未分组时 groupId=0、groupName 为空
  * - remark：可选备注
  * - status：online | offline（由 {@see CronNodeLiveness} 按该节点 heartbeat_interval 判定）
  * - lastHeartbeatAt / heartbeatInterval / staleAfterSeconds：心跳与存活阈值
@@ -35,6 +36,12 @@ class CronAgentNodeRowDto extends AbstractDto
 
     #[ApiProperty(description: '节点 IP')]
     protected string $nodeIp = '';
+
+    #[ApiProperty(description: '所属分组 ID；未分组时为 0')]
+    protected int $groupId = 0;
+
+    #[ApiProperty(description: '所属分组名称；未分组时为空')]
+    protected string $groupName = '';
 
     #[ApiProperty(description: '备注')]
     protected string $remark = '';
@@ -71,6 +78,8 @@ class CronAgentNodeRowDto extends AbstractDto
         $dto->setId((int)($row['id'] ?? 0));
         $dto->setNodeName((string)($row['node_name'] ?? ''));
         $dto->setNodeIp((string)($row['node_ip'] ?? ''));
+        $dto->setGroupId((int)($row['group_id'] ?? 0));
+        $dto->setGroupName((string)($row['group_name'] ?? ''));
         $dto->setRemark((string)($row['remark'] ?? ''));
         $lastHb = (string)($row['last_heartbeat_at'] ?? '');
         $interval = CronNodeLiveness::normalizeInterval((int)($row['heartbeat_interval'] ?? 0));
@@ -144,6 +153,30 @@ class CronAgentNodeRowDto extends AbstractDto
     public function setNodeIp(string $nodeIp): static
     {
         $this->nodeIp = $nodeIp;
+
+        return $this;
+    }
+
+    public function getGroupId(): int
+    {
+        return $this->groupId;
+    }
+
+    public function setGroupId(int $groupId): static
+    {
+        $this->groupId = $groupId;
+
+        return $this;
+    }
+
+    public function getGroupName(): string
+    {
+        return $this->groupName;
+    }
+
+    public function setGroupName(string $groupName): static
+    {
+        $this->groupName = $groupName;
 
         return $this;
     }

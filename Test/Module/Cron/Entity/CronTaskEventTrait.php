@@ -1,7 +1,5 @@
 <?php
-namespace Test\Module\Cron;
-
-use Test\Model\ClientModel;
+namespace Test\Module\Cron\Entity;
 
 trait CronTaskEventTrait
 {

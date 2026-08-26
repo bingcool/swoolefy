@@ -1,5 +1,5 @@
 <?php
-namespace Test\Module\Cron;
+namespace Test\Module\Cron\Entity;
 
 use Swoolefy\Library\Db\Concern\SoftDelete;
 use Swoolefy\Library\Db\Query;

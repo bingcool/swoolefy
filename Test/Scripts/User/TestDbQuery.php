@@ -2,10 +2,9 @@
 namespace Test\Scripts\User;
 
 use Swoolefy\Library\Db\Query;
-use Test\App;
-use Test\Module\Cron\CronTaskLogEntity;
-use Test\Module\Order\OrderEntity;
 use Swoolefy\Script\MainCliScript;
+use Test\App;
+use Test\Module\Order\OrderEntity;
 
 class TestDbQuery extends MainCliScript
 {

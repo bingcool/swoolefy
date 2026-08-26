@@ -1,5 +1,5 @@
 <?php
-namespace Test\Module\Cron;
+namespace Test\Module\Cron\Entity;
 
 use Swoolefy\Library\Db\Concern\SoftDelete;
 use Swoolefy\Library\Db\Query;
@@ -7,6 +7,7 @@ use Test\Model\ClientModel;
 
 /**
  * @property int id
+ * @property int|null group_id 所属分组ID
  * @property string node_name 节点名称
  * @property string node_ip 节点IP
  * @property string remark 备注
@@ -41,9 +42,9 @@ class CronAgentNodeEntity extends ClientModel
 
     /**
      * @param int $id
-     * @return static|null
+     * @return CronAgentNodeGroupEntity
      */
-    public function loadById(int $id): ?static
+    public function loadById(int $id): CronAgentNodeGroupEntity
     {
         return $this->loadOne([
             'id' => $id,

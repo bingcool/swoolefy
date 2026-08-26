@@ -10,10 +10,6 @@ use Swoolefy\Library\Db\Raw;
 use Swoolefy\Worker\Cron\CronNodeLiveness;
 use Swoolefy\Worker\Cron\ExecutionStatus;
 use Swoolefy\Worker\Cron\ExpressionParser;
-use Test\Module\Cron\CronAgentNodeEntity;
-use Test\Module\Cron\CronTaskEntity;
-use Test\Module\Cron\CronTaskLogEntity;
-use Test\Module\Cron\CronTaskRunRequestEntity;
 use Test\Module\Cron\Dto\CronTaskManager\AgentHeartbeatDto;
 use Test\Module\Cron\Dto\CronTaskManager\AgentHeartbeatResultDto;
 use Test\Module\Cron\Dto\CronTaskManager\AgentReportDto;
@@ -22,6 +18,7 @@ use Test\Module\Cron\Dto\CronTaskManager\AgentTasksResultDto;
 use Test\Module\Cron\Dto\CronTaskManager\BatchStatusDto;
 use Test\Module\Cron\Dto\CronTaskManager\BatchStatusResultDto;
 use Test\Module\Cron\Dto\CronTaskManager\CreateNodeDto;
+use Test\Module\Cron\Dto\CronTaskManager\CreateNodeGroupDto;
 use Test\Module\Cron\Dto\CronTaskManager\CronTaskLogRowDto;
 use Test\Module\Cron\Dto\CronTaskManager\CronTaskPayloadDto;
 use Test\Module\Cron\Dto\CronTaskManager\CronTaskRowDto;
@@ -34,6 +31,7 @@ use Test\Module\Cron\Dto\CronTaskManager\ExecutionTrendQueryDto;
 use Test\Module\Cron\Dto\CronTaskManager\ExpressionPreviewDto;
 use Test\Module\Cron\Dto\CronTaskManager\ExpressionPreviewResultDto;
 use Test\Module\Cron\Dto\CronTaskManager\ListTasksQueryDto;
+use Test\Module\Cron\Dto\CronTaskManager\NodeGroupIdDto;
 use Test\Module\Cron\Dto\CronTaskManager\NodeIdDto;
 use Test\Module\Cron\Dto\CronTaskManager\RunOnceQueuedDto;
 use Test\Module\Cron\Dto\CronTaskManager\RuntimeOverviewDto;
@@ -44,7 +42,13 @@ use Test\Module\Cron\Dto\CronTaskManager\TaskPayloadInputDto;
 use Test\Module\Cron\Dto\CronTaskManager\TaskStatsQueryDto;
 use Test\Module\Cron\Dto\CronTaskManager\TaskStatusAckDto;
 use Test\Module\Cron\Dto\CronTaskManager\UpdateNodeDto;
+use Test\Module\Cron\Dto\CronTaskManager\UpdateNodeGroupDto;
 use Test\Module\Cron\Dto\CronTaskManager\UpdateTaskCommandDto;
+use Test\Module\Cron\Entity\CronAgentNodeEntity;
+use Test\Module\Cron\Entity\CronAgentNodeGroupEntity;
+use Test\Module\Cron\Entity\CronTaskEntity;
+use Test\Module\Cron\Entity\CronTaskLogEntity;
+use Test\Module\Cron\Entity\CronTaskRunRequestEntity;
 use Test\Module\Cron\Exception\CronTaskException;
 use Test\Module\Cron\Response\CronTaskManager\ListTasksPageResult;
 use Test\Module\Cron\Response\CronTaskManager\TaskLogsPageResult;
@@ -98,16 +102,31 @@ class CronTaskManagerService
     /**
      * 分页查询定时任务列表。
      *
-     * 支持 keyword（name 模糊）、status、nodeId、execType 过滤；按 id 倒序。
+     * 支持 keyword（name 模糊）、status、nodeId、groupId、execType 过滤；按 id 倒序。
      * 行数据映射为 {@see CronTaskRowDto} 填入 {@see ListTasksPageResult}。
      * 列表行的 nextRunAt 由引擎规则推算（不读 Worker 内存）；禁用/非法表达式为 null。
+     * groupId 通过 cron_task.node_id → cron_agent_node.group_id 关联筛选。
      */
     public function listTasks(ListTasksQueryDto $query): ListTasksPageResult
     {
         $keyword = trim((string)($query->getKeyword() ?? ''));
         $status = $query->getStatus();
         $nodeId = $query->getNodeId();
+        $groupId = $query->getGroupId();
         $execType = $query->getExecType();
+
+        $pageResult = new ListTasksPageResult();
+        $pageResult->setPage($query->getPage());
+        $pageResult->setPageSize($query->getPageSize());
+
+        if ($groupId !== null) {
+            $nodeIds = $this->resolveNodeIdsForGroupFilter($groupId);
+            if ($nodeIds === []) {
+                $pageResult->setTotal(0);
+
+                return $pageResult;
+            }
+        }
 
         $qb = CronTaskEntity::queryNotDeleted()->field([
             'id',
@@ -138,17 +157,18 @@ class CronTaskManagerService
         if ($nodeId !== null) {
             $qb->where('node_id', $nodeId);
         }
+        if ($groupId !== null) {
+            $qb->whereIn('node_id', $nodeIds);
+        }
         if ($execType !== null) {
             $qb->where('exec_type', $execType);
         }
 
         $total = $qb->clone()->count();
         $list = $qb->order('id', 'desc')->limit($query->getOffset(), $query->getPageSize())->select()->toArray();
+        $list = $this->attachTaskNodeGroupInfo($list);
 
-        $pageResult = new ListTasksPageResult();
         $pageResult->setTotal($total);
-        $pageResult->setPage($query->getPage());
-        $pageResult->setPageSize($query->getPageSize());
         foreach ($list as $row) {
             $pageResult->addListItem(CronTaskRowDto::fromEntityRow($row));
         }
@@ -180,7 +200,7 @@ class CronTaskManagerService
         $task->setData($entityData);
         $task->save();
 
-        return $task->getAttributes();
+        return $this->attachTaskNodeGroupInfo([$task->getAttributes()])[0];
     }
 
     /**
@@ -222,7 +242,7 @@ class CronTaskManagerService
         $task->setData($entityData);
         $task->save();
 
-        return $task->getAttributes();
+        return $this->attachTaskNodeGroupInfo([$task->getAttributes()])[0];
     }
 
     /**
@@ -312,13 +332,13 @@ class CronTaskManagerService
         }
         unset($row);
 
-        return $list;
+        return $this->attachNodeGroupInfo($list);
     }
 
     /**
      * 创建 Cron Agent 节点。
      *
-     * nodeName、nodeIp 必填（非空字符串）。
+     * nodeName、nodeIp、groupId 必填；分组必须存在。
      *
      * @return array<string, mixed> 新建节点实体属性
      */
@@ -329,16 +349,24 @@ class CronTaskManagerService
         if ($nodeName === '' || $nodeIp === '') {
             throw CronTaskException::throw('nodeName和nodeIp不能为空', -1);
         }
+        $groupId = $dto->getGroupId();
+        self::assertGroupIdRequired($groupId);
+        $group = $this->requireNodeGroup($groupId);
 
         $node = new CronAgentNodeEntity();
         $node->setData([
+            'group_id' => $groupId,
             'node_name' => $nodeName,
             'node_ip' => $nodeIp,
             'remark' => $dto->getRemark(),
         ]);
         $node->save();
 
-        return $node->getAttributes();
+        $attrs = $node->getAttributes();
+        $attrs['group_id'] = $groupId;
+        $attrs['group_name'] = (string) $group->group_name;
+
+        return $attrs;
     }
 
     /**
@@ -374,10 +402,13 @@ class CronTaskManagerService
         $execType = $query->getExecType();
         $triggerType = $query->getTriggerType();
         $taskName = $query->getTaskName();
+        $statusFilter = $query->getStatus();
 
         $qb = CronTaskLogEntity::queryNotDeleted();
-        // 执行记录页默认只展示带 exec_batch_id 的执行行，排除配置变更审计行。
-        $qb->whereNotNull('exec_batch_id')->where('exec_batch_id', '<>', '');
+        // 终态/进行中 Execution 需带 exec_batch_id；pending（注册定时任务）及「全部」允许空批次。
+        if ($statusFilter !== null && $statusFilter !== 'pending') {
+            $qb->whereNotNull('exec_batch_id')->where('exec_batch_id', '<>', '');
+        }
         if ($taskId !== null && $taskId > 0) {
             $qb->where(['cron_id' => $taskId]);
         }
@@ -412,7 +443,6 @@ class CronTaskManagerService
         if ($query->getEndTime() !== null) {
             $qb->where('created_at', '<=', $query->getEndTime());
         }
-        $statusFilter = $query->getStatus();
         if ($statusFilter !== null) {
             $statusCode = ExecutionStatus::fromName($statusFilter);
             if ($statusCode !== null) {
@@ -731,7 +761,7 @@ class CronTaskManagerService
     {
         $task = $this->requireTask($dto->getId());
 
-        return $task->getAttributes();
+        return $this->attachTaskNodeGroupInfo([$task->getAttributes()])[0];
     }
 
     /**
@@ -791,7 +821,7 @@ class CronTaskManagerService
             throw CronTaskException::throw('执行记录不存在', -1);
         }
 
-        return ExecutionDetailDto::fromLogRow(is_array($row) ? $row : $row->toArray());
+        return ExecutionDetailDto::fromLogRow(is_array($row) ? $row : $row->getAttributes());
     }
 
     /**
@@ -956,11 +986,11 @@ class CronTaskManagerService
         $attrs = $node->getAttributes();
         $attrs['task_count'] = (int)CronTaskEntity::queryNotDeleted()->where('node_id', $dto->getId())->count();
 
-        return $attrs;
+        return $this->attachNodeGroupInfo([$attrs])[0];
     }
 
     /**
-     * 部分更新节点。
+     * 部分更新节点。groupId 必填且分组必须存在。
      *
      * @return array<string, mixed>
      */
@@ -968,6 +998,9 @@ class CronTaskManagerService
     {
         $node = $this->requireNode($dto->getId());
         $data = [];
+        self::assertGroupIdRequired($dto->getGroupId());
+        $this->requireNodeGroup($dto->getGroupId());
+        $data['group_id'] = $dto->getGroupId();
         if ($dto->getNodeName() !== null) {
             if ($dto->getNodeName() === '') {
                 throw CronTaskException::throw('nodeName不能为空', -1);
@@ -983,15 +1016,12 @@ class CronTaskManagerService
         if ($dto->getRemark() !== null) {
             $data['remark'] = $dto->getRemark();
         }
-        if ($data === []) {
-            throw CronTaskException::throw('没有可更新字段', -1);
-        }
         $node->setData($data);
         $node->save();
         $attrs = $node->getAttributes();
         $attrs['task_count'] = (int)CronTaskEntity::queryNotDeleted()->where('node_id', $dto->getId())->count();
 
-        return $attrs;
+        return $this->attachNodeGroupInfo([$attrs])[0];
     }
 
     /**
@@ -1059,7 +1089,7 @@ class CronTaskManagerService
         $copy->setData($attrs);
         $copy->save();
 
-        return $copy->getAttributes();
+        return $this->attachTaskNodeGroupInfo([$copy->getAttributes()])[0];
     }
 
     /**
@@ -1253,6 +1283,184 @@ class CronTaskManagerService
         return $node;
     }
 
+    protected function requireNodeGroup(int $id): CronAgentNodeGroupEntity
+    {
+        if ($id <= 0) {
+            throw CronTaskException::throw('id不能为空', -1);
+        }
+        $group = (new CronAgentNodeGroupEntity())->loadById($id);
+        if (!$group) {
+            throw CronTaskException::throw('分组不存在', -1);
+        }
+
+        return $group;
+    }
+
+    protected function groupNameExists(string $name, ?int $exceptId): bool
+    {
+        $qb = CronAgentNodeGroupEntity::query()->where('group_name', $name);
+        if ($exceptId !== null) {
+            $qb->where('id', '<>', $exceptId);
+        }
+
+        return $qb->count() > 0;
+    }
+
+    protected function countActiveNodesInGroup(int $groupId): int
+    {
+        if ($groupId <= 0) {
+            return 0;
+        }
+
+        return (int) CronAgentNodeEntity::queryNotDeleted()->where('group_id', $groupId)->count();
+    }
+
+    /**
+     * @param list<int> $groupIds
+     * @return array<int, int>
+     */
+    protected function countActiveNodesByGroupIds(array $groupIds): array
+    {
+        $counts = [];
+        if ($groupIds === []) {
+            return $counts;
+        }
+        $rows = CronAgentNodeEntity::queryNotDeleted()
+            ->whereIn('group_id', $groupIds)
+            ->field([
+                new Raw('group_id'),
+                new Raw('COUNT(*) AS total'),
+            ])
+            ->group('group_id')
+            ->select()
+            ->toArray();
+        foreach ($rows as $row) {
+            $counts[(int) ($row['group_id'] ?? 0)] = (int) ($row['total'] ?? 0);
+        }
+
+        return $counts;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $list
+     * @return list<array<string, mixed>>
+     */
+    protected function attachTaskNodeGroupInfo(array $list): array
+    {
+        if ($list === []) {
+            return $list;
+        }
+
+        $nodeIds = [];
+        foreach ($list as $row) {
+            $nodeId = self::rowInt($row, 'node_id', 'nodeId');
+            if ($nodeId > 0) {
+                $nodeIds[$nodeId] = $nodeId;
+            }
+        }
+
+        $nodeGroups = [];
+        if ($nodeIds !== []) {
+            $nodes = CronAgentNodeEntity::queryNotDeleted()
+                ->whereIn('id', array_values($nodeIds))
+                ->field(['id', 'group_id'])
+                ->select()
+                ->toArray();
+            foreach ($nodes as $node) {
+                $nodeGroups[(int) ($node['id'] ?? 0)] = self::rowInt($node, 'group_id', 'groupId');
+            }
+        }
+
+        foreach ($list as &$row) {
+            $nodeId = self::rowInt($row, 'node_id', 'nodeId');
+            $groupId = $nodeGroups[$nodeId] ?? 0;
+            $row['group_id'] = $groupId;
+            $row['groupId'] = $groupId;
+        }
+        unset($row);
+
+        return $this->attachNodeGroupInfo($list);
+    }
+
+    /**
+     * 按节点分组筛任务：groupId=-1 表示未分组节点（group_id=0）。
+     *
+     * @return list<int>
+     */
+    protected function resolveNodeIdsForGroupFilter(int $groupId): array
+    {
+        $nodeQb = CronAgentNodeEntity::queryNotDeleted()->field(['id']);
+        if ($groupId === -1) {
+            $nodeQb->where('group_id', 0);
+        } elseif ($groupId > 0) {
+            $nodeQb->where('group_id', $groupId);
+        } else {
+            return [];
+        }
+
+        $nodeIds = [];
+        foreach ($nodeQb->select()->toArray() as $row) {
+            $nodeId = (int) ($row['id'] ?? 0);
+            if ($nodeId > 0) {
+                $nodeIds[] = $nodeId;
+            }
+        }
+
+        return $nodeIds;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $list
+     * @return list<array<string, mixed>>
+     */
+    protected function attachNodeGroupInfo(array $list): array
+    {
+        $groupIds = [];
+        foreach ($list as $row) {
+            $groupId = self::rowInt($row, 'group_id', 'groupId');
+            if ($groupId > 0) {
+                $groupIds[$groupId] = $groupId;
+            }
+        }
+        $names = [];
+        if ($groupIds !== []) {
+            $groups = CronAgentNodeGroupEntity::query()
+                ->whereIn('id', array_values($groupIds))
+                ->field(['id', 'group_name'])
+                ->select()
+                ->toArray();
+            foreach ($groups as $group) {
+                $names[(int) ($group['id'] ?? 0)] = (string) ($group['group_name'] ?? $group['groupName'] ?? '');
+            }
+        }
+        foreach ($list as &$row) {
+            $groupId = self::rowInt($row, 'group_id', 'groupId');
+            $groupName = $names[$groupId] ?? '';
+            $row['group_id'] = $groupId;
+            $row['groupId'] = $groupId;
+            $row['group_name'] = $groupName;
+            $row['groupName'] = $groupName;
+        }
+        unset($row);
+
+        return $list;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    protected static function rowInt(array $row, string $snake, string $camel): int
+    {
+        if (array_key_exists($snake, $row) && $row[$snake] !== null && $row[$snake] !== '') {
+            return (int) $row[$snake];
+        }
+        if (array_key_exists($camel, $row) && $row[$camel] !== null && $row[$camel] !== '') {
+            return (int) $row[$camel];
+        }
+
+        return 0;
+    }
+
     /**
      * 名称唯一性含软删行：表上 uniq_cron_name 不区分 deleted_at。
      */
@@ -1269,6 +1477,144 @@ class CronTaskManagerService
     protected function uniqueCopyName(string $baseName): string
     {
         return self::allocateCopyName($baseName, fn(string $n) => $this->nameExists($n, null));
+    }
+
+    /**
+     * 查询全部节点分组（id 倒序），附带未软删节点数。
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listNodeGroups(): array
+    {
+        $list = CronAgentNodeGroupEntity::query()
+            ->field(['id', 'group_name', 'remark', 'created_at', 'updated_at'])
+            ->order('id', 'desc')
+            ->select()
+            ->toArray();
+        if ($list === []) {
+            return [];
+        }
+        $groupIds = [];
+        foreach ($list as $row) {
+            $groupId = (int) ($row['id'] ?? 0);
+            if ($groupId > 0) {
+                $groupIds[$groupId] = $groupId;
+            }
+        }
+        $counts = $this->countActiveNodesByGroupIds(array_values($groupIds));
+        foreach ($list as &$row) {
+            $row['node_count'] = (int) ($counts[(int) ($row['id'] ?? 0)] ?? 0);
+        }
+        unset($row);
+
+        return $list;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function createNodeGroup(CreateNodeGroupDto $dto): array
+    {
+        $groupName = self::assertGroupName($dto->getGroupName());
+        self::assertUniqueGroupName($this->groupNameExists($groupName, null));
+
+        $group = new CronAgentNodeGroupEntity();
+        $group->setData([
+            'group_name' => $groupName,
+            'remark' => $dto->getRemark(),
+        ]);
+        $group->save();
+        $attrs = $group->getAttributes();
+        $attrs['node_count'] = 0;
+
+        return $attrs;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function updateNodeGroup(UpdateNodeGroupDto $dto): array
+    {
+        $group = $this->requireNodeGroup($dto->getId());
+        $groupName = self::assertGroupName($dto->getGroupName());
+        self::assertUniqueGroupName($this->groupNameExists($groupName, $dto->getId()));
+        $group->setData([
+            'group_name' => $groupName,
+            'remark' => $dto->getRemark(),
+        ]);
+        $group->save();
+        $attrs = $group->getAttributes();
+        $attrs['node_count'] = $this->countActiveNodesInGroup($dto->getId());
+
+        return $attrs;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getNodeGroup(NodeGroupIdDto $dto): array
+    {
+        $group = $this->requireNodeGroup($dto->getId());
+        $attrs = $group->getAttributes();
+        $attrs['node_count'] = $this->countActiveNodesInGroup($dto->getId());
+
+        return $attrs;
+    }
+
+    /**
+     * 删除节点分组。分组下仍有未软删节点时拒绝。
+     */
+    public function deleteNodeGroup(NodeGroupIdDto $dto): int
+    {
+        $id = $dto->getId();
+        $group = $this->requireNodeGroup($id);
+        self::assertGroupDeletable($this->countActiveNodesInGroup($id));
+        $group->delete();
+
+        return $id;
+    }
+
+    /**
+     * 分组名称必填（trim 后非空）。
+     */
+    public static function assertGroupName(string $groupName): string
+    {
+        $groupName = trim($groupName);
+        if ($groupName === '') {
+            throw CronTaskException::throw('分组名称不能为空', -1);
+        }
+
+        return $groupName;
+    }
+
+    /**
+     * 分组名称唯一。
+     */
+    public static function assertUniqueGroupName(bool $exists): void
+    {
+        if ($exists) {
+            throw CronTaskException::throw('分组名称已存在', -1);
+        }
+    }
+
+    /**
+     * 分组下仍有节点时拒绝删除。
+     */
+    public static function assertGroupDeletable(int $nodeCount): void
+    {
+        if ($nodeCount > 0) {
+            throw CronTaskException::throw('分组下仍有节点，无法删除', -1);
+        }
+    }
+
+    /**
+     * 新建/更新节点必须选择分组。
+     */
+    public static function assertGroupIdRequired(int $groupId): void
+    {
+        if ($groupId <= 0) {
+            throw CronTaskException::throw('请选择所属分组', -1);
+        }
     }
 
     /**

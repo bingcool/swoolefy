@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace PHPUintTest\Unit\Module\Cron;
 
 use PHPUintTest\TestCase;
-use Test\Module\Cron\CronAgentNodeEntity;
 use Test\Module\Cron\Dto\CronTaskManager\NodeIdDto;
+use Test\Module\Cron\Entity\CronAgentNodeEntity;
 use Test\Module\Cron\Exception\CronTaskException;
 use Test\Module\Cron\Service\CronTaskManagerService;
 

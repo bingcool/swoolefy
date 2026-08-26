@@ -21,6 +21,9 @@ class UpdateNodeDto extends AbstractDto
     #[ApiProperty(description: '节点 IP')]
     protected ?string $nodeIp = null;
 
+    #[ApiProperty(description: '所属分组 ID')]
+    protected int $groupId = 0;
+
     #[ApiProperty(description: '备注')]
     protected ?string $remark = null;
 
@@ -56,6 +59,18 @@ class UpdateNodeDto extends AbstractDto
     public function setNodeIp(?string $nodeIp): static
     {
         $this->nodeIp = $nodeIp;
+
+        return $this;
+    }
+
+    public function getGroupId(): int
+    {
+        return $this->groupId;
+    }
+
+    public function setGroupId(int $groupId): static
+    {
+        $this->groupId = $groupId;
 
         return $this;
     }

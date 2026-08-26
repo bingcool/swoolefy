@@ -79,6 +79,9 @@
         };
         return map[key];
       },
+      formatDurationMs: function (ms) {
+        return common.formatDurationMs(ms);
+      },
       triggerTypeText: function (row) {
         var triggerType = Number(row && row.triggerType);
         if (triggerType === 1) return '定时';
@@ -178,6 +181,9 @@
       this.load();
     },
     methods: {
+      formatDurationMs: function (ms) {
+        return common.formatDurationMs(ms);
+      },
       load: async function () {
         if (!this.taskId || !this.execBatchId) {
           this.$message.warning('缺少 taskId 或 execBatchId');

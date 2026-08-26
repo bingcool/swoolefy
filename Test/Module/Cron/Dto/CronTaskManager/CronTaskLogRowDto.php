@@ -112,19 +112,50 @@ class CronTaskLogRowDto extends AbstractDto
         $dto->setDurationMs((int)($row['duration_ms'] ?? 0));
         $dto->setExitCode(isset($row['exit_code']) && $row['exit_code'] !== null && $row['exit_code'] !== '' ? (int)$row['exit_code'] : null);
         $dto->setHttpStatus(isset($row['http_status']) && $row['http_status'] !== null && $row['http_status'] !== '' ? (int)$row['http_status'] : null);
-        $ti = $row['task_item'] ?? null;
-        if (is_array($ti)) {
-            $dto->setTaskItem($ti);
-        } elseif ($ti !== null && $ti !== '') {
-            $dto->setTaskItem(['raw' => (string)$ti]);
-        } else {
-            $dto->setTaskItem(null);
-        }
+        $dto->setTaskItem(self::normalizeTaskItem(self::pick($row, 'task_item', 'taskItem')));
         $dto->setMessage((string)($row['message'] ?? ''));
         $dto->setCreatedAt((string)($row['created_at'] ?? ''));
         $dto->setUpdatedAt((string)($row['updated_at'] ?? ''));
 
         return $dto;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private static function pick(array $row, string $snake, ?string $camel = null): mixed
+    {
+        if (array_key_exists($snake, $row)) {
+            return $row[$snake];
+        }
+        if ($camel !== null && array_key_exists($camel, $row)) {
+            return $row[$camel];
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private static function normalizeTaskItem(mixed $value): ?array
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (is_array($value)) {
+            return $value;
+        }
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+
+            return ['raw' => $value];
+        }
+
+        return ['raw' => (string) $value];
     }
 
     /** 获取日志 ID */

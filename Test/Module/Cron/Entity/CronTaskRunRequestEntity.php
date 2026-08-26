@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Module\Cron;
+namespace Test\Module\Cron\Entity;
 
 use Test\Model\ClientModel;
 

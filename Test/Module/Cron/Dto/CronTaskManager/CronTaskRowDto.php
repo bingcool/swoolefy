@@ -28,6 +28,7 @@ use Swoolefy\Worker\Cron\CronNextRunAt;
  * - cronBetween / cronSkip：允许/跳过执行的时间段 JSON 数组
  * - nextRunAt：下次合法执行 unix 秒（展示层推算，不落库）；禁用/非法表达式为 null
  * - nextRunAtAt：同上的 datetime 串（Y-m-d H:i:s），无下次执行时为空
+ * - groupId / groupName：绑定节点所属分组；未分组时 groupId=0、groupName 为空
  */
 class CronTaskRowDto extends AbstractDto
 {
@@ -36,6 +37,12 @@ class CronTaskRowDto extends AbstractDto
 
     #[ApiProperty(description: '节点 ID')]
     protected int $nodeId = 0;
+
+    #[ApiProperty(description: '绑定节点所属分组 ID；未分组时为 0')]
+    protected int $groupId = 0;
+
+    #[ApiProperty(description: '绑定节点所属分组名称；未分组时为空')]
+    protected string $groupName = '';
 
     #[ApiProperty(description: '任务名称')]
     protected string $name = '';
@@ -129,7 +136,9 @@ class CronTaskRowDto extends AbstractDto
     {
         $dto = new self();
         $dto->setId((int)($row['id'] ?? 0));
-        $dto->setNodeId((int)($row['node_id'] ?? 0));
+        $dto->setNodeId((int) self::pick($row, 'node_id', 'nodeId', 0));
+        $dto->setGroupId((int) self::pick($row, 'group_id', 'groupId', 0));
+        $dto->setGroupName((string) self::pick($row, 'group_name', 'groupName', ''));
         // 表列为 cron_name，兼容误用 name 的查询结果
         $dto->setName((string)($row['name'] ?? $row['cron_name'] ?? ''));
         $dto->setExpression((string)($row['expression'] ?? ''));
@@ -167,6 +176,35 @@ class CronTaskRowDto extends AbstractDto
         return $dto;
     }
 
+    /**
+     * 列表 JSON 必须带上节点分组；显式写出，避免 toArray 漏字段。
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        $out = parent::toArray();
+        $out['groupId'] = $this->getGroupId();
+        $out['groupName'] = $this->getGroupName();
+
+        return $out;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private static function pick(array $row, string $snake, string $camel, mixed $default): mixed
+    {
+        if (array_key_exists($snake, $row) && $row[$snake] !== null) {
+            return $row[$snake];
+        }
+        if (array_key_exists($camel, $row) && $row[$camel] !== null) {
+            return $row[$camel];
+        }
+
+        return $default;
+    }
+
     /** 获取任务 ID */
     public function getId(): int
     {
@@ -191,6 +229,34 @@ class CronTaskRowDto extends AbstractDto
     public function setNodeId(int $nodeId): static
     {
         $this->nodeId = $nodeId;
+
+        return $this;
+    }
+
+    /** 获取绑定节点所属分组 ID */
+    public function getGroupId(): int
+    {
+        return $this->groupId;
+    }
+
+    /** 设置绑定节点所属分组 ID */
+    public function setGroupId(int $groupId): static
+    {
+        $this->groupId = $groupId;
+
+        return $this;
+    }
+
+    /** 获取绑定节点所属分组名称 */
+    public function getGroupName(): string
+    {
+        return $this->groupName;
+    }
+
+    /** 设置绑定节点所属分组名称 */
+    public function setGroupName(string $groupName): static
+    {
+        $this->groupName = $groupName;
 
         return $this;
     }

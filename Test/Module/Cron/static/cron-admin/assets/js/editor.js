@@ -8,6 +8,8 @@
     data: function () {
       return {
         nodes: [],
+        groups: [],
+        selectedGroupId: null,
         saving: false,
         exprType: 'interval',
         intervalSec: 15,
@@ -43,7 +45,24 @@
       nodeLabel: function () {
         var self = this;
         var n = this.nodes.find(function (x) { return x.id === self.form.nodeId; });
-        return n ? n.nodeName : '-';
+        if (!n) return '-';
+        return n.groupName ? (n.groupName + ' / ' + n.nodeName) : n.nodeName;
+      },
+      groupOptions: function () {
+        var groups = (this.groups || []).slice();
+        var hasUngrouped = (this.nodes || []).some(function (n) { return !n.groupId; });
+        if (hasUngrouped) {
+          groups = [{ id: -1, groupName: '未分组' }].concat(groups);
+        }
+        return groups;
+      },
+      nodesInGroup: function () {
+        var gid = Number(this.selectedGroupId);
+        if (this.selectedGroupId === null || this.selectedGroupId === '' || Number.isNaN(gid)) return [];
+        return (this.nodes || []).filter(function (n) {
+          var nid = n.groupId || 0;
+          return gid === -1 ? nid === 0 : nid === gid;
+        });
       },
       pageActions: function () {
         return true;
@@ -53,6 +72,12 @@
       'form.name': function () { this.syncPreviewMeta(); },
       'form.description': function () { this.syncPreviewMeta(); },
       'form.nodeId': function () { this.syncPreviewMeta(); },
+      selectedGroupId: function () {
+        var ids = this.nodesInGroup.map(function (n) { return n.id; });
+        if (ids.indexOf(this.form.nodeId) === -1) {
+          this.form.nodeId = ids[0] || null;
+        }
+      },
       'form.withBlockLapping': function () { this.syncPreviewMeta(); },
       'form.status': function () { this.syncPreviewMeta(); },
       'form.execType': function () { this.syncPreviewMeta(); },
@@ -64,18 +89,30 @@
     },
     methods: {
       syncPreviewMeta: function () {},
+      applySelectedGroup: function (nodeId) {
+        var self = this;
+        var n = this.nodes.find(function (x) { return x.id === nodeId; });
+        this.selectedGroupId = n ? (n.groupId || -1) : (this.groupOptions[0] ? this.groupOptions[0].id : null);
+      },
       init: async function () {
         var taskDetail = null;
         try {
-          var reqs = [common.api('/nodes')];
+          var reqs = [common.api('/nodes'), common.api('/node-groups')];
           if (this.isEdit) {
             reqs.push(common.api('/tasks/detail?id=' + this.$route.params.id));
           }
           var results = await Promise.all(reqs);
           var d = results[0];
-          taskDetail = results[1] || null;
+          var g = results[1];
+          taskDetail = results[2] || null;
           this.nodes = (d && d.list) || [];
-          if (!this.form.nodeId && this.nodes[0]) this.form.nodeId = this.nodes[0].id;
+          this.groups = (g && g.list) || [];
+          if (this.isEdit) {
+            this.applySelectedGroup(this.form.nodeId || (taskDetail && taskDetail.nodeId));
+          } else if (this.groupOptions[0]) {
+            this.selectedGroupId = this.groupOptions[0].id;
+            if (!this.form.nodeId && this.nodesInGroup[0]) this.form.nodeId = this.nodesInGroup[0].id;
+          }
         } catch (e) {
           common.toastErr(this, e);
         }
@@ -102,6 +139,7 @@
               row.cronSkip != null ? row.cronSkip : row.cron_skip,
               'cron_skip'
             );
+            this.applySelectedGroup(this.form.nodeId);
           } catch (e) {
             common.toastErr(this, e);
           }
@@ -206,6 +244,10 @@
         this.syncExpr();
         if (!this.form.name || !this.form.command || !this.form.nodeId) {
           this.$message.warning('请填写名称、节点与 Command/URL');
+          return;
+        }
+        if (this.selectedGroupId === null || this.selectedGroupId === '') {
+          this.$message.warning('请先选择节点分组');
           return;
         }
         if (!this.preview.valid) {
