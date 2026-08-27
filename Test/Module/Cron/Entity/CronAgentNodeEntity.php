@@ -42,9 +42,9 @@ class CronAgentNodeEntity extends ClientModel
 
     /**
      * @param int $id
-     * @return CronAgentNodeGroupEntity
+     * @return CronAgentNodeEntity
      */
-    public function loadById(int $id): CronAgentNodeGroupEntity
+    public function loadById(int $id): ?static
     {
         return $this->loadOne([
             'id' => $id,

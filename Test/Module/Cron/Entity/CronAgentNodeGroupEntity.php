@@ -28,7 +28,7 @@ class CronAgentNodeGroupEntity extends ClientModel
      * @param int $id
      * @return CronAgentNodeGroupEntity
      */
-    public function loadById(int $id): \Swoolefy\Library\Db\Model
+    public function loadById(int $id): ?static
     {
         return $this->loadOne([
             'id' => $id,

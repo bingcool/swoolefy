@@ -60,8 +60,9 @@ class CronTaskLogEntity extends ClientModel
 
     /**
      * @param $id
+     * @return static
      */
-    public function loadById($id)
+    public function loadById($id): ?static
     {
         return $this->loadOne([
             'id' => $id,
