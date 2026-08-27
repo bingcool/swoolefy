@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace PHPUintTest\Unit\Worker\Cron;
 
 use PHPUintTest\TestCase;
+use Swoolefy\Core\Schedule\ScheduleEvent;
 use Swoolefy\Worker\Cron\CronForkProcess;
 use Swoolefy\Worker\Cron\CronForkRunner;
 use Swoolefy\Worker\Cron\ExecutionResult;
+use Swoolefy\Worker\Cron\ExecutionStatus;
 
 final class CronForkProcessExecutionResultTest extends TestCase
 {
@@ -133,6 +135,56 @@ final class CronForkProcessExecutionResultTest extends TestCase
         $this->assertStringContainsString('stream_set_blocking($pipes[1], false)', $src);
         $this->assertStringContainsString('stream_set_blocking($pipes[2], false)', $src);
         $this->assertStringContainsString('return $fn($command, $descriptors, $callable);', $src);
+    }
+
+    public function testReceiveCallBackLogsProcOpenPidWithRunningStatus(): void
+    {
+        $captured = [];
+        $process = new class($captured) extends CronForkProcess {
+            /** @var list<array<string, mixed>> */
+            private array $captured;
+
+            /** @param list<array<string, mixed>> $captured */
+            public function __construct(array &$captured)
+            {
+                $this->captured = &$captured;
+            }
+
+            protected function logCronTaskRuntime(
+                $scheduleTask,
+                string $execBatchId,
+                string $message,
+                int $pid = 0,
+                array $execution = [],
+            ): void {
+                $this->captured[] = [
+                    'execBatchId' => $execBatchId,
+                    'message' => $message,
+                    'pid' => $pid,
+                    'execution' => $execution,
+                ];
+            }
+        };
+
+        $scheduleTask = new ScheduleEvent();
+        $scheduleTask->cron_task_id = 1;
+
+        $method = (new \ReflectionClass(CronForkProcess::class))->getMethod('receiveCallBack');
+        $method->setAccessible(true);
+        $method->invoke(
+            $process,
+            null,
+            null,
+            null,
+            ['pid' => 4242, 'exec_batch_id' => 'batch-1'],
+            $scheduleTask,
+        );
+
+        $this->assertCount(1, $captured);
+        $this->assertSame('batch-1', $captured[0]['execBatchId']);
+        $this->assertSame(4242, $captured[0]['pid']);
+        $this->assertSame(ExecutionStatus::RUNNING, $captured[0]['execution']['status']);
+        $this->assertStringContainsString('PROC_OPEN 拉起脚本的进程PID=4242', $captured[0]['message']);
     }
 
     public function testProcOpenCallbackRunsBeforeWaitForExit(): void

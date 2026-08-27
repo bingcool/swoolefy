@@ -229,7 +229,8 @@ class CronForkProcess extends CronProcess
                 $scheduleTask,
                 $statusProperty['exec_batch_id'] ?? '',
                 "PROC_OPEN 拉起脚本的进程PID={$statusProperty['pid']}",
-                $statusProperty['pid']
+                (int) $statusProperty['pid'],
+                ['status' => ExecutionStatus::RUNNING],
             );
         }
         // fork Process success callback handing
