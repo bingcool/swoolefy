@@ -88,7 +88,7 @@ final class ConfCtlStore
      * @param callable(): T $callback
      * @return T
      */
-    private function withLock(int $lockMode, callable $callback): mixed
+    private function withLock(int $lockMode, callable $callback)
     {
         $dir = dirname($this->filePath);
         if (!is_dir($dir) && !@mkdir($dir, 0777, true) && !is_dir($dir)) {
