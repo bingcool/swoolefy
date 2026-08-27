@@ -203,14 +203,12 @@ class CronProcess extends AbstractWorkerProcess
         array                                  $execution = [],
     )
     {
-        if (isset($scheduleTask->cron_task_id) && $scheduleTask->cron_task_id > 0 && !empty($scheduleTask->cron_db_log_class)) {
-            /**
-             * @var \Swoolefy\Worker\Cron\CronTaskInterface $logClass
-             */
-            $logClass = $scheduleTask->cron_db_log_class;
+        $logClass = $scheduleTask->cron_db_log_class ?? null;
+        if (!empty($logClass)) {
             try {
-                (new $logClass)->logCronTaskRuntime($scheduleTask, $execBatchId, $message, $pid, $execution);
+                (new $logClass())->logCronTaskRuntime($scheduleTask, $execBatchId, $message, $pid, $execution);
             }catch (\Throwable $e) {
+                var_dump($e);
                 $errorMsg = "CronTaskInterface logCronTaskRuntime error: {$e->getMessage()}";
                 $logger = LogManager::getInstance()->getLogger(LogManager::CRON_FORK_LOG);
                 $logger->error($errorMsg);

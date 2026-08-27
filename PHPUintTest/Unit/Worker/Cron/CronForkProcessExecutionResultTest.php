@@ -135,6 +135,19 @@ final class CronForkProcessExecutionResultTest extends TestCase
         $this->assertStringContainsString('return $fn($command, $descriptors, $callable);', $src);
     }
 
+    public function testProcOpenCallbackRunsBeforeWaitForExit(): void
+    {
+        $src = (string) file_get_contents(
+            (new \ReflectionClass(CronForkRunner::class))->getFileName()
+        );
+
+        $this->assertLessThan(
+            strpos($src, 'waitForProcessExitAndDrainPipes'),
+            strpos($src, 'call_user_func_array($callable, $params);'),
+            'proc_open 回调必须在 waitForProcessExitAndDrainPipes 之前，以便 PID 日志及时落库',
+        );
+    }
+
     /**
      * @param array<string, mixed> $procResult
      */

@@ -104,6 +104,9 @@ class CronForkProcess extends CronProcess
             if ($forkType == self::FORK_TYPE_PROC_OPEN) {
                 $procResult = $runner->procOpen($scheduleTask->exec_bin_file, $scheduleTask->exec_script, $argv, function ($pipe0, $pipe1, $pipe2, $statusProperty) use ($scheduleTask, $execBatchId) {
                     $statusProperty['exec_batch_id'] = $execBatchId;
+                    if (isset($statusProperty['pid']) && is_numeric($statusProperty['pid'])) {
+                        $statusProperty['pid'] = (int) $statusProperty['pid'];
+                    }
                     $this->receiveCallBack($pipe0, $pipe1, $pipe2, $statusProperty, $scheduleTask);
                 }, $extend);
 

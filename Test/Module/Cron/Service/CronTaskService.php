@@ -227,15 +227,15 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
         }
 
         if ($execBatchId !== '') {
-            $existing = CronTaskLogEntity::queryNotDeleted()
+            $existOne = CronTaskLogEntity::queryNotDeleted()
                 ->where([
                     'cron_id' => $cronId,
                     'exec_batch_id' => $execBatchId,
                 ])
                 ->order('id', 'asc')
                 ->find();
-            if ($existing) {
-                $id = is_array($existing) ? (int) ($existing['id'] ?? 0) : (int) $existing->id;
+            if ($existOne) {
+                $id = is_array($existOne) ? (int) ($existOne['id'] ?? 0) : (int) $existOne->id;
                 if ($id > 0) {
                     unset($row['cron_id'], $row['exec_batch_id']);
                     CronTaskLogEntity::query()->where(['id' => $id])->update($row);

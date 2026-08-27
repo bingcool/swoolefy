@@ -376,9 +376,11 @@ class CronForkRunner
                     $this->runProcessMetaPool[] = $runProcessMetaDto;
                     $this->debug("【{$this->cronName}】拉起后当前runProcessMetaPool的Size=".count($this->runProcessMetaPool));
                 }
+                // PID 回调必须在 wait 之前：receiveCallBack 写 cron_task_log，且长任务执行期间 Admin 需可见 PID。
+                call_user_func_array($callable, $params);
                 $waitResult = $this->waitForProcessExitAndDrainPipes($proc_process, $pipes, $status['pid']);
                 $waitResult['pid'] = (int) ($statusProperty['pid'] ?? 0);
-                call_user_func_array($callable, $params);
+
                 return $waitResult;
             } catch (\Throwable $e) {
                 $msg = "【{$this->cronName}】CommandRunner ErrorMsg={$e->getMessage()},trace={$e->getTraceAsString()}";
