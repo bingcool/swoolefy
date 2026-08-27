@@ -124,6 +124,29 @@
     return 'cron';
   }
 
+  function isGroupIdSelected(groupId) {
+    return groupId !== '' && groupId !== null && groupId !== undefined;
+  }
+
+  function filterNodesByGroupId(nodes, groupId) {
+    if (!isGroupIdSelected(groupId)) return [];
+    var gid = Number(groupId);
+    if (Number.isNaN(gid)) return [];
+    return (nodes || []).filter(function (n) {
+      var nid = n.groupId || 0;
+      return gid === -1 ? nid === 0 : nid === gid;
+    });
+  }
+
+  function buildGroupOptions(groups, nodes) {
+    var list = (groups || []).slice();
+    var hasUngrouped = (nodes || []).some(function (n) { return !n.groupId; });
+    if (hasUngrouped) {
+      list = [{ id: -1, groupName: '未分组' }].concat(list);
+    }
+    return list;
+  }
+
   window.CronAdminCommon = {
     API: API,
     api: api,
@@ -136,6 +159,9 @@
     formatDurationMs: formatDurationMs,
     formatNextRunAt: formatNextRunAt,
     parseJsonOrNull: parseJsonOrNull,
-    detectExprType: detectExprType
+    detectExprType: detectExprType,
+    isGroupIdSelected: isGroupIdSelected,
+    filterNodesByGroupId: filterNodesByGroupId,
+    buildGroupOptions: buildGroupOptions
   };
 })(window);

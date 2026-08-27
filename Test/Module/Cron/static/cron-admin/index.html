@@ -99,7 +99,13 @@
           </el-select>
         </el-form-item>
         <el-form-item label="节点">
-          <el-select v-model="query.nodeId" clearable placeholder="全部" style="width:160px">
+          <el-select
+            v-model="query.nodeId"
+            clearable
+            :disabled="!filterGroupSelected"
+            :placeholder="filterGroupSelected ? '全部' : '请先选择分组'"
+            style="width:160px"
+          >
             <el-option v-for="n in filteredNodes" :key="n.id" :value="n.id" :label="n.nodeName"></el-option>
           </el-select>
         </el-form-item>
@@ -181,7 +187,7 @@
             </div>
             <div class="field">
               <label>节点分组 <span class="required-mark">*</span></label>
-              <select class="form-select" v-model.number="selectedGroupId">
+              <select class="form-select" v-model.number="selectedGroupId" @change="onGroupChange">
                 <option v-for="g in groupOptions" :key="'eg-'+g.id" :value="g.id">{{ g.groupName }}</option>
               </select>
               <div class="help" v-if="!groupOptions.length">请先在 Cron Nodes「节点分组」页创建分组。</div>
@@ -189,6 +195,7 @@
             <div class="field">
               <label>执行节点 <span class="required-mark">*</span></label>
               <select class="form-select" v-model.number="form.nodeId" :disabled="!nodesInGroup.length">
+                <option v-if="!form.nodeId" disabled :value="null">请选择节点</option>
                 <option v-for="n in nodesInGroup" :key="n.id" :value="n.id">{{ n.nodeName }}（{{ n.nodeIp }}）</option>
               </select>
             </div>

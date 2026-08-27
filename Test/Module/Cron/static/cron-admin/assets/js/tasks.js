@@ -23,20 +23,13 @@
     },
     computed: {
       groupOptions: function () {
-        var groups = (this.groups || []).slice();
-        var hasUngrouped = (this.nodes || []).some(function (n) { return !n.groupId; });
-        if (hasUngrouped) {
-          groups = [{ id: -1, groupName: '未分组' }].concat(groups);
-        }
-        return groups;
+        return common.buildGroupOptions(this.groups, this.nodes);
+      },
+      filterGroupSelected: function () {
+        return common.isGroupIdSelected(this.query.groupId);
       },
       filteredNodes: function () {
-        var gid = Number(this.query.groupId);
-        if (this.query.groupId === '' || this.query.groupId === null || Number.isNaN(gid)) return this.nodes;
-        return (this.nodes || []).filter(function (n) {
-          var nid = n.groupId || 0;
-          return gid === -1 ? nid === 0 : nid === gid;
-        });
+        return common.filterNodesByGroupId(this.nodes, this.query.groupId);
       }
     },
     methods: {
@@ -57,10 +50,7 @@
         }
       },
       onFilterGroupChange: function () {
-        var ids = this.filteredNodes.map(function (n) { return n.id; });
-        if (this.query.nodeId !== '' && ids.indexOf(this.query.nodeId) === -1) {
-          this.query.nodeId = '';
-        }
+        this.query.nodeId = '';
       },
       load: async function () {
         this.loading = true;

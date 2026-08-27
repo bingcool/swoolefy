@@ -49,20 +49,10 @@
         return n.groupName ? (n.groupName + ' / ' + n.nodeName) : n.nodeName;
       },
       groupOptions: function () {
-        var groups = (this.groups || []).slice();
-        var hasUngrouped = (this.nodes || []).some(function (n) { return !n.groupId; });
-        if (hasUngrouped) {
-          groups = [{ id: -1, groupName: '未分组' }].concat(groups);
-        }
-        return groups;
+        return common.buildGroupOptions(this.groups, this.nodes);
       },
       nodesInGroup: function () {
-        var gid = Number(this.selectedGroupId);
-        if (this.selectedGroupId === null || this.selectedGroupId === '' || Number.isNaN(gid)) return [];
-        return (this.nodes || []).filter(function (n) {
-          var nid = n.groupId || 0;
-          return gid === -1 ? nid === 0 : nid === gid;
-        });
+        return common.filterNodesByGroupId(this.nodes, this.selectedGroupId);
       },
       pageActions: function () {
         return true;
@@ -72,12 +62,6 @@
       'form.name': function () { this.syncPreviewMeta(); },
       'form.description': function () { this.syncPreviewMeta(); },
       'form.nodeId': function () { this.syncPreviewMeta(); },
-      selectedGroupId: function () {
-        var ids = this.nodesInGroup.map(function (n) { return n.id; });
-        if (ids.indexOf(this.form.nodeId) === -1) {
-          this.form.nodeId = ids[0] || null;
-        }
-      },
       'form.withBlockLapping': function () { this.syncPreviewMeta(); },
       'form.status': function () { this.syncPreviewMeta(); },
       'form.execType': function () { this.syncPreviewMeta(); },
@@ -90,9 +74,11 @@
     methods: {
       syncPreviewMeta: function () {},
       applySelectedGroup: function (nodeId) {
-        var self = this;
         var n = this.nodes.find(function (x) { return x.id === nodeId; });
         this.selectedGroupId = n ? (n.groupId || -1) : (this.groupOptions[0] ? this.groupOptions[0].id : null);
+      },
+      onGroupChange: function () {
+        this.form.nodeId = null;
       },
       init: async function () {
         var taskDetail = null;
