@@ -8,7 +8,7 @@ use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Core\Dto\AbstractDto;
 
 /**
- * 手动执行入队回执。不声称已执行，只表示 Cron Worker 下次 Polling 会消费。
+ * 手动执行入队回执。不声称已执行，只表示等待 Cron Worker 执行 runOnceNow。
  */
 class RunOnceQueuedDto extends AbstractDto
 {
@@ -30,7 +30,7 @@ class RunOnceQueuedDto extends AbstractDto
         $dto->id = $id;
         $dto->queued = true;
         $dto->requestedAt = $requestedAt;
-        $dto->message = '已入队，等待 Cron Worker 下次 Polling 执行 runOnceNow，不改 expression / nextRunAt';
+        $dto->message = '已入队，等待 Cron Worker 执行 runOnceNow';
 
         return $dto;
     }

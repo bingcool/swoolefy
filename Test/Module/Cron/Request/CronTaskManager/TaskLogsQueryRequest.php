@@ -22,7 +22,7 @@ class TaskLogsQueryRequest extends BasePageRequest
     #[ApiProperty(description: '执行批次 ID')]
     protected ?string $execBatchId = null;
 
-    #[ApiProperty(description: '结果状态：pending/running/success/failed/skipped/timeout/cancelled')]
+    #[ApiProperty(description: '结果状态：register/running/success/failed/skipped/timeout/cancelled/unregister（兼容 pending）')]
     protected ?string $status = null;
 
     #[ApiProperty(description: '执行类型：1=shell, 2=http')]

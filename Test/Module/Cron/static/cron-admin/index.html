@@ -104,8 +104,8 @@
           </el-select>
         </el-form-item>
         <el-form-item label="类型">
-          <el-select v-model="query.execType" clearable placeholder="全部" style="width:110px">
-            <el-option :value="1" label="Shell"></el-option>
+          <el-select v-model="query.execType" clearable placeholder="全部" style="width:130px">
+            <el-option :value="1" label="GLUE 模式"></el-option>
             <el-option :value="2" label="HTTP"></el-option>
           </el-select>
         </el-form-item>
@@ -121,8 +121,8 @@
           <template slot-scope="s"><span :class="groupNameOf(s.row) !== '-' ? '' : 'text-muted'">{{ groupNameOf(s.row) }}</span></template>
         </el-table-column>
         <el-table-column prop="nodeId" label="Node" width="70"></el-table-column>
-        <el-table-column label="Type" width="80">
-          <template slot-scope="s"><el-tag size="mini" :type="s.row.execType===2?'warning':'primary'">{{ s.row.execType===2?'HTTP':'Shell' }}</el-tag></template>
+        <el-table-column label="Type" width="110">
+          <template slot-scope="s"><el-tag size="mini" :type="s.row.execType===2?'warning':'primary'">{{ s.row.execType===2?'HTTP':'GLUE模式' }}</el-tag></template>
         </el-table-column>
         <el-table-column label="Status" width="120">
           <template slot-scope="s">
@@ -247,7 +247,7 @@
           <div class="field field-gap-bottom">
             <label>执行类型 <span class="required-mark">*</span></label>
             <div class="segmented">
-              <label><input type="radio" name="execType" :checked="form.execType===1" @change="setExecType('shell')"><span>Shell</span></label>
+              <label><input type="radio" name="execType" :checked="form.execType===1" @change="setExecType('shell')"><span>GLUE模式</span></label>
               <label><input type="radio" name="execType" :checked="form.execType===2" @change="setExecType('http')"><span>HTTP</span></label>
             </div>
           </div>
@@ -255,7 +255,10 @@
             <div class="field">
               <label>Command <span class="required-mark">*</span></label>
               <textarea class="form-textarea mono" v-model="form.command" placeholder="/bin/bash /opt/scripts/task.sh"></textarea>
-              <div class="help">Shell Command 将由目标 Cron Node 执行，请确认命令来源可信。</div>
+              <div class="help-stack">
+                <div class="help">Shell Command 将由目标 Cron Node 执行，请确认命令来源可信。</div>
+                <div class="help">支持java、python、go，php</div>
+              </div>
             </div>
           </div>
           <div v-else>
@@ -359,7 +362,7 @@
         <div class="kv"><span>执行节点</span><b>{{ nodeLabel }}</b></div>
         <div class="kv"><span>调度类型</span><b>{{ exprType==='interval'?'每 N 秒':'Linux Cron' }}</b></div>
         <div class="kv"><span>表达式</span><b class="mono">{{ form.expression }}</b></div>
-        <div class="kv"><span>执行类型</span><b>{{ form.execType===2?'HTTP':'Shell' }}</b></div>
+        <div class="kv"><span>执行类型</span><b>{{ form.execType===2?'HTTP':'GLUE模式' }}</b></div>
         <div class="kv"><span>防重叠</span><b>{{ form.withBlockLapping?'是':'否' }}</b></div>
         <div class="kv"><span>Retry</span><b>{{ form.retry }}</b></div>
         <div class="callout">
@@ -389,7 +392,7 @@
         <el-descriptions-item label="ID">{{ row.id }}</el-descriptions-item>
         <el-descriptions-item label="节点">{{ row.nodeId }}</el-descriptions-item>
         <el-descriptions-item label="表达式"><span class="mono">{{ row.expression }}</span> <el-tag size="mini">{{ row.expressionType }}</el-tag></el-descriptions-item>
-        <el-descriptions-item label="类型">{{ row.execType===2?'HTTP':'Shell' }}</el-descriptions-item>
+        <el-descriptions-item label="类型">{{ row.execType===2?'HTTP':'GLUE模式' }}</el-descriptions-item>
         <el-descriptions-item label="状态"><el-tag :type="row.status===1?'success':'info'" size="mini">{{ row.status===1?'启用':'禁用' }}</el-tag></el-descriptions-item>
         <el-descriptions-item label="Retry">{{ row.retry }}</el-descriptions-item>
         <el-descriptions-item label="防重叠">{{ row.withBlockLapping?'是':'否' }}</el-descriptions-item>
@@ -428,20 +431,20 @@
         <el-form-item label="任务名称"><el-input v-model="query.taskName" clearable placeholder="支持模糊搜索"></el-input></el-form-item>
         <el-form-item label="批次"><el-input v-model="query.execBatchId" clearable></el-input></el-form-item>
         <el-form-item label="流水状态">
-          <el-select v-model="query.status" clearable style="width:120px">
-            <el-option value="pending" label="注册定时任务"></el-option>
+          <el-select v-model="query.status" clearable style="width:140px">
+            <el-option value="register" label="注册定时任务"></el-option>
             <el-option value="success" label="成功"></el-option>
             <el-option value="failed" label="失败"></el-option>
             <el-option value="skipped" label="跳过"></el-option>
             <el-option value="timeout" label="超时"></el-option>
             <el-option value="cancelled" label="取消"></el-option>
-            <el-option value="running" label="执行中"></el-option>
+            <el-option value="unregister" label="解除定时任务"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="执行类型">
-          <el-select v-model="query.execType" clearable placeholder="全部" style="width:120px">
+          <el-select v-model="query.execType" clearable placeholder="全部" style="width:130px">
             <el-option :value="''" label="全部"></el-option>
-            <el-option :value="1" label="shell"></el-option>
+            <el-option :value="1" label="GLUE模式"></el-option>
             <el-option :value="2" label="http"></el-option>
           </el-select>
         </el-form-item>
@@ -474,7 +477,7 @@
         <el-table-column label="触发类型" width="100">
           <template slot-scope="s">{{ triggerTypeText(s.row) }}</template>
         </el-table-column>
-        <el-table-column label="流水状态" width="110">
+        <el-table-column label="流水状态" width="130">
           <template slot-scope="s">
             <span class="status-pill" :class="statusClass(s.row)">{{ statusText(s.row) }}</span>
           </template>
@@ -514,7 +517,7 @@
       <div class="meta-grid">
         <div class="meta-item"><span class="k">Task ID</span><b>{{ detail && detail.taskId || taskId || '-' }}</b></div>
         <div class="meta-item"><span class="k">Exec Batch</span><b>{{ detail && detail.execBatchId || execBatchId || '-' }}</b></div>
-        <div class="meta-item"><span class="k">状态</span><b>{{ detail && detail.status || '-' }}</b></div>
+        <div class="meta-item"><span class="k">状态</span><b>{{ detail ? statusText(detail) : '-' }}</b></div>
         <div class="meta-item"><span class="k">PID</span><b>{{ detail && detail.pid || '-' }}</b></div>
         <div class="meta-item"><span class="k">开始时间</span><b>{{ detail && detail.startedAt || '-' }}</b></div>
         <div class="meta-item"><span class="k">结束时间</span><b>{{ detail && detail.finishedAt || '-' }}</b></div>

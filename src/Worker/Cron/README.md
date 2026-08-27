@@ -34,6 +34,7 @@ Cron/
 ├── ExecutionGuard.php              # with_block_lapping 进程内临界区
 ├── ExecutionSnapshot.php           # 本轮冻结定义 + execBatchId
 ├── ExecutionResult.php             # SUCCESS / FAILED / SKIPPED
+├── ExecutionStatus.php             # cron_task_log.status：register(0) / running / 终态 / unregister(7)
 ├── CronExecutorInterface.php
 ├── CompositeExecutor.php           # 按 exec_type 分发
 ├── ShellExecutor.php               # exec_type=1
@@ -327,7 +328,7 @@ Test 应用的 `CronTaskManagerController` 是 **写 `cron_task` 的 HTTP Admin*
 
 ### 6. 日志与指标
 
-- 配置变更（ADD/UPDATE/DELETE/ENABLE/DISABLE）：`writeDefinitionLog`，`execBatchId` 通常为空串。
+- 配置变更（ADD/UPDATE/DELETE/ENABLE/DISABLE）：`writeDefinitionLog`，`execBatchId` 通常为空串。ADD/UPDATE/ENABLE 库默认 `status=register`（0，注册定时任务）；DELETE/DISABLE 写 `status=unregister`。
 - 执行期：`writeLog(snapshot, message, pid)`，`execBatchId` 为 `bin2hex(random_bytes(8))`。
 - `logWriter` 由 `CronProcess` 包成 `logCronTaskRuntime()`：仅当 `cron_task_id > 0` 且配置了 `cron_db_log_class`（实现 `CronTaskInterface`）时落库。类缺失或抛异常只记 `CRON_FORK_LOG`。
 - `refreshMetrics()` 在 start / stop / sync / 每轮 Execution `finally` 后刷新 Gauge。

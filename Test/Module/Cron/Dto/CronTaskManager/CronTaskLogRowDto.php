@@ -43,11 +43,11 @@ class CronTaskLogRowDto extends AbstractDto
     #[ApiProperty(description: '执行进程 PID')]
     protected int $pid = 0;
 
-    #[ApiProperty(description: '执行状态整型：0-pending 1-running 2-success 3-failed 4-skipped 5-timeout 6-cancelled')]
+    #[ApiProperty(description: '执行状态整型：0-register 1-running 2-success 3-failed 4-skipped 5-timeout 6-cancelled 7-unregister')]
     protected int $status = 0;
 
     #[ApiProperty(description: '执行状态名称')]
-    protected string $statusName = 'pending';
+    protected string $statusName = 'register';
 
     #[ApiProperty(description: '触发类型：1-scheduler 2-run_once')]
     protected int $triggerType = 0;
@@ -102,7 +102,7 @@ class CronTaskLogRowDto extends AbstractDto
         $dto->setTaskName((string)($row['task_name'] ?? $row['cron_name'] ?? ''));
         $dto->setExecBatchId((string)($row['exec_batch_id'] ?? ''));
         $dto->setPid((int)($row['pid'] ?? 0));
-        $status = (int)($row['status'] ?? ExecutionStatus::PENDING);
+        $status = (int)($row['status'] ?? ExecutionStatus::REGISTER);
         $dto->setStatus($status);
         $dto->setStatusName(ExecutionStatus::name($status));
         $dto->setTriggerType((int)($row['trigger_type'] ?? 0));

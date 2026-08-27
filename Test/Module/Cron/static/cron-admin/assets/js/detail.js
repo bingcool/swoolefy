@@ -92,10 +92,11 @@
       },
       runOnce: async function () {
         try {
+          await common.confirmRunOnce(this, this.row && this.row.name);
           var d = await common.api('/tasks/run', { method: 'POST', body: { id: Number(this.id) } });
           this.$message.success((d && d.message) || '已入队');
         } catch (e) {
-          common.toastErr(this, e);
+          if (e !== 'cancel') common.toastErr(this, e);
         }
       }
     }

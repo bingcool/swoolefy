@@ -17,18 +17,22 @@ namespace Swoolefy\Worker\Cron;
  * message 只给人看；taskStats / Dashboard 必须用本常量 + SQL GROUP BY，
  * 禁止再从 message 推断成功/失败/跳过。
  *
- * 状态机：PENDING → RUNNING → SUCCESS|FAILED|TIMEOUT|CANCELLED；
- * 时间窗 / 重叠守卫拦截时 PENDING → SKIPPED（不进入 RUNNING）。
+ * 状态机：REGISTER → RUNNING → SUCCESS|FAILED|TIMEOUT|CANCELLED；
+ * 时间窗 / 重叠守卫拦截时 REGISTER → SKIPPED（不进入 RUNNING）。
+ * UNREGISTER 仅用于 DELETE/DISABLE 解除注册日志，不是 Execution 终态。
  */
 final class ExecutionStatus
 {
-    public const PENDING = 0;
+    /** ADD/UPDATE/ENABLE 注册定时任务（配置变更日志，通常无 exec_batch_id） */
+    public const REGISTER = 0;
     public const RUNNING = 1;
     public const SUCCESS = 2;
     public const FAILED = 3;
     public const SKIPPED = 4;
     public const TIMEOUT = 5;
     public const CANCELLED = 6;
+    /** DELETE / DISABLE 解除定时任务（配置变更日志，通常无 exec_batch_id） */
+    public const UNREGISTER = 7;
 
     /** 调度器按 expression / nextRunAt 触发 */
     public const TRIGGER_SCHEDULER = 1;
@@ -42,21 +46,22 @@ final class ExecutionStatus
      * @var array<int, string>
      */
     public const NAMES = [
-        self::PENDING => 'pending',
+        self::REGISTER => 'register',
         self::RUNNING => 'running',
         self::SUCCESS => 'success',
         self::FAILED => 'failed',
         self::SKIPPED => 'skipped',
         self::TIMEOUT => 'timeout',
         self::CANCELLED => 'cancelled',
+        self::UNREGISTER => 'unregister',
     ];
 
     /**
      * 空统计结构。无数据时也必须返回完整零值，避免前端缺键。
      *
      * @return array{
-     *     total:int,pending:int,running:int,success:int,failed:int,skipped:int,
-     *     timeout:int,cancelled:int,finished:int,attempted:int,
+     *     total:int,register:int,running:int,success:int,failed:int,skipped:int,
+     *     timeout:int,cancelled:int,unregister:int,finished:int,attempted:int,
      *     successRate:float,avgDurationMs:float,maxDurationMs:float,samples:int
      * }
      */
@@ -64,13 +69,14 @@ final class ExecutionStatus
     {
         return [
             'total' => 0,
-            'pending' => 0,
+            'register' => 0,
             'running' => 0,
             'success' => 0,
             'failed' => 0,
             'skipped' => 0,
             'timeout' => 0,
             'cancelled' => 0,
+            'unregister' => 0,
             'finished' => 0,
             'attempted' => 0,
             'successRate' => 0.0,
@@ -83,13 +89,14 @@ final class ExecutionStatus
     /**
      * 将 DB GROUP BY status 行折叠为完整计数。
      *
-     * 未知 status 只计入 total，不伪装成 pending。
+     * 未知 status 只计入 total，不伪装成 register。
      * 成功率分母 {@see attempted} = SUCCESS+FAILED+TIMEOUT+CANCELLED（不含 SKIPPED）。
+     * UNREGISTER 计入 total/unregister，不进入 finished / attempted。
      *
      * @param list<array<string, mixed>> $rows 每行至少含 status、total
      * @return array{
-     *     total:int,pending:int,running:int,success:int,failed:int,skipped:int,
-     *     timeout:int,cancelled:int,finished:int,attempted:int,
+     *     total:int,register:int,running:int,success:int,failed:int,skipped:int,
+     *     timeout:int,cancelled:int,unregister:int,finished:int,attempted:int,
      *     successRate:float,avgDurationMs:float,maxDurationMs:float,samples:int
      * }
      */
@@ -138,6 +145,7 @@ final class ExecutionStatus
 
     /**
      * 将 API 过滤值（success / 2 / SUCCESS）转为 status 整型；无法识别返回 null。
+     * 兼容旧名 pending → REGISTER（0）；输出统一用 register。
      */
     public static function fromName(string $name): ?int
     {
@@ -151,12 +159,15 @@ final class ExecutionStatus
             return array_key_exists($status, self::NAMES) ? $status : null;
         }
         $map = array_flip(self::NAMES);
+        if ($normalized === 'pending') {
+            return self::REGISTER;
+        }
 
         return $map[$normalized] ?? null;
     }
 
     /**
-     * ExecutionResult 字符串状态 → DB tinyint。未知结果记 FAILED，不伪装 PENDING。
+     * ExecutionResult 字符串状态 → DB tinyint。未知结果记 FAILED，不伪装 REGISTER。
      */
     public static function fromResult(ExecutionResult $result): int
     {
@@ -178,7 +189,7 @@ final class ExecutionStatus
     /**
      * 一次性历史迁移：仅在确认旧 message 格式时映射。
      *
-     * 无法识别返回 null——调用方不得把 null 写成 PENDING。
+     * 无法识别返回 null——调用方不得把 null 写成 REGISTER。
      * 禁止用于 taskStats()。
      */
     public static function inferFromLegacyMessage(string $message): ?int

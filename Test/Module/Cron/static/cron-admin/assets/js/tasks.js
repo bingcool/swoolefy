@@ -104,10 +104,11 @@
       },
       runOnce: async function (row) {
         try {
+          await common.confirmRunOnce(this, row.name);
           var d = await common.api('/tasks/run', { method: 'POST', body: { id: row.id } });
           this.$message.success((d && d.message) || '已入队');
         } catch (e) {
-          common.toastErr(this, e);
+          if (e !== 'cancel') common.toastErr(this, e);
         }
       },
       dup: async function (row) {

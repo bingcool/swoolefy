@@ -111,7 +111,7 @@ CREATE TABLE `cron_task_log` (
     `cron_id` bigint NOT NULL DEFAULT '0' COMMENT '关联的cron_task.id',
     `exec_batch_id` varchar(64) NOT NULL DEFAULT '' COMMENT '每轮执行的批次id',
     `pid` int NOT NULL DEFAULT '0' COMMENT '定时脚本执行时的进程pid',
-    `status` tinyint unsigned NOT NULL DEFAULT '0' COMMENT '执行状态：0-pending 1-running 2-success 3-failed 4-skipped 5-timeout 6-cancelled',
+    `status` tinyint unsigned NOT NULL DEFAULT '0' COMMENT '执行状态：0-register（注册定时任务） 1-running 2-success 3-failed 4-skipped 5-timeout 6-cancelled 7-unregister',
     `trigger_type` tinyint unsigned NOT NULL DEFAULT '1' COMMENT '触发类型：1-scheduler 2-run_once',
     `scheduled_at` datetime DEFAULT NULL COMMENT '计划执行时间',
     `started_at` datetime DEFAULT NULL COMMENT '实际开始执行时间',
@@ -136,7 +136,7 @@ CREATE TABLE `cron_task_log` (
 -- 新库按上方 CREATE TABLE 已含，无需再执行。若列/索引已存在，跳过对应语句即可。
 -- ALTER TABLE `cron_task_log`
 --     ADD COLUMN `status` tinyint unsigned NOT NULL DEFAULT 0
---         COMMENT '执行状态：0-pending 1-running 2-success 3-failed 4-skipped 5-timeout 6-cancelled'
+--         COMMENT '执行状态：0-register（注册定时任务） 1-running 2-success 3-failed 4-skipped 5-timeout 6-cancelled 7-unregister'
 --         AFTER `pid`,
 --     ADD COLUMN `trigger_type` tinyint unsigned NOT NULL DEFAULT 1
 --         COMMENT '触发类型：1-scheduler 2-run_once'
@@ -164,7 +164,7 @@ CREATE TABLE `cron_task_log` (
 -- ALTER TABLE `cron_task_log` ADD KEY `idx_status_created_at` (`status`, `created_at`);
 -- ALTER TABLE `cron_task_log` ADD KEY `idx_cron_exec_batch` (`cron_id`, `exec_batch_id`);
 --
--- 历史数据一次性迁移：只改能确认的旧文案，无法识别的保持 status=0（不要伪装成真实 PENDING）。
+-- 历史数据一次性迁移：只改能确认的旧文案，无法识别的保持 status=0（不要伪装成真实 REGISTER）。
 -- UPDATE `cron_task_log` SET `status` = 4 WHERE `status` = 0 AND (`message` LIKE '%】SKIP %' OR `message` LIKE '%】SKIPPED %' OR `message` = 'skipped');
 -- UPDATE `cron_task_log` SET `status` = 5 WHERE `status` = 0 AND `message` LIKE '%】TIMEOUT %';
 -- UPDATE `cron_task_log` SET `status` = 6 WHERE `status` = 0 AND `message` LIKE '%】CANCELLED %';

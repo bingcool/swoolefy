@@ -22,7 +22,7 @@ final class CronTaskStatsTest extends TestCase
         $dto = CronTaskStatsResultDto::fromAggregated(9, ExecutionStatus::emptyCounts());
         $data = CronTaskStatsResponse::fromDto($dto)->getData();
         $this->assertSame(9, $data['taskId']);
-        foreach (['total', 'pending', 'running', 'success', 'failed', 'skipped', 'timeout', 'cancelled', 'finished', 'attempted', 'samples'] as $key) {
+        foreach (['total', 'register', 'running', 'success', 'failed', 'skipped', 'timeout', 'cancelled', 'finished', 'attempted', 'samples'] as $key) {
             $this->assertSame(0, $data[$key], $key);
         }
         $this->assertSame(0.0, $data['successRate']);
@@ -60,6 +60,24 @@ final class CronTaskStatsTest extends TestCase
         $this->assertSame(1500.0, $dto->getDurationMs());
         $this->assertSame('执行失败？', $dto->getMessage());
         $this->assertSame(0, $dto->getExitCode());
+
+        $reg = ExecutionDetailDto::fromLogRow([
+            'cron_id' => 3,
+            'exec_batch_id' => '',
+            'status' => ExecutionStatus::REGISTER,
+            'message' => '【job】ADD 注册定时任务',
+        ]);
+        $this->assertSame('register', $reg->getStatus());
+        $this->assertSame(ExecutionStatus::REGISTER, $reg->getStatusCode());
+
+        $unreg = ExecutionDetailDto::fromLogRow([
+            'cron_id' => 3,
+            'exec_batch_id' => '',
+            'status' => ExecutionStatus::UNREGISTER,
+            'message' => '【job】DISABLE 解除定时任务',
+        ]);
+        $this->assertSame('unregister', $unreg->getStatus());
+        $this->assertSame(ExecutionStatus::UNREGISTER, $unreg->getStatusCode());
     }
 
     public function testLogRowMapsStructuredFields(): void
@@ -78,6 +96,26 @@ final class CronTaskStatsTest extends TestCase
         ]);
         $this->assertSame(ExecutionStatus::TIMEOUT, $dto->getStatus());
         $this->assertSame('timeout', $dto->getStatusName());
+
+        $reg = CronTaskLogRowDto::fromEntityRow([
+            'id' => 10,
+            'cron_id' => 3,
+            'exec_batch_id' => '',
+            'status' => ExecutionStatus::REGISTER,
+            'message' => '【job】ADD 注册定时任务',
+        ]);
+        $this->assertSame(ExecutionStatus::REGISTER, $reg->getStatus());
+        $this->assertSame('register', $reg->getStatusName());
+
+        $unreg = CronTaskLogRowDto::fromEntityRow([
+            'id' => 9,
+            'cron_id' => 3,
+            'exec_batch_id' => '',
+            'status' => ExecutionStatus::UNREGISTER,
+            'message' => '【job】DELETE 解除定时任务',
+        ]);
+        $this->assertSame(ExecutionStatus::UNREGISTER, $unreg->getStatus());
+        $this->assertSame('unregister', $unreg->getStatusName());
         $this->assertSame(ExecutionStatus::TRIGGER_RUN_ONCE, $dto->getTriggerType());
         $this->assertSame(30000, $dto->getDurationMs());
     }

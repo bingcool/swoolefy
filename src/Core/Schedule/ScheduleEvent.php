@@ -20,6 +20,9 @@ class ScheduleEvent extends CronForkTaskMetaDtoWorker
      */
     public $command;
 
+    /**
+     * @var string
+     */
     public $cron_meta_origin = 'php';
 
     /**

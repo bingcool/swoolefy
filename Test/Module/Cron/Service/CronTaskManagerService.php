@@ -405,8 +405,8 @@ class CronTaskManagerService
         $statusFilter = $query->getStatus();
 
         $qb = CronTaskLogEntity::queryNotDeleted();
-        // 终态/进行中 Execution 需带 exec_batch_id；pending（注册定时任务）及「全部」允许空批次。
-        if ($statusFilter !== null && $statusFilter !== 'pending') {
+        // 终态/进行中 Execution 需带 exec_batch_id；register / unregister 及「全部」允许空批次。
+        if ($statusFilter !== null && $statusFilter !== 'register' && $statusFilter !== 'pending' && $statusFilter !== 'unregister') {
             $qb->whereNotNull('exec_batch_id')->where('exec_batch_id', '<>', '');
         }
         if ($taskId !== null && $taskId > 0) {

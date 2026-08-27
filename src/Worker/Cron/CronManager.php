@@ -137,7 +137,7 @@ final class CronManager
             return;
         }
         $this->started = true;
-        $this->syncFromFetcher();
+        $this->syncInitFromFetcher();
         if ($this->pollIntervalMs > 0) {
             $this->pollTimerId = $this->timer->tick($this->pollIntervalMs, function (): void {
                 $this->syncFromFetcher();
@@ -170,8 +170,47 @@ final class CronManager
         $this->refreshMetrics();
     }
 
+
     /**
-     * 从 fetcher 拉取并 Diff Apply。
+     * 进程启动时，从 fetcher 拉取并启用的 Diff Apply。
+     *
+     * fetcher 抛异常 = DB 故障：保留 Last Known Good Runtime，绝不 clear all。
+     * fetcher 成功返回空数组 = 配置侧确实没有任务，按 DELETE 收敛。
+     */
+    public function syncInitFromFetcher(): bool
+    {
+        try {
+            $rows = ($this->fetcher)();
+            if (!is_array($rows)) {
+                throw new CronException('Cron fetcher 必须返回 array');
+            }
+            // 服务启动时拉取，过滤取得启用的任务
+            $enableRows = [];
+            foreach ($rows as $row) {
+                if ((!isset($row['status'])) || (isset($row['status']) && $row['status'] == 1)) {
+                    $enableRows[] = $row;
+                }
+            }
+            $this->lastConfigSyncError = null;
+            $this->lastConfigSyncAt = $this->clock->now();
+            $this->applyRows($enableRows);
+            $this->consumeRunOnceRequests($enableRows);
+
+            return true;
+        } catch (\Throwable $e) {
+            // DB Failure ≠ Clear Runtime
+            $this->lastConfigSyncError = $e->getMessage();
+            $this->lastConfigSyncAt = $this->clock->now();
+            $this->debug('When Process Start Init Config sync failed, keep last known good runtime: ' . $e->getMessage());
+            // DB 故障时仍尝试补回丢失的 Schedule Timer（例如上一轮 arm 失败）
+            $this->reconcileMissingTimers();
+
+            return false;
+        }
+    }
+
+    /**
+     * 定时从 fetcher 拉取并 Diff Apply。
      *
      * fetcher 抛异常 = DB 故障：保留 Last Known Good Runtime，绝不 clear all。
      * fetcher 成功返回空数组 = 配置侧确实没有任务，按 DELETE 收敛。
@@ -677,8 +716,10 @@ final class CronManager
         $this->registry->put($job);
         if ($job->isSchedulable()) {
             $this->scheduler->arm($job);
+            $this->writeDefinitionLog($definition, '', sprintf('【%s】【启用】ADD 注册定时任务，创建定时器', $definition->cronName));
+        } else {
+            $this->writeDefinitionLog($definition, '', sprintf('【%s】【禁用】ADD 注册定时任务，无需创建定时器', $definition->cronName));
         }
-        $this->writeDefinitionLog($definition, '', sprintf('【%s】ADD 注册定时任务', $definition->cronName));
     }
 
     /**
@@ -724,7 +765,12 @@ final class CronManager
             $this->registry->remove($jobId);
             $this->releaseRunnerForDefinition($definition);
         }
-        $this->writeDefinitionLog($definition, '', sprintf('【%s】DELETE 已停止未来调度', $definition->cronName));
+        $this->writeDefinitionLog(
+            $definition,
+            '',
+            sprintf('【%s】DELETE 解除定时任务', $definition->cronName),
+            ['status' => ExecutionStatus::UNREGISTER],
+        );
     }
 
     /**
@@ -752,7 +798,12 @@ final class CronManager
         if ($definition !== null) {
             $job->definition = $definition;
         }
-        $this->writeDefinitionLog($job->definition, '', sprintf('【%s】DISABLE 已停止未来调度', $job->definition->cronName));
+        $this->writeDefinitionLog(
+            $job->definition,
+            '',
+            sprintf('【%s】DISABLE 解除定时任务', $job->definition->cronName),
+            ['status' => ExecutionStatus::UNREGISTER],
+        );
     }
 
     /**
@@ -969,11 +1020,14 @@ final class CronManager
 
     /**
      * ADD/UPDATE/DELETE/ENABLE/DISABLE 的配置变更日志，execBatchId 通常为空串。
-     * 配置变更不是 Execution，不写 status，避免污染 taskStats。
+     * ADD/UPDATE/ENABLE 不写 status（库默认 register=0）；DELETE/DISABLE 写 unregister。
+     * 无批次行不进入 taskStats（统计只计 exec_batch_id 非空的 Execution）。
+     *
+     * @param array<string, mixed> $execution 可选结构化字段（如 DELETE/DISABLE 的 status=unregister）
      */
-    private function writeDefinitionLog(TaskDefinition $definition, string $execBatchId, string $message): void
+    private function writeDefinitionLog(TaskDefinition $definition, string $execBatchId, string $message, array $execution = []): void
     {
-        $this->invokeLogWriter($definition->toLogDto(), $execBatchId, $message, 0, []);
+        $this->invokeLogWriter($definition->toLogDto(), $execBatchId, $message, 0, $execution);
     }
 
     /**

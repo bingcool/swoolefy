@@ -36,13 +36,17 @@
     info: { type: 'info', cls: 'cron-confirm-info' }
   };
 
-  function confirmDialog(vm, message, tone) {
+  function confirmDialog(vm, message, tone, title) {
     var preset = CONFIRM_TONES[tone] || CONFIRM_TONES.info;
-    return vm.$confirm(message, {
+    var options = {
       type: preset.type,
       customClass: 'cron-confirm-dialog ' + preset.cls,
       confirmButtonClass: 'cron-confirm-ok'
-    });
+    };
+    if (title) {
+      return vm.$confirm(message, title, options);
+    }
+    return vm.$confirm(message, options);
   }
 
   function confirmTaskStatusChange(vm, status, names) {
@@ -53,6 +57,23 @@
 
   function confirmDelete(vm, message) {
     return confirmDialog(vm, message, 'danger');
+  }
+
+  function confirmRunOnce(vm, names) {
+    var label = formatTaskNames(names);
+    return confirmDialog(
+      vm,
+      '确认手动执行任务' + label + '？任务将立即入队执行。',
+      'info',
+      '手动执行'
+    ).then(function () {
+      return confirmDialog(
+        vm,
+        '再次确认要立即执行' + label + '？',
+        'warning',
+        '再次确认'
+      );
+    });
   }
 
   function toastTaskStatus(vm, status, names) {
@@ -110,6 +131,7 @@
     confirmDialog: confirmDialog,
     confirmTaskStatusChange: confirmTaskStatusChange,
     confirmDelete: confirmDelete,
+    confirmRunOnce: confirmRunOnce,
     toastTaskStatus: toastTaskStatus,
     formatDurationMs: formatDurationMs,
     formatNextRunAt: formatNextRunAt,

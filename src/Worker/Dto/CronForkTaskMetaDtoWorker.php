@@ -91,6 +91,12 @@ class CronForkTaskMetaDtoWorker extends WorkerAbstractDto
     public $argv = [];
 
     /**
+     * 状态 0-禁用 1->启用
+     * @var int
+     */
+    public int $status;
+
+    /**
      * @var string
      */
     public $description = '';

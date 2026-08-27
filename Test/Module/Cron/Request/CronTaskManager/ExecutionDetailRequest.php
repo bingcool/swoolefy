@@ -24,8 +24,8 @@ class ExecutionDetailRequest extends BaseRequest
     #[StringToInt]
     protected int $id = 0;
 
-    #[ApiProperty(description: '执行批次 ID')]
-    #[ValidationRule(rule: 'required|string', message: 'execBatchId 不能为空')]
+    #[ApiProperty(description: '执行批次 ID；register/unregister 等无批次行可空，此时需传 logId')]
+    #[ValidationRule(rule: 'nullable|string', message: 'execBatchId 必须是字符串')]
     protected string $execBatchId = '';
 
     public function getLogId(): ?int

@@ -3,6 +3,42 @@
 
   var common = window.CronAdminCommon;
 
+  function execStatusRaw(row) {
+    return String((row && (row.statusName || row.status)) || '').trim().toLowerCase();
+  }
+
+  function normalizeExecStatus(row) {
+    var raw = execStatusRaw(row);
+    if (raw === 'success' || raw === 'succeeded' || raw === 'ok' || raw === '成功') return 'success';
+    if (raw === 'failed' || raw === 'failure' || raw === 'error' || raw === '失败') return 'failed';
+    if (raw === 'timeout' || raw === 'timed_out' || raw === '超时') return 'timeout';
+    if (raw === 'cancelled' || raw === 'canceled' || raw === '取消') return 'cancelled';
+    if (raw === 'running' || raw === 'processing' || raw === '执行中') return 'running';
+    if (raw === 'skipped' || raw === 'skip' || raw === '跳过') return 'skipped';
+    if (raw === 'register' || raw === 'pending' || raw === '0' || raw === '注册定时任务') return 'register';
+    if (raw === 'unregister' || raw === '7' || raw === '解除定时任务') return 'unregister';
+    return 'default';
+  }
+
+  function execStatusText(row) {
+    var raw = execStatusRaw(row);
+    if (raw === 'register' || raw === 'pending' || raw === '0') return '注册定时任务';
+    if (raw === 'unregister' || raw === '7') return '解除定时任务';
+    var key = normalizeExecStatus(row);
+    var map = {
+      success: '成功',
+      failed: '失败',
+      timeout: '超时',
+      cancelled: '取消',
+      running: '执行中',
+      skipped: '跳过',
+      register: '注册定时任务',
+      unregister: '解除定时任务',
+      default: row && (row.statusName || row.status) ? String(row.statusName || row.status) : '未知'
+    };
+    return map[key];
+  }
+
   window.CronAdminExecutions = {
     template: '#tpl-executions',
     data: function () {
@@ -51,34 +87,11 @@
         this.query.startTime = '';
         this.query.endTime = '';
       },
-      normalizeStatus: function (row) {
-        var raw = String((row && (row.statusName || row.status)) || '').trim().toLowerCase();
-        if (raw === 'success' || raw === 'succeeded' || raw === 'ok' || raw === '成功') return 'success';
-        if (raw === 'failed' || raw === 'failure' || raw === 'error' || raw === '失败') return 'failed';
-        if (raw === 'timeout' || raw === 'timed_out' || raw === '超时') return 'timeout';
-        if (raw === 'cancelled' || raw === 'canceled' || raw === '取消') return 'cancelled';
-        if (raw === 'running' || raw === 'processing' || raw === '执行中') return 'running';
-        if (raw === 'skipped' || raw === 'skip' || raw === '跳过') return 'skipped';
-        return 'default';
-      },
+      normalizeStatus: normalizeExecStatus,
       statusClass: function (row) {
         return 'status-' + this.normalizeStatus(row);
       },
-      statusText: function (row) {
-        var raw = String((row && (row.statusName || row.status)) || '').trim().toLowerCase();
-        if (raw === 'pending') return '注册定时任务';
-        var key = this.normalizeStatus(row);
-        var map = {
-          success: '成功',
-          failed: '失败',
-          timeout: '超时',
-          cancelled: '取消',
-          running: '执行中',
-          skipped: '跳过',
-          default: row && (row.statusName || row.status) ? String(row.statusName || row.status) : '未知'
-        };
-        return map[key];
-      },
+      statusText: execStatusText,
       formatDurationMs: function (ms) {
         return common.formatDurationMs(ms);
       },
@@ -181,12 +194,13 @@
       this.load();
     },
     methods: {
+      statusText: execStatusText,
       formatDurationMs: function (ms) {
         return common.formatDurationMs(ms);
       },
       load: async function () {
-        if (!this.taskId || !this.execBatchId) {
-          this.$message.warning('缺少 taskId 或 execBatchId');
+        if (!this.logId && (!this.taskId || !this.execBatchId)) {
+          this.$message.warning('缺少 logId，或缺少 taskId 与 execBatchId');
           return;
         }
         this.loading = true;

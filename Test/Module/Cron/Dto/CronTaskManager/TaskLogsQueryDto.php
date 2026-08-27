@@ -36,7 +36,7 @@ class TaskLogsQueryDto extends AbstractDto
     #[ApiProperty(description: '执行批次 ID，空表示不过滤')]
     protected ?string $execBatchId = null;
 
-    #[ApiProperty(description: '结果状态：pending/running/success/failed/skipped/timeout/cancelled，空表示不过滤')]
+    #[ApiProperty(description: '结果状态：register/running/success/failed/skipped/timeout/cancelled/unregister（兼容 pending），空表示不过滤')]
     protected ?string $status = null;
 
     #[ApiProperty(description: '执行类型：1=shell, 2=http；null 表示不过滤')]

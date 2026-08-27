@@ -16,8 +16,8 @@ class CronTaskStatsResponse extends BaseResponse
     #[ApiProperty(description: '执行记录总条数')]
     protected int $total = 0;
 
-    #[ApiProperty(description: 'pending 次数')]
-    protected int $pending = 0;
+    #[ApiProperty(description: 'register（注册定时任务）次数')]
+    protected int $register = 0;
 
     #[ApiProperty(description: 'running 次数')]
     protected int $running = 0;
@@ -60,7 +60,7 @@ class CronTaskStatsResponse extends BaseResponse
         $response = new self();
         $response->taskId = $stats->getTaskId();
         $response->total = $stats->getTotal();
-        $response->pending = $stats->getPending();
+        $response->register = $stats->getRegister();
         $response->running = $stats->getRunning();
         $response->success = $stats->getSuccess();
         $response->failed = $stats->getFailed();
@@ -82,7 +82,7 @@ class CronTaskStatsResponse extends BaseResponse
         return [
             'taskId' => $this->taskId,
             'total' => $this->total,
-            'pending' => $this->pending,
+            'register' => $this->register,
             'running' => $this->running,
             'success' => $this->success,
             'failed' => $this->failed,

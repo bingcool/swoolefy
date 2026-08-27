@@ -275,6 +275,18 @@
   margin-top: 1px;
 }
 
+.task-editor-page .help-stack {
+  margin-top: 1px;
+}
+
+.task-editor-page .help-stack .help {
+  margin-top: 0;
+}
+
+.task-editor-page .help-stack .help + .help {
+  margin-top: 4px;
+}
+
 .task-editor-page .time-range-list {
   border: 1px solid var(--form-border-color);
   border-radius: var(--form-radius);
@@ -601,6 +613,19 @@
 
 .status-pill.status-failed {
   color: #991b1b;
+  background: #fee2e2;
+  border-color: #fecaca;
+}
+
+.status-pill.status-register,
+.status-pill.status-pending {
+  color: #4338ca;
+  background: #eef2ff;
+  border-color: #c7d2fe;
+}
+
+.status-pill.status-unregister {
+  color: #b91c1c;
   background: #fee2e2;
   border-color: #fecaca;
 }

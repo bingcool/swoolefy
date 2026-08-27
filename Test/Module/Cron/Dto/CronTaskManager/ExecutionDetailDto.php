@@ -19,7 +19,7 @@ class ExecutionDetailDto extends AbstractDto
     #[ApiProperty(description: '执行批次 ID')]
     protected string $execBatchId = '';
 
-    #[ApiProperty(description: 'pending / running / success / failed / skipped / timeout / cancelled / unknown')]
+    #[ApiProperty(description: 'register / running / success / failed / skipped / timeout / cancelled / unregister / unknown')]
     protected string $status = 'unknown';
 
     #[ApiProperty(description: 'status 整型')]
@@ -68,7 +68,7 @@ class ExecutionDetailDto extends AbstractDto
         $dto->execBatchId = (string) (self::pick($row, 'exec_batch_id', 'execBatchId') ?? '');
         $dto->pid = (int) (self::pick($row, 'pid') ?? 0);
         $dto->message = (string) (self::pick($row, 'message') ?? '');
-        $statusCode = (int) (self::pick($row, 'status') ?? ExecutionStatus::PENDING);
+        $statusCode = (int) (self::pick($row, 'status') ?? ExecutionStatus::REGISTER);
         $dto->statusCode = $statusCode;
         $dto->status = ExecutionStatus::name($statusCode);
         $dto->triggerType = (int) (self::pick($row, 'trigger_type', 'triggerType') ?? 0);

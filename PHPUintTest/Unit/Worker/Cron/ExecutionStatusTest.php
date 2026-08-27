@@ -18,7 +18,7 @@ final class ExecutionStatusTest extends TestCase
     public function testEmptyCountsHasCompleteZeroStructure(): void
     {
         $stats = ExecutionStatus::emptyCounts();
-        foreach (['total', 'pending', 'running', 'success', 'failed', 'skipped', 'timeout', 'cancelled', 'finished', 'attempted', 'samples'] as $key) {
+        foreach (['total', 'register', 'running', 'success', 'failed', 'skipped', 'timeout', 'cancelled', 'unregister', 'finished', 'attempted', 'samples'] as $key) {
             $this->assertSame(0, $stats[$key], $key);
         }
         $this->assertSame(0.0, $stats['successRate']);
@@ -55,13 +55,38 @@ final class ExecutionStatusTest extends TestCase
         $this->assertSame(0, $stats['failed']);
     }
 
-    public function testUnknownStatusDoesNotMasqueradeAsPending(): void
+    public function testUnknownStatusDoesNotMasqueradeAsRegister(): void
     {
         $stats = ExecutionStatus::aggregateCounts([
             ['status' => 99, 'total' => 4],
         ]);
         $this->assertSame(4, $stats['total']);
-        $this->assertSame(0, $stats['pending']);
+        $this->assertSame(0, $stats['register']);
+    }
+
+    public function testRegisterDoesNotCountAsFinishedOrAttempted(): void
+    {
+        $stats = ExecutionStatus::aggregateCounts([
+            ['status' => ExecutionStatus::REGISTER, 'total' => 3],
+            ['status' => ExecutionStatus::SUCCESS, 'total' => 1],
+        ]);
+        $this->assertSame(4, $stats['total']);
+        $this->assertSame(3, $stats['register']);
+        $this->assertSame(1, $stats['finished']);
+        $this->assertSame(1, $stats['attempted']);
+    }
+
+    public function testUnregisterDoesNotCountAsFinishedOrAttempted(): void
+    {
+        $stats = ExecutionStatus::aggregateCounts([
+            ['status' => ExecutionStatus::UNREGISTER, 'total' => 4],
+            ['status' => ExecutionStatus::SUCCESS, 'total' => 1],
+        ]);
+        $this->assertSame(5, $stats['total']);
+        $this->assertSame(4, $stats['unregister']);
+        $this->assertSame(1, $stats['finished']);
+        $this->assertSame(1, $stats['attempted']);
+        $this->assertSame(0, $stats['failed']);
     }
 
     public function testFromResultAndNameRoundTrip(): void
@@ -74,6 +99,13 @@ final class ExecutionStatusTest extends TestCase
         $this->assertSame('timeout', ExecutionStatus::name(ExecutionStatus::TIMEOUT));
         $this->assertSame(ExecutionStatus::FAILED, ExecutionStatus::fromName('failed'));
         $this->assertSame(ExecutionStatus::TIMEOUT, ExecutionStatus::fromName('5'));
+        $this->assertSame(ExecutionStatus::REGISTER, ExecutionStatus::fromName('register'));
+        $this->assertSame(ExecutionStatus::REGISTER, ExecutionStatus::fromName('pending'));
+        $this->assertSame(ExecutionStatus::REGISTER, ExecutionStatus::fromName('0'));
+        $this->assertSame('register', ExecutionStatus::name(ExecutionStatus::REGISTER));
+        $this->assertSame(ExecutionStatus::UNREGISTER, ExecutionStatus::fromName('unregister'));
+        $this->assertSame(ExecutionStatus::UNREGISTER, ExecutionStatus::fromName('7'));
+        $this->assertSame('unregister', ExecutionStatus::name(ExecutionStatus::UNREGISTER));
         $this->assertNull(ExecutionStatus::fromName('unknown'));
     }
 
@@ -83,7 +115,7 @@ final class ExecutionStatusTest extends TestCase
         $this->assertSame(ExecutionStatus::FAILED, ExecutionStatus::inferFromLegacyMessage('【job】FAILED boom'));
         $this->assertSame(ExecutionStatus::SKIPPED, ExecutionStatus::inferFromLegacyMessage('【job】SKIP 时间窗跳过'));
         $this->assertSame(ExecutionStatus::SUCCESS, ExecutionStatus::inferFromLegacyMessage('success'));
-        $this->assertNull(ExecutionStatus::inferFromLegacyMessage('执行失败？'), '不能把无法确认的文案写成 FAILED/PENDING');
+        $this->assertNull(ExecutionStatus::inferFromLegacyMessage('执行失败？'), '不能把无法确认的文案写成 FAILED/REGISTER');
         $this->assertNull(ExecutionStatus::inferFromLegacyMessage('【job】开始执行 cron_expression=15'));
         $this->assertNull(ExecutionStatus::inferFromLegacyMessage('【job】ADD 注册定时任务'));
     }

@@ -20,7 +20,7 @@ use Swoolefy\Worker\Cron\ExecutionStatus;
  * {@see \Test\Module\Cron\Response\CronTaskManager\CronTaskStatsResponse}。
  *
  * **关键字段语义**：
- * - total：时间范围内 Execution 行总数（含 pending/running）
+ * - total：时间范围内 Execution 行总数（含 register/running）
  * - successRate：success / attempted × 100；attempted 不含 SKIPPED（未真正执行）
  * - avgDurationMs / maxDurationMs：仅 SUCCESS 行的 duration_ms，不解析 message
  */
@@ -32,8 +32,8 @@ class CronTaskStatsResultDto extends AbstractDto
     #[ApiProperty(description: '执行记录总条数')]
     protected int $total = 0;
 
-    #[ApiProperty(description: 'pending 次数')]
-    protected int $pending = 0;
+    #[ApiProperty(description: 'register（注册定时任务）次数')]
+    protected int $register = 0;
 
     #[ApiProperty(description: 'running 次数')]
     protected int $running = 0;
@@ -83,7 +83,7 @@ class CronTaskStatsResultDto extends AbstractDto
         $dto = new self();
         $dto->taskId = $taskId;
         $dto->total = (int) $stats['total'];
-        $dto->pending = (int) $stats['pending'];
+        $dto->register = (int) $stats['register'];
         $dto->running = (int) $stats['running'];
         $dto->success = (int) $stats['success'];
         $dto->failed = (int) $stats['failed'];
@@ -124,14 +124,14 @@ class CronTaskStatsResultDto extends AbstractDto
         return $this;
     }
 
-    public function getPending(): int
+    public function getRegister(): int
     {
-        return $this->pending;
+        return $this->register;
     }
 
-    public function setPending(int $pending): static
+    public function setRegister(int $register): static
     {
-        $this->pending = $pending;
+        $this->register = $register;
 
         return $this;
     }
