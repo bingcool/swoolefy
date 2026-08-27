@@ -220,31 +220,10 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface
             'task_item' => $scheduleTask->toArray(),
             'message' => $message,
         ];
+
         foreach (['status', 'trigger_type', 'scheduled_at', 'started_at', 'finished_at', 'duration_ms', 'exit_code', 'http_status'] as $field) {
             if (array_key_exists($field, $execution)) {
                 $row[$field] = $execution[$field];
-            }
-        }
-
-        if ($execBatchId !== '') {
-            $existOne = CronTaskLogEntity::queryNotDeleted()
-                ->where([
-                    'cron_id' => $cronId,
-                    'exec_batch_id' => $execBatchId,
-                ])
-                ->order('id', 'asc')
-                ->find();
-            if ($existOne) {
-                $id = is_array($existOne) ? (int) ($existOne['id'] ?? 0) : (int) $existOne->id;
-                if ($id > 0) {
-                    unset($row['cron_id'], $row['exec_batch_id']);
-                    CronTaskLogEntity::query()->where(['id' => $id])->update($row);
-
-                    return;
-                }
-            }
-            if (!isset($row['status'])) {
-                $row['status'] = ExecutionStatus::RUNNING;
             }
         }
 
