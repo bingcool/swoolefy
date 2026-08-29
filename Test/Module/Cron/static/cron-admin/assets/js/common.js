@@ -124,6 +124,41 @@
     return 'cron';
   }
 
+  function asArray(value) {
+    if (Array.isArray(value)) return value;
+    if (!value || typeof value !== 'object') return null;
+    var keys = Object.keys(value);
+    if (!keys.length) return null;
+    var sequential = keys.every(function (k, i) { return String(i) === k; });
+    if (!sequential) return null;
+    return keys.map(function (k) { return value[k]; });
+  }
+
+  function extractListRows(payload) {
+    if (!payload) return [];
+    var direct = asArray(payload);
+    if (direct) return direct;
+    var rows = asArray(payload.list) || asArray(payload.items);
+    if (rows) return rows;
+    var nested = payload.data;
+    if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+      rows = asArray(nested.list) || asArray(nested.items) || asArray(nested);
+      if (rows) return rows;
+    } else {
+      rows = asArray(nested);
+      if (rows) return rows;
+    }
+    return [];
+  }
+
+  function extractListTotal(payload, rows) {
+    if (payload && payload.total != null && payload.total !== '') return Number(payload.total) || 0;
+    if (payload && payload.data && payload.data.total != null && payload.data.total !== '') {
+      return Number(payload.data.total) || 0;
+    }
+    return Array.isArray(rows) ? rows.length : 0;
+  }
+
   function isGroupIdSelected(groupId) {
     return groupId !== '' && groupId !== null && groupId !== undefined;
   }
@@ -161,6 +196,8 @@
     parseJsonOrNull: parseJsonOrNull,
     detectExprType: detectExprType,
     isGroupIdSelected: isGroupIdSelected,
+    extractListRows: extractListRows,
+    extractListTotal: extractListTotal,
     filterNodesByGroupId: filterNodesByGroupId,
     buildGroupOptions: buildGroupOptions
   };

@@ -106,6 +106,7 @@ class CronTaskManagerService
      * 行数据映射为 {@see CronTaskRowDto} 填入 {@see ListTasksPageResult}。
      * 列表行的 nextRunAt 由引擎规则推算（不读 Worker 内存）；禁用/非法表达式为 null。
      * groupId 通过 cron_task.node_id → cron_agent_node.group_id 关联筛选。
+     * nodeName 通过 cron_task.node_id → cron_agent_node.node_name 批量回填（含软删节点）。
      */
     public function listTasks(ListTasksQueryDto $query): ListTasksPageResult
     {
@@ -1342,6 +1343,8 @@ class CronTaskManagerService
     }
 
     /**
+     * 为任务行附加节点名称与分组。含软删节点，便于列表仍展示 node_name。
+     *
      * @param list<array<string, mixed>> $list
      * @return list<array<string, mixed>>
      */
@@ -1359,23 +1362,32 @@ class CronTaskManagerService
             }
         }
 
-        $nodeGroups = [];
+        /** @var array<int, array{group_id: int, node_name: string}> $nodeMeta */
+        $nodeMeta = [];
         if ($nodeIds !== []) {
-            $nodes = CronAgentNodeEntity::queryNotDeleted()
+            $nodes = CronAgentNodeEntity::query()
                 ->whereIn('id', array_values($nodeIds))
-                ->field(['id', 'group_id'])
+                ->field(['id', 'group_id', 'node_name'])
                 ->select()
                 ->toArray();
             foreach ($nodes as $node) {
-                $nodeGroups[(int) ($node['id'] ?? 0)] = self::rowInt($node, 'group_id', 'groupId');
+                $id = (int) ($node['id'] ?? 0);
+                $nodeMeta[$id] = [
+                    'group_id' => self::rowInt($node, 'group_id', 'groupId'),
+                    'node_name' => (string) ($node['node_name'] ?? $node['nodeName'] ?? ''),
+                ];
             }
         }
 
         foreach ($list as &$row) {
             $nodeId = self::rowInt($row, 'node_id', 'nodeId');
-            $groupId = $nodeGroups[$nodeId] ?? 0;
+            $meta = $nodeMeta[$nodeId] ?? ['group_id' => 0, 'node_name' => ''];
+            $groupId = $meta['group_id'];
+            $nodeName = $meta['node_name'];
             $row['group_id'] = $groupId;
             $row['groupId'] = $groupId;
+            $row['node_name'] = $nodeName;
+            $row['nodeName'] = $nodeName;
         }
         unset($row);
 

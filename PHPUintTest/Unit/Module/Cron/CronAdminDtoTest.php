@@ -143,6 +143,50 @@ final class CronAdminDtoTest extends TestCase
         $this->assertSame('python', $camel->getGroupName());
     }
 
+    public function testRowMapsNodeNameFromSnakeAndCamel(): void
+    {
+        $snake = CronTaskRowDto::fromEntityRow([
+            'id' => 1,
+            'node_id' => 3,
+            'node_name' => 'agent-1',
+            'cron_name' => 't',
+            'expression' => '15',
+            'command' => 'x',
+            'exec_type' => 1,
+        ], 1000);
+        $this->assertSame('agent-1', $snake->getNodeName());
+        $json = $snake->toDeepArray();
+        $this->assertSame('agent-1', $json['nodeName']);
+        $this->assertSame('', $snake->getGroupName());
+
+        $camel = CronTaskRowDto::fromEntityRow([
+            'id' => 2,
+            'nodeId' => 4,
+            'nodeName' => 'agent-2',
+            'cron_name' => 't2',
+            'expression' => '15',
+            'command' => 'x',
+            'exec_type' => 1,
+        ], 1000);
+        $this->assertSame('agent-2', $camel->getNodeName());
+        $this->assertSame(4, $camel->getNodeId());
+        $this->assertSame('agent-2', $camel->toArray()['nodeName']);
+    }
+
+    public function testRowNodeNameDefaultsEmptyWhenMissing(): void
+    {
+        $dto = CronTaskRowDto::fromEntityRow([
+            'id' => 1,
+            'node_id' => 9,
+            'cron_name' => 't',
+            'expression' => '15',
+            'command' => 'x',
+            'exec_type' => 1,
+        ], 1000);
+        $this->assertSame('', $dto->getNodeName());
+        $this->assertSame('', $dto->toArray()['nodeName']);
+    }
+
     public function testListTasksResponseIncludesGroupFields(): void
     {
         $page = new ListTasksPageResult();
@@ -150,6 +194,7 @@ final class CronAdminDtoTest extends TestCase
         $page->addListItem(CronTaskRowDto::fromEntityRow([
             'id' => 11,
             'node_id' => 3,
+            'node_name' => 'agent-1',
             'group_id' => 1,
             'group_name' => 'php',
             'cron_name' => 'shell-1',
@@ -161,10 +206,14 @@ final class CronAdminDtoTest extends TestCase
         $this->assertSame(1, $data['total']);
         $this->assertArrayHasKey('groupId', $data['list'][0]);
         $this->assertArrayHasKey('groupName', $data['items'][0]);
+        $this->assertArrayHasKey('nodeName', $data['list'][0]);
         $this->assertSame(1, $data['list'][0]['groupId']);
         $this->assertSame('php', $data['list'][0]['groupName']);
+        $this->assertSame('agent-1', $data['list'][0]['nodeName']);
+        $this->assertSame(3, $data['list'][0]['nodeId']);
         $this->assertSame(1, $data['items'][0]['groupId']);
         $this->assertSame('php', $data['items'][0]['groupName']);
+        $this->assertSame('agent-1', $data['items'][0]['nodeName']);
     }
 
     public function testRowRetryDefaultsToZeroWhenMissing(): void

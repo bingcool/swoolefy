@@ -28,6 +28,7 @@ use Swoolefy\Worker\Cron\CronNextRunAt;
  * - cronBetween / cronSkip：允许/跳过执行的时间段 JSON 数组
  * - nextRunAt：下次合法执行 unix 秒（展示层推算，不落库）；禁用/非法表达式为 null
  * - nextRunAtAt：同上的 datetime 串（Y-m-d H:i:s），无下次执行时为空
+ * - nodeName：绑定节点名称（cron_agent_node.node_name）；节点已软删仍尽量回填，找不到则为空
  * - groupId / groupName：绑定节点所属分组；未分组时 groupId=0、groupName 为空
  */
 class CronTaskRowDto extends AbstractDto
@@ -37,6 +38,9 @@ class CronTaskRowDto extends AbstractDto
 
     #[ApiProperty(description: '节点 ID')]
     protected int $nodeId = 0;
+
+    #[ApiProperty(description: '节点名称；节点已软删仍尽量回填，找不到则为空')]
+    protected string $nodeName = '';
 
     #[ApiProperty(description: '绑定节点所属分组 ID；未分组时为 0')]
     protected int $groupId = 0;
@@ -137,6 +141,7 @@ class CronTaskRowDto extends AbstractDto
         $dto = new self();
         $dto->setId((int)($row['id'] ?? 0));
         $dto->setNodeId((int) self::pick($row, 'node_id', 'nodeId', 0));
+        $dto->setNodeName((string) self::pick($row, 'node_name', 'nodeName', ''));
         $dto->setGroupId((int) self::pick($row, 'group_id', 'groupId', 0));
         $dto->setGroupName((string) self::pick($row, 'group_name', 'groupName', ''));
         // 表列为 cron_name，兼容误用 name 的查询结果
@@ -177,13 +182,14 @@ class CronTaskRowDto extends AbstractDto
     }
 
     /**
-     * 列表 JSON 必须带上节点分组；显式写出，避免 toArray 漏字段。
+     * 列表 JSON 必须带上节点名称与分组；显式写出，避免 toArray 漏字段。
      *
      * @return array<string, mixed>
      */
     public function toArray(): array
     {
         $out = parent::toArray();
+        $out['nodeName'] = $this->getNodeName();
         $out['groupId'] = $this->getGroupId();
         $out['groupName'] = $this->getGroupName();
 
@@ -229,6 +235,20 @@ class CronTaskRowDto extends AbstractDto
     public function setNodeId(int $nodeId): static
     {
         $this->nodeId = $nodeId;
+
+        return $this;
+    }
+
+    /** 获取节点名称 */
+    public function getNodeName(): string
+    {
+        return $this->nodeName;
+    }
+
+    /** 设置节点名称 */
+    public function setNodeName(string $nodeName): static
+    {
+        $this->nodeName = $nodeName;
 
         return $this;
     }

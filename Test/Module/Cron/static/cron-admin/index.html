@@ -8,7 +8,7 @@
   <link rel="dns-prefetch" href="//cdn.jsdelivr.net">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-ui@2.15.14/lib/theme-chalk/index.css">
   <link rel="stylesheet" href="/cron-admin/assets/css/common.css">
-  <link rel="stylesheet" href="/cron-admin/assets/css/pages.css">
+  <link rel="stylesheet" href="/cron-admin/assets/css/pages.css?v=task-list-6">
 </head>
 <body>
 <div id="app" v-cloak>
@@ -117,16 +117,40 @@
         </el-form-item>
         <el-form-item><el-button type="primary" @click="search">查询</el-button></el-form-item>
       </el-form>
-      <el-table :data="items" v-loading="loading" @selection-change="sel=$event">
+      <el-table
+        ref="taskTable"
+        class="task-list-table"
+        :data="items"
+        row-key="id"
+        style="width: 100%"
+        v-loading="loading"
+        empty-text="暂无任务"
+        @selection-change="sel=$event"
+      >
         <el-table-column type="selection" width="42"></el-table-column>
         <el-table-column prop="name" label="名称" min-width="140"></el-table-column>
         <el-table-column prop="expression" label="Expression" width="140">
           <template slot-scope="s"><span class="mono">{{ s.row.expression }}</span><el-tag size="mini" style="margin-left:6px">{{ s.row.expressionType }}</el-tag></template>
         </el-table-column>
+        <el-table-column label="Command" min-width="160" class-name="command-col">
+          <template slot-scope="s">
+            <span
+              class="mono command-preview"
+              :class="{ 'text-muted': !commandOf(s.row), 'is-truncated': isCommandTruncated(s.row) }"
+              @mouseenter="showCommandTip($event, s.row)"
+              @mousemove="moveCommandTip($event)"
+              @mouseleave="hideCommandTip"
+            >{{ commandPreview(s.row) }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="groupName" label="节点分组" width="120" show-overflow-tooltip>
           <template slot-scope="s"><span :class="groupNameOf(s.row) !== '-' ? '' : 'text-muted'">{{ groupNameOf(s.row) }}</span></template>
         </el-table-column>
-        <el-table-column prop="nodeId" label="Node" width="70"></el-table-column>
+        <el-table-column label="节点名称" min-width="130" show-overflow-tooltip>
+          <template slot-scope="s">
+            <span :class="nodeNameOf(s.row) !== '-' ? '' : 'text-muted'">{{ nodeNameOf(s.row) }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="Type" width="110">
           <template slot-scope="s"><el-tag size="mini" :type="s.row.execType===2?'warning':'primary'">{{ s.row.execType===2?'HTTP':'GLUE模式' }}</el-tag></template>
         </el-table-column>
@@ -139,7 +163,11 @@
           </template>
         </el-table-column>
         <el-table-column prop="retry" label="Retry" width="70"></el-table-column>
-        <el-table-column label="下次执行" width="170"><template slot-scope="s">{{ formatNextRun(s.row) }}</template></el-table-column>
+        <el-table-column label="下次执行" width="170">
+          <template slot-scope="s">
+            <span class="next-run-at" :class="{ 'text-muted': formatNextRun(s.row) === '-' }">{{ formatNextRun(s.row) }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="updatedAt" label="Updated" width="160"></el-table-column>
         <el-table-column label="操作" width="330" fixed="right">
           <template slot-scope="s">
@@ -162,6 +190,11 @@
         <el-pagination background layout="total, prev, pager, next" :total="total" :page-size="query.pageSize" :current-page.sync="query.page" @current-change="load"></el-pagination>
       </div>
     </div>
+    <div
+      v-show="commandTip.visible"
+      class="cron-command-float-tip"
+      :style="commandTipStyle"
+    >{{ commandTip.text }}</div>
   </div>
 </script>
 
@@ -397,7 +430,7 @@
     <div class="panel" v-loading="loading">
       <el-descriptions :column="2" border>
         <el-descriptions-item label="ID">{{ row.id }}</el-descriptions-item>
-        <el-descriptions-item label="节点">{{ row.nodeId }}</el-descriptions-item>
+        <el-descriptions-item label="节点">{{ row.nodeName || row.node_name || row.nodeId || '-' }}</el-descriptions-item>
         <el-descriptions-item label="表达式"><span class="mono">{{ row.expression }}</span> <el-tag size="mini">{{ row.expressionType }}</el-tag></el-descriptions-item>
         <el-descriptions-item label="类型">{{ row.execType===2?'HTTP':'GLUE模式' }}</el-descriptions-item>
         <el-descriptions-item label="状态"><el-tag :type="row.status===1?'success':'info'" size="mini">{{ row.status===1?'启用':'禁用' }}</el-tag></el-descriptions-item>
@@ -648,9 +681,9 @@
 <script defer src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/vue@2.7.16/dist/vue.min.js'"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/vue-router@3.6.5/dist/vue-router.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/vue-router@3.6.5/dist/vue-router.min.js'"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/element-ui@2.15.14/lib/index.js" onerror="this.onerror=null;this.src='https://unpkg.com/element-ui@2.15.14/lib/index.js'"></script>
-<script defer src="/cron-admin/assets/js/common.js"></script>
+<script defer src="/cron-admin/assets/js/common.js?v=task-list-4"></script>
 <script defer src="/cron-admin/assets/js/dashboard.js"></script>
-<script defer src="/cron-admin/assets/js/tasks.js?v=task-group"></script>
+<script defer src="/cron-admin/assets/js/tasks.js?v=task-list-6"></script>
 <script defer src="/cron-admin/assets/js/editor.js"></script>
 <script defer src="/cron-admin/assets/js/detail.js"></script>
 <script defer src="/cron-admin/assets/js/executions.js"></script>

@@ -13,13 +13,21 @@
         nodes: [],
         groups: [],
         sel: [],
-        query: { page: 1, pageSize: 20, keyword: '', status: '', groupId: '', nodeId: '', execType: '' }
+        query: { page: 1, pageSize: 20, keyword: '', status: '', groupId: '', nodeId: '', execType: '' },
+        commandTip: { visible: false, text: '', x: 0, y: 0, flipX: false }
       };
     },
     created: function () {
       this.loadNodes();
       this.loadGroups();
       this.load();
+    },
+    mounted: function () {
+      window.addEventListener('resize', this.relayoutTable);
+    },
+    beforeDestroy: function () {
+      window.removeEventListener('resize', this.relayoutTable);
+      this.hideCommandTip();
     },
     computed: {
       groupOptions: function () {
@@ -30,9 +38,21 @@
       },
       filteredNodes: function () {
         return common.filterNodesByGroupId(this.nodes, this.query.groupId);
+      },
+      commandTipStyle: function () {
+        var tip = this.commandTip;
+        return {
+          left: tip.x + 'px',
+          top: tip.y + 'px',
+          transform: tip.flipX ? 'translate(-100%, 8px)' : 'translate(12px, 12px)'
+        };
       }
     },
     methods: {
+      relayoutTable: function () {
+        var table = this.$refs.taskTable;
+        if (table && typeof table.doLayout === 'function') table.doLayout();
+      },
       loadNodes: async function () {
         try {
           var d = await common.api('/nodes');
@@ -61,15 +81,27 @@
             if (self.query[k] !== '' && self.query[k] !== null) qs.set(k, self.query[k]);
           });
           var d = await common.api('/tasks?' + qs.toString());
-          this.items = ((d && d.items) || (d && d.list) || []).map(function (row) {
-            row = row || {};
+          var rows = common.extractListRows(d);
+          this.items = rows.map(function (row) {
+            row = Object.assign({}, row || {});
             if (!row.groupName && row.group_name) row.groupName = row.group_name;
             if ((row.groupId === undefined || row.groupId === null) && row.group_id != null) {
               row.groupId = row.group_id;
             }
+            if (!row.nodeName && row.node_name) row.nodeName = row.node_name;
+            if ((row.nodeId === undefined || row.nodeId === null) && row.node_id != null) {
+              row.nodeId = row.node_id;
+            }
+            if (row.command == null || row.command === '') {
+              row.command = row.Command || row.cron_command || '';
+            }
             return row;
           });
-          this.total = (d && d.total) || 0;
+          this.total = common.extractListTotal(d, this.items);
+          var self = this;
+          this.$nextTick(function () {
+            self.relayoutTable();
+          });
         } catch (e) {
           common.toastErr(this, e);
         } finally {
@@ -139,6 +171,42 @@
       formatNextRun: function (row) {
         return common.formatNextRunAt(row);
       },
+      commandOf: function (row) {
+        if (!row) return '';
+        var cmd = row.command;
+        if (cmd == null || cmd === '') cmd = row.Command;
+        if (cmd == null || cmd === '') cmd = row.cron_command;
+        if (cmd == null || cmd === undefined) return '';
+        return String(cmd).trim();
+      },
+      commandPreview: function (row) {
+        var cmd = this.commandOf(row);
+        if (!cmd) return '-';
+        if (cmd.length <= 20) return cmd;
+        return cmd.slice(0, 20) + '...';
+      },
+      isCommandTruncated: function (row) {
+        return this.commandOf(row).length > 20;
+      },
+      showCommandTip: function (e, row) {
+        if (!this.isCommandTruncated(row)) {
+          this.hideCommandTip();
+          return;
+        }
+        this.commandTip.visible = true;
+        this.commandTip.text = this.commandOf(row);
+        this.moveCommandTip(e);
+      },
+      moveCommandTip: function (e) {
+        if (!this.commandTip.visible || !e) return;
+        this.commandTip.x = e.clientX;
+        this.commandTip.y = e.clientY;
+        this.commandTip.flipX = e.clientX > (typeof window !== 'undefined' ? window.innerWidth * 0.6 : 800);
+      },
+      hideCommandTip: function () {
+        this.commandTip.visible = false;
+        this.commandTip.text = '';
+      },
       groupNameOf: function (row) {
         if (!row) return '-';
         var name = row.groupName || row.group_name;
@@ -161,6 +229,21 @@
           }
         }
         return '-';
+      },
+      nodeNameOf: function (row) {
+        if (!row) return '-';
+        var name = row.nodeName || row.node_name;
+        if (name) return name;
+        var nid = Number(row.nodeId || row.node_id || 0);
+        var nodes = this.nodes || [];
+        for (var i = 0; i < nodes.length; i++) {
+          if (Number(nodes[i].id) === nid) {
+            var nname = nodes[i].nodeName || nodes[i].node_name;
+            if (nname) return nname;
+            break;
+          }
+        }
+        return nid ? String(nid) : '-';
       }
     }
   };

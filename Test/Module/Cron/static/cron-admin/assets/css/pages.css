@@ -672,8 +672,61 @@
   border-color: #fbcfe8;
 }
 
+.next-run-at {
+  color: var(--green);
+  font-weight: 600;
+}
+
 .text-muted {
   color: var(--muted);
+}
+
+.command-preview {
+  display: inline-block;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.task-list-table {
+  width: 100%;
+}
+
+.task-list-table .el-table__fixed-right,
+.task-list-table .el-table__fixed-right-patch {
+  background: #fff;
+  box-shadow: -6px 0 10px rgba(23, 32, 51, 0.06);
+}
+
+.task-list-table .el-table__fixed-right::before {
+  background-color: var(--line);
+}
+
+.el-table td.command-col,
+.el-table td.command-col .cell,
+.el-table td.command-col .command-preview,
+.el-table td.command-col .command-preview.is-truncated,
+.el-table td.command-col .el-tooltip,
+.command-preview,
+.command-preview.is-truncated,
+.command-preview.el-tooltip {
+  cursor: default;
+}
+
+.cron-command-float-tip {
+  position: fixed;
+  z-index: 4000;
+  max-width: min(480px, calc(100vw - 24px));
+  padding: 8px 10px;
+  background: #303133;
+  color: #fff;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  word-break: break-all;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  pointer-events: none;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+  white-space: pre-wrap;
 }
 
 /* Cron Nodes page — underline tabs */
