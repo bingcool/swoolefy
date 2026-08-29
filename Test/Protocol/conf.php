@@ -87,11 +87,6 @@ return [
 
         'hook_flags'             => \Swoolefy\Core\SystemEnv::loadHookFlag(),
 
-        // 静态处理
-        'document_root'          => START_DIR_ROOT.'/swaggerui',
-        'enable_static_handler'  => true,
-        'http_autoindex'         => true,
-        'http_index_files'       => ['index.html', 'index.txt'],
     ],
 
 

@@ -578,7 +578,13 @@ ENV SWOOLEFY_CLI_ENV=dev
   "require": {
     "bingcool/swoolefy": "~6.3",
     "bingcool/library": "^6.0"
-  }
+  },
+  "require-dev": {
+        "kwn/php-rdkafka-stubs": "dev-master",
+        "swoole/ide-helper": "dev-master",
+        "viest/php-ext-xlswriter-ide-helper": "dev-master",
+        "phpunit/phpunit": "^11.5"
+    },
 }
   
 // 终端执行安装
