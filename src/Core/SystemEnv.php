@@ -301,7 +301,11 @@ class SystemEnv
             } else {
                 $fileName = $path['filename'] . '_worker.' . $path['extension'];
             }
-            return $path['dirname'] . '/' . WORKER_SERVICE_NAME . '/' . $fileName;
+            $logFile = $path['dirname'] . '/' . WORKER_SERVICE_NAME . '/' . $fileName;;
+        }
+        $logDir = pathinfo($logFile, PATHINFO_DIRNAME);
+        if (!is_dir($logDir)) {
+            mkdir($logDir,0766, true);
         }
         return $logFile;
     }
@@ -323,6 +327,10 @@ class SystemEnv
                 $fileName = $path['filename'] . '_worker.' . $path['extension'];
             }
             $pidFile = $path['dirname'] . '/' . WORKER_SERVICE_NAME . '/' . $fileName;
+        }
+        $pathDir = pathinfo($pidFile, PATHINFO_DIRNAME);
+        if (!is_dir($pathDir)) {
+            mkdir($pathDir,0766, true);
         }
         return $pidFile;
     }
