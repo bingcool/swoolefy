@@ -63,7 +63,7 @@ class AuthenticateMiddleware implements RouteMiddlewareInterface
      */
     public function handle(RequestInput $requestInput, ResponseOutput $responseOutput): bool
     {
-        $this->authenticate($requestInput, optional: false);
+        $this->authenticate($requestInput, $responseOutput, false);
 
         return true;
     }
@@ -74,11 +74,13 @@ class AuthenticateMiddleware implements RouteMiddlewareInterface
      * Optional 仅对「未携带 Token」匿名放行；携带 Token 时非法/过期/null 一律 401；
      * Guard 非 AuthException 内部异常映射 500，禁止降级为匿名。
      *
+     * @param RequestInput $requestInput
+     * @param ResponseOutput $responseOutput
      * @param bool $optional true：无 token 直接 return；有非法 token 仍抛 401
      *
      * @throws AuthException
      */
-    protected function authenticate(RequestInput $requestInput, bool $optional): void
+    protected function authenticate(RequestInput $requestInput, ResponseOutput $responseOutput, bool $optional): void
     {
         // 进程内复用 Guard 配置实例；勿在 Guard 上缓存「当前用户」
         /** @var AuthGuardInterface $guard */
@@ -98,6 +100,7 @@ class AuthenticateMiddleware implements RouteMiddlewareInterface
             $user = $guard->authenticate(['token' => $token]);
         } catch (AuthException $e) {
             // 非法 / 过期等凭证错误：强制与 Optional 均 401，不降级匿名
+            $responseOutput->withHeader('WWW-Authenticate','Bearer error="invalid token", error_description='.$e->getMessage());
             throw $e;
         } catch (\Throwable $e) {
             // Guard 内部异常：500，禁止 Optional 静默放行

@@ -13,8 +13,6 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Auth;
 
-use Swoolefy\Exception\SystemException;
-
 /**
  * 鉴权 / 认证失败异常。
  *
@@ -32,10 +30,7 @@ use Swoolefy\Exception\SystemException;
  * @see \Swoolefy\Http\Middleware\AuthenticateMiddleware
  * @see docs/Auth.md
  */
-class AuthException extends SystemException
+class AuthTokenExpirationException extends AuthException
 {
-    public function __construct(string $message = 'Unauthenticated', int $code = 401, ?\Throwable $previous = null)
-    {
-        parent::__construct($message, $code, $previous);
-    }
+
 }

@@ -105,7 +105,7 @@ final class JwtAuthGuard implements AuthGuardInterface
         // 显式过期校验（与 Token::isExpired / ValidAt::assertExpiration 同一时钟基准）
         $now = new DateTimeImmutable('now', new DateTimeZone(date_default_timezone_get()));
         if ($parsed->isExpired($now)) {
-            throw new AuthException('Token expired', Status::UNAUTHORIZED);
+            throw new AuthTokenExpirationException('token expired', Status::UNAUTHORIZED);
         }
 
         // nbf / iat；iss/aud 仅在配置非空时约束

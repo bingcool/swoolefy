@@ -43,7 +43,7 @@ final class OptionalAuthenticateMiddleware extends AuthenticateMiddleware
      */
     public function handle(RequestInput $requestInput, ResponseOutput $responseOutput): bool
     {
-        $this->authenticate($requestInput, optional: true);
+        $this->authenticate($requestInput, $responseOutput, true);
 
         return true;
     }
