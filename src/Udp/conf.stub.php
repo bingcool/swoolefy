@@ -51,10 +51,10 @@ return [
         'socket_buffer_size'    => 2 * 1024 * 1024,
         // 单包最大长度；UDP 受内核限制通常不超过 64KB，大包请改用 TCP/HTTP
         'package_max_length'    => 65507,
-        'log_file'              => \Swoolefy\Core\SystemEnv::loadLogFile('/tmp/' . APP_NAME . '/swoole.log'),
+        'log_file'              => \Swoolefy\Core\SystemEnv::loadLogFile(WORKER_PID_FILE_ROOT . '/swoole.log'),
         'log_rotation'          => SWOOLE_LOG_ROTATION_DAILY,
         'display_errors'        => true,
-        'pid_file'              => \Swoolefy\Core\SystemEnv::loadPidFile('/tmp/' . APP_NAME . '/server.pid'),
+        'pid_file'              => \Swoolefy\Core\SystemEnv::loadPidFile(WORKER_PID_FILE_ROOT . '/server.pid'),
         'hook_flags'            => \Swoolefy\Core\SystemEnv::loadHookFlag(),
     ],
 

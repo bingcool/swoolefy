@@ -63,8 +63,8 @@ return [
         'tcp_keepcount'         => 5,
         'reload_async'          => true,
         'enable_deadlock_check' => false,
-        'log_file'              => \Swoolefy\Core\SystemEnv::loadLogFile('/tmp/' . APP_NAME . '/swoole_log.txt'),
-        'pid_file'              => \Swoolefy\Core\SystemEnv::loadPidFile('/data/' . APP_NAME . '/log/server.pid'),
+        'log_file'              => \Swoolefy\Core\SystemEnv::loadLogFile(WORKER_PID_FILE_ROOT . '/swoole_log.txt'),
+        'pid_file'              => \Swoolefy\Core\SystemEnv::loadPidFile(WORKER_PID_FILE_ROOT. '/log/server.pid'),
         'hook_flags'             => \Swoolefy\Core\SystemEnv::loadHookFlag(),
     ],
 

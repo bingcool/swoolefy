@@ -88,15 +88,15 @@ class EventApp
     protected function registerApp($class, array $args = [])
     {
         if ($class instanceof \Closure) {
-            $existing = Application::getApp();
-            if ($existing instanceof EventController) {
+            $existed = Application::getApp();
+            if ($existed instanceof EventController) {
                 // 同一 EventController 重复注册允许幂等复用
-                $this->eventApp = $existing;
-            } elseif ($existing !== null) {
+                $this->eventApp = $existed;
+            } elseif ($existed !== null) {
                 // 已绑定 HTTP App 等时禁止覆盖，提示使用 goApp()
                 throw new SystemException(sprintf(
                     'Application already bound as %s in current coroutine; use goApp() instead of creating EventApp',
-                    get_class($existing)
+                    get_class($existed)
                 ));
             } else {
                 $this->eventApp = new EventController(...$args);

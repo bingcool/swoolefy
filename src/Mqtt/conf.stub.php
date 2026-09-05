@@ -38,9 +38,9 @@ return [
         'enable_deadlock_check' => false,
         'enable_coroutine'      => 1,
         'task_enable_coroutine' => 1,
-        'log_file'              => \Swoolefy\Core\SystemEnv::loadLogFile('/tmp/' . APP_NAME . '/swoole.log'),
+        'log_file'              => \Swoolefy\Core\SystemEnv::loadLogFile(WORKER_PID_FILE_ROOT . '/swoole.log'),
         'log_rotation'          => SWOOLE_LOG_ROTATION_DAILY,
-        'pid_file'              => \Swoolefy\Core\SystemEnv::loadPidFile('/data/' . APP_NAME . '/log/server.pid'),
+        'pid_file'              => \Swoolefy\Core\SystemEnv::loadPidFile(WORKER_PID_FILE_ROOT . '/log/server.pid'),
         'hook_flags'            => \Swoolefy\Core\SystemEnv::loadHookFlag(),
     ],
 

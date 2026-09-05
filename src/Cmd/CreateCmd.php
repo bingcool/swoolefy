@@ -171,6 +171,7 @@ class CreateCmd extends BaseCmd
                     $this->copyFile(SRC_DIR_ROOT . '/Stubs/job.conf.stub.php', $appPathDir . '/' . $dir . '/job.php');
                     $this->copyFile(SRC_DIR_ROOT . '/Stubs/rate_limit.conf.stub.php', $appPathDir . '/' . $dir . '/rate_limit.php');
                     $this->copyFile(SRC_DIR_ROOT . '/Stubs/health.conf.stub.php', $appPathDir . '/' . $dir . '/health.php');
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/ignore_route.conf.stub.php', $appPathDir . '/' . $dir . '/ignore_route.php');
                     $this->copyFile(SRC_DIR_ROOT . '/Stubs/otel.conf.stub.php', $appPathDir . '/' . $dir . '/otel.php');
                     $this->copyFile(SRC_DIR_ROOT . '/Stubs/apidoc.conf.stub.php', $appPathDir . '/' . $dir . '/apidoc.php');
                     $this->copyFile(SRC_DIR_ROOT . '/Stubs/file_storage_system.conf.stub.php', $appPathDir . '/' . $dir . '/file_storage_system.php');

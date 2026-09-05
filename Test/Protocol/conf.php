@@ -79,11 +79,11 @@ return [
         'http_compression'       => true,
         // $level 压缩等级，范围是 1-9，等级越高压缩后的尺寸越小，但 CPU 消耗更多。默认为 1, 最高为 9
         'http_compression_level' => 1,
-        'log_file'               => \Swoolefy\Core\SystemEnv::loadLogFile('/tmp/' . APP_NAME . '/swoole.log'),
+        'log_file'               => \Swoolefy\Core\SystemEnv::loadLogFile(WORKER_PID_FILE_ROOT. '/swoole.log'),
         'log_rotation'           => SWOOLE_LOG_ROTATION_DAILY,
         //开启/关闭Swoole错误信息
         'display_errors'         => true,
-        'pid_file'               => \Swoolefy\Core\SystemEnv::loadPidFile('/tmp/' . APP_NAME . '/log/server.pid'),
+        'pid_file'               => \Swoolefy\Core\SystemEnv::loadPidFile(WORKER_PID_FILE_ROOT . '/server.pid'),
 
         'hook_flags'             => \Swoolefy\Core\SystemEnv::loadHookFlag(),
 

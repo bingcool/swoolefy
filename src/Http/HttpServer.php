@@ -163,7 +163,7 @@ abstract class HttpServer extends BaseServer
          * request
          */
         $this->webServer->on('request', function (Request $request, Response $response) {
-            if ($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
+            if (IgnoreRouteConfig::shouldIgnore($request)) {
                 $response->end();
                 return true;
             }

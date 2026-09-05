@@ -143,8 +143,4 @@ class Tick extends AbstractProcess {
     }
 
     public function onShutDown() {}
-
-    public function __get($name) {
-        return Application::getApp()->$name;
-    }
 }

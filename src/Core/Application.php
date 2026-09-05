@@ -29,14 +29,6 @@ class Application
     public static function setApp(App|Swoole|EventController $App): bool
     {
         $cid = $App->getCid();
-        // 禁止覆盖已绑定的请求 App；同一对象重复注册允许幂等
-        if (isset(self::$apps[$cid]) && self::$apps[$cid] !== $App) {
-            throw new SystemException(sprintf(
-                'Application already bound for cid=%s as %s; do not create EventApp in the same coroutine, use goApp() instead',
-                (string) $cid,
-                get_class(self::$apps[$cid])
-            ));
-        }
         self::$apps[$cid] = $App;
         return true;
     }
