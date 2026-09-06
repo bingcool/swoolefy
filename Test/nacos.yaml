@@ -1,7 +1,9 @@
 # Nacos 服务器连接配置（优先于环境变量；未配置项再读 NACOS_* 环境变量）
 nacos:
-  host: 127.0.0.1
+  host: 192.168.1.103
   port: 8848
   username: ''
   password: ''
   authorization_bearer: false
+  # 配置中心命名空间 ID（dev / test / prd 等）；空或未配置表示 public 默认命名空间
+  namespace: dev

@@ -12,7 +12,6 @@
 namespace Swoolefy\Http\Middleware;
 
 use Swoolefy\Core\RouteMiddlewareInterface;
-use Swoolefy\Core\SystemEnv;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\ResponseOutput;
 
@@ -98,8 +97,8 @@ class SecurityHeadersMiddleware implements RouteMiddlewareInterface
             return filter_var($enabled, FILTER_VALIDATE_BOOLEAN);
         }
 
-        // 生产/灰度默认开启；开发环境可通过 SECURITY_HEADERS_ENABLED=1 手动验证
-        return SystemEnv::isPrdEnv() || SystemEnv::isGraEnv();
+        // 默认不开启
+        return false;
     }
 
     /**

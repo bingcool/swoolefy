@@ -18,6 +18,8 @@ use Swoolefy\Support\ApplicationConfig;
 
 /**
  * Nacos 配置中心项（application.yaml → nacos.service_config）。
+ *
+ * 命名空间 tenant 优先级：nacos.yaml `namespace` > application.yaml `tenant` > 环境变量 NACOS_TENANT > public（空）。
  */
 final class ServiceConfig
 {
@@ -42,10 +44,26 @@ final class ServiceConfig
             throw NacosMonitorException::throw('nacos.service_config.group is required');
         }
 
+        $nacosConfig = NacosConfig::load();
+
         return new self(
             dataId: $dataId,
             group: $group,
-            tenant: ApplicationConfig::pickString($section, 'tenant', NacosConst::ENV_NACOS_TENANT, ''),
+            tenant: self::resolveTenant($section, $nacosConfig),
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $section
+     */
+    private static function resolveTenant(array $section, NacosConfig $nacosConfig): string
+    {
+        if ('' !== $nacosConfig->namespace) {
+            return $nacosConfig->namespace;
+        }
+
+        return NacosConfig::normalizeNamespace(
+            ApplicationConfig::pickString($section, 'tenant', NacosConst::ENV_NACOS_TENANT, ''),
         );
     }
 }

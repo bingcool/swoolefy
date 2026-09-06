@@ -24,6 +24,8 @@ use Symfony\Component\Yaml\Yaml;
  *
  * 路径由常量 NACOS_FILE_PATH 指定（cli.php 可从环境变量注入）；未设置时回退为 APP_PATH/nacos.yaml。
  * application.yaml 由 ApplicationConfig / NacosServiceRegisterConfig 通过 APP_PATH 读取。
+ *
+ * `namespace`：配置中心拉取 / 监听使用的命名空间 ID；空或未配置表示 public（与 Nacos 默认 tenant 一致）。
  */
 final class NacosConfig
 {
@@ -34,6 +36,7 @@ final class NacosConfig
         public readonly string $username,
         public readonly string $password,
         public readonly bool $authorizationBearer,
+        public readonly string $namespace,
     ) {
     }
 
@@ -50,7 +53,18 @@ final class NacosConfig
             username: self::pickString($nacos, 'username', NacosConst::ENV_NACOS_USERNAME, ''),
             password: self::pickString($nacos, 'password', NacosConst::ENV_NACOS_PASSWORD, ''),
             authorizationBearer: self::pickBool($nacos, 'authorization_bearer', NacosConst::ENV_NACOS_AUTHORIZATION_BEARER, false),
+            namespace: self::normalizeNamespace(self::pickNamespace($nacos)),
         );
+    }
+
+    /**
+     * 将命名空间 ID 规范为 Nacos Open API 的 tenant 参数：public 或未配置 → 空字符串。
+     */
+    public static function normalizeNamespace(string $namespace): string
+    {
+        $namespace = trim($namespace);
+
+        return 'public' === strtolower($namespace) ? '' : $namespace;
     }
 
     public static function resolveNacosFilePath(): string
@@ -101,5 +115,18 @@ final class NacosConfig
     private static function pickBool(array $yaml, string $yamlKey, string $envKey, bool $default): bool
     {
         return ApplicationConfig::pickBool($yaml, $yamlKey, $envKey, $default);
+    }
+
+    /**
+     * @param array<string, mixed> $nacos
+     */
+    private static function pickNamespace(array $nacos): string
+    {
+        $namespace = ApplicationConfig::pickString($nacos, 'namespace', NacosConst::ENV_NACOS_NAMESPACE, '');
+        if ('' !== trim($namespace)) {
+            return $namespace;
+        }
+
+        return trim((string) ($nacos['namespace_id'] ?? ''));
     }
 }

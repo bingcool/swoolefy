@@ -27,6 +27,8 @@ final class NacosConst
     public const ENV_NACOS_USERNAME = 'NACOS_USERNAME';
     public const ENV_NACOS_PASSWORD = 'NACOS_PASSWORD';
     public const ENV_NACOS_AUTHORIZATION_BEARER = 'NACOS_AUTHORIZATION_BEARER';
+    /** nacos.yaml → 配置中心拉取 / 监听使用的命名空间（空或 public 表示默认 public） */
+    public const ENV_NACOS_NAMESPACE = 'NACOS_NAMESPACE';
 
     // application.yaml → nacos.service_config
     // 租户|命名空间：dev|test|prod不同环境

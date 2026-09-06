@@ -37,6 +37,7 @@
 | `NACOS_USERNAME` | `nacos.username` | 登录用户名 | 空 |
 | `NACOS_PASSWORD` | `nacos.password` | 登录密码 | 空 |
 | `NACOS_AUTHORIZATION_BEARER` | `nacos.authorization_bearer` | 是否使用 Bearer 鉴权 | `false` |
+| `NACOS_NAMESPACE` | `nacos.namespace` | 配置中心命名空间 ID；空或 `public` 表示默认 public | 空 |
 
 ### 配置中心（`application.yaml` → `nacos.service_config` → `ServiceConfig`）
 
@@ -44,7 +45,13 @@
 |:---|:---|:---|
 | `nacos.service_config.data_id` | 配置中心 dataId（按项目区分） | 是 |
 | `nacos.service_config.group` | 配置中心 group | 是 |
-| `nacos.service_config.tenant` | 命名空间 tenant | 否 |
+| `nacos.service_config.tenant` | 命名空间 tenant（`nacos.yaml` 未配置 `namespace` 时生效） | 否 |
+
+拉取配置生成 `.env`（`NacosFactory::fetchConfigToEnv`）与配置监听使用的命名空间优先级：
+
+1. `nacos.yaml` → `nacos.namespace`（或 `namespace_id`）
+2. `application.yaml` → `nacos.service_config.tenant`
+3. 空 → public（Nacos 默认命名空间）
 
 `data_id` 与 `group` 仅读取 `application.yaml`，不支持环境变量覆盖，且不能为空。
 
