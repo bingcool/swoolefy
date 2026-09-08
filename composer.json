@@ -40,7 +40,7 @@
         "doctrine/collections": "~3.0",
         "php-standard-library/php-standard-library": "^6.2",
         "guzzlehttp/guzzle": "~7.9",
-        "neuron-core/neuron-ai": "^3.15",
+        "neuron-core/neuron-ai": "^3.16",
         "symfony/expression-language": "~7.4",
         "mathsgod/milvus-client-php": "^2.1",
         "neuron-core/php-vector": "^1.1",
