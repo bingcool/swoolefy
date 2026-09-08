@@ -102,6 +102,7 @@ class CronProcess extends AbstractWorkerProcess
             runOnceAck: $args['run_once_ack'] ?? null,
             heartbeatIntervalSeconds: $heartbeatSeconds,
             nodeHeartbeatAck: $args['node_heartbeat_ack'] ?? null,
+            runOncePrecheck: $args['run_once_precheck'] ?? null,
         );
     }
 

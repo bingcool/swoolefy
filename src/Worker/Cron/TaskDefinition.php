@@ -90,6 +90,7 @@ final class TaskDefinition
         public readonly string $cronMetaOrigin = '',
         public readonly ?string $timezone = null,
         public readonly int $retry = 0,
+        public readonly int $timeout = 0,
         public readonly array $raw = [],
     ) {
     }
@@ -187,6 +188,7 @@ final class TaskDefinition
             cronMetaOrigin: (string) ($item['cron_meta_origin'] ?? ''),
             timezone: isset($item['timezone']) && $item['timezone'] !== '' ? (string) $item['timezone'] : null,
             retry: $retry,
+            timeout: max(0, (int) ($item['timeout'] ?? 0)),
             raw: $item,
         );
     }
@@ -252,6 +254,7 @@ final class TaskDefinition
             $this->argv,
             $this->timezone,
             $this->retry,
+            $this->timeout,
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '');
     }
 
@@ -282,6 +285,7 @@ final class TaskDefinition
         $payload['command'] = $this->command;
         $payload['with_block_lapping'] = $this->withBlockLapping;
         $payload['retry'] = $this->retry;
+        $payload['timeout'] = $this->timeout;
         $payload['cron_between'] = $this->cronBetween;
         $payload['cron_skip'] = $this->cronSkip;
         $payload['updated_at'] = $this->updatedAt;
@@ -323,6 +327,7 @@ final class TaskDefinition
             'status' => $this->status,
             'with_block_lapping' => $this->withBlockLapping ? 1 : 0,
             'retry' => $this->retry,
+            'timeout' => $this->timeout,
             'command' => $this->command,
             'node_id' => $this->nodeId,
             'cron_between' => $this->cronBetween,

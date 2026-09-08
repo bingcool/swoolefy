@@ -33,6 +33,8 @@ final class ExecutionStatus
     public const CANCELLED = 6;
     /** DELETE / DISABLE 解除定时任务（配置变更日志，通常无 exec_batch_id） */
     public const UNREGISTER = 7;
+    /** Admin 请求取消，等待 Agent 终止进程后再进入 CANCELLED */
+    public const CANCEL_REQUESTED = 8;
 
     /** 调度器按 expression / nextRunAt 触发 */
     public const TRIGGER_SCHEDULER = 1;
@@ -54,6 +56,7 @@ final class ExecutionStatus
         self::TIMEOUT => 'timeout',
         self::CANCELLED => 'cancelled',
         self::UNREGISTER => 'unregister',
+        self::CANCEL_REQUESTED => 'cancel_requested',
     ];
 
     /**
@@ -77,6 +80,7 @@ final class ExecutionStatus
             'timeout' => 0,
             'cancelled' => 0,
             'unregister' => 0,
+            'cancel_requested' => 0,
             'finished' => 0,
             'attempted' => 0,
             'successRate' => 0.0,

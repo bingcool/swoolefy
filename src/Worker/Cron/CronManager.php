@@ -89,6 +89,9 @@ final class CronManager
     /** 防止 start() 重复武装 Polling。 */
     private bool $started = false;
 
+    /** 当前 runOnceNow 正在消费的 cron_task_run_request.id，调度触发为 0。 */
+    private int $currentRunOnceRequestId = 0;
+
     /**
      * @param callable():array<int, array<string, mixed>> $fetcher 成功必须返回数组；抛异常视为 DB 故障
      * @param CronExecutorInterface $executor 由 CronProcess 子类注入 Shell / HTTP（含 CronForkRunner）
@@ -101,6 +104,7 @@ final class CronManager
      * @param null|callable(string,int,ExecutionResult,int):void $runOnceAck 消费一条手动请求后的确认 (jobId, cronTaskId, result, requestId)
      * @param int $heartbeatIntervalSeconds 节点心跳间隔（秒）；&lt;1 回退 {@see CronNodeLiveness::DEFAULT_INTERVAL}
      * @param null|callable(string,int):void $nodeHeartbeatAck 心跳回调 `(string $nodeId, int $interval=…): void`；第二参可选
+     * @param null|callable(int):string $runOncePrecheck 消费前闸门，返回 execute|ack|defer
      */
     public function __construct(
         private $fetcher,
@@ -114,6 +118,7 @@ final class CronManager
         private $runOnceAck = null,
         int $heartbeatIntervalSeconds = CronNodeLiveness::DEFAULT_INTERVAL,
         private $nodeHeartbeatAck = null,
+        private $runOncePrecheck = null,
     ) {
         $this->heartbeatIntervalSeconds = CronNodeLiveness::normalizeInterval($heartbeatIntervalSeconds);
         $this->registry = new RuntimeJobRegistry();
@@ -339,8 +344,30 @@ final class CronManager
                 $queue[] = 0;
             }
             foreach ($queue as $requestId) {
+                $definition = $item['definition'];
+                if ($requestId > 0 && is_callable($this->runOncePrecheck)) {
+                    try {
+                        $gate = (string) ($this->runOncePrecheck)($requestId);
+                    } catch (\Throwable $e) {
+                        $this->debug('runOncePrecheck failed: ' . $e->getMessage());
+                        $gate = 'execute';
+                    }
+                    if ($gate === 'ack') {
+                        if (is_callable($this->runOnceAck) && $definition->cronTaskId > 0) {
+                            try {
+                                ($this->runOnceAck)($jobId, $definition->cronTaskId, ExecutionResult::success('dedup ack'), $requestId);
+                            } catch (\Throwable $e) {
+                                $this->debug('runOnceAck failed: ' . $e->getMessage());
+                            }
+                        }
+                        continue;
+                    }
+                    if ($gate === 'defer') {
+                        break;
+                    }
+                }
                 try {
-                    $result = $this->runOnceNow($jobId);
+                    $result = $this->runOnceNow($jobId, $requestId);
                 } catch (\Throwable $e) {
                     $result = ExecutionResult::failed('runOnceNow 异常已隔离: ' . $e->getMessage());
                 }
@@ -348,7 +375,6 @@ final class CronManager
                     // SKIPPED：不 ack，本轮不再继续消费该 Job 的后续请求
                     break;
                 }
-                $definition = $item['definition'];
                 if (is_callable($this->runOnceAck) && $definition->cronTaskId > 0) {
                     try {
                         ($this->runOnceAck)($definition->jobId, $definition->cronTaskId, $result, $requestId);
@@ -426,13 +452,16 @@ final class CronManager
      *
      * retry 字段仍作用于这一次：FAILED 在同一 Snapshot 内立即重试，不另武装 Timer。
      */
-    public function runOnceNow(string $jobId): ExecutionResult
+    public function runOnceNow(string $jobId, int $requestId = 0): ExecutionResult
     {
+        $this->currentRunOnceRequestId = max(0, $requestId);
         try {
             return $this->runInCoroutineIfNeeded(fn (): ExecutionResult => $this->doRunOnceNow($jobId));
         } catch (\Throwable $e) {
             // 控制面调用也必须失败隔离，不得拖垮 Worker / HTTP
             return ExecutionResult::failed('runOnceNow 异常已隔离: ' . $e->getMessage());
+        } finally {
+            $this->currentRunOnceRequestId = 0;
         }
     }
 
@@ -968,6 +997,8 @@ final class CronManager
                 'scheduled_at' => date('Y-m-d H:i:s', $snapshot->plannedAt),
                 'finished_at' => date('Y-m-d H:i:s', $now),
                 'duration_ms' => 0,
+                'node_id' => $job->definition->nodeId,
+                'request_id' => $this->currentRunOnceRequestId > 0 ? $this->currentRunOnceRequestId : null,
             ],
         );
         $this->metrics->recordRun(ExecutionResult::SKIPPED);
@@ -1005,6 +1036,9 @@ final class CronManager
             'trigger_type' => ExecutionStatus::triggerType($source),
             'scheduled_at' => date('Y-m-d H:i:s', $snapshot->plannedAt),
             'started_at' => date('Y-m-d H:i:s', $startedAt),
+            'timeout' => $snapshot->definition->timeout,
+            'node_id' => $snapshot->definition->nodeId,
+            'request_id' => $this->currentRunOnceRequestId > 0 ? $this->currentRunOnceRequestId : null,
         ];
     }
 
