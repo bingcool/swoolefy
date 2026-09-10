@@ -324,7 +324,7 @@ class SystemEnv
                 $command = SystemEnv::getOption('c');
                 $fileName = $path['filename'] . '_worker:'.$command.'_'.WORKER_PORT.'.'.$path['extension'];
             } else {
-                $fileName = $path['filename'] . '_worker.' . $path['extension'];
+                $fileName = $path['filename'] . '_worker_'.WORKER_PORT.'.' . $path['extension'];
             }
             $pidFile = $path['dirname'] . '/' . WORKER_SERVICE_NAME . '/' . $fileName;
         }

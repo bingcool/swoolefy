@@ -105,6 +105,7 @@ final class CronManager
      * @param int $heartbeatIntervalSeconds 节点心跳间隔（秒）；&lt;1 回退 {@see CronNodeLiveness::DEFAULT_INTERVAL}
      * @param null|callable(string,int):void $nodeHeartbeatAck 心跳回调 `(string $nodeId, int $interval=…): void`；第二参可选
      * @param null|callable(int):string $runOncePrecheck 消费前闸门，返回 execute|ack|defer
+     * @param null|callable(int,int):string $scheduleSlotClaim 调度 Slot 抢占。仅 {@see CronScheduleSlotClaimConst::TRIGGER} 调用；参数 (cronTaskId, plannedAt unix 秒)；必须返回 CREATED|DUPLICATE|FAILED。null 则跳过抢占（视为 CREATED）
      */
     public function __construct(
         private $fetcher,
@@ -119,6 +120,7 @@ final class CronManager
         int $heartbeatIntervalSeconds = CronNodeLiveness::DEFAULT_INTERVAL,
         private $nodeHeartbeatAck = null,
         private $runOncePrecheck = null,
+        private $scheduleSlotClaim = null,
     ) {
         $this->heartbeatIntervalSeconds = CronNodeLiveness::normalizeInterval($heartbeatIntervalSeconds);
         $this->registry = new RuntimeJobRegistry();
@@ -431,7 +433,8 @@ final class CronManager
             return;
         }
 
-        $this->runExecutionPipeline($job, $planned, 'trigger');
+        // TRIGGER 才会 claim Slot；runOnceNow 走另一 source，不抢表
+        $this->runExecutionPipeline($job, $planned, CronScheduleSlotClaimConst::TRIGGER);
     }
 
     /**
@@ -596,7 +599,11 @@ final class CronManager
      *
      * 调用方负责调度侧差异：onTrigger 先 arm；runOnceNow 不碰 Timer。
      *
-     * @param string $source trigger | runOnceNow，仅影响开始日志文案
+     * Slot 抢占夹在 Guard 成功之后、writeLog(RUNNING) 之前：输家/失败都还没落 Execution。
+     *
+     * @param RuntimeJob $job
+     * @param int $planned 当前調度时间戳点
+     * @param string $source {@see CronScheduleSlotClaimConst::TRIGGER} 或 runOnceNow；TRIGGER 才 claim Slot
      */
     private function runExecutionPipeline(RuntimeJob $job, int $planned, string $source): ExecutionResult
     {
@@ -628,6 +635,18 @@ final class CronManager
         $started = microtime(true);
         $result = ExecutionResult::failed('未执行');
         try {
+            // 仅调度触发抢 Slot。DUPLICATE/FAILED 在 writeLog 之前 return，finally 仍会释放 Guard。
+            if ($source === CronScheduleSlotClaimConst::TRIGGER) {
+                $slot = $this->claimScheduleSlot($job, $planned);
+                if ($slot === CronScheduleSlotClaimConst::DUPLICATE) {
+                    // 输家：跳过但不 recordSkip，避免写出 cron_task_log
+                    $scheduledAt = date('Y-m-d H:i:s', $planned);
+                    return ExecutionResult::skipped("抢不到任务执行权，其他Agent实例已抢占该次调度点[$scheduledAt]");
+                }
+                if ($slot === CronScheduleSlotClaimConst::FAILED) {
+                    return ExecutionResult::failed('调度Slot抢占失败');
+                }
+            }
             $this->writeLog(
                 $snapshot,
                 $this->formatStartMessage($job, $source),
@@ -656,6 +675,49 @@ final class CronManager
         }
 
         return $result;
+    }
+
+    /**
+     * 调度触发抢占 Slot。把业务回调的返回值收成三种门闩。
+     *
+     * 未配置回调或无 cron_task_id：视为 {@see CronScheduleSlotClaimConst::CREATED}（无 DB 的静态任务放行）。
+     * 回调抛异常或返回无法识别的字符串：视为 {@see CronScheduleSlotClaimConst::FAILED}。
+     * DUPLICATE / FAILED 由调用方直接 return，本方法不写 Execution 日志。
+     *
+     * @return CronScheduleSlotClaimConst::CREATED|CronScheduleSlotClaimConst::DUPLICATE|CronScheduleSlotClaimConst::FAILED
+     */
+    private function claimScheduleSlot(RuntimeJob $job, int $planned): string
+    {
+        if (!is_callable($this->scheduleSlotClaim) || $job->definition->cronTaskId <= 0) {
+            return CronScheduleSlotClaimConst::CREATED;
+        }
+        try {
+            $gate = (string) ($this->scheduleSlotClaim)($job->definition->cronTaskId, $planned);
+        } catch (\Throwable $e) {
+            $this->debug('scheduleSlotClaim failed: ' . $e->getMessage());
+
+            return CronScheduleSlotClaimConst::FAILED;
+        }
+        if ($gate === CronScheduleSlotClaimConst::CREATED) {
+            return CronScheduleSlotClaimConst::CREATED;
+        }
+        if ($gate === CronScheduleSlotClaimConst::DUPLICATE) {
+            $this->debug(sprintf(
+                '抢不到任务执行权，其他Agent实例已抢占该调度点cron_id=%d,scheduled_at=%s',
+                $job->definition->cronTaskId,
+                date('Y-m-d H:i:s', $planned),
+            ));
+
+            return CronScheduleSlotClaimConst::DUPLICATE;
+        }
+        $this->debug(sprintf(
+            'scheduleSlotClaim %s cron_id=%d scheduled_at=%s',
+            $gate !== '' ? $gate : CronScheduleSlotClaimConst::FAILED,
+            $job->definition->cronTaskId,
+            date('Y-m-d H:i:s', $planned),
+        ));
+
+        return CronScheduleSlotClaimConst::FAILED;
     }
 
     /**

@@ -28,6 +28,7 @@ use Swoolefy\Worker\Dto\CronUrlTaskMetaDtoWorker;
  * - createCronExecutor() 默认 CompositeExecutor；子类注入 Shell / HTTP 执行钩子
  * - onShutDown() 必须 cronManager->stop() 并注销 RuntimeRegistry cron snapshot
  * - runOnceNow() 转给 CronManager，引擎未启动时返回 FAILED
+ * - args['schedule_slot_claim']：调度 Slot 抢占，返回 {@see CronScheduleSlotClaimConst} 三态；仅 onTrigger
  *
  * 本类不再走 CrontabManager::addRule。进程内本地 crontab 见 {@see CronLocalProcess}，
  * 那是另一条产品线，不参与本引擎。
@@ -103,6 +104,8 @@ class CronProcess extends AbstractWorkerProcess
             heartbeatIntervalSeconds: $heartbeatSeconds,
             nodeHeartbeatAck: $args['node_heartbeat_ack'] ?? null,
             runOncePrecheck: $args['run_once_precheck'] ?? null,
+            // 仅 TRIGGER 调用；null 则不抢 Slot（静态 conf / 无 DB）
+            scheduleSlotClaim: $args['schedule_slot_claim'] ?? null,
         );
     }
 

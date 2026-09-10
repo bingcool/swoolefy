@@ -14,6 +14,7 @@ use Swoolefy\Core\Runtime\Metrics\RuntimeMetrics;
 use Swoolefy\Core\Runtime\RuntimeRegistry;
 use Swoolefy\Worker\Cron\CronManager;
 use Swoolefy\Worker\Cron\CronMetrics;
+use Swoolefy\Worker\Cron\CronScheduleSlotClaimConst;
 use Swoolefy\Worker\Cron\ExecutionResult;
 use Swoolefy\Worker\Cron\ExecutionSnapshot;
 use Swoolefy\Worker\Cron\ExecutionStatus;
@@ -645,6 +646,66 @@ final class CronManagerLifecycleTest extends TestCase
         $this->assertNotNull($skip, 'SKIPPED 必须落库');
         $this->assertSame(0, $skip['duration_ms']);
         $this->assertArrayHasKey('finished_at', $skip);
+    }
+
+    /**
+     * 调度 Slot duplicate：不执行、不写 logWriter（输家无 Execution 行）。
+     */
+    public function testScheduleSlotDuplicateSkipsWithoutLogOrExecute(): void
+    {
+        $timer = new ManualCronTimer();
+        $clock = new FrozenCronClock(0);
+        $writes = [];
+        $manager = new CronManager(
+            fetcher: fn (): array => [$this->row(1, '5', 1, 'job.sh')],
+            executor: new RecordingExecutor(),
+            timer: $timer,
+            clock: $clock,
+            pollIntervalMs: 0,
+            logWriter: function ($task, string $batch, string $message, int $pid = 0, array $execution = []) use (&$writes): void {
+                $writes[] = $execution;
+            },
+            scheduleSlotClaim: static fn (int $cronTaskId, int $plannedAt): string => CronScheduleSlotClaimConst::DUPLICATE,
+        );
+        $manager->start();
+        $clock->set(5);
+        $timer->advance(5000);
+        $execWrites = array_values(array_filter($writes, static fn (array $e): bool => $e !== [] && array_key_exists('status', $e)));
+        $this->assertSame([], $execWrites, '输家不得写 Execution 行');
+        $this->assertSame(1, $manager->timerCountFor('id:1'), '跳过后下一轮 Timer 仍在');
+    }
+
+    /**
+     * 调度 Slot created：照常执行。RunOnce 不走 claim。
+     */
+    public function testScheduleSlotCreatedRunsAndRunOnceDoesNotClaim(): void
+    {
+        $timer = new ManualCronTimer();
+        $clock = new FrozenCronClock(0);
+        $claims = 0;
+        $executor = new RecordingExecutor();
+        $manager = new CronManager(
+            fetcher: fn (): array => [$this->row(1, '5', 1, 'job.sh')],
+            executor: $executor,
+            timer: $timer,
+            clock: $clock,
+            pollIntervalMs: 0,
+            scheduleSlotClaim: static function (int $cronTaskId, int $plannedAt) use (&$claims): string {
+                ++$claims;
+
+                return CronScheduleSlotClaimConst::CREATED;
+            },
+        );
+        $manager->start();
+        $clock->set(5);
+        $timer->advance(5000);
+        $this->assertSame(1, $claims);
+        $this->assertCount(1, $executor->snapshots);
+
+        $before = $claims;
+        $manager->runOnceNow('id:1');
+        $this->assertSame($before, $claims, 'RunOnce 不抢 Slot');
+        $this->assertCount(2, $executor->snapshots);
     }
 
     /**
