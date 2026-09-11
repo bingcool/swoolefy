@@ -12,6 +12,12 @@
 namespace Swoolefy\Worker\Cron;
 
 use Swoolefy\Exception\CronException;
+use Swoolefy\Worker\Kubernetes\ApiException;
+use Swoolefy\Worker\Kubernetes\ClientInterface;
+use Swoolefy\Worker\Kubernetes\ExecutorOptions;
+use Swoolefy\Worker\Kubernetes\JobStatus;
+use Swoolefy\Worker\Kubernetes\JobTemplateBuilder;
+use Swoolefy\Worker\Kubernetes\JobTemplateException;
 
 /**
  * Kubernetes 执行器（exec_type=3）。
@@ -51,21 +57,21 @@ class KubernetesExecutor implements CronExecutorInterface
     /** Job 名前缀。`sj-{execBatchId}-a{attempt}` 共 22 字符，远低于 63 上限。 */
     public const JOB_NAME_PREFIX = 'sj-';
 
-    private readonly KubernetesJobTemplateBuilder $builder;
+    private readonly JobTemplateBuilder $builder;
 
     private readonly KubernetesExecutionHookInterface $hook;
 
-    private readonly KubernetesExecutorOptions $options;
+    private readonly ExecutorOptions $options;
 
     public function __construct(
-        private readonly KubernetesClientInterface $client,
-        ?KubernetesJobTemplateBuilder $builder = null,
+        private readonly ClientInterface $client,
+        ?JobTemplateBuilder $builder = null,
         ?KubernetesExecutionHookInterface $hook = null,
-        ?KubernetesExecutorOptions $options = null,
+        ?ExecutorOptions $options = null,
     ) {
-        $this->builder = $builder ?? new KubernetesJobTemplateBuilder();
+        $this->builder = $builder ?? new JobTemplateBuilder();
         $this->hook = $hook ?? new NullKubernetesExecutionHook();
-        $this->options = $options ?? new KubernetesExecutorOptions();
+        $this->options = $options ?? new ExecutorOptions();
     }
 
     /**
@@ -137,7 +143,7 @@ class KubernetesExecutor implements CronExecutorInterface
 
         try {
             $deployment = $this->client->getDeployment($namespace, $spec->deployment);
-            $job = $this->builder->build($deployment, $spec, [
+            $job = $this->builder->build($deployment, $spec->toBuilderArray(), [
                 'job_name' => $jobName,
                 'cron_id' => $definition->cronTaskId,
                 'exec_batch_id' => $snapshot->execBatchId,
@@ -164,10 +170,9 @@ class KubernetesExecutor implements CronExecutorInterface
             ));
 
             return $this->waitForCompletion($snapshot, $spec, $jobName, $waitSeconds, $meta);
-        } catch (KubernetesApiException $e) {
+        } catch (ApiException $e) {
             return ExecutionResult::failed($this->describeApiError($e, $jobName));
-        } catch (CronException $e) {
-            // Builder 的模板 / 容器错误，已带 KUBERNETES_* 前缀
+        } catch (JobTemplateException|CronException $e) {
             return ExecutionResult::failed($e->getMessage());
         } catch (\Throwable $e) {
             return ExecutionResult::failed(sprintf(
@@ -193,7 +198,7 @@ class KubernetesExecutor implements CronExecutorInterface
      *
      * @param array<string, mixed> $job
      * @return array<string, mixed>|ExecutionResult 成功返回 Job 对象；冲突返回终态
-     * @throws KubernetesApiException
+     * @throws ApiException
      */
     protected function createJobIdempotent(
         string $namespace,
@@ -204,7 +209,7 @@ class KubernetesExecutor implements CronExecutorInterface
     ): array|ExecutionResult {
         try {
             return $this->client->createJob($namespace, $job);
-        } catch (KubernetesApiException $e) {
+        } catch (ApiException $e) {
             if (!$e->isAlreadyExists()) {
                 throw $e;
             }
@@ -212,8 +217,8 @@ class KubernetesExecutor implements CronExecutorInterface
 
         $existing = $this->client->getJob($namespace, $jobName);
         $labels = $existing['metadata']['labels'] ?? [];
-        $sameBatch = (string) ($labels[KubernetesJobTemplateBuilder::LABEL_EXEC_BATCH_ID] ?? '') === $snapshot->execBatchId;
-        $sameAttempt = (string) ($labels[KubernetesJobTemplateBuilder::LABEL_ATTEMPT] ?? '') === (string) $attempt;
+        $sameBatch = (string) ($labels[JobTemplateBuilder::LABEL_EXEC_BATCH_ID] ?? '') === $snapshot->execBatchId;
+        $sameAttempt = (string) ($labels[JobTemplateBuilder::LABEL_ATTEMPT] ?? '') === (string) $attempt;
         if ($sameBatch && $sameAttempt) {
             return $existing;
         }
@@ -267,7 +272,7 @@ class KubernetesExecutor implements CronExecutorInterface
 
             try {
                 $job = $this->client->getJob($namespace, $jobName);
-            } catch (KubernetesApiException $e) {
+            } catch (ApiException $e) {
                 if (!$e->isNotFound()) {
                     throw $e;
                 }
@@ -308,7 +313,18 @@ class KubernetesExecutor implements CronExecutorInterface
      */
     protected function classifyJob(array $job): ?array
     {
-        return KubernetesJobStatus::classify($job);
+        $outcome = JobStatus::classify($job);
+        if ($outcome === null) {
+            return null;
+        }
+        [$status, $reason] = $outcome;
+        $mapped = match ($status) {
+            JobStatus::COMPLETE => ExecutionResult::SUCCESS,
+            JobStatus::DEADLINE_EXCEEDED => ExecutionResult::TIMEOUT,
+            default => ExecutionResult::FAILED,
+        };
+
+        return [$mapped, $reason];
     }
 
     /**
@@ -445,7 +461,7 @@ class KubernetesExecutor implements CronExecutorInterface
     /**
      * 按 §14 把 API 错误翻译成可检索的 message。
      */
-    protected function describeApiError(KubernetesApiException $e, string $jobName): string
+    protected function describeApiError(ApiException $e, string $jobName): string
     {
         $prefix = match (true) {
             $e->isForbidden() => 'KUBERNETES_FORBIDDEN',

@@ -9,29 +9,19 @@
  * +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Worker\Cron;
+namespace Swoolefy\Worker\Kubernetes;
 
 /**
- * {@see KubernetesExecutor} 的运行时策略（方案 §5.2、§8、§11.2）。
+ * Kubernetes 执行的运行时策略（白名单、等待上限、Job TTL）。
  *
- * 这些值是**运维口径**而不是任务配置：同一台 K8s Agent 上的所有任务共用一套，
- * 因此放在环境变量 / Worker conf 里，而不是 `cron_task` 表。
+ * 这些值是运维口径而不是任务配置：同一台 Agent 上的所有 K8s 任务共用一套。
  */
-final class KubernetesExecutorOptions
+final class ExecutorOptions
 {
-    /** 兜底等待上限：任务没配 timeout 时最多等这么久（秒）。 */
     public const DEFAULT_MAX_WAIT_SECONDS = 3600;
 
     /**
-     * @param list<string> $allowedNamespaces  允许创建 Job 的 Namespace；空数组 = 不限制
-     * @param int  $maxWaitSeconds        Executor 等待单个 Job 的硬上限，任何情况下都不会超过
-     * @param int  $pollIntervalSeconds   轮询 Job 状态的间隔
-     * @param int  $ttlSecondsAfterFinished Job 完成后多久由 K8s 自动回收（0 = 不设，留给运维手工清）
-     * @param int  $deadlinePaddingSeconds  activeDeadlineSeconds = timeout + 该值，
-     *                                      必须为正，否则 K8s 会先于业务超时杀 Pod
-     * @param int  $logTailLines         摘要日志取 Pod stdout 的末尾行数
-     * @param int  $messageMaxChars      写进 cron_task_log.message 的最大字符数
-     * @param bool $requireTimeout       true = 拒绝 timeout=0 的 K8s 任务（方案 P0-11）
+     * @param list<string> $allowedNamespaces
      */
     public function __construct(
         public readonly array $allowedNamespaces = [],
@@ -45,19 +35,6 @@ final class KubernetesExecutorOptions
     ) {
     }
 
-    /**
-     * 从环境变量构造。
-     *
-     * | 变量 | 含义 |
-     * |---|---|
-     * | `K8S_ALLOWED_NAMESPACES` | 逗号分隔白名单，如 `production,staging` |
-     * | `K8S_MAX_WAIT_SECONDS`   | Executor 等待硬上限 |
-     * | `K8S_POLL_INTERVAL`      | 轮询间隔秒 |
-     * | `K8S_JOB_TTL_SECONDS`    | Job 完成后的 TTL |
-     * | `K8S_DEADLINE_PADDING`   | activeDeadlineSeconds 相对 timeout 的冗余 |
-     * | `K8S_LOG_TAIL_LINES`     | 摘要日志行数 |
-     * | `K8S_REQUIRE_TIMEOUT`    | `0/false` 可放开「必须配 timeout」的限制 |
-     */
     public static function fromEnv(): self
     {
         $namespaces = array_values(array_filter(
@@ -78,22 +55,13 @@ final class KubernetesExecutorOptions
         );
     }
 
-    /**
-     * Namespace 是否被允许（方案 §5.2 / P0-10）。
-     *
-     * 白名单为空表示未启用限制——这只应出现在开发环境；生产必须显式配置，
-     * 否则一个写错的 `k8s_spec.namespace` 能往任意 Namespace 里塞 Pod。
-     */
     public function isNamespaceAllowed(string $namespace): bool
     {
         return $this->allowedNamespaces === [] || in_array($namespace, $this->allowedNamespaces, true);
     }
 
     /**
-     * 本次执行实际的等待秒数。
-     *
-     * 任务配了 `timeout` 就用它（但不超过运维上限）；没配则回落到 `maxWaitSeconds`。
-     * 返回 0 表示「不允许执行」，由调用方判 FAILED。
+     * 返回 0 表示不允许执行（调用方应判 FAILED）。
      */
     public function resolveWaitSeconds(int $taskTimeout): int
     {
@@ -104,10 +72,6 @@ final class KubernetesExecutorOptions
         return min($taskTimeout, $this->maxWaitSeconds);
     }
 
-    /**
-     * Job 的 `activeDeadlineSeconds`：必须大于业务 timeout，让 schedule-job 先判超时，
-     * K8s 只做最后兜底，否则日志会显示 DeadlineExceeded 而看不到业务侧的超时语义。
-     */
     public function resolveActiveDeadline(int $waitSeconds): int
     {
         return $waitSeconds > 0 ? $waitSeconds + $this->deadlinePaddingSeconds : 0;

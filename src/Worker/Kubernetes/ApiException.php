@@ -9,21 +9,21 @@
  * +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Worker\Cron;
+namespace Swoolefy\Worker\Kubernetes;
 
-use Swoolefy\Exception\CronException;
+use Swoolefy\Exception\AbstractSwoolefyExeption;
 
 /**
  * Kubernetes API 调用失败。
  *
- * 由 {@see KubernetesClient} 抛出，{@see KubernetesExecutor} 捕获后按 §14 映射为
- * ExecutionResult，**不允许**逃逸到 Worker（单个任务的集群故障不得拖垮 Cron Worker）。
+ * 由 {@see Client} 抛出。Cron 层的 {@see \Swoolefy\Worker\Cron\KubernetesExecutor}
+ * 捕获后映射为 ExecutionResult，不允许逃逸到 Worker。
  *
  * statusCode = 0 表示连接层失败（DNS / 连接超时 / TLS），不是 API Server 返回的状态码。
  * reason 取自 Kubernetes Status 对象的 `reason` 字段（如 `AlreadyExists`、`NotFound`、
- * `Forbidden`），比状态码更精确，`isAlreadyExists()` / `isNotFound()` 优先看它。
+ * `Forbidden`），比状态码更精确。
  */
-class KubernetesApiException extends CronException
+class ApiException extends AbstractSwoolefyExeption
 {
     /**
      * @param int    $statusCode HTTP 状态码；0 = 未拿到响应（连接层失败）
@@ -35,12 +35,14 @@ class KubernetesApiException extends CronException
         public readonly int $statusCode = 0,
         public readonly string $reason = '',
         public readonly string $body = '',
+        int $code = 0,
+        ?\Throwable $previous = null,
     ) {
-        parent::__construct($message, $statusCode);
+        parent::__construct($message, $code !== 0 ? $code : $statusCode, $previous);
     }
 
     /**
-     * Create 时同名对象已存在。Executor 据此走 §9 的幂等分支：GET 回来比对 label。
+     * Create 时同名对象已存在。Executor 据此走幂等分支：GET 回来比对 label。
      */
     public function isAlreadyExists(): bool
     {
@@ -56,7 +58,7 @@ class KubernetesApiException extends CronException
     }
 
     /**
-     * 认证 / 授权失败。多半是 RBAC（§15）没配全，重试无意义。
+     * 认证 / 授权失败。多半是 RBAC 没配全，重试无意义。
      */
     public function isForbidden(): bool
     {

@@ -4,15 +4,13 @@ declare(strict_types=1);
 
 namespace PHPUintTest\Unit\Worker\Cron\Support;
 
-use Swoolefy\Worker\Cron\KubernetesApiException;
-use Swoolefy\Worker\Cron\KubernetesClientInterface;
+use Swoolefy\Worker\Kubernetes\ApiException;
+use Swoolefy\Worker\Kubernetes\ClientInterface;
 
 /**
  * 内存版 Kubernetes API：记录调用、按脚本返回 Job 状态。
- *
- * 只实现 {@see KubernetesClientInterface} 的行为契约，不模拟 API Server 的校验。
  */
-final class FakeKubernetesClient implements KubernetesClientInterface
+final class FakeKubernetesClient implements ClientInterface
 {
     /** @var array<string, mixed>|null 返回给 getDeployment 的对象；null = 404 */
     public ?array $deployment = null;
@@ -42,7 +40,7 @@ final class FakeKubernetesClient implements KubernetesClientInterface
     public function getDeployment(string $namespace, string $name): array
     {
         if ($this->deployment === null) {
-            throw new KubernetesApiException('not found', 404, 'NotFound');
+            throw new ApiException('not found', 404, 'NotFound');
         }
 
         return $this->deployment;
@@ -52,7 +50,7 @@ final class FakeKubernetesClient implements KubernetesClientInterface
     {
         $this->createCalls[] = $job;
         if ($this->createConflicts) {
-            throw new KubernetesApiException('already exists', 409, 'AlreadyExists');
+            throw new ApiException('already exists', 409, 'AlreadyExists');
         }
         $name = (string) ($job['metadata']['name'] ?? '');
         $job['metadata']['uid'] = 'uid-' . $name;
@@ -66,7 +64,7 @@ final class FakeKubernetesClient implements KubernetesClientInterface
         ++$this->getJobCalls;
         if ($this->jobStates === []) {
             if (!isset($this->createdJobs[$name])) {
-                throw new KubernetesApiException('not found', 404, 'NotFound');
+                throw new ApiException('not found', 404, 'NotFound');
             }
 
             return $this->createdJobs[$name];

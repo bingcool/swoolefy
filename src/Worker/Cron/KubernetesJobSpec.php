@@ -38,7 +38,7 @@ use Swoolefy\Exception\CronException;
  * | 配置              | overridesCommand | overridesArgs | 结果 |
  * |-------------------|------------------|---------------|------|
  * | 都不填            | false            | false         | 完全沿用模板容器的 command/args |
- * | 只填 command      | true             | false         | 覆盖 command，并**移除**模板 args（见 KubernetesJobTemplateBuilder） |
+ * | 只填 command      | true             | false         | 覆盖 command，并**移除**模板 args（见 JobTemplateBuilder） |
  * | 填了 args（含 []）| 视 command 而定  | true          | args 整体替换，不追加 |
  *
  * ## 校验
@@ -104,6 +104,32 @@ final class KubernetesJobSpec
     /**
      * 供日志 / UI 展示的一行摘要，不作为执行来源。
      */
+    /**
+     * 交给 {@see \Swoolefy\Worker\Kubernetes\JobTemplateBuilder} 的纯数组，避免 K8s 包依赖 Cron。
+     *
+     * @return array{
+     *     namespace: string,
+     *     deployment: string,
+     *     container: string,
+     *     command: list<string>,
+     *     args: list<string>,
+     *     overrides_command: bool,
+     *     overrides_args: bool
+     * }
+     */
+    public function toBuilderArray(): array
+    {
+        return [
+            'namespace' => $this->namespace,
+            'deployment' => $this->deployment,
+            'container' => $this->container,
+            'command' => $this->command,
+            'args' => $this->args,
+            'overrides_command' => $this->overridesCommand,
+            'overrides_args' => $this->overridesArgs,
+        ];
+    }
+
     public function summary(): string
     {
         $argv = array_merge($this->command, $this->args);

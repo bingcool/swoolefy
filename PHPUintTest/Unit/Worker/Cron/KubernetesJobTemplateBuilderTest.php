@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace PHPUintTest\Unit\Worker\Cron;
 
 use PHPUintTest\TestCase;
-use Swoolefy\Exception\CronException;
+use Swoolefy\Worker\Kubernetes\JobTemplateException;
 use Swoolefy\Worker\Cron\KubernetesJobSpec;
-use Swoolefy\Worker\Cron\KubernetesJobTemplateBuilder;
+use Swoolefy\Worker\Kubernetes\JobTemplateBuilder;
 
 /**
  * Deployment 模板 → 一次性 Job 的派生与消毒。
@@ -15,7 +15,7 @@ use Swoolefy\Worker\Cron\KubernetesJobTemplateBuilder;
  * 覆盖方案 §7 / §7.1 里「不做就会出事故」的每一条：探针杀容器、sidecar 不退出、
  * Service selector 把流量打到 Cron Pod、hostPort 抢端口、restartPolicy 非法。
  *
- * @see KubernetesJobTemplateBuilder
+ * @see JobTemplateBuilder
  */
 final class KubernetesJobTemplateBuilderTest extends TestCase
 {
@@ -38,10 +38,10 @@ final class KubernetesJobTemplateBuilderTest extends TestCase
 
         $this->assertArrayNotHasKey('app', $labels, 'Service selector 命中就会把线上流量打到 Cron Pod');
         $this->assertArrayNotHasKey('version', $labels);
-        $this->assertSame('schedule-job', $labels[KubernetesJobTemplateBuilder::LABEL_MANAGED_BY]);
-        $this->assertSame('100', $labels[KubernetesJobTemplateBuilder::LABEL_CRON_ID]);
-        $this->assertSame('abc123', $labels[KubernetesJobTemplateBuilder::LABEL_EXEC_BATCH_ID]);
-        $this->assertSame('2', $labels[KubernetesJobTemplateBuilder::LABEL_ATTEMPT]);
+        $this->assertSame('schedule-job', $labels[JobTemplateBuilder::LABEL_MANAGED_BY]);
+        $this->assertSame('100', $labels[JobTemplateBuilder::LABEL_CRON_ID]);
+        $this->assertSame('abc123', $labels[JobTemplateBuilder::LABEL_EXEC_BATCH_ID]);
+        $this->assertSame('2', $labels[JobTemplateBuilder::LABEL_ATTEMPT]);
     }
 
     public function testForcesRestartPolicyNeverAndBackoffLimitZero(): void
@@ -105,7 +105,7 @@ final class KubernetesJobTemplateBuilderTest extends TestCase
 
     public function testMultiContainerWithoutExplicitNameIsRejected(): void
     {
-        $this->expectException(CronException::class);
+        $this->expectException(JobTemplateException::class);
         $this->expectExceptionMessageMatches('/KUBERNETES_CONTAINER_NOT_FOUND/');
 
         $this->build(['container' => '']);
@@ -113,7 +113,7 @@ final class KubernetesJobTemplateBuilderTest extends TestCase
 
     public function testUnknownContainerIsRejected(): void
     {
-        $this->expectException(CronException::class);
+        $this->expectException(JobTemplateException::class);
         $this->expectExceptionMessageMatches('/没有名为 nope 的容器/');
 
         $this->build(['container' => 'nope']);
@@ -133,7 +133,7 @@ final class KubernetesJobTemplateBuilderTest extends TestCase
 
     public function testPodLabelSelectorPinsBatchAndAttempt(): void
     {
-        $selector = (new KubernetesJobTemplateBuilder())->podLabelSelector('abc123', 2);
+        $selector = (new JobTemplateBuilder())->podLabelSelector('abc123', 2);
 
         $this->assertStringContainsString('schedule-job.exec-batch-id=abc123', $selector);
         $this->assertStringContainsString('schedule-job.attempt=2', $selector);
@@ -153,7 +153,7 @@ final class KubernetesJobTemplateBuilderTest extends TestCase
             'command' => ['/app/bin/task'],
         ], $specOverrides));
 
-        return (new KubernetesJobTemplateBuilder())->build($deployment ?? $this->deployment(), $spec, [
+        return (new JobTemplateBuilder())->build($deployment ?? $this->deployment(), $spec->toBuilderArray(), [
             'job_name' => 'sj-abc123-a2',
             'cron_id' => 100,
             'exec_batch_id' => 'abc123',

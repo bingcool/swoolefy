@@ -10,9 +10,9 @@ use Swoolefy\Worker\Cron\ExecutionResult;
 use Swoolefy\Worker\Cron\ExecutionSnapshot;
 use Swoolefy\Worker\Cron\KubernetesExecutionHookInterface;
 use Swoolefy\Worker\Cron\KubernetesExecutor;
-use Swoolefy\Worker\Cron\KubernetesExecutorOptions;
-use Swoolefy\Worker\Cron\KubernetesJobTemplateBuilder;
 use Swoolefy\Worker\Cron\TaskDefinition;
+use Swoolefy\Worker\Kubernetes\ExecutorOptions;
+use Swoolefy\Worker\Kubernetes\JobTemplateBuilder;
 
 /**
  * Kubernetes 执行器的编排行为。
@@ -153,8 +153,8 @@ final class KubernetesExecutorTest extends TestCase
         $client->createConflicts = true;
         $client->jobStates = [[
             'metadata' => ['labels' => [
-                KubernetesJobTemplateBuilder::LABEL_EXEC_BATCH_ID => 'abc123',
-                KubernetesJobTemplateBuilder::LABEL_ATTEMPT => '1',
+                JobTemplateBuilder::LABEL_EXEC_BATCH_ID => 'abc123',
+                JobTemplateBuilder::LABEL_ATTEMPT => '1',
             ]],
             'status' => ['succeeded' => 1],
         ]];
@@ -168,8 +168,8 @@ final class KubernetesExecutorTest extends TestCase
         $client->createConflicts = true;
         $client->jobStates = [[
             'metadata' => ['labels' => [
-                KubernetesJobTemplateBuilder::LABEL_EXEC_BATCH_ID => 'someone-else',
-                KubernetesJobTemplateBuilder::LABEL_ATTEMPT => '1',
+                JobTemplateBuilder::LABEL_EXEC_BATCH_ID => 'someone-else',
+                JobTemplateBuilder::LABEL_ATTEMPT => '1',
             ]],
             'status' => ['succeeded' => 1],
         ]];
@@ -183,7 +183,7 @@ final class KubernetesExecutorTest extends TestCase
     public function testNamespaceOutsideAllowListIsRejectedBeforeTouchingCluster(): void
     {
         $client = $this->client();
-        $options = new KubernetesExecutorOptions(allowedNamespaces: ['staging'], pollIntervalSeconds: 1);
+        $options = new ExecutorOptions(allowedNamespaces: ['staging'], pollIntervalSeconds: 1);
 
         $result = $this->execute($client, options: $options);
 
@@ -238,7 +238,7 @@ final class KubernetesExecutorTest extends TestCase
     private function execute(
         FakeKubernetesClient $client,
         ?RecordingKubernetesHook $hook = null,
-        ?KubernetesExecutorOptions $options = null,
+        ?ExecutorOptions $options = null,
         int $timeout = 60,
         int $attempt = 1,
         ?array $k8sSpec = null,
@@ -262,7 +262,7 @@ final class KubernetesExecutorTest extends TestCase
         $executor = new KubernetesExecutor(
             client: $client,
             hook: $hook ?? new RecordingKubernetesHook(),
-            options: $options ?? new KubernetesExecutorOptions(pollIntervalSeconds: 1),
+            options: $options ?? new ExecutorOptions(pollIntervalSeconds: 1),
         );
 
         return $executor->run($snapshot);

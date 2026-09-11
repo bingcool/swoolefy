@@ -11,6 +11,11 @@
 
 namespace Swoolefy\Worker\Cron;
 
+use Swoolefy\Worker\Kubernetes\Client;
+use Swoolefy\Worker\Kubernetes\ClientInterface;
+use Swoolefy\Worker\Kubernetes\ExecutorOptions;
+use Swoolefy\Worker\Kubernetes\JobTemplateBuilder;
+
 /**
  * Kubernetes Cron Worker（exec_type=3）。
  *
@@ -62,18 +67,18 @@ class CronK8sProcess extends CronProcess
 
         return new KubernetesExecutor(
             client: $client,
-            builder: new KubernetesJobTemplateBuilder(),
+            builder: new JobTemplateBuilder(),
             hook: $this->createKubernetesHook(),
-            options: KubernetesExecutorOptions::fromEnv(),
+            options: ExecutorOptions::fromEnv(),
         );
     }
 
     /**
      * 集群客户端。子类可重写以支持多集群 kubeconfig（P1）。
      */
-    protected function createKubernetesClient(): KubernetesClientInterface
+    protected function createKubernetesClient(): ClientInterface
     {
-        return KubernetesClient::fromEnv();
+        return Client::fromEnv();
     }
 
     /**
