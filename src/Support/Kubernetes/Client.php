@@ -49,18 +49,20 @@ class Client implements ClientInterface
     }
 
     /**
+     * 从 .env / 进程环境构造。集群内注入的 `KUBERNETES_SERVICE_*` 同样走 env()。
+     *
      * @throws ApiException
      */
     public static function fromEnv(): self
     {
-        $apiServer = rtrim(trim((string) (getenv('K8S_API_SERVER') ?: '')), '/');
-        $staticToken = trim((string) (getenv('K8S_TOKEN') ?: ''));
-        $caCertFile = trim((string) (getenv('K8S_CA_CERT_FILE') ?: ''));
+        $apiServer = rtrim(trim((string) env('K8S_API_SERVER', '')), '/');
+        $staticToken = trim((string) env('K8S_TOKEN', ''));
+        $caCertFile = trim((string) env('K8S_CA_CERT_FILE', ''));
         $tokenFile = '';
 
         if ($apiServer === '') {
-            $host = (string) (getenv('KUBERNETES_SERVICE_HOST') ?: '');
-            $port = (string) (getenv('KUBERNETES_SERVICE_PORT') ?: '443');
+            $host = (string) env('KUBERNETES_SERVICE_HOST', '');
+            $port = (string) env('KUBERNETES_SERVICE_PORT', '443');
             if ($host === '') {
                 throw new ApiException(
                     '未配置 Kubernetes 凭证：既没有 K8S_API_SERVER，也不在集群内（无 KUBERNETES_SERVICE_HOST）'
@@ -73,18 +75,32 @@ class Client implements ClientInterface
             }
         }
 
-        $verifyEnv = strtolower(trim((string) (getenv('K8S_VERIFY_TLS') ?: '')));
-        $verifyTls = !in_array($verifyEnv, ['0', 'false', 'off', 'no'], true);
-        $timeout = (int) (getenv('K8S_API_TIMEOUT') ?: 15);
+        $timeout = (int) env('K8S_API_TIMEOUT', 15);
 
         return new self(
             apiServer: $apiServer,
             tokenFile: $tokenFile,
             staticToken: $staticToken,
             caCertFile: is_file($caCertFile) ? $caCertFile : '',
-            verifyTls: $verifyTls,
+            verifyTls: self::envBool('K8S_VERIFY_TLS', true),
             timeout: $timeout > 0 ? $timeout : 15,
         );
+    }
+
+    /**
+     * env() 会把 false/true 转成布尔，不能再当字符串比。
+     */
+    private static function envBool(string $key, bool $default): bool
+    {
+        $value = env($key, $default);
+        if (is_bool($value)) {
+            return $value;
+        }
+        if ($value === null || $value === '') {
+            return $default;
+        }
+
+        return !in_array(strtolower(trim((string) $value)), ['0', 'false', 'off', 'no'], true);
     }
 
     public static function inClusterNamespace(): string

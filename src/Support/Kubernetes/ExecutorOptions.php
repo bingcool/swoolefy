@@ -38,20 +38,19 @@ final class ExecutorOptions
     public static function fromEnv(): self
     {
         $namespaces = array_values(array_filter(
-            array_map('trim', explode(',', (string) (getenv('K8S_ALLOWED_NAMESPACES') ?: ''))),
+            array_map('trim', explode(',', (string) env('K8S_ALLOWED_NAMESPACES', ''))),
             static fn (string $ns): bool => $ns !== '',
         ));
-        $requireEnv = strtolower(trim((string) (getenv('K8S_REQUIRE_TIMEOUT') ?: '')));
 
         return new self(
             allowedNamespaces: $namespaces,
             maxWaitSeconds: self::positiveEnv('K8S_MAX_WAIT_SECONDS', self::DEFAULT_MAX_WAIT_SECONDS),
             pollIntervalSeconds: self::positiveEnv('K8S_POLL_INTERVAL', 3),
-            ttlSecondsAfterFinished: max(0, (int) (getenv('K8S_JOB_TTL_SECONDS') ?: 3600)),
+            ttlSecondsAfterFinished: max(0, (int) env('K8S_JOB_TTL_SECONDS', 3600)),
             deadlinePaddingSeconds: self::positiveEnv('K8S_DEADLINE_PADDING', 100),
             logTailLines: self::positiveEnv('K8S_LOG_TAIL_LINES', 50),
             messageMaxChars: self::positiveEnv('K8S_MESSAGE_MAX_CHARS', 2000),
-            requireTimeout: !in_array($requireEnv, ['0', 'false', 'off', 'no'], true),
+            requireTimeout: self::envBool('K8S_REQUIRE_TIMEOUT', true),
         );
     }
 
@@ -79,8 +78,21 @@ final class ExecutorOptions
 
     private static function positiveEnv(string $key, int $default): int
     {
-        $value = (int) (getenv($key) ?: 0);
+        $value = (int) env($key, 0);
 
         return $value > 0 ? $value : $default;
+    }
+
+    private static function envBool(string $key, bool $default): bool
+    {
+        $value = env($key, $default);
+        if (is_bool($value)) {
+            return $value;
+        }
+        if ($value === null || $value === '') {
+            return $default;
+        }
+
+        return !in_array(strtolower(trim((string) $value)), ['0', 'false', 'off', 'no'], true);
     }
 }
