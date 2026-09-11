@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace PHPUintTest\Unit\Worker\Cron;
 
 use PHPUintTest\TestCase;
-use Swoolefy\Worker\Kubernetes\JobTemplateException;
+use Swoolefy\Support\Kubernetes\JobTemplateException;
 use Swoolefy\Worker\Cron\KubernetesJobSpec;
-use Swoolefy\Worker\Kubernetes\JobTemplateBuilder;
+use Swoolefy\Support\Kubernetes\JobTemplateBuilder;
 
 /**
  * Deployment 模板 → 一次性 Job 的派生与消毒。

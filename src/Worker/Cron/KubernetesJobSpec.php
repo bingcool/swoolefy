@@ -105,7 +105,7 @@ final class KubernetesJobSpec
      * 供日志 / UI 展示的一行摘要，不作为执行来源。
      */
     /**
-     * 交给 {@see \Swoolefy\Worker\Kubernetes\JobTemplateBuilder} 的纯数组，避免 K8s 包依赖 Cron。
+     * 交给 {@see \Swoolefy\Support\Kubernetes\JobTemplateBuilder} 的纯数组，避免 K8s 包依赖 Cron。
      *
      * @return array{
      *     namespace: string,

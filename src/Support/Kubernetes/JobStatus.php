@@ -9,7 +9,7 @@
  * +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Worker\Kubernetes;
+namespace Swoolefy\Support\Kubernetes;
 
 /**
  * 把 Kubernetes Job.status 判定为集群侧终态。

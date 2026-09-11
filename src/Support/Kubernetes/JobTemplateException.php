@@ -9,7 +9,7 @@
  * +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Worker\Kubernetes;
+namespace Swoolefy\Support\Kubernetes;
 
 use Swoolefy\Exception\AbstractSwoolefyExeption;
 

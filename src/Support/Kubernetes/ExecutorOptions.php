@@ -9,7 +9,7 @@
  * +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Worker\Kubernetes;
+namespace Swoolefy\Support\Kubernetes;
 
 /**
  * Kubernetes 执行的运行时策略（白名单、等待上限、Job TTL）。

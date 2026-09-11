@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace PHPUintTest\Unit\Worker\Cron;
 
 use PHPUintTest\TestCase;
-use Swoolefy\Worker\Kubernetes\JobStatus;
+use Swoolefy\Support\Kubernetes\JobStatus;
 
 final class KubernetesJobStatusTest extends TestCase
 {

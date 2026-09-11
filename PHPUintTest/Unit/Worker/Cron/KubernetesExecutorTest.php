@@ -11,8 +11,8 @@ use Swoolefy\Worker\Cron\ExecutionSnapshot;
 use Swoolefy\Worker\Cron\KubernetesExecutionHookInterface;
 use Swoolefy\Worker\Cron\KubernetesExecutor;
 use Swoolefy\Worker\Cron\TaskDefinition;
-use Swoolefy\Worker\Kubernetes\ExecutorOptions;
-use Swoolefy\Worker\Kubernetes\JobTemplateBuilder;
+use Swoolefy\Support\Kubernetes\ExecutorOptions;
+use Swoolefy\Support\Kubernetes\JobTemplateBuilder;
 
 /**
  * Kubernetes 执行器的编排行为。

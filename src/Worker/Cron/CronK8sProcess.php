@@ -11,10 +11,10 @@
 
 namespace Swoolefy\Worker\Cron;
 
-use Swoolefy\Worker\Kubernetes\Client;
-use Swoolefy\Worker\Kubernetes\ClientInterface;
-use Swoolefy\Worker\Kubernetes\ExecutorOptions;
-use Swoolefy\Worker\Kubernetes\JobTemplateBuilder;
+use Swoolefy\Support\Kubernetes\Client;
+use Swoolefy\Support\Kubernetes\ClientInterface;
+use Swoolefy\Support\Kubernetes\ExecutorOptions;
+use Swoolefy\Support\Kubernetes\JobTemplateBuilder;
 
 /**
  * Kubernetes Cron Worker（exec_type=3）。

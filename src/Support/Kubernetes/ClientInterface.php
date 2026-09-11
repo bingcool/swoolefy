@@ -9,7 +9,7 @@
  * +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Worker\Kubernetes;
+namespace Swoolefy\Support\Kubernetes;
 
 /**
  * Kubernetes API 最小访问面。

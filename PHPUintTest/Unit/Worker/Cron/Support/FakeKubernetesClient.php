@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace PHPUintTest\Unit\Worker\Cron\Support;
 
-use Swoolefy\Worker\Kubernetes\ApiException;
-use Swoolefy\Worker\Kubernetes\ClientInterface;
+use Swoolefy\Support\Kubernetes\ApiException;
+use Swoolefy\Support\Kubernetes\ClientInterface;
 
 /**
  * 内存版 Kubernetes API：记录调用、按脚本返回 Job 状态。

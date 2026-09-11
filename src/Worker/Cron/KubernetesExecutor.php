@@ -12,12 +12,12 @@
 namespace Swoolefy\Worker\Cron;
 
 use Swoolefy\Exception\CronException;
-use Swoolefy\Worker\Kubernetes\ApiException;
-use Swoolefy\Worker\Kubernetes\ClientInterface;
-use Swoolefy\Worker\Kubernetes\ExecutorOptions;
-use Swoolefy\Worker\Kubernetes\JobStatus;
-use Swoolefy\Worker\Kubernetes\JobTemplateBuilder;
-use Swoolefy\Worker\Kubernetes\JobTemplateException;
+use Swoolefy\Support\Kubernetes\ApiException;
+use Swoolefy\Support\Kubernetes\ClientInterface;
+use Swoolefy\Support\Kubernetes\ExecutorOptions;
+use Swoolefy\Support\Kubernetes\JobStatus;
+use Swoolefy\Support\Kubernetes\JobTemplateBuilder;
+use Swoolefy\Support\Kubernetes\JobTemplateException;
 
 /**
  * Kubernetes 执行器（exec_type=3）。
