@@ -1019,8 +1019,10 @@ final class CronManager
         $result = ExecutionResult::failed('未执行');
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             try {
-                // 全程使用同一冻结 Snapshot：Config Update 不得改写本轮 command / url
-                $result = $this->executor->run($snapshot);
+                // 全程使用同一冻结 Snapshot：Config Update 不得改写本轮 command / url。
+                // withAttempt() 只带上「第几次尝试」，execBatchId / definition 不变，
+                // 供 Executor 生成每次尝试唯一的外部资源名（如 Kubernetes Job 名）。
+                $result = $this->executor->run($snapshot->withAttempt($attempt));
             } catch (\Throwable $e) {
                 // 单次 attempt 异常隔离为 FAILED，可继续重试，不得拖垮 Worker
                 $result = ExecutionResult::failed($e->getMessage());

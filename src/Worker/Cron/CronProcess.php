@@ -45,6 +45,15 @@ class CronProcess extends AbstractWorkerProcess
 
     /** exec_type=2：HTTP URL。 */
     const EXEC_URL_TYPE = 2;
+
+    /**
+     * exec_type=3：Kubernetes 一次性 Job。
+     *
+     * 由 CronK8sProcess + KubernetesExecutor 消费：以目标 Deployment 的 Pod 模板为蓝本
+     * 派生一次性 Job，命令通过 command/args 覆盖。与 1/2 一样按 node_id 分区拉取，
+     * fetchCronTask(3, ...) 只会返回 exec_type=3 的行。
+     */
+    const EXEC_K8S_TYPE = 3;
     /**
      * Worker args['task_list']：array 或 Closure。Closure 成功必须返回 array。
      *

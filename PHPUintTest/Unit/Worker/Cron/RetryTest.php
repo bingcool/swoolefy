@@ -107,8 +107,10 @@ final class RetryTest extends TestCase
         $timer->advance(5000);
 
         $this->assertSame(3, $n, 'retry=2 → 最多 3 次，第 3 次成功');
-        $this->assertSame($seen[0], $seen[1]);
-        $this->assertSame($seen[0], $seen[2]);
+        // 每次 attempt 是 withAttempt() 派生出的新对象，但冻结的定义与批次必须一致
+        $this->assertSame($seen[0]->definition, $seen[1]->definition);
+        $this->assertSame($seen[0]->definition, $seen[2]->definition);
+        $this->assertSame([1, 2, 3], array_map(static fn (ExecutionSnapshot $s): int => $s->attempt, $seen));
         $this->assertCount(1, array_unique(array_map(static fn (ExecutionSnapshot $s): string => $s->execBatchId, $seen)));
         $this->assertSame([true, true, true], $running, 'Guard 在整个 attempt 序列期间保持 running');
         $this->assertFalse($manager->registry()->get('id:1')?->running);
@@ -135,9 +137,10 @@ final class RetryTest extends TestCase
         $this->trigger($http, 2, execType: 2, command: 'http://example.test/retry');
 
         $this->assertSame(3, $n);
-        $this->assertSame($seen[0], $seen[1]);
+        $this->assertSame($seen[0]->definition, $seen[1]->definition);
         $this->assertSame($seen[0]->definition, $seen[2]->definition);
         $this->assertSame($seen[0]->execBatchId, $seen[2]->execBatchId);
+        $this->assertSame([1, 2, 3], array_map(static fn (ExecutionSnapshot $s): int => $s->attempt, $seen));
     }
 
     /**
@@ -247,7 +250,12 @@ final class RetryTest extends TestCase
         };
         $this->trigger($executor, 2);
         $this->assertSame(2, $executor->n);
-        $this->assertSame($executor->snapshots[0], $executor->snapshots[1]);
+        $this->assertSame($executor->snapshots[0]->definition, $executor->snapshots[1]->definition);
+        $this->assertSame($executor->snapshots[0]->execBatchId, $executor->snapshots[1]->execBatchId);
+        $this->assertSame([1, 2], array_map(
+            static fn (ExecutionSnapshot $s): int => $s->attempt,
+            $executor->snapshots,
+        ));
     }
 
     /**

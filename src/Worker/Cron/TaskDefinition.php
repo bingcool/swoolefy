@@ -52,6 +52,9 @@ final class TaskDefinition
     /** exec_type=2：HTTP URL。 */
     public const EXEC_HTTP = CronProcess::EXEC_URL_TYPE;
 
+    /** exec_type=3：Kubernetes 一次性 Job（以 Deployment Pod 模板派生）。 */
+    public const EXEC_K8S = CronProcess::EXEC_K8S_TYPE;
+
     /**
      * @param array<string, mixed> $raw 原始配置，供日志与兼容回调使用
      * @param list<array<int, mixed>> $cronBetween
@@ -91,6 +94,7 @@ final class TaskDefinition
         public readonly ?string $timezone = null,
         public readonly int $retry = 0,
         public readonly int $timeout = 0,
+        public readonly array $k8sSpec = [],
         public readonly array $raw = [],
     ) {
     }
@@ -189,6 +193,7 @@ final class TaskDefinition
             timezone: isset($item['timezone']) && $item['timezone'] !== '' ? (string) $item['timezone'] : null,
             retry: $retry,
             timeout: max(0, (int) ($item['timeout'] ?? 0)),
+            k8sSpec: self::asArray($item['k8s_spec'] ?? []),
             raw: $item,
         );
     }
@@ -255,6 +260,7 @@ final class TaskDefinition
             $this->timezone,
             $this->retry,
             $this->timeout,
+            $this->k8sSpec,
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '');
     }
 
@@ -271,7 +277,9 @@ final class TaskDefinition
     /**
      * 还原为现有日志 DTO，保持 CronTaskInterface::logCronTaskRuntime() 兼容。
      *
-     * HTTP → CronUrlTaskMetaDtoWorker；Shell → ScheduleEvent。
+     * HTTP → CronUrlTaskMetaDtoWorker；Shell 与 Kubernetes → ScheduleEvent。
+     * K8s 没有独立 DTO：它复用 ScheduleEvent 的调度字段，真正的执行参数在 k8sSpec 里，
+     * 由 KubernetesExecutor 直接从 TaskDefinition 读取，不经过日志 DTO。
      * 以 raw 为底再覆盖规范化字段，避免丢失历史扩展键。
      */
     public function toLogDto(): ScheduleEvent|CronUrlTaskMetaDtoWorker
@@ -288,6 +296,7 @@ final class TaskDefinition
         $payload['timeout'] = $this->timeout;
         $payload['cron_between'] = $this->cronBetween;
         $payload['cron_skip'] = $this->cronSkip;
+        $payload['k8s_spec'] = $this->k8sSpec;
         $payload['updated_at'] = $this->updatedAt;
 
         if ($this->execType === self::EXEC_HTTP) {
@@ -337,6 +346,7 @@ final class TaskDefinition
             'http_headers' => $this->httpHeaders,
             'http_request_time_out' => $this->httpRequestTimeOut,
             'url' => $this->url,
+            'k8s_spec' => $this->k8sSpec,
             'updated_at' => $this->updatedAt,
         ];
     }
