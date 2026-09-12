@@ -56,8 +56,8 @@ use Swoolefy\Support\Kubernetes\JobTemplateException;
  */
 class KubernetesExecutor implements CronExecutorInterface
 {
-    /** Job 名前缀。`sj-{execBatchId}-a{attempt}` 共 22 字符，远低于 63 上限。 */
-    public const JOB_NAME_PREFIX = 'sj-';
+    /** Job 名前缀。`cron-job-{execBatchId}-a{attempt}` 共 22 字符，远低于 63 上限。 */
+    public const JOB_NAME_PREFIX = 'cron-job-';
 
     private readonly JobTemplateBuilder $builder;
 
