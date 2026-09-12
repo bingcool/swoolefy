@@ -20,7 +20,7 @@ use Swoolefy\Worker\Cron\ShellExecutor;
 use Swoolefy\Worker\Cron\TaskDefinition;
 
 /**
- * CronManager 同轮 retry：retry=0 不额外跑；retry=N 最多 1+N 次；
+ * CronManager 同轮 retry：retry=0 不额外跑；retry≥1 无论配多大只再试 1 次；
  * 只重试 FAILED；SKIPPED 不进 Executor；同一 Snapshot；指标按一轮记一次。
  *
  * @see \Swoolefy\Worker\Cron\CronManager::runWithRetry()
@@ -34,7 +34,7 @@ final class RetryTest extends TestCase
     }
 
     /**
-     * 缺省 / 非法 retry 规范化为 0；maxAttempts = 1+retry。
+     * 缺省 / 非法 retry 规范化为 0；retry≥1 时 maxAttempts 硬顶为 2。
      */
     public function testRetryDefaultAndMaxAttempts(): void
     {
@@ -42,9 +42,13 @@ final class RetryTest extends TestCase
         $this->assertSame(0, $none->retry);
         $this->assertSame(1, $none->maxAttempts());
 
+        $one = TaskDefinition::fromArray($this->row(1, 'x.sh', 1));
+        $this->assertSame(1, $one->retry);
+        $this->assertSame(2, $one->maxAttempts());
+
         $two = TaskDefinition::fromArray($this->row(1, 'x.sh', 2));
         $this->assertSame(2, $two->retry);
-        $this->assertSame(3, $two->maxAttempts());
+        $this->assertSame(2, $two->maxAttempts(), 'retry 配再大也只再试 1 次');
 
         $neg = TaskDefinition::fromArray($this->row(1, 'x.sh') + ['retry' => -3]);
         $this->assertSame(0, $neg->retry);
@@ -76,7 +80,7 @@ final class RetryTest extends TestCase
     }
 
     /**
-     * retry=2 + Shell：前两次 FAILED，第三次 SUCCESS；同一 Snapshot。
+     * retry=2 + Shell：硬顶只再试 1 次；第 2 次 SUCCESS；同一 Snapshot。
      */
     public function testRetryTwoShellFailThenSuccess(): void
     {
@@ -92,7 +96,7 @@ final class RetryTest extends TestCase
                 $seen[] = $snapshot;
                 $running[] = $manager->registry()->get('id:1')?->running;
                 ++$n;
-                if ($n < 3) {
+                if ($n < 2) {
                     return ExecutionResult::failed('shell transient', 0, 1);
                 }
 
@@ -106,19 +110,18 @@ final class RetryTest extends TestCase
         $clock->set(5);
         $timer->advance(5000);
 
-        $this->assertSame(3, $n, 'retry=2 → 最多 3 次，第 3 次成功');
+        $this->assertSame(2, $n, 'retry=2 也只再试 1 次，第 2 次成功');
         // 每次 attempt 是 withAttempt() 派生出的新对象，但冻结的定义与批次必须一致
         $this->assertSame($seen[0]->definition, $seen[1]->definition);
-        $this->assertSame($seen[0]->definition, $seen[2]->definition);
-        $this->assertSame([1, 2, 3], array_map(static fn (ExecutionSnapshot $s): int => $s->attempt, $seen));
+        $this->assertSame([1, 2], array_map(static fn (ExecutionSnapshot $s): int => $s->attempt, $seen));
         $this->assertCount(1, array_unique(array_map(static fn (ExecutionSnapshot $s): string => $s->execBatchId, $seen)));
-        $this->assertSame([true, true, true], $running, 'Guard 在整个 attempt 序列期间保持 running');
+        $this->assertSame([true, true], $running, 'Guard 在整个 attempt 序列期间保持 running');
         $this->assertFalse($manager->registry()->get('id:1')?->running);
         $this->assertSame(1, $manager->timerCountFor('id:1'));
     }
 
     /**
-     * retry=2 + HTTP：前两次 FAILED，第三次 SUCCESS；同一 Snapshot。
+     * retry=2 + HTTP：硬顶只再试 1 次；第 2 次 SUCCESS；同一 Snapshot。
      */
     public function testRetryTwoHttpFailThenSuccess(): void
     {
@@ -128,7 +131,7 @@ final class RetryTest extends TestCase
         $http = new HttpExecutor(function (ExecutionSnapshot $snapshot) use (&$n, &$seen): array {
             $seen[] = $snapshot;
             ++$n;
-            if ($n < 3) {
+            if ($n < 2) {
                 return ['status' => 500, 'body' => 'err'];
             }
 
@@ -136,15 +139,14 @@ final class RetryTest extends TestCase
         });
         $this->trigger($http, 2, execType: 2, command: 'http://example.test/retry');
 
-        $this->assertSame(3, $n);
+        $this->assertSame(2, $n);
         $this->assertSame($seen[0]->definition, $seen[1]->definition);
-        $this->assertSame($seen[0]->definition, $seen[2]->definition);
-        $this->assertSame($seen[0]->execBatchId, $seen[2]->execBatchId);
-        $this->assertSame([1, 2, 3], array_map(static fn (ExecutionSnapshot $s): int => $s->attempt, $seen));
+        $this->assertSame($seen[0]->execBatchId, $seen[1]->execBatchId);
+        $this->assertSame([1, 2], array_map(static fn (ExecutionSnapshot $s): int => $s->attempt, $seen));
     }
 
     /**
-     * retry=2 三次都失败 → 本轮最终 FAILED；指标只加 1 次 failed。
+     * retry=2 两次都失败 → 本轮最终 FAILED；指标只加 1 次 failed。
      */
     public function testAllAttemptsFailRecordsOnce(): void
     {
@@ -164,7 +166,7 @@ final class RetryTest extends TestCase
         $clock->set(5);
         $timer->advance(5000);
 
-        $this->assertCount(3, $executor->snapshots, 'retry=2 用尽 3 次仍 FAILED');
+        $this->assertCount(2, $executor->snapshots, 'retry=2 硬顶 2 次仍 FAILED');
         $snapshot = RuntimeRegistry::metrics()?->snapshot();
         $this->assertSame(1, $snapshot['counter'][RuntimeMetrics::CRON_RUNS_FAILED] ?? 0);
         $this->assertSame(1, $snapshot['counter'][RuntimeMetrics::CRON_RUNS_TOTAL] ?? 0);
@@ -225,7 +227,7 @@ final class RetryTest extends TestCase
         $manager->start();
         $clock->set(5);
         $timer->advance(5000);
-        $this->assertCount(3, $executor->snapshots, '仅第一轮 1+retry 次；重叠 SKIP 不进 Executor');
+        $this->assertCount(2, $executor->snapshots, '仅第一轮最多 2 次；重叠 SKIP 不进 Executor');
     }
 
     /**

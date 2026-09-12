@@ -11,7 +11,7 @@ return [
         'exec_bin_file' => "/bin/bash",
         'exec_script' => APP_PATH.'/Python/shell.sh',
         'with_block_lapping' => true,
-        'retry' => 0, // 0=不重试（默认）；N=首次失败后再重试 N 次（最多 1+N 次）
+        'retry' => 0, // 0=不重试（默认）；≥1=失败后再试 1 次（硬顶）
         'output' => '/dev/null',
         'description' => '',
         // 在某些时间段执行

@@ -1008,14 +1008,14 @@ final class CronManager
     /**
      * 同一 ExecutionSnapshot 内按 retry 重试 FAILED。
      *
-     * 语义：retry=0 只跑 1 次；retry=N 最多 1+N 次（首次 + N 次重试）。
+     * 语义：retry=0 只跑 1 次；retry≥1 无论配多大，本轮最多再试 1 次（共 2 次 attempt）。
      * 只重试 FAILED 与 TIMEOUT（含 Executor 抛出后隔离成的 FAILED）；SUCCESS 立即结束。
      * SKIPPED 由 Window / Guard 在进入本方法前处理，不会走到这里。
      * 无 retry_delay 字段，失败后立即重试，不另武装 Timer。
      */
     private function runWithRetry(ExecutionSnapshot $snapshot): ExecutionResult
     {
-        $maxAttempts = $snapshot->definition->maxAttempts();
+        $maxAttempts = min(1 + TaskDefinition::MAX_RETRY, $snapshot->definition->maxAttempts());
         $result = ExecutionResult::failed('未执行');
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             try {

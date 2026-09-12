@@ -239,7 +239,7 @@ sequenceDiagram
         M-->>M: recordSkip
     end
     M->>M: ExecutionSnapshot::create
-    loop 最多 1+retry 次（仅 FAILED）
+    loop 最多 2 次（retry=0 只跑 1 次；仅 FAILED）
         M->>E: run(同一 snapshot)
         E-->>M: SUCCESS / FAILED（异常也收成 FAILED）
     end
@@ -301,7 +301,7 @@ Test 应用的 `CronTaskManagerController` 是 **写 `cron_task` 的 HTTP Admin*
 | `retry` | 最多 attempt | 行为 |
 |---|---|---|
 | `0`（默认） | 1 | 首次失败即结束 |
-| `N`（N>0） | `1+N` | 首次 + 之后最多再试 N 次 |
+| `≥1` | 2 | 首次 + 之后最多再试 1 次（硬顶，配再大也不加 attempt） |
 
 规则：
 
@@ -467,7 +467,7 @@ Test 实现 `Test\Module\Cron\Service\CronTaskService`：
 | `status` | `status` | `0` 停用 / `1` 启用 |
 | `exec_type` | `execType` | `1` Shell（`CronProcess::EXEC_FORK_TYPE`）/ `2` HTTP（`EXEC_URL_TYPE`）；缺省时有 URL 则 HTTP，否则 Shell |
 | `with_block_lapping` | `withBlockLapping` | `true`：同一 Job 最多一个 Running |
-| `retry` | `retry` | 失败后重试次数，**不含首次**。默认 `0`（不重试）。`retry=N` → 最多 `1+N` 次 attempt。负数回退 `0`。只重试 `FAILED`，不重试 `SKIPPED`。无 `retry_delay`，失败后立即重试。计入 fingerprint |
+| `retry` | `retry` | 失败后重试次数，**不含首次**。默认 `0`（不重试）。`retry≥1` → 最多再试 1 次（共 2 次 attempt，硬顶）。负数回退 `0`。只重试 `FAILED`，不重试 `SKIPPED`。无 `retry_delay`，失败后立即重试。计入 fingerprint |
 | `node_id` | `nodeId` | 空串 / null → null |
 | `timezone` | `timezone` | 仅 Linux Cron |
 | `updated_at` | `updatedAt` | 计入 fingerprint |

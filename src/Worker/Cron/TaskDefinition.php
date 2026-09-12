@@ -55,6 +55,9 @@ final class TaskDefinition
     /** exec_type=3：Kubernetes 一次性 Job（以 Deployment Pod 模板派生）。 */
     public const EXEC_K8S = CronProcess::EXEC_K8S_TYPE;
 
+    /** 同一轮 trigger 最多再试次数；runWithRetry 硬顶，不受 retry 字段放大。 */
+    public const MAX_RETRY = 1;
+
     /**
      * @param array<string, mixed> $raw 原始配置，供日志与兼容回调使用
      * @param list<array<int, mixed>> $cronBetween
@@ -152,7 +155,7 @@ final class TaskDefinition
         }
 
         $nodeId = $item['node_id'] ?? null;
-        // retry=0 默认不重试；retry=N 表示首次失败后再重试 N 次（最多 1+N 次）
+        // retry=0 默认不重试；>0 只再试 1 次（MAX_RETRY 硬顶，配再大也不加 attempt）
         $retry = (int) ($item['retry'] ?? 0);
         if ($retry < 0) {
             $retry = 0;
@@ -265,13 +268,13 @@ final class TaskDefinition
     }
 
     /**
-     * 本轮最多执行次数：首次 1 次 + retry 次重试。
+     * 本轮最多执行次数：首次 1 次 + 至多 {@see MAX_RETRY} 次重试。
      *
-     * retry=0 → 1；retry=2 → 3。只作用于 FAILED，SKIPPED 不走本计数。
+     * retry=0 → 1；retry≥1 → 2。只作用于 FAILED，SKIPPED 不走本计数。
      */
     public function maxAttempts(): int
     {
-        return 1 + max(0, $this->retry);
+        return 1 + min(self::MAX_RETRY, max(0, $this->retry));
     }
 
     /**
