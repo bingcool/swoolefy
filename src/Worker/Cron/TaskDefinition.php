@@ -198,7 +198,7 @@ final class TaskDefinition
             timezone: isset($item['timezone']) && $item['timezone'] !== '' ? (string) $item['timezone'] : null,
             retry: $retry,
             timeout: max(0, (int) ($item['timeout'] ?? 0)),
-            k8sSpec: self::asArray($item['k8s_spec'] ?? []),
+            k8sSpec: self::asArray($item['k8s_spec'] ?? $item['k8sSpec'] ?? []),
             raw: $item,
         );
     }
@@ -466,6 +466,9 @@ final class TaskDefinition
      */
     private static function asArray(mixed $value): array
     {
+        if ($value instanceof \stdClass) {
+            $value = get_object_vars($value);
+        }
         if (is_string($value) && $value !== '') {
             $decoded = json_decode($value, true);
             return is_array($decoded) ? $decoded : [];

@@ -79,6 +79,41 @@ class JobTemplateBuilder
     ];
 
     /**
+     * Kubernetes 里是 map/object 的字段。json_decode 会把 `{}` 变成 PHP `[]`，
+     * 再 json_encode 就变成 `[]`，API 会 400（例如 ResourceRequirements）。
+     */
+    private const OBJECT_FIELDS = [
+        'resources',
+        'limits',
+        'requests',
+        'securityContext',
+        'nodeSelector',
+        'affinity',
+        'dnsConfig',
+        'emptyDir',
+        'hostPath',
+        'metadata',
+        'labels',
+        'annotations',
+        'selector',
+        'matchLabels',
+        'overhead',
+        'capabilities',
+        'seLinuxOptions',
+        'seccompProfile',
+        'windowsOptions',
+        'configMap',
+        'secret',
+        'projected',
+        'downwardAPI',
+        'persistentVolumeClaim',
+        'csi',
+        'httpGet',
+        'exec',
+        'tcpSocket',
+    ];
+
+    /**
      * @param array<string, mixed> $deployment
      * @param array{
      *     namespace: string,
@@ -154,7 +189,7 @@ class JobTemplateBuilder
             $job['spec']['activeDeadlineSeconds'] = $deadline;
         }
 
-        return $job;
+        return $this->normalizeEmptyObjects($job);
     }
 
     /**
@@ -269,7 +304,7 @@ class JobTemplateBuilder
 
         unset($container['stdin'], $container['stdinOnce'], $container['tty']);
 
-        return $container;
+        return $this->normalizeEmptyObjects($container);
     }
 
     /**
@@ -407,5 +442,38 @@ class JobTemplateBuilder
         }
 
         return false;
+    }
+
+    /**
+     * 把「本该是对象、却被 PHP 解成空数组」的字段还原成 `{}`，避免 POST Job 400。
+     *
+     * 空列表字段（command / args / ports / env …）保持 `[]`。
+     *
+     * @template T
+     * @param T $value
+     * @return T
+     */
+    private function normalizeEmptyObjects(mixed $value, ?string $key = null): mixed
+    {
+        if (!is_array($value)) {
+            return $value;
+        }
+        if ($value === []) {
+            return $key !== null && in_array($key, self::OBJECT_FIELDS, true)
+                ? new \stdClass()
+                : $value;
+        }
+        if (array_is_list($value)) {
+            foreach ($value as $index => $item) {
+                $value[$index] = $this->normalizeEmptyObjects($item);
+            }
+
+            return $value;
+        }
+        foreach ($value as $childKey => $item) {
+            $value[$childKey] = $this->normalizeEmptyObjects($item, is_string($childKey) ? $childKey : null);
+        }
+
+        return $value;
     }
 }

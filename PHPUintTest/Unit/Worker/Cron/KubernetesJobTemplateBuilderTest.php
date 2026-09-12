@@ -131,6 +131,23 @@ final class KubernetesJobTemplateBuilderTest extends TestCase
         $this->assertSame('ClusterFirst', $podSpec['dnsPolicy'], 'ClusterFirstWithHostNet 脱离 hostNetwork 就非法');
     }
 
+    public function testEmptyObjectFieldsAreNotPostedAsJsonArrays(): void
+    {
+        $deployment = $this->deployment();
+        $deployment['spec']['template']['spec']['containers'][0]['resources'] = [];
+        $deployment['spec']['template']['spec']['securityContext'] = [];
+        $deployment['spec']['template']['spec']['volumes'][0]['emptyDir'] = [];
+
+        $job = $this->build([], $deployment);
+        $encoded = json_encode($job, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $this->assertIsString($encoded);
+        $this->assertStringNotContainsString('"resources":[]', $encoded);
+        $this->assertStringContainsString('"resources":{}', $encoded);
+        $this->assertStringContainsString('"securityContext":{}', $encoded);
+        $this->assertStringContainsString('"emptyDir":{}', $encoded);
+        $this->assertStringContainsString('"command":["/app/bin/task"]', $encoded, '列表字段必须仍是数组');
+    }
+
     public function testPodLabelSelectorPinsBatchAndAttempt(): void
     {
         $selector = (new JobTemplateBuilder())->podLabelSelector('abc123', 2);

@@ -1,0 +1,11 @@
+.git
+.phpunit.cache
+PHPUintTest
+docs
+*.md
+.idea
+.vscode
+**/.DS_Store
+Test/Runtime
+Test/Storage
+**/vendor/bin/.phpunit.result.cache
