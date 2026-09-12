@@ -9,6 +9,8 @@
  * +----------------------------------------------------------------------
  */
 
+declare(strict_types=1);
+
 namespace Swoolefy\Worker\Cron;
 
 use Swoolefy\Core\Log\LogManager;

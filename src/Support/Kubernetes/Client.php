@@ -9,6 +9,8 @@
  * +----------------------------------------------------------------------
  */
 
+declare(strict_types=1);
+
 namespace Swoolefy\Support\Kubernetes;
 
 use GuzzleHttp\Client as GuzzleClient;
