@@ -77,7 +77,7 @@ class Client implements ClientInterface
             }
         }
 
-        $timeout = (int) env('K8S_API_TIMEOUT', 15);
+        $timeout = (int) env('K8S_API_TIMEOUT', 30);
 
         return new self(
             apiServer: $apiServer,

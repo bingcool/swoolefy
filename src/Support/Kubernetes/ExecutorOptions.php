@@ -22,6 +22,9 @@ final class ExecutorOptions
 {
     public const DEFAULT_MAX_WAIT_SECONDS = 3600;
 
+    /** Job 结束后由 K8s 回收的默认 TTL（秒）。 */
+    public const DEFAULT_TTL_SECONDS = 120;
+
     /**
      * @param list<string> $allowedNamespaces
      */
@@ -29,7 +32,7 @@ final class ExecutorOptions
         public readonly array $allowedNamespaces = [],
         public readonly int $maxWaitSeconds = self::DEFAULT_MAX_WAIT_SECONDS,
         public readonly int $pollIntervalSeconds = 3,
-        public readonly int $ttlSecondsAfterFinished = 3600,
+        public readonly int $ttlSecondsAfterFinished = self::DEFAULT_TTL_SECONDS,
         public readonly int $deadlinePaddingSeconds = 100,
         public readonly int $logTailLines = 50,
         public readonly int $messageMaxChars = 2000,
@@ -48,7 +51,7 @@ final class ExecutorOptions
             allowedNamespaces: $namespaces,
             maxWaitSeconds: self::positiveEnv('K8S_MAX_WAIT_SECONDS', self::DEFAULT_MAX_WAIT_SECONDS),
             pollIntervalSeconds: self::positiveEnv('K8S_POLL_INTERVAL', 3),
-            ttlSecondsAfterFinished: max(0, (int) env('K8S_JOB_TTL_SECONDS', 3600)),
+            ttlSecondsAfterFinished: max(0, (int) env('K8S_JOB_TTL_SECONDS', self::DEFAULT_TTL_SECONDS)),
             deadlinePaddingSeconds: self::positiveEnv('K8S_DEADLINE_PADDING', 100),
             logTailLines: self::positiveEnv('K8S_LOG_TAIL_LINES', 50),
             messageMaxChars: self::positiveEnv('K8S_MESSAGE_MAX_CHARS', 2000),
