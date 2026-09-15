@@ -303,6 +303,7 @@ final class TaskDefinition
         $payload['cron_skip'] = $this->cronSkip;
         $payload['k8s_spec'] = $this->k8sSpec;
         $payload['updated_at'] = $this->updatedAt;
+        $payload['status'] = $this->status;
 
         if ($this->execType === self::EXEC_HTTP) {
             $payload['url'] = $this->url !== '' ? $this->url : $this->command;
