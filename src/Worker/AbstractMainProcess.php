@@ -39,6 +39,11 @@ abstract class AbstractMainProcess extends AbstractProcess
      */
     protected function parseWorkerConf()
     {
+        // 分组配置：不传 --group 时启动全部组；传 --group 时只启动指定组（多个用英文逗号分隔）
+        // php daemon.php start Test
+        // php daemon.php start Test --group=group_1
+        // php daemon.php start Test --group=group_1,group_2
+        //
         // 指定只启动某一个进程，开发，调试使用
         // php daemon.php start Test --only=order-sync
         // php cron.php start Test --only=order-sync

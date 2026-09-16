@@ -1970,8 +1970,108 @@ class MainManager
             $fileConfPath = WORKER_CONF_FILE;
         }
         $conf = include $fileConfPath;
+        if (self::isGroupedWorkerConf($conf)) {
+            $conf = self::resolveGroupedWorkerConf($conf);
+        }
         self::findDuplicateProcessName($conf);
         return $conf;
+    }
+
+    /**
+     * 是否为分组形式的 worker 配置：顶层键为分组名，值为进程配置列表。
+     *
+     * @param array<int|string, mixed> $conf
+     */
+    public static function isGroupedWorkerConf(array $conf): bool
+    {
+        if ($conf === []) {
+            return false;
+        }
+
+        foreach ($conf as $key => $value) {
+            if (is_int($key)) {
+                return false;
+            }
+            if (!is_string($key) || !is_array($value)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * 按 CLI --group= 解析分组配置。
+     *
+     * 未指定 --group 时合并所有分组；指定后仅返回这些分组（多个用英文逗号分隔）。
+     *
+     * @param array<string, array<int, array<string, mixed>>> $groupedConf
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function resolveGroupedWorkerConf(array $groupedConf): array
+    {
+        $groupParam = Helper::getCliParams('group');
+        $groupNames = self::parseGroupNames($groupParam);
+
+        // 为空，那取所有
+        if ($groupNames === []) {
+            $items = [];
+            foreach ($groupedConf as $groupName => $groupItems) {
+                $items = array_merge($items, self::normalizeGroupProcessItems((string) $groupName, $groupItems));
+            }
+            return $items;
+        }
+
+        $available = implode(', ', array_keys($groupedConf));
+        $items = [];
+        foreach ($groupNames as $groupName) {
+            if (!isset($groupedConf[$groupName]) || !is_array($groupedConf[$groupName])) {
+                WorkerException::throw("未找到分组 [{$groupName}]，可选分组：{$available}");
+            }
+            $items = array_merge($items, self::normalizeGroupProcessItems($groupName, $groupedConf[$groupName]));
+        }
+
+        return $items;
+    }
+
+    /**
+     * @param $groupParam
+     * @return list<string>
+     */
+    private static function parseGroupNames(?string $groupParam): array
+    {
+        if (!is_string($groupParam) || trim($groupParam) === '') {
+            return [];
+        }
+
+        $names = [];
+        foreach (explode(',', $groupParam) as $name) {
+            $name = trim($name);
+            if ($name === '') {
+                continue;
+            }
+            $names[] = $name;
+        }
+
+        return array_values(array_unique($names));
+    }
+
+    /**
+     * @param mixed $groupItems
+     *
+     * @return list<array<string, mixed>>
+     */
+    private static function normalizeGroupProcessItems(string $groupName, array $groupItems): array
+    {
+        $items = array_values($groupItems);
+        foreach ($items as $item) {
+            if (!is_array($item) || !isset($item['process_name'])) {
+                WorkerException::throw("分组 [{$groupName}] 中存在无效的进程配置项，请检查 worker 配置文件");
+            }
+        }
+
+        return $items;
     }
 
     /**
@@ -2034,8 +2134,7 @@ class MainManager
         $duplicateProcessNames = array_diff_assoc($processNames, $uniqueProcessNames);
         if (!empty($duplicateProcessNames)) {
             $processNameStr = implode(',', $duplicateProcessNames);
-            fmtPrintError("conf配置项存在重复命名的进程[{$processNameStr}],请检查");
-            exit(0);
+            WorkerException::throw("conf配置项存在重复命名的进程[{$processNameStr}],请检查");
         }
     }
 

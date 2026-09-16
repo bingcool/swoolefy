@@ -137,9 +137,11 @@ PHP;
         return <<<PHP
 <?php
 
-return array_merge(
-    include __DIR__."/conf/test_conf.php",
-);
+return [
+    'group_1' => array_merge(
+        include __DIR__ . '/conf/test_conf.php',
+    ),
+];
 PHP;
     }
 }
