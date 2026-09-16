@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Worker;
 
+use Swoolefy\Core\BaseServer;
+use Swoolefy\Core\Swfy;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Core\Process\AbstractProcess;
 
@@ -24,13 +26,19 @@ abstract class AbstractMainProcess extends AbstractProcess
      */
     public function init()
     {
-        $workerConf = $this->parseWorkerConf();
-        if (!empty($workerConf)) {
-            $mainManager = \Swoolefy\Worker\MainManager::getInstance();
-            $mainManager->onHandleException = function (\Throwable $throwable) {
-                fmtPrintError(sprintf("管理进程报错,err:%s, line: %d, trace=%s", $throwable->getMessage(), $throwable->getLine(), $throwable->getTraceAsString()));
-            };
-            $mainManager->loadConf($workerConf);
+        try {
+            $workerConf = $this->parseWorkerConf();
+            if (!empty($workerConf)) {
+                $mainManager = \Swoolefy\Worker\MainManager::getInstance();
+                $mainManager->onHandleException = function (\Throwable $throwable) {
+                    throw $throwable;
+                };
+                $mainManager->loadConf($workerConf);
+            }
+        }catch (\Throwable $exception) {
+            BaseServer::catchException($exception);
+            fmtPrintError(sprintf("管理进程报错，error msg=%s, trace=%s", $exception->getMessage(), $exception->getTraceAsString()));
+            Swfy::getServer()->shutdown();
         }
     }
 
@@ -39,7 +47,7 @@ abstract class AbstractMainProcess extends AbstractProcess
      */
     protected function parseWorkerConf()
     {
-        // 分组配置：不传 --group 时启动全部组；传 --group 时只启动指定组（多个用英文逗号分隔）
+        // 分组配置：不传 --group 时启动全部组；传 --group 时只启动指定组（多个用英文逗号分隔），k8s按照分组部署
         // php daemon.php start Test
         // php daemon.php start Test --group=group_1
         // php daemon.php start Test --group=group_1,group_2
@@ -63,7 +71,7 @@ abstract class AbstractMainProcess extends AbstractProcess
                 $onlyProcessItems = explode(',', $onlyProcess);
             }
 
-            if (!empty($onlyProcessItems) && (SystemEnv::isCronService() || SystemEnv::isDaemonService()) && (SystemEnv::isTestEnv() || SystemEnv::isDevEnv())) {
+            if (!empty($onlyProcessItems) && (SystemEnv::isCronService() || SystemEnv::isDaemonService()) ) {
                 foreach ($workerConfList as  $workerConfItem) {
                     $processName = $workerConfItem['process_name'];
                     if (in_array($processName, $onlyProcessItems)) {
