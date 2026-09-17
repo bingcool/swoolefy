@@ -11,162 +11,87 @@
 
 namespace Swoolefy\Worker\Traits;
 
-use Swoolefy\Core\CommandRunner;
-use Swoolefy\Core\SystemEnv;
-use Swoolefy\Worker\AbstractBaseWorker;
-use Swoolefy\Worker\Helper;
-
 /**
- * 父进程接收指令处理
+ * 父进程 CLI 命令兼容门面。
+ *
+ * 实现已迁至 ProcessCommandHandler；Trait 只转发，避免历史代码 / 子类
+ * 继续调 `$this->stopAllWorkerProcessCommand()` 时找不到方法。
+ * 新增控制面逻辑请改 Handler，不要再往 Trait 加代码。
  */
 trait MainProcessCommandTrait
 {
-
     /**
+     * 按当前实例 --group 过滤后的 conf 取指定进程；跨组返回 []。
+     *
      * @param string $processName
      * @return array
      */
     protected function parseLoadConf(string $processName): array
     {
-        $conf = self::includeWorkerConf();
-        // 新增-启动
-        $confMap = array_column($conf, null, 'process_name');
-        // 读取最新的配置
-        $config = $confMap[$processName] ?? [];
-        return $config;
+        return $this->getCommandHandler()->parseLoadConf($processName);
     }
 
     /**
-     * 向终端返回信息
+     * 经 WORKER_TO_CLI_PIPE 回写终端。
      *
      * @param string $msg
      * @return mixed
      */
     protected function responseMsgByPipe(string $msg)
     {
-        $workerToCliPipeFile = fopen(WORKER_TO_CLI_PIPE, 'w+');
-        fwrite($workerToCliPipeFile, $msg);
-        fclose($workerToCliPipeFile);
+        $this->getCommandHandler()->responseMsgByPipe($msg);
     }
 
     /**
+     * 重启指定进程（发 REBOOT_FLAG，不杀 Master）。
+     *
      * @param string $processName
      * @return void
      */
     protected function restartWorkerProcessCommand(string $processName)
     {
-        // 重启
-        $key = md5($processName);
-        if (isset($this->processWorkers[$key])) {
-            $processList = $this->processWorkers[$key];
-            foreach ($processList as $process) {
-                $pid = $process->getPid();
-                if (\Swoole\Process::kill($pid, 0)) {
-                    $processName = $process->getProcessName();
-                    $workerId = $process->getProcessWorkerId();
-                    $this->writeByProcessName($processName, AbstractBaseWorker::WORKERFY_PROCESS_REBOOT_FLAG, $workerId);
-                }
-            }
-        }
+        $this->getCommandHandler()->restartWorkerProcessCommand($processName);
     }
 
     /**
+     * 热启动一个静态进程（CLI start 指定进程）。
+     *
      * @param array $config
      * @return void
      */
     protected function startWorkerProcessCommand(array $config)
     {
-        if (empty($config)) {
-            return;
-        }
-
-        $processName      = $config['process_name'];
-        $processClass     = $config['handler'];
-        if ($config['worker_num'] > $this->getMaxProcessNum()) {
-            $config['worker_num'] = $this->getMaxProcessNum();
-        }
-        $processWorkerNum = $config['worker_num'] ?? 1;
-        if (SystemEnv::isCronService()) {
-            $processWorkerNum = 1;
-        }
-        $args             = $config['args'] ?? [];
-        $extendData       = $config['extend_data'] ?? [];
-        $this->parseArgs($args, $config);
-        for ($workerId=0; $workerId < $processWorkerNum; $workerId++) {
-            $this->forkNewProcess(
-                $processClass,
-                $processName,
-                $workerId,
-                $args,
-                $extendData,
-                AbstractBaseWorker::PROCESS_STATIC_TYPE
-            );
-        }
-        $this->setProcessLists($processName, $processClass, $processWorkerNum, $args, $extendData);
+        $this->getCommandHandler()->startWorkerProcessCommand($config);
     }
 
     /**
+     * 停止指定进程并从表删除。
+     *
      * @param string $processName
      * @return void
      */
     protected function stopWorkerProcessCommand(string $processName)
     {
-        $key = md5($processName);
-        if (isset($this->processWorkers[$key])) {
-            $processList = $this->processWorkers[$key];
-            ksort($processList);
-            /**
-             * @var AbstractBaseWorker $process
-             */
-            foreach ($processList as $process) {
-                $processName = $process->getProcessName();
-                $workerId = $process->getProcessWorkerId();
-                $this->writeByProcessName($processName, AbstractBaseWorker::WORKERFY_PROCESS_EXIT_FLAG, $workerId);
-            }
-        }
-
-        if (isset($this->processLists[$key])) {
-            unset($this->processLists[$key]);
-        }
+        $this->getCommandHandler()->stopWorkerProcessCommand($processName);
     }
 
     /**
+     * 通知全部业务子进程退出（关机第 2 步）。
+     *
      * @return void
      */
     protected function stopAllWorkerProcessCommand()
     {
-        foreach ($this->processWorkers as $processes) {
-            ksort($processes);
-            /**
-             * @var AbstractBaseWorker $process
-             */
-            foreach ($processes as $process) {
-                $processName = $process->getProcessName();
-                $workerId = $process->getProcessWorkerId();
-                $this->writeByProcessName($processName, AbstractBaseWorker::WORKERFY_PROCESS_EXIT_FLAG, $workerId);
-            }
-        }
+        $this->getCommandHandler()->stopAllWorkerProcessCommand();
     }
 
     /**
-     * 重启整个swoole server服务. 所有进程都将重启
+     * 重启整个 Swoole Server，命令行带回 --group/--only。
      *
      * @return void
      */
     protected function restartServerCommand()
     {
-        $runner = CommandRunner::getInstance('restart-'.time());
-        $runner->isNextHandle(false);
-        $execBinFile = SystemEnv::PhpBinFile();
-        $scriptFile  = WORKER_START_SCRIPT_FILE;
-        $appName     = APP_NAME;
-        $extra       = Helper::workerRestartCliSuffix();
-        $execParts   = [$scriptFile, 'restart', $appName, '--force=1'];
-        if ($extra !== '') {
-            $execParts[] = $extra;
-        }
-        $execScript  = implode(' ', $execParts);
-        list($command) = $runner->exec($execBinFile, $execScript, [],true, 'nobup_restart.log', false);
-        exec($command, $output, $code);
+        $this->getCommandHandler()->restartServerCommand();
     }
 }

@@ -6,7 +6,6 @@ namespace PHPUintTest\Unit\Worker;
 
 use PHPUintTest\TestCase;
 use ReflectionMethod;
-use ReflectionProperty;
 use Swoolefy\Exception\WorkerException;
 use Swoolefy\Worker\MainManager;
 
@@ -29,7 +28,7 @@ final class GracefulShutdownWaitBudgetTest extends TestCase
     public function testResolveShutdownWaitSecondsUsesWorkerDrainBudgetPlusMargin(): void
     {
         $manager = $this->newManagerStub();
-        $this->setPrivate($manager, 'processWorkers', [
+        $manager->getRegistry()->replaceWorkers([
             md5('a') => [
                 0 => $this->fakeWorker(10, 30, 1001, 'a', 0),
             ],
@@ -53,7 +52,7 @@ final class GracefulShutdownWaitBudgetTest extends TestCase
     public function testResolveShutdownWaitSecondsFallbackNotShorterThanDefaultDrain(): void
     {
         $manager = $this->newManagerStub();
-        $this->setPrivate($manager, 'processWorkers', []);
+        $manager->getRegistry()->replaceWorkers([]);
 
         $method = new ReflectionMethod(MainManager::class, 'resolveShutdownWaitSeconds');
         $method->setAccessible(true);
@@ -103,7 +102,7 @@ final class GracefulShutdownWaitBudgetTest extends TestCase
         }
 
         $manager = $this->newManagerStub();
-        $this->setPrivate($manager, 'processWorkers', [
+        $manager->getRegistry()->replaceWorkers([
             md5('quick') => [
                 0 => $this->fakeWorker(1, 1, $pid, 'quick', 0),
             ],
@@ -150,7 +149,7 @@ final class GracefulShutdownWaitBudgetTest extends TestCase
         }
 
         $manager = $this->newManagerStub();
-        $this->setPrivate($manager, 'processWorkers', [
+        $manager->getRegistry()->replaceWorkers([
             md5('stuck') => [
                 0 => $this->fakeWorker(1, 1, $pid, 'stuck', 0),
             ],
@@ -236,12 +235,5 @@ final class GracefulShutdownWaitBudgetTest extends TestCase
                 return $this->workerId;
             }
         };
-    }
-
-    private function setPrivate(object $object, string $property, mixed $value): void
-    {
-        $ref = new ReflectionProperty(MainManager::class, $property);
-        $ref->setAccessible(true);
-        $ref->setValue($object, $value);
     }
 }

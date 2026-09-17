@@ -105,31 +105,6 @@ trait ServiceTrait
     }
 
     /**
-     * getIncludeFiles
-     * @return array|bool
-     */
-    public static function getInitIncludeFiles()
-    {
-        $result   = false;
-        $workerId = self::getCurrentWorkerId();
-        if (isset(Swfy::getConf()['setting']['log_file'])) {
-            $path = pathinfo(Swfy::getConf()['setting']['log_file'], PATHINFO_DIRNAME);
-            $filePath = $path . '/includes.json';
-        }
-
-        if (isset($filePath) && is_file($filePath)) {
-            $includes_string = file_get_contents($filePath);
-            if ($includes_string) {
-                $result = [
-                    'current_worker_id' => $workerId,
-                    'include_init_files' => json_decode($includes_string, true),
-                ];
-            }
-        }
-        return $result;
-    }
-
-    /**
      *
      * getIncludeFiles
      * @return array

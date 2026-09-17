@@ -12,18 +12,38 @@
 namespace Swoolefy\Worker;
 
 use Swoolefy\Core\BaseServer;
-use Swoolefy\Core\Swfy;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Exception\WorkerException;
-use Swoolefy\Worker\Dto\MessageDtoWorker;
-use Swoolefy\Core\Table\TableManager;
-use Swoolefy\Core\Memory\SysvmsgManager;
-use Swoolefy\Core\Process\AbstractProcess;
-use RuntimeException;
+use Swoolefy\Worker\Config\WorkerConfLoader;
+use Swoolefy\Worker\Process\ProcessIpc;
+use Swoolefy\Worker\Process\ProcessRegistry;
+use Swoolefy\Worker\Process\ProcessSupervisor;
+use Swoolefy\Worker\Runtime\CliPipeServer;
+use Swoolefy\Worker\Runtime\ProcessCommandHandler;
+use Swoolefy\Worker\Runtime\SignalShutdown;
+use Swoolefy\Worker\Runtime\StatusReporter;
 
+/**
+ * Daemon / Cron WorkerService 管理进程组合根与对外兼容门面。
+ *
+ * 本类不再持有进程表或 FIFO/信号处理实现，只负责：
+ * 1. 单例与构造（协程 hook、默认 onHandleException）；
+ * 2. start() 按固定顺序装配子系统（见方法注释，顺序不可乱）；
+ * 3. 把历史 public API 转给 Config / Process / Runtime，应用侧 MainDaemonProcess 不用改。
+ *
+ * 子系统：
+ * - WorkerConfLoader：conf / --group / confctl
+ * - ProcessRegistry：唯一可变进程表
+ * - ProcessSupervisor：fork / 动态扩缩容 / SIGCHLD
+ * - ProcessIpc：pipe 读写
+ * - CliPipeServer + ProcessCommandHandler：CLI 控制面
+ * - SignalShutdown：信号与关机
+ * - StatusReporter：WORKER_STATUS_FILE
+ *
+ * @see docs/MainManager-Split.md
+ */
 class MainManager
 {
-
     use Traits\SingletonTrait, Traits\SystemTrait, Traits\MainProcessCommandTrait;
 
     /**
@@ -44,33 +64,6 @@ class MainManager
     ];
 
     /**
-     * @var array
-     */
-    private $processLists = [];
-
-    /**
-     * @var array
-     */
-    private $processWorkers = [];
-
-    /**
-     * 已发出停止请求、等待 SIGCHLD 回收的动态进程，key 为 PID。
-     *
-     * @var array<int, string>
-     */
-    private array $stoppingDynamicProcesses = [];
-
-    /**
-     * @var array
-     */
-    private $processPidMap = [];
-
-    /**
-     * @var array
-     */
-    private $processStatusList = [];
-
-    /**
      * @var int
      */
     private $masterPid;
@@ -81,19 +74,9 @@ class MainManager
     private $masterWorkerId = 0;
 
     /**
-     * @var array
-     */
-    private $signal = [];
-
-    /**
      * @var bool
      */
     private bool $isDaemon = false;
-
-    /**
-     * @var bool
-     */
-    private bool $isExit = false;
 
     /**
      * @var
@@ -109,17 +92,6 @@ class MainManager
      * @var bool
      */
     private bool $enablePipe = true;
-
-    /**
-     * @var
-     */
-    private $cliPipeFd;
-
-    /**
-     * 状态上报定时器 ID；退出时必须主动清理，否则 EventLoop 仍有活动 watcher。
-     */
-    private ?int $reportStatusTimerId = null;
-
 
     /**
      * @var \Closure
@@ -174,52 +146,87 @@ class MainManager
     /**
      * @var \Closure
      */
-    private $onRegisterShutdownFunction;
-
-    /**
-     * @var \Closure
-     */
     protected $closure;
 
     /**
-     * @var string
+     * 进程表。可变状态只放这里，禁止在本类再声明 processWorkers。
      */
-    protected static $confPath;
+    private ?ProcessRegistry $registry = null;
 
     /**
+     * fork / 动态进程 / SIGCHLD。
+     */
+    private ?ProcessSupervisor $supervisor = null;
+
+    /**
+     * Master ↔ Worker 管道。
+     */
+    private ?ProcessIpc $ipc = null;
+
+    /**
+     * CLI / 关机共用的 start/stop/restart 命令。
+     */
+    private ?ProcessCommandHandler $commandHandler = null;
+
+    /**
+     * CLI FIFO。
+     */
+    private ?CliPipeServer $cliPipeServer = null;
+
+    /**
+     * 信号与 $isExit 唯一写入点。
+     */
+    private ?SignalShutdown $signalShutdown = null;
+
+    /**
+     * 状态 tick 与 CLI status 文本。
+     */
+    private ?StatusReporter $statusReporter = null;
+
+    /**
+     * 单 Master 最大子进程数系数：max = cpu_num * NUM_PEISHU。
+     *
      * @var int
      */
     const NUM_PEISHU = 8;
 
     /**
+     * 状态上报最小 tick（秒）。配置小于该值会被抬到 5s，降低 Master 写盘频率。
+     *
      * @var int
      */
     const REPORT_STATUS_TICK_TIME = 5;
 
     /**
+     * 管道消息里 Master 的逻辑名。Worker 用它判断「发给管理进程」。
+     *
      * @var string
      */
     const MASTER_WORKER_NAME = 'master_worker';
 
     /**
+     * Worker 管道消息 action：请求 Master 动态扩容。
+     *
      * @var string
      */
     const CREATE_DYNAMIC_PROCESS_WORKER = 'create_dynamic_process_worker';
 
     /**
+     * Worker 管道消息 action：请求 Master 动态缩容。
+     *
      * @var string
      */
     const DESTROY_DYNAMIC_PROCESS_WORKER = 'destroy_dynamic_process_worker';
 
     /**
+     * Worker 管道消息 action：请求 Master reboot 指定 pid。
+     *
      * @var string
      */
     const REBOOT_PROCESS_WORKER = 'reboot_process_worker';
 
     /**
-     * ProcessManager constructor
-     *
-     * @param array $config
+     * @param array $config 含 coroutine_setting / report_status_tick_time 等
      * @param mixed ...$args
      */
     public function __construct(array $config = [], ...$args)
@@ -228,10 +235,12 @@ class MainManager
         $this->setCoroutineSetting(array_merge($this->defaultCoroutineSetting, $config['coroutine_setting'] ?? []));
         $this->onHandleException = function (\Throwable $exception) {
         };
+        $this->bootCollaborators();
     }
 
     /**
-     * addProcess
+     * 登记进程定义（尚未 fork）。门面 → ProcessSupervisor::addProcess。
+     *
      * @param string $processName
      * @param string $processClass
      * @param int $processWorkerNum
@@ -248,33 +257,16 @@ class MainManager
         array  $args = [],
         ?array $extendData = null,
         bool   $enableCoroutine = true
-    )
-    {
-        $key = md5($processName);
-        if (isset($this->processLists[$key])) {
-            throw new WorkerException("【Error】You can not add the same process={$processName}");
-        }
-        if (!$enableCoroutine) {
-            $enableCoroutine = true;
-        }
-        if (!$async) {
-            $async = true;
-        }
-
-        $maxProcessNum = $this->getMaxProcessNum();
-
-        if (isset($args['max_process_num']) && $args['max_process_num'] > $maxProcessNum) {
-            $args['max_process_num'] = $maxProcessNum;
-        } else {
-            $args['max_process_num'] = $maxProcessNum;
-        }
-
-        if ($processWorkerNum > $maxProcessNum) {
-            $this->fmtWriteInfo("Process Name={$processName}, params of process_worker_num more then max_process_num={$maxProcessNum}");
-            $processWorkerNum = $maxProcessNum;
-        }
-        $this->validateWorkerWaitTime($args, $processName);
-        $this->setProcessLists($processName, $processClass, $processWorkerNum, $args, $extendData);
+    ) {
+        $this->getSupervisor()->addProcess(
+            $processName,
+            $processClass,
+            $processWorkerNum,
+            $async,
+            $args,
+            $extendData,
+            $enableCoroutine
+        );
     }
 
     /**
@@ -283,7 +275,7 @@ class MainManager
      * @param array $args
      * @param string $processName
      */
-    protected function validateWorkerWaitTime(array $args, string $processName): void
+    public function validateWorkerWaitTime(array $args, string $processName): void
     {
         if (!array_key_exists('wait_time', $args)) {
             return;
@@ -296,6 +288,8 @@ class MainManager
     }
 
     /**
+     * 写入 Registry 进程配置。兼容旧 Trait / 子类调用。
+     *
      * @param string $processName
      * @param string $processClass
      * @param int $processWorkerNum
@@ -309,81 +303,60 @@ class MainManager
         int $processWorkerNum,
         array $args,
         array $extendData
-    )
-    {
-        $key = md5($processName);
-        $this->processLists[$key] = [
-            'process_name'       => $processName,
-            'process_class'      => $processClass,
-            'process_worker_num' => $processWorkerNum,
-            'async'              => true,
-            'args'               => $args,
-            'extend_data'        => $extendData,
-            'enable_coroutine'   => true
-        ];
+    ) {
+        $this->getSupervisor()->setProcessLists($processName, $processClass, $processWorkerNum, $args, $extendData);
     }
 
     /**
-     * setting model add process
+     * 按 conf 数组批量 addProcess。AbstractMainProcess::init() 调用。
      *
      * @param array $conf
-     *
      */
     public function loadConf(array $conf)
     {
-        foreach($conf as $config) {
-            $async            = true;
-            $enableCoroutine  = true;
-            $processName      = $config['process_name'];
-            $processClass     = $config['handler'];
-            $processWorkerNum = $config['worker_num'] ?? 1;
-            if (SystemEnv::isCronService()) {
-                $processWorkerNum = 1;
-            }
-            $args             = $config['args'] ?? [];
-            $this->parseArgs($args, $config);
-            $extendData = $config['extend_data'] ?? [];
-            $this->addProcess($processName, $processClass, $processWorkerNum, $async, $args, $extendData, $enableCoroutine);
-        }
-
-        return $this;
+        return $this->getSupervisor()->loadConf($conf);
     }
 
     /**
+     * 摊平 conf 字段到 args。门面 → Supervisor。
+     *
      * @param array $args
      * @param array $config
      */
     protected function parseArgs(array &$args, array $config)
     {
-        $args['max_handle']              = $config['max_handle'] ?? 10000;
-        $args['life_time']               = $config['life_time'] ?? 3600;
-        $args['limit_run_coroutine_num'] = $config['limit_run_coroutine_num'] ?? null;
-        $args['description']             = $config['description'] ?? '';
+        $this->getSupervisor()->parseArgs($args, $config);
     }
 
     /**
-     * start
+     * 启动编排。顺序固定：
+     * errorHandler → setMasterPid → status timer → initStart(fork)
+     * → setRunning → CLI FIFO → SIGCHLD → stop/reload 信号 → shutdown function
+     * → 自定义信号 → bind 全部 pipe → 记 startTime。
+     *
+     * 先装 timer 再 fork：timer 回调禁止协程；setRunning 在 FIFO 之前，
+     * 避免控制面在 Master 未就绪时 writeByProcessName。
+     *
      * @return mixed
      */
     public function start()
     {
         try {
-            if (!empty($this->processLists)) {
+            if (!empty($this->getRegistry()->allLists())) {
                 $this->installErrorHandler();
                 $this->setMasterPid(posix_getpid());
-                $this->installReportStatus();
-                $this->initStart();
+                $this->getStatusReporter()->install();
+                $this->getSupervisor()->initStart();
                 $this->setRunning();
-                $this->installCliPipe();
-                $this->installSigchldSignal();
-                $this->installMasterStopSignal();
-                $this->installMasterReloadSignal();
-                $this->installRegisterShutdownFunction();
-                $this->installSignal();
-                $this->swooleEventAdd();
+                $this->getCliPipeServer()->install();
+                $this->getSupervisor()->installSigchldSignal();
+                $this->getSignalShutdown()->installStopSignal();
+                $this->getSignalShutdown()->installReloadSignal();
+                $this->getSignalShutdown()->installRegisterShutdownFunction();
+                $this->getSignalShutdown()->installCustomSignals();
+                $this->getIpc()->swooleEventAdd();
                 $this->setStartTime();
             }
-            // set process start after
             $masterPid = $this->getMasterPid();
             $this->saveMasterPidToFile($masterPid);
             $this->saveStatusToFile();
@@ -392,59 +365,13 @@ class MainManager
             }
             return $masterPid;
         } catch (\Throwable $throwable) {
-            $this->onHandleException->call($this, $throwable);
-        }
-
-    }
-
-    /**
-     * initStart
-     * @return void
-     */
-    private function initStart()
-    {
-        foreach ($this->processLists as $key => $list) {
-            $processWorkerNum = $list['process_worker_num'] ?? 1;
-            for ($workerId = 0; $workerId < $processWorkerNum; $workerId++) {
-                try {
-                    $processName     = $list['process_name'];
-                    $processClass    = $list['process_class'];
-                    $async           = $list['async'] ?? true;
-                    $args            = $list['args'] ?? [];
-                    $extendData      = $list['extend_data'] ?? null;
-                    $enableCoroutine = $list['enable_coroutine'] ?? true;
-                    /**
-                     * @var AbstractWorkerProcess $process
-                     */
-                    $process = new $processClass(
-                        $processName,
-                        $async,
-                        $args,
-                        $extendData,
-                        $enableCoroutine
-                    );
-                    $process->setProcessWorkerId($workerId);
-                    $process->setMasterPid($this->masterPid);
-                    $process->setStartTime();
-                    if (!isset($this->processWorkers[$key][$workerId])) {
-                        $this->processWorkers[$key][$workerId] = $process;
-                    }
-                    usleep(50000);
-                } catch (\Throwable $throwable) {
-                    $this->onHandleException->call($this, $throwable);
-                }
-            }
-        }
-
-        foreach ($this->processWorkers as $workers) {
-            foreach ($workers as $process) {
-                $process->start();
-                usleep(50000);
-            }
+            $this->handleWorkerException($throwable);
         }
     }
 
     /**
+     * 设置协程 hook。空 hook_flags 时回退 Swfy conf 或 SWOOLE_HOOK_ALL。
+     *
      * @param array $setting
      * @return void
      */
@@ -453,322 +380,6 @@ class MainManager
         $setting['hook_flags'] = $this->getHookFlags($this->config['coroutine_setting']['hook_flags'] ?? '');
         $setting = array_merge(\Swoole\Coroutine::getOptions() ?? [], $setting);
         !empty($setting) && \Swoole\Coroutine::set($setting);
-    }
-
-    /**
-     * 主进程注册监听退出信号,逐步发送退出指令至子进程退出，子进程完全退出后，master进程最后退出
-     * 每个子进程收到退出指令后，等待wait_time后正式退出，那么在这个wait_time过程
-     * 子进程逻辑应该通过$this->isRebooting() || $this->isExiting()判断是否在退出状态中，这个状态中不能再处理新的任务数据
-     */
-    private function installMasterStopSignal()
-    {
-        $handler = $this->signalHandle();
-        // Ctrl+C 的 SIGINT 由外层 Swoole Master 处理。MainManager 作为自定义进程
-        // 只处理 Master 下发的 SIGTERM，避免多个前台进程同时消费 SIGINT，
-        // 导致 shell 的前台进程组/提示符不能及时恢复。
-        \Swoole\Process::signal(SIGHUP, $handler);
-        \Swoole\Process::signal(SIGTERM, $handler);
-    }
-
-    /**
-     * master进程退出处理函数
-     *
-     * @return \Closure
-     */
-    private function signalHandle()
-    {
-        return function ($signal) {
-            switch ($signal) {
-                case SIGINT:
-                case SIGHUP:
-                case SIGTERM:
-                    $this->shutdownMainManager('signal:' . $signal);
-                    break;
-                default:
-                    break;
-            }
-        };
-    }
-
-    /**
-     * MainManager 唯一退出入口（Signal 与 CLI FIFO stop 共用）。
-     *
-     * 退出顺序：
-     * 1. 标记退出，拒绝重复进入；
-     * 2. 通知并等待所有业务子进程退出，超时后强杀；
-     * 3. 清理状态定时器、CLI FIFO、SysV 队列和 PID 文件；
-     * 4. 退出 Swoole EventLoop 与 MainManager 当前进程。
-     */
-    private function shutdownMainManager(string $source): void
-    {
-        if ($this->isExit) {
-            return;
-        }
-        $this->isExit = true;
-        $this->fmtWriteInfo("MainManager begin shutdown, source={$source}, pid={$this->masterPid}");
-
-        try {
-            $this->stopAllWorkerProcessCommand();
-        } catch (\Throwable $throwable) {
-            $this->handleShutdownException($throwable);
-        }
-
-        try {
-            // 即使通知个别 Worker 失败，仍要检查并清理所有已知子进程。
-            // 等待预算 = max(wait_time + maxWaitTimeOfExit) + 清理余量，避免硬编码过短导致排空中被强杀。
-            $this->waitWorkersExitOrKill($this->resolveShutdownWaitSeconds());
-        } catch (\Throwable $throwable) {
-            $this->handleShutdownException($throwable);
-        }
-
-        $this->clearReportStatusTimer();
-
-        if (is_callable($this->onRegisterShutdownFunction)) {
-            try {
-                call_user_func($this->onRegisterShutdownFunction);
-            } catch (\Throwable $throwable) {
-                $this->handleShutdownException($throwable);
-            }
-        }
-
-        // 仅删除属于当前 MainManager 的 PID 文件，避免误删新实例文件。
-        if (defined('WORKER_PID_FILE') && is_file(WORKER_PID_FILE)) {
-            $pidInFile = (int) trim((string) @file_get_contents(WORKER_PID_FILE));
-            if ($pidInFile === (int) $this->masterPid) {
-                @unlink(WORKER_PID_FILE);
-            }
-        }
-
-        $this->fmtWriteInfo("MainManager shutdown finished, source={$source}, pid={$this->masterPid}");
-
-        try {
-            $processInstance = AbstractProcess::getProcessInstance();
-            $process = $processInstance->getProcess();
-            if (method_exists($processInstance, '__destruct') && version_compare(phpversion(), '8.0.0', '>=')) {
-                $processInstance->__destruct();
-            }
-            @\Swoole\Event::del($process->pipe);
-            \Swoole\Event::exit();
-            $process->exit(0);
-        } catch (\Throwable $throwable) {
-            $this->handleShutdownException($throwable);
-            \Swoole\Event::exit();
-            exit(0);
-        }
-    }
-
-    /**
-     * Master 优雅退出等待上限：取各 Worker 的 wait_time + maxWaitTimeOfExit 最大值，再加清理余量。
-     */
-    protected function resolveShutdownWaitSeconds(): float
-    {
-        $maxDrain = 0.0;
-        foreach ($this->processWorkers as $processes) {
-            foreach ($processes as $process) {
-                if (!is_object($process) || !method_exists($process, 'getWaitTime')) {
-                    continue;
-                }
-                $waitTime = (float) $process->getWaitTime();
-                $maxExit = method_exists($process, 'getMaxWaitTimeOfExit')
-                    ? (float) $process->getMaxWaitTimeOfExit()
-                    : 30.0;
-                $maxDrain = max($maxDrain, $waitTime + $maxExit);
-            }
-        }
-
-        // 尚无 Worker 实例时回退到框架默认排空预算（10+30），不得短于该值
-        if ($maxDrain <= 0) {
-            $maxDrain = 10.0 + 30.0;
-        }
-
-        return $maxDrain + (float) self::SHUTDOWN_CLEANUP_MARGIN_SECONDS;
-    }
-
-    /**
-     * 退出阶段的异常处理器自身也不得阻断最终的 process exit。
-     */
-    private function handleShutdownException(\Throwable $throwable): void
-    {
-        try {
-            if (is_callable($this->onHandleException)) {
-                $this->onHandleException->call($this, $throwable);
-            } else {
-                $this->fmtWriteError('MainManager shutdown error: ' . $throwable->getMessage());
-            }
-        } catch (\Throwable) {
-            // shutdown 路径中异常上报失败只能忽略，必须继续释放资源并退出。
-        }
-    }
-
-    /**
-     * 清理状态上报 timer，避免所有子进程退出后 MainManager EventLoop 仍保持存活。
-     */
-    private function clearReportStatusTimer(): void
-    {
-        if ($this->reportStatusTimerId !== null) {
-            \Swoole\Timer::clear($this->reportStatusTimerId);
-            $this->reportStatusTimerId = null;
-        }
-    }
-
-    /**
-     * 通知退出后等待子进程结束；超时则 SIGKILL 并记录未正常退出的 PID。
-     */
-    private function waitWorkersExitOrKill(float $timeoutSeconds): void
-    {
-        $timeoutSeconds = max(0.1, $timeoutSeconds);
-        $deadline = microtime(true) + $timeoutSeconds;
-        $alive = [];
-        foreach ($this->processWorkers as $processes) {
-            foreach ($processes as $process) {
-                try {
-                    $pid = (int) $process->getPid();
-                } catch (\Throwable $e) {
-                    continue;
-                }
-                if ($pid > 0) {
-                    $alive[$pid] = $process->getProcessName() . '#' . $process->getProcessWorkerId();
-                }
-            }
-        }
-
-        $pidList = $alive === [] ? '(none)' : implode(',', array_keys($alive));
-        $this->fmtWriteInfo(
-            "MainManager wait workers exit begin, timeout={$timeoutSeconds}s, alive_pids={$pidList}"
-        );
-
-        while ($alive !== [] && microtime(true) < $deadline) {
-            while ($ret = \Swoole\Process::wait(false)) {
-                if (is_array($ret) && isset($ret['pid'])) {
-                    unset($alive[(int) $ret['pid']]);
-                }
-            }
-            foreach ($alive as $pid => $name) {
-                if (!@\posix_kill($pid, 0)) {
-                    unset($alive[$pid]);
-                }
-            }
-            if ($alive === []) {
-                break;
-            }
-            usleep(50000);
-        }
-
-        if ($alive === []) {
-            $this->fmtWriteInfo('MainManager all workers exited within shutdown budget');
-            return;
-        }
-
-        $remain = implode(',', array_keys($alive));
-        $this->fmtWriteError("MainManager enter force kill, remaining_pids={$remain}");
-        foreach ($alive as $pid => $name) {
-            $this->fmtWriteError("Master shutdown timeout, force kill worker pid={$pid} name={$name}");
-            @\posix_kill($pid, SIGKILL);
-            \Swoole\Process::wait(false);
-            // Swoole wait 未回收时再尝试 pcntl，避免强杀后僵尸残留
-            if (function_exists('pcntl_waitpid')) {
-                $status = 0;
-                @pcntl_waitpid($pid, $status, WNOHANG);
-            }
-        }
-    }
-
-    /**
-     * 父进程的status通过fifo有名管道信号回传
-     *
-     * @param string $ctlPipeFile
-     * @return void
-     */
-    private function masterStatusToCliFifoPipe(string $ctlPipeFile)
-    {
-        $ctlPipe = fopen($ctlPipeFile, 'w+');
-        $masterInfo = $this->statusInfoFormat(
-            $this->getMasterWorkerName(),
-            $this->getMasterWorkerId(),
-            $this->getMasterPid(),
-            'running',
-            $this->startTime
-        );
-        $separator = $this->getSeparator();
-        fwrite($ctlPipe,'Master Process Runtime:'.$separator);
-        fwrite($ctlPipe,str_repeat('-',50).$separator);
-        fwrite($ctlPipe, $masterInfo,null);
-        fwrite($ctlPipe,str_repeat('-',50).$separator.$separator);
-        fwrite($ctlPipe,'Children Process Runtime:'.$separator);
-        foreach ($this->processWorkers as $processes) {
-            ksort($processes);
-            /** @var AbstractBaseWorker $process */
-            foreach ($processes as $process) {
-                $processName = $process->getProcessName();
-                $workerId    = $process->getProcessWorkerId();
-                $pid         = $process->getPid();
-                $startTime   = $process->getStartTime();
-                if (is_numeric($startTime)) {
-                    $startTime = date('Y-m-d H:i:s', $startTime);
-                }
-                $rebootCount = $process->getRebootCount();
-                $processType = $process->getProcessType();
-                if ($processType == AbstractBaseWorker::PROCESS_STATIC_TYPE) {
-                    $processType = AbstractBaseWorker::PROCESS_STATIC_TYPE_NAME;
-                } else {
-                    $processType = AbstractBaseWorker::PROCESS_DYNAMIC_TYPE_NAME;
-                }
-
-                if (\Swoole\Process::kill($pid, 0)) {
-                    $this->rebootOrExitHandle();
-                    $status = 'running';
-                } else {
-                    $status = 'stop';
-                }
-                $info = $this->statusInfoFormat(
-                    $processName,
-                    $workerId,
-                    $pid,
-                    $status,
-                    $startTime,
-                    $rebootCount,
-                    $processType
-                );
-                @fwrite($ctlPipe, $info, null);
-                if ($status == 'stop') {
-                    $this->fmtWriteInfo($info);
-                }
-            }
-            unset($processes);
-        }
-        @fclose($ctlPipe);
-    }
-
-    /**
-     * 主进程注册监听自定义的SIGUSR2作为通知子进程重启的信号
-     * 每个子进程收到重启指令后，等待wait_time后正式退出，那么在这个wait_time过程
-     * 子进程逻辑业务中应该通过$this->isRebooting() || $this->isExiting()判断是否在重启状态中，这个状态中不能再处理新的任务数据
-     *
-     * @return void
-     */
-    private function installMasterReloadSignal()
-    {
-        \Swoole\Process::signal(SIGUSR2, function ($signo) {
-            $this->isExit = false;
-            foreach ($this->processWorkers as $processes) {
-                foreach ($processes as $workerId => $process) {
-                    $processName = $process->getProcessName();
-                    $this->writeByProcessName($processName, AbstractBaseWorker::WORKERFY_PROCESS_REBOOT_FLAG, $workerId);
-                }
-            }
-        });
-    }
-
-    /**
-     * installSigchldSignal 注册回收子进程信号
-     *
-     * @return void
-     */
-    private function installSigchldSignal()
-    {
-        \Swoole\Process::signal(SIGCHLD, function ($signo) {
-            $this->rebootOrExitHandle();
-        });
     }
 
     /**
@@ -785,238 +396,31 @@ class MainManager
     }
 
     /**
-     * checkMasterToExit
+     * 子进程退出后检查是否还可让 Master 继续活着。WorkerService 下恒为 true。
+     *
      * @return bool
      */
-    protected function checkMasterToExit() {
-        if(isWorkerService()) {
+    public function checkMasterToExit()
+    {
+        if (isWorkerService()) {
             return true;
         }
     }
 
     /**
-     * rebootOrExitHandle 子进程退出时，父进程接收的信号处理函数
+     * 监听 Worker pipe。reboot/动态 fork 后只传新进程，避免重复 Event::add。
      *
-     * @return void
-     */
-    protected function rebootOrExitHandle()
-    {
-        // non block model
-        while ($ret = \Swoole\Process::wait(false)) {
-            if (!is_array($ret) || !isset($ret['pid'])) {
-                $this->fmtWriteError("Swoole\Process::wait error");
-                return;
-            }
-            $pid  = $ret['pid'];
-            $code = $ret['code'];
-
-            try {
-                switch ($code) {
-                    // exit
-                    case 0       :
-                    case SIGTERM :
-                    case SIGKILL :
-                        /**@var AbstractBaseWorker $process */
-                        $process         = $this->getProcessByPid($pid);
-                        if (!is_object($process)) {
-                            // 未知或已回收 PID：保持幂等，继续处理本批次其他退出事件。
-                            continue 2;
-                        }
-                        $processName     = $process->getProcessName();
-                        $processWorkerId = $process->getProcessWorkerId();
-                        $isDynamicProcess = $process->isDynamicProcess();
-                        $key = md5($processName);
-                        if (isset($this->processWorkers[$key][$processWorkerId])) {
-                            unset($this->processWorkers[$key][$processWorkerId]);
-                            if (count($this->processWorkers[$key]) == 0) {
-                                unset($this->processWorkers[$key]);
-                            }
-                        }
-                        if ($isDynamicProcess) {
-                            // 确认退出后再减动态计数；发停止信号时不得提前 --，避免扩缩容窗口误判
-                            unset($this->stoppingDynamicProcesses[$pid]);
-                            $this->storageDynamicProcessNum($processName);
-                            $this->processLists[$key]['dynamic_process_destroying'] = $this->hasStoppingDynamicProcess($processName);
-                        }
-                        @\Swoole\Event::del($process->getSwooleProcess()->pipe);
-                        $this->checkMasterToExit();
-                        break;
-
-                    // SIGUSR1作为重启信号
-                    case SIGUSR1 :
-                    default :
-                        $this->rebootWorker($pid);
-                        break;
-                }
-            } catch (\Throwable $throwable) {
-                $this->onHandleException->call($this, $throwable);
-            }
-        }
-    }
-
-    /**
-     * @param int $pid
-     * @return void
-     */
-    private function rebootWorker(int $pid)
-    {
-        /**
-         * @var AbstractBaseWorker $process
-         */
-        $process            = $this->getProcessByPid($pid);
-        if (!is_object($process)) {
-            return;
-        }
-        $processName        = $process->getProcessName();
-        $processType        = $process->getProcessType();
-        $processWorkerId    = $process->getProcessWorkerId();
-        $processRebootCount = $process->getRebootCount() + 1;
-        $key                = md5($processName);
-        $list               = $this->processLists[$key];
-        @\Swoole\Event::del($process->getSwooleProcess()->pipe);
-        if (isset($this->processWorkers[$key][$processWorkerId])) {
-            unset($this->processWorkers[$key][$processWorkerId]);
-        }
-        try {
-            $processName     = $list['process_name'];
-            $processClass    = $list['process_class'];
-            $async           = $list['async'] ?? true;
-            $args            = $list['args'] ?? [];
-            $extendData      = $list['extend_data'] ?? null;
-            $enableCoroutine = $list['enable_coroutine'] ?? true;
-            /** @var AbstractBaseWorker $newProcess */
-            $newProcess = new $processClass(
-                $processName,
-                $async,
-                $args,
-                $extendData,
-                $enableCoroutine
-            );
-            $newProcess->setProcessWorkerId($processWorkerId);
-            $newProcess->setMasterPid($this->masterPid);
-            $newProcess->setProcessType($processType);
-            $newProcess->setRebootCount($processRebootCount);
-            $newProcess->setStartTime();
-            $this->processWorkers[$key][$processWorkerId] = $newProcess;
-            $newProcess->start();
-            $this->swooleEventAdd($newProcess);
-        } catch (\Throwable $throwable) {
-            if (isset($this->processWorkers[$key][$processWorkerId])) {
-                unset($this->processWorkers[$key][$processWorkerId]);
-            }
-            $this->onHandleException->call($this, $throwable);
-        }
-    }
-
-    /**
      * @param AbstractBaseWorker|null $currentProcess
      * @return mixed
      */
-    private function swooleEventAdd(?AbstractBaseWorker $currentProcess = null)
+    public function swooleEventAdd(?AbstractBaseWorker $currentProcess = null)
     {
-        $processWorkers = [];
-        if (isset($currentProcess)) {
-            $processName                            = $currentProcess->getProcessName();
-            $processWorkerId                        = $currentProcess->getProcessWorkerId();
-            $key                                    = md5($processName);
-            $processWorkers[$key][$processWorkerId] = $currentProcess;
-        } else {
-            $processWorkers = $this->processWorkers;
-        }
-
-        foreach ($processWorkers as $processes) {
-            foreach ($processes as $process) {
-                /**
-                 * @var \Swoole\Process $swooleProcess
-                 */
-                $swooleProcess = $process->getSwooleProcess();
-                \Swoole\Event::add($swooleProcess->pipe, function ($pipe) use ($swooleProcess) {
-                    $message = $swooleProcess->read(64 * 1024);
-                    if (is_string($message)) {
-                        $messageDto = unserialize($message, ['allowed_classes' => [MessageDtoWorker::class]]);
-                        if (!$messageDto instanceof MessageDtoWorker) {
-                            $this->fmtWriteError("Accept message type error");
-                            return;
-                        } else {
-                            $msg                 = $messageDto->data;
-                            $fromProcessName     = $messageDto->fromProcessName;
-                            $fromProcessWorkerId = $messageDto->fromProcessWorkerId;
-                            $toProcessName       = $messageDto->toProcessName;
-                            $toProcessWorkerId   = $messageDto->toProcessWorkerId;
-                        }
-                    }
-
-                    if (isset($msg) && isset($fromProcessName) && isset($fromProcessWorkerId) && isset($toProcessName) && isset($toProcessWorkerId)) {
-                        try {
-                            if ($toProcessName == $this->getMasterWorkerName()) {
-                                $action           = $msg['action'] ?? '';
-                                $processName      = $msg['process_name'] ?? '';
-                                $data             = $msg['data'] ?? [];
-                                $actionHandleFlag = false;
-                                if ($action && $processName) {
-                                    switch ($action) {
-                                        case MainManager::CREATE_DYNAMIC_PROCESS_WORKER :
-                                            $actionHandleFlag   = true;
-                                            $dynamicProcessName = $processName;
-                                            $dynamicProcessNum  = $data['dynamic_process_num'] ?? 1;
-                                            if (is_callable($this->onCreateDynamicProcess)) {
-                                                $this->onCreateDynamicProcess->call($this, $dynamicProcessName, $dynamicProcessNum, $fromProcessName, $fromProcessWorkerId);
-                                            } else {
-                                                $this->createDynamicProcess($dynamicProcessName, $dynamicProcessNum);
-                                            }
-                                            break;
-                                        case MainManager::DESTROY_DYNAMIC_PROCESS_WORKER:
-                                            $actionHandleFlag   = true;
-                                            $dynamicProcessName = $processName;
-                                            $dynamicProcessNum  = $data['dynamic_process_num'] ?? -1;
-                                            if (is_callable($this->onDestroyDynamicProcess)) {
-                                                $this->onDestroyDynamicProcess->call($this, $dynamicProcessName, $dynamicProcessNum, $fromProcessName, $fromProcessWorkerId);
-                                            } else {
-                                                $this->destroyDynamicProcess($dynamicProcessName);
-                                            }
-                                            break;
-                                        case MainManager::REBOOT_PROCESS_WORKER:
-                                            $actionHandleFlag = true;
-                                            $pid = $data['worker_pid'];
-                                            $this->rebootWorker($pid);
-                                            break;
-                                        case AbstractBaseWorker::WORKERFY_PROCESS_STATUS_FLAG:
-                                            $actionHandleFlag       = true;
-                                            $workerId               = $data['worker_id'];
-                                            $status                 = $data['status'] ?? [];
-                                            $status['process_name'] = $processName;
-                                            $status['worker_id']    = $workerId;
-                                            $this->processStatusList[$processName][$workerId] = $status;
-                                            break;
-                                        default:
-                                            break;
-                                    }
-                                }
-                                if ($actionHandleFlag === false) {
-                                    if (is_callable($this->onPipeMsg)) {
-                                        $this->onPipeMsg->call($this, $msg, $fromProcessName, $fromProcessWorkerId);
-                                    } else {
-                                        $this->writeByProcessName($fromProcessName, $msg, $fromProcessWorkerId);
-                                    }
-                                }
-                            } else {
-                                if (is_callable($this->onProxyMsg)) {
-                                    $this->onProxyMsg->call($this, $msg, $fromProcessName, $fromProcessWorkerId, $toProcessName, $toProcessWorkerId);
-                                } else {
-                                    $this->writeByMasterProxy($msg, $fromProcessName, $fromProcessWorkerId, $toProcessName, $toProcessWorkerId);
-                                }
-                            }
-                        } catch (\Throwable $throwable) {
-                            $this->onHandleException->call($this, $throwable);
-                        }
-                    }
-                });
-            }
-        }
-
+        $this->getIpc()->swooleEventAdd($currentProcess);
     }
 
     /**
+     * 写 Master pid 到 WORKER_PID_FILE（路径已按 --group 隔离）。
+     *
      * @param int $workerMasterPid
      * @return void
      */
@@ -1026,22 +430,18 @@ class MainManager
     }
 
     /**
+     * 立刻写 WORKER_STATUS_FILE。
+     *
      * @param array $status
      * @return void
      */
     public function saveStatusToFile(array $status = [])
     {
-        if (empty($status)) {
-            $status = $this->getProcessStatus();
-        }
-
-        if (!SystemEnv::isScriptService()) {
-            @file_put_contents(WORKER_STATUS_FILE, json_encode($status, JSON_UNESCAPED_UNICODE));
-        }
+        $this->getStatusReporter()->saveStatusToFile($status);
     }
 
     /**
-     * dynamicCreateProcess
+     * 动态扩容。门面 → Supervisor；关机中会拒绝。
      *
      * @param string $processName
      * @param int $processNum
@@ -1050,64 +450,12 @@ class MainManager
      */
     public function createDynamicProcess(string $processName, int $processNum = 2)
     {
-        if ($this->isMasterExiting()) {
-            $this->fmtWriteInfo("Master process is exiting now，forbidden to create dynamic process");
-            return false;
-        }
-
-        $key = md5($processName);
-        // 初始更新存贮动态进程数量
-        $this->storageDynamicProcessNum($processName);
-        if ($this->processLists[$key]['dynamic_process_destroying'] ?? false) {
-            $msg = "【Warning】 Process name={$processName} is exiting now，forbidden to create dynamic process, please try again after moment";
-            throw new WorkerException($msg);
-        }
-
-        if ($processNum <= 0) {
-            $processNum = 1;
-        }
-
-        $processWorkerNum = $this->processLists[$key]['process_worker_num'];
-        $processName     = $this->processLists[$key]['process_name'];
-        $processClass     = $this->processLists[$key]['process_class'];
-        if (isset($this->processLists[$key]['dynamic_process_worker_num']) && $this->processLists[$key]['dynamic_process_worker_num'] > 0) {
-            $totalProcessNum = $processWorkerNum + $this->processLists[$key]['dynamic_process_worker_num'] + $processNum;
-        } else {
-            $totalProcessNum = $processWorkerNum + $processNum;
-            $this->processLists[$key]['dynamic_process_worker_num'] = 0;
-        }
-
-        if ($totalProcessNum > $this->processLists[$key]['args']['max_process_num']) {
-            $totalProcessNum = $this->processLists[$key]['args']['max_process_num'];
-        }
-        $async                   = $this->processLists[$key]['async'];
-        $args                    = $this->processLists[$key]['args'];
-        $extendData              = $this->processLists[$key]['extend_data'];
-        $enableCoroutine         = $this->processLists[$key]['enable_coroutine'];
-        $runningProcessWorkerNum = $processWorkerNum + $this->processLists[$key]['dynamic_process_worker_num'];
-
-        if ($runningProcessWorkerNum >= $totalProcessNum) {
-            $msg = "【Warning】 Children process num={$totalProcessNum}, achieve max_process_num，forbidden to create process";
-            throw new WorkerException($msg);
-        }
-
-        for ($workerId = $runningProcessWorkerNum; $workerId < $totalProcessNum; $workerId++) {
-            // 动态扩容必须显式传入 PROCESS_DYNAMIC_TYPE，禁止 fork 内写死 static
-            $this->forkNewProcess(
-                $processClass,
-                $processName,
-                $workerId,
-                $args,
-                $extendData,
-                AbstractBaseWorker::PROCESS_DYNAMIC_TYPE
-            );
-        }
-        // 创建动态进程后,更新存贮动态进程数量
-        $this->storageDynamicProcessNum($processName);
+        return $this->getSupervisor()->createDynamicProcess($processName, $processNum);
     }
 
     /**
-        * fork 子进程；processType 由调用方决定，默认保持静态进程语义。
+     * 可被单测/子类 override 的 fork 钩子。默认转 Supervisor::doFork。
+     * 动态扩容必须显式传 PROCESS_DYNAMIC_TYPE。
      *
      * @param $processClass
      * @param $processName
@@ -1124,33 +472,36 @@ class MainManager
         $args = [],
         $extendData = [],
         int $processType = AbstractBaseWorker::PROCESS_STATIC_TYPE
-    )
-    {
-        try {
-            /** @var AbstractBaseWorker $newProcess */
-            $newProcess = new $processClass(
-                $processName,
-                true,
-                $args,
-                $extendData,
-                true
-            );
-            $key = md5($processName);
-            $newProcess->setProcessWorkerId($workerId);
-            $newProcess->setMasterPid($this->getMasterPid());
-            // 类型由入参决定：静态入口走默认值，动态扩容传入 PROCESS_DYNAMIC_TYPE
-            $newProcess->setProcessType($processType);
-            $newProcess->setStartTime();
-            $this->processWorkers[$key][$workerId] = $newProcess;
-            $newProcess->start();
-            $this->swooleEventAdd($newProcess);
-            $this->fmtWriteInfo("Process name={$processName},worker_id={$workerId} create successful");
-        } catch (\Throwable $throwable) {
-            if (isset($key)) {
-                unset($this->processWorkers[$key][$workerId], $newProcess);
-            }
-            $this->onHandleException->call($this, $throwable);
-        }
+    ) {
+        $this->getSupervisor()->doFork(
+            $processClass,
+            $processName,
+            $workerId,
+            $args,
+            $extendData,
+            $processType
+        );
+    }
+
+    /**
+     * Supervisor / CommandHandler 的 fork 入口。
+     * 故意走本方法再进 protected forkNewProcess，这样匿名子类 override forkNewProcess 仍然生效。
+     *
+     * @param mixed $processClass
+     * @param mixed $processName
+     * @param mixed $workerId
+     * @param mixed $args
+     * @param mixed $extendData
+     */
+    public function invokeForkNewProcess(
+        $processClass,
+        $processName,
+        $workerId,
+        $args = [],
+        $extendData = [],
+        int $processType = AbstractBaseWorker::PROCESS_STATIC_TYPE
+    ): void {
+        $this->forkNewProcess($processClass, $processName, $workerId, $args, $extendData, $processType);
     }
 
     /**
@@ -1163,49 +514,11 @@ class MainManager
      */
     public function destroyDynamicProcess(string $processName, int $processNum = -1)
     {
-        $processWorkers = $this->getProcessByName($processName, -1);
-        $key = md5($processName);
-        $stoppingCount = 0;
-        foreach ($processWorkers as $workerId => $process) {
-            // 跳过 static，以及已达本次目标停止数的动态进程
-            if (!$process->isDynamicProcess() || ($processNum >= 0 && $stoppingCount >= $processNum)) {
-                continue;
-            }
-
-            $pid = (int)$process->getPid();
-            // PID 无效或已在 stopping 集合：幂等跳过，避免重复发信号/重复减计数
-            if ($pid <= 0 || isset($this->stoppingDynamicProcesses[$pid])) {
-                continue;
-            }
-
-            // 仅标记 stopping，不在此处减少 dynamic_process_worker_num
-            $this->stoppingDynamicProcesses[$pid] = $processName;
-            $this->processLists[$key]['dynamic_process_destroying'] = true;
-            try {
-                $this->writeByProcessName($processName, AbstractBaseWorker::WORKERFY_PROCESS_EXIT_FLAG, $workerId);
-                ++$stoppingCount;
-                $this->fmtWriteInfo("Dynamic process={$processName},worker_id={$workerId} stopping");
-            } catch (\Throwable $e) {
-                unset($this->stoppingDynamicProcesses[$pid]);
-                $this->fmtWriteError("DestroyDynamicProcess error message=" . $e->getMessage());
-            }
-        }
-        $this->processLists[$key]['dynamic_process_destroying'] = $this->hasStoppingDynamicProcess($processName);
+        $this->getSupervisor()->destroyDynamicProcess($processName, $processNum);
     }
 
     /**
-     * 该进程名下是否仍有等待回收的动态进程。
-     *
-     * @param string $processName
-     * @return bool
-     */
-    private function hasStoppingDynamicProcess(string $processName): bool
-    {
-        return in_array($processName, $this->stoppingDynamicProcesses, true);
-    }
-
-    /**
-     * storageDynamicProcessNum
+     * 按存活实例重算动态进程数。门面 → Supervisor。
      *
      * @param string $processName
      * @return int
@@ -1213,18 +526,7 @@ class MainManager
      */
     public function storageDynamicProcessNum(string $processName)
     {
-        $dynamicProcessNum = 0;
-        $key = md5($processName);
-        $processWorkers = $this->getProcessByName($processName, -1);
-        foreach ($processWorkers as $process) {
-            if ($process->isDynamicProcess()) {
-                ++$dynamicProcessNum;
-            }
-        }
-
-        $this->processLists[$key]['dynamic_process_worker_num'] = $dynamicProcessNum;
-
-        return $dynamicProcessNum;
+        return $this->getSupervisor()->storageDynamicProcessNum($processName);
     }
 
     /**
@@ -1236,6 +538,8 @@ class MainManager
     }
 
     /**
+     * 是否 Master 逻辑名（master_worker）。禁止 Master 给自己写管道。
+     *
      * @param string $processName
      * @return bool
      */
@@ -1248,178 +552,33 @@ class MainManager
     }
 
     /**
-     * getProcessStatus
+     * 采集并（可选）落盘进程状态。门面 → StatusReporter。
      *
      * @param int $runningStatus
      * @return array
      */
     public function getProcessStatus(int $runningStatus = 1)
     {
-        $status = [];
-        $childrenNum = 0;
-        foreach ($this->processWorkers as $processes) {
-            $childrenNum += count($processes);
-            ksort($processes);
-            /**
-             * 获取每个子进程runtime状态
-             * @var AbstractBaseWorker $process
-             */
-            foreach ($processes as $process) {
-                $processName = $process->getProcessName();
-                $workerId = $process->getProcessWorkerId();
-                $this->writeByProcessName($processName, AbstractBaseWorker::WORKERFY_PROCESS_STATUS_FLAG, $workerId);
-            }
-        }
-
-        $cpuNum          = swoole_cpu_num();
-        $phpVersion      = PHP_VERSION;
-        $swooleVersion   = swoole_version();
-        $enableCliPipe   = is_resource($this->cliPipeFd) ? 1 : 0;
-        $swooleTableInfo = $this->getSwooleTableInfo(false);
-        $cliParams       = $this->getOptionParams(true);
-        $hostName        = gethostname();
-        list($msgSysvmsgInfo, $sysKernel) = $this->getSysvmsgInfo();
-
-        $status['master'] = [
-            'start_script_file'  => WORKER_START_SCRIPT_FILE,
-            'pid_file'           => WORKER_PID_FILE,
-            'running_status'     => $runningStatus,
-            'cli_params'         => $cliParams,
-            'worker_master_pid'         => $this->getMasterPid(),
-            'cpu_num'            => $cpuNum,
-            'memory'             => Helper::getMemoryUsage(),
-            'php_version'        => $phpVersion,
-            'swoole_version'     => $swooleVersion,
-            'enable_cli_pipe'    => $enableCliPipe,
-            'hostname'           => $hostName,
-            'msg_sysvmsg_kernel' => $sysKernel,
-            'msg_sysvmsg_info'   => $msgSysvmsgInfo,
-            'swoole_table_info'  => $swooleTableInfo,
-            'children_num'       => $childrenNum,
-            'children_process'   => [],
-            'stop_time'          => !$runningStatus ? date("Y-m-d H:i:s") : '',
-            'report_time'        => date("Y-m-d H:i:s")
-        ];
-
-        $runningChildrenNum = 0;
-        $childrenStatus = [];
-        foreach ($this->processWorkers as $processes) {
-            ksort($processes);
-            foreach ($processes as $process) {
-                /**
-                 * @var AbstractBaseWorker $process
-                 */
-                $processName = $process->getProcessName();
-                $workerId    = $process->getProcessWorkerId();
-                $pid         = $process->getPid();
-                $startTime   = $process->getStartTime();
-                if (is_numeric($startTime)) {
-                    $startTime = date('Y-m-d H:i:s', $startTime);
-                }
-                $rebootCount = $process->getRebootCount();
-                $processType = $process->getProcessType();
-                if ($processType == AbstractBaseWorker::PROCESS_STATIC_TYPE) {
-                    $processType = AbstractBaseWorker::PROCESS_STATIC_TYPE_NAME;
-                } else {
-                    $processType = AbstractBaseWorker::PROCESS_DYNAMIC_TYPE_NAME;
-                }
-                if (\Swoole\Process::kill($pid, 0)) {
-                    $key = md5($processName);
-                    // loop report should be handed (exit) some deal process
-                    $this->rebootOrExitHandle();
-                    $processStatus = 'running';
-                    $childrenStatus[$processName][$workerId] = [
-                        'process_name' => $processName,
-                        'worker_id'    => $workerId,
-                        'pid'          => $pid,
-                        'process_type' => $processType,
-                        'start_time'   => $startTime,
-                        'reboot_count' => $rebootCount,
-                        'status'       => $processStatus,
-                        'runtime'      => $this->processStatusList[$processName][$workerId] ?? [],
-                        'description'  => $this->processLists[$key]['args']['description'] ?? '',
-                    ];
-                    $runningChildrenNum++;
-                }
-            }
-            $status['master']['children_process'] = $childrenStatus;
-            unset($processes);
-        }
-
-        if (empty($status['master']['children_process'])) {
-            foreach ($this->processStatusList as $processName => $item) {
-                foreach ($item as $workerId => $runtime) {
-                    $status['master']['children_process'][$processName][$workerId]['runtime'] = $runtime;
-                }
-            }
-        }
-        $status['master']['children_num'] = $runningChildrenNum;
-        return $status;
+        return $this->getStatusReporter()->getProcessStatus($runningStatus);
     }
 
     /**
-     * installReportStatus
-     * @return void
-     */
-    private function installReportStatus()
-    {
-        $defaultTickTime = self::REPORT_STATUS_TICK_TIME;
-
-        if (isset($this->config['report_status_tick_time'])) {
-            $tickTime = $this->config['report_status_tick_time'];
-        } else {
-            $tickTime = $defaultTickTime;
-        }
-
-        if ($tickTime < $defaultTickTime) {
-            $tickTime = $defaultTickTime;
-        }
-
-        // 必须设置不使用协程，否则master进程存在异步IO,后面子进程reboot()时
-        // 出现unable to create Swoole\Process with async-io threads
-        $timerId = \Swoole\Timer::tick($tickTime * 1000, function () {
-            try {
-                $status = $this->getProcessStatus();
-                // save status
-                if (!SystemEnv::isScriptService()) {
-                    file_put_contents(WORKER_STATUS_FILE, json_encode($status, JSON_UNESCAPED_UNICODE));
-                }
-                // callable todo
-                if (is_callable($this->onReportStatus)) {
-                    $this->onReportStatus->call($this, $status);
-                }
-            } catch (\Throwable $throwable) {
-                $this->onHandleException->call($this, $throwable);
-            }
-        });
-
-        // Swoole Timer::tick() 失败时可能返回 false，避免赋值给 ?int 属性触发 TypeError。
-        $this->reportStatusTimerId = is_int($timerId) ? $timerId : null;
-
-        // master destroy before clear timer_id
-        if ($this->reportStatusTimerId !== null) {
-            register_shutdown_function(function () {
-                $this->clearReportStatusTimer();
-            });
-        }
-    }
-
-    /**
-     * getProcessByName
+     * 按名取 worker。workerId>=0 且不存在则抛错；workerId<0 返回该名下全部（可能为 null）。
+     *
      * @param string $processName
      * @param int $processWorkerId
      * @return mixed|null
      */
     public function getProcessByName(string $processName, int $processWorkerId = 0)
     {
-        $key = md5($processName);
-        if (isset($this->processWorkers[$key][$processWorkerId])) {
-            return $this->processWorkers[$key][$processWorkerId];
-        } else if ($processWorkerId < 0) {
-            return $this->processWorkers[$key];
-        } else {
-            throw new WorkerException("Missing and not found process_name={$processName}, worker_id={$processWorkerId}");
+        $worker = $this->getRegistry()->getWorker($processName, $processWorkerId);
+        if ($worker !== null) {
+            return $worker;
         }
+        if ($processWorkerId < 0) {
+            return $this->getRegistry()->getWorkersByName($processName);
+        }
+        throw new WorkerException("Missing and not found process_name={$processName}, worker_id={$processWorkerId}");
     }
 
     /**
@@ -1429,19 +588,7 @@ class MainManager
      */
     public function getProcessByPid(int $pid)
     {
-        $p = null;
-        foreach ($this->processWorkers as $processes) {
-            foreach ($processes as $process) {
-                if ($process->getPid() == $pid) {
-                    $p = $process;
-                    break;
-                }
-            }
-            if ($p) {
-                break;
-            }
-        }
-        return $p;
+        return $this->getRegistry()->findByPid($pid);
     }
 
     /**
@@ -1474,15 +621,18 @@ class MainManager
     }
 
     /**
-     * isMasterExiting
+     * Master 是否已进入 shutdown（动态扩容必须检查）。
+     *
      * @return bool
      */
     public function isMasterExiting(): bool
     {
-        return $this->isExit;
+        return $this->getSignalShutdown()->isExiting();
     }
 
     /**
+     * Master 向指定 Worker 写管道。门面 → ProcessIpc。
+     *
      * @param string $processName
      * @param mixed $data
      * @param int $processWorkerId
@@ -1490,31 +640,7 @@ class MainManager
      */
     public function writeByProcessName(string $processName, $data, int $processWorkerId = 0)
     {
-        if ($this->isMaster($processName)) {
-            throw new WorkerException("Master process can not write msg to master process self");
-        }
-
-        if (!$this->isRunning()) {
-            throw new WorkerException("Master process is not start, you can not use writeByProcessName(), please checkout it");
-        }
-
-        $processWorkers = [];
-        $process = $this->getProcessByName($processName, $processWorkerId);
-        if (is_object($process) && $process instanceof AbstractBaseWorker) {
-            $processWorkers = [$processWorkerId => $process];
-        } else if (is_array($process)) {
-            $processWorkers = $process;
-        }
-
-        $messageDto                      = new MessageDtoWorker();
-        $messageDto->fromProcessName     = $this->getMasterWorkerName();
-        $messageDto->fromProcessWorkerId = $this->getMasterWorkerId();
-        $messageDto->data                = $data;
-        $messageDto->isProxy             = false;
-        $message = serialize($messageDto);
-        foreach ($processWorkers as $process) {
-            $process->getSwooleProcess()->write($message);
-        }
+        return $this->getIpc()->writeByProcessName($processName, $data, $processWorkerId);
     }
 
     /**
@@ -1532,29 +658,14 @@ class MainManager
         int $fromProcessWorkerId,
         string $toProcessName,
         int $toProcessWorkerId
-    )
-    {
-        if ($this->isMaster($toProcessName)) {
-            return false;
-        }
-
-        $processWorkers = [];
-        $process = $this->getProcessByName($toProcessName, $toProcessWorkerId);
-        if (is_object($process) && $process instanceof AbstractBaseWorker) {
-            $processWorkers = [$toProcessWorkerId => $process];
-        } else if (is_array($process)) {
-            $processWorkers = $process;
-        }
-
-        $messageDto                      = new MessageDtoWorker();
-        $messageDto->fromProcessName     = $fromProcessName;
-        $messageDto->fromProcessWorkerId = $fromProcessWorkerId;
-        $messageDto->data                = $data;
-        $messageDto->isProxy             = true;
-        $message = serialize($messageDto);
-        foreach ($processWorkers as $process) {
-            $process->getSwooleProcess()->write($message);
-        }
+    ) {
+        return $this->getIpc()->writeByMasterProxy(
+            $data,
+            $fromProcessName,
+            $fromProcessWorkerId,
+            $toProcessName,
+            $toProcessWorkerId
+        );
     }
 
     /**
@@ -1565,66 +676,24 @@ class MainManager
      */
     public function broadcastProcessWorker(string $processName, $data = '')
     {
-        $messageDto                      = new MessageDtoWorker();
-        $messageDto->fromProcessName     = $this->getMasterWorkerName();
-        $messageDto->fromProcessWorkerId = $this->getMasterWorkerId();
-        $messageDto->data                = $data;
-        $messageDto->isProxy             = true;
-        $message = serialize($messageDto);
-        if ($processName) {
-            $key = md5($processName);
-            if (!isset($this->processWorkers[$key])) {
-                $exception = new WorkerException(sprintf(
-                    "%s::%s not exist process=%s, please check it",
-                    __CLASS__,
-                    __FUNCTION__,
-                    $processName
-                ));
-            }
-
-            $processWorkers = $this->processWorkers[$key];
-            foreach ($processWorkers as $process) {
-                $process->getSwooleProcess()->write($message);
-            }
-        }
-
-        if (isset($exception) && $exception instanceof \Throwable) {
-            $this->onHandleException->call($this, $exception);
-        }
+        $this->getIpc()->broadcastProcessWorker($processName, $data);
     }
 
     /**
+     * 注册业务自定义信号。SIGTERM/USR1/USR2/CHLD 不可覆盖。
+     *
      * @param int $signal
      * @param callable $function
      * @return void
      */
     public function addSignal(int $signal, callable $function)
     {
-        // forbidden over has registered signal
-        if (!in_array($signal, [SIGTERM, SIGUSR2, SIGUSR1, SIGCHLD])) {
-            $this->signal[$signal] = [$signal, $function];
-        }
+        $this->getSignalShutdown()->addSignal($signal, $function);
     }
 
     /**
-     * registerSignal
-     * @return void
-     */
-    private function installSignal()
-    {
-        if (!empty($this->signal)) {
-            foreach ($this->signal as $signalInfo) {
-                list($signal, $function) = $signalInfo;
-                try {
-                    \Swoole\Process::signal($signal, $function);
-                } catch (\Throwable $throwable) {
-                    $this->onHandleException->call($this, $throwable);
-                }
-            }
-        }
-    }
-
-    /**
+     * 是否允许 CLI FIFO。false 时 install() 直接返回，用于纯脚本/测试。
+     *
      * @param bool $enablePipe
      * @return void
      */
@@ -1634,151 +703,16 @@ class MainManager
     }
 
     /**
-     * install Cli Pipe for listen cli command
-     * @return bool|null
-     * @throws \RuntimeException
+     * 是否启用 CLI FIFO。start() 里 CliPipeServer::install 读取。
      */
-    private function installCliPipe()
+    public function isCliPipeEnabled(): bool
     {
-        if (!$this->enablePipe) {
-            return false;
-        }
-
-        $cliPipeFile = $this->getCliToWorkerPipeFile();
-        if (file_exists($cliPipeFile)) {
-            @unlink($cliPipeFile);
-        }
-
-        if (!posix_mkfifo($cliPipeFile, 0777)) {
-            throw new RuntimeException("Create Cli Pipe failed");
-        }
-
-        $this->cliPipeFd = fopen($cliPipeFile, 'w+');
-        is_resource($this->cliPipeFd) && stream_set_blocking($this->cliPipeFd, false);
-        \Swoole\Event::add($this->cliPipeFd, function () {
-            try {
-                $pipeMsg = fread($this->cliPipeFd, 8192);
-                $cliPipeMsgDto = unserialize($pipeMsg, ['allowed_classes' => [\Swoolefy\Worker\Dto\PipeMsgDtoWorker::class]]);
-                if ($cliPipeMsgDto instanceof \Swoolefy\Worker\Dto\PipeMsgDtoWorker) {
-                    switch ($cliPipeMsgDto->action) {
-                        case WORKER_CLI_STATUS :
-                            $this->masterStatusToCliFifoPipe($cliPipeMsgDto->targetHandler);
-                            break;
-                        case WORKER_CLI_STOP :
-                            // 不能只停子进程：FIFO 和状态 timer 会令 MainManager 在 macOS 上长期存活。
-                            $this->shutdownMainManager('cli-pipe');
-                            return;
-                        case WORKER_CLI_RESTART :
-                            $dateTime = date('Y-m-d H:i:s');
-                            $this->fmtWriteInfo("[{$dateTime}] 重启整个服务，所有进程将重启");
-                            // todo 此方法目前未足够完善
-                            $this->restartServerCommand();
-                            break;
-                        case WORKER_CLI_SEND_MSG :
-                            $processName = $cliPipeMsgDto->targetHandler;
-                            $key = md5($processName);
-                            $receiveMessage = json_decode($cliPipeMsgDto->message, true);
-                            $action = $receiveMessage['action'] ?? '';
-                            switch ($action) {
-                                // 启动指定进程
-                                case WORKER_CLI_START :
-                                    $key = md5($processName);
-                                    if (!isset($this->processLists[$key])) {
-                                        $config = $this->parseLoadConf($processName);
-                                        if (empty($config)) {
-                                            $this->fmtWriteError("找不到进程名【{$processName}】的配置项！");
-                                            return $this->responseMsgByPipe("找不到进程名【{$processName}】的配置项！");
-                                        }
-                                        $this->responseMsgByPipe("进程【{$processName}】已开始启动，请留意！");
-                                        $this->startWorkerProcessCommand($config);
-                                    }else {
-                                        if (isset($this->processWorkers[$key])) {
-                                            $this->responseMsgByPipe("进程【{$processName}】已存在，请使用restart命令重启！");
-                                        }
-                                    }
-                                    break;
-                                // 重启指定进程
-                                case WORKER_CLI_RESTART :
-                                    $key = md5($processName);
-                                    if (isset($this->processWorkers[$key])) {
-                                        $this->responseMsgByPipe("进程【{$processName}】已开始重启，请留意！");
-                                        $this->restartWorkerProcessCommand($processName);
-                                    }else {
-                                        $config = $this->parseLoadConf($processName);
-                                        if (empty($config)) {
-                                            return $this->responseMsgByPipe("找不到进程名【{$processName}】的配置项！");
-                                        }
-                                        $this->responseMsgByPipe("进程【{$processName}】已开始启动，请留意！");
-                                        $this->startWorkerProcessCommand($config);
-                                    }
-                                    break;
-                                // 停止指定进程
-                                case WORKER_CLI_STOP:
-                                    $this->responseMsgByPipe("进程【{$processName}】开始逐步停止，请留意！");
-                                    $this->stopWorkerProcessCommand($processName);
-                                    break;
-                                default:
-                                    if (isset($this->processWorkers[$key])) {
-                                        $processes = $this->processWorkers[$key];
-                                        $this->responseMsgByPipe("子进程【{$processName}】已接收到指令，请留意！");
-                                        ksort($processes);
-                                        foreach ($processes as $process) {
-                                            /**
-                                             * @var AbstractBaseWorker $process
-                                             */
-                                            $processName = $process->getProcessName();
-                                            $workerId = $process->getProcessWorkerId();
-                                            $this->writeByProcessName($processName, $cliPipeMsgDto->message, $workerId);
-                                        }
-                                    }
-                                    break;
-                            }
-                            break;
-                        default:
-                            break;
-                    }
-                }
-
-            } catch (\Throwable $throwable) {
-                $this->onHandleException->call($this, $throwable);
-            }
-        });
+        return $this->enablePipe;
     }
 
     /**
-     * addProcessByCli
-     * @param string $processName
-     * @param int $num
-     * @return void
-     */
-    private function addProcessByCli(string $processName, int $num = 1)
-    {
-        $key = md5($processName);
-        if (isset($this->processLists[$key])) {
-            $this->createDynamicProcess($processName, $num);
-        } else {
-            $this->fmtWriteInfo("Not exist children_process_name = {$processName}, so add failed");
-        }
-    }
-
-    /**
-     * removeProcessByCli
-     * @param string $processName
-     * @param int $num
-     * @return void
-     */
-    private function removeProcessByCli(string $processName, int $num = 1)
-    {
-        $key = md5($processName);
-        if (isset($this->processLists[$key])) {
-            $this->destroyDynamicProcess($processName, $num);
-        } else {
-            $this->fmtWriteError("Not exist children_process_name = {$processName}, remove failed");
-        }
-    }
-
-    /**
-     * getCliPipeFile
+     * 当前实例 CLI→Worker FIFO 路径（随 WORKER_SERVICE_NAME / --group 隔离）。
+     *
      * @return string
      */
     public function getCliToWorkerPipeFile()
@@ -1801,46 +735,235 @@ class MainManager
     }
 
     /**
-     * installRegisterShutdownFunction
-     * @return void
+     * Master 是否已 start。writeByProcessName 在 false 时拒绝，防止启动竞态。
+     *
+     * @return bool
      */
-    private function installRegisterShutdownFunction()
+    public function isRunning()
     {
-        if (!$this->inMasterProcessEnv()) {
-            return;
+        if (isset($this->isRunning) && $this->isRunning === true) {
+            return true;
         }
-
-        $this->onRegisterShutdownFunction = function () {
-            // children process extends this register_shutdown_function, so ignore for children process
-            try {
-                // exit handle
-                is_callable($this->onExit) && $this->onExit->call($this);
-
-            } catch (\Throwable $throwable) {
-                $this->onHandleException->call($this, $throwable);
-            } finally {
-                // close pipe fifo
-                if (is_resource($this->cliPipeFd)) {
-                    @\Swoole\Event::del($this->cliPipeFd);
-                    fclose($this->cliPipeFd);
-                }
-                // remove sysvmsg queue
-                $sysvmsgManager = SysvmsgManager::getInstance();
-                $sysvmsgManager->destroyMsgQueue();
-                unset($sysvmsgManager);
-                // remove signal
-                @\Swoole\Process::signal(SIGUSR1, null);
-                @\Swoole\Process::signal(SIGUSR2, null);
-                @\Swoole\Process::signal(SIGINT, null);
-                @\Swoole\Process::signal(SIGHUP, null);
-                @\Swoole\Process::signal(SIGTERM, null);
-            }
-            $this->fmtWriteInfo("终端关闭，master进程stop, worker_master_pid={$this->masterPid}");
-        };
+        return false;
     }
 
     /**
-     * setMasterPid
+     * 实时加载配置并合并 confctl。门面 → WorkerConfLoader，CtlApi/AbstractMainProcess 不用改 import。
+     *
+     * @param string $confPath
+     * @return array
+     */
+    public static function loadWorkerConf(string $confPath)
+    {
+        return WorkerConfLoader::loadWorkerConf($confPath);
+    }
+
+    /**
+     * include 当前 worker conf（已按 --group 过滤）。不改 confctl。
+     *
+     * @return array
+     */
+    public static function includeWorkerConf()
+    {
+        return WorkerConfLoader::includeWorkerConf();
+    }
+
+    /**
+     * 是否为分组形式的 worker 配置：顶层键为分组名，值为进程配置列表。
+     *
+     * @param array<int|string, mixed> $conf
+     */
+    public static function isGroupedWorkerConf(array $conf): bool
+    {
+        return WorkerConfLoader::isGroupedWorkerConf($conf);
+    }
+
+    /**
+     * 按 CLI --group= 解析分组配置。
+     *
+     * @param array<string, array<int, array<string, mixed>>> $groupedConf
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function resolveGroupedWorkerConf(array $groupedConf): array
+    {
+        return WorkerConfLoader::resolveGroupedWorkerConf($groupedConf);
+    }
+
+    /**
+     * include + confctl 合并。门面保留给历史 protected 调用。
+     *
+     * @param string $confPath
+     * @return array
+     */
+    protected static function defaultLoadWorkerConf(string $confPath)
+    {
+        return WorkerConfLoader::defaultLoadWorkerConf($confPath);
+    }
+
+    /**
+     * 重复 process_name 检测。门面 → Loader（会真正 throw）。
+     *
+     * @param array $conf
+     * @return void
+     */
+    public static function findDuplicateProcessName(array &$conf)
+    {
+        WorkerConfLoader::findDuplicateProcessName($conf);
+    }
+
+    /**
+     * 进程表。可变状态只放这里。get* 均懒加载 bootCollaborators（单测可跳过父构造）。
+     */
+    public function getRegistry(): ProcessRegistry
+    {
+        $this->bootCollaborators();
+        return $this->registry;
+    }
+
+    public function getSupervisor(): ProcessSupervisor
+    {
+        $this->bootCollaborators();
+        return $this->supervisor;
+    }
+
+    public function getIpc(): ProcessIpc
+    {
+        $this->bootCollaborators();
+        return $this->ipc;
+    }
+
+    public function getCommandHandler(): ProcessCommandHandler
+    {
+        $this->bootCollaborators();
+        return $this->commandHandler;
+    }
+
+    public function getCliPipeServer(): CliPipeServer
+    {
+        $this->bootCollaborators();
+        return $this->cliPipeServer;
+    }
+
+    public function getSignalShutdown(): SignalShutdown
+    {
+        $this->bootCollaborators();
+        return $this->signalShutdown;
+    }
+
+    public function getStatusReporter(): StatusReporter
+    {
+        $this->bootCollaborators();
+        return $this->statusReporter;
+    }
+
+    /**
+     * 构造传入的 worker 配置（report_status_tick_time 等）。
+     *
+     * @return array<string, mixed>
+     */
+    public function getWorkerConfig(): array
+    {
+        return $this->config ?? [];
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getStartTime()
+    {
+        return $this->startTime;
+    }
+
+    /**
+     * 子系统日志入口，保证 stub 覆盖 fmtWriteInfo 仍然生效。
+     */
+    public function logInfo($msg): void
+    {
+        $this->fmtWriteInfo($msg);
+    }
+
+    /**
+     * 子系统错误日志入口。
+     */
+    public function logError($msg): void
+    {
+        $this->fmtWriteError($msg);
+    }
+
+    /**
+     * 把异常交给应用设置的 onHandleException（call 的 $this 仍是 MainManager）。
+     */
+    public function handleWorkerException(\Throwable $throwable): void
+    {
+        if (is_callable($this->onHandleException)) {
+            $this->onHandleException->call($this, $throwable);
+        }
+    }
+
+    /**
+     * 是否在 Worker Master 进程（相对业务子进程）。关机清理只在 Master 执行。
+     */
+    public function isInMasterProcessEnv(): bool
+    {
+        return $this->inMasterProcessEnv();
+    }
+
+    /**
+     * reboot 指定 pid。门面 → Supervisor。
+     */
+    public function rebootWorker(int $pid): void
+    {
+        $this->getSupervisor()->rebootWorker($pid);
+    }
+
+    /**
+     * MainManager 唯一退出入口（Signal 与 CLI FIFO stop 共用）。
+     */
+    public function shutdownMainManager(string $source): void
+    {
+        $this->getSignalShutdown()->shutdown($source);
+    }
+
+    /**
+     * Master 优雅退出等待上限：取各 Worker 的 wait_time + maxWaitTimeOfExit 最大值，再加清理余量。
+     */
+    protected function resolveShutdownWaitSeconds(): float
+    {
+        return $this->getSignalShutdown()->resolveShutdownWaitSeconds();
+    }
+
+    /**
+     * 通知退出后等待子进程结束；超时则 SIGKILL 并记录未正常退出的 PID。
+     */
+    protected function waitWorkersExitOrKill(float $timeoutSeconds): void
+    {
+        $this->getSignalShutdown()->waitWorkersExitOrKill($timeoutSeconds);
+    }
+
+    /**
+     * 标记 Master 已完成 initStart，允许 writeByProcessName。
+     *
+     * @return bool
+     */
+    protected function setRunning()
+    {
+        $this->isRunning = true;
+    }
+
+    /**
+     * 最大子进程数。兼容 Trait 旧调用。
+     *
+     * @return float|int
+     */
+    private function getMaxProcessNum()
+    {
+        return $this->getSupervisor()->maxProcessNum();
+    }
+
+    /**
+     * 记录 Master pid、设进程标题、定义 WORKER_MASTER_PID。
+     *
      * @return void
      */
     private function setMasterPid(int $masterId)
@@ -1867,365 +990,20 @@ class MainManager
     }
 
     /**
-     * flag start
-     * @return bool
+     * 懒装配全部协作者。单测跳过 __construct 时第一次 getRegistry() 仍会走到这里。
+     * 顺序：Registry 必须最先创建，其余组件只拿 MainManager 再回查 Registry。
      */
-    protected function setRunning()
+    private function bootCollaborators(): void
     {
-        $this->isRunning = true;
+        if ($this->registry !== null) {
+            return;
+        }
+        $this->registry = new ProcessRegistry();
+        $this->ipc = new ProcessIpc($this);
+        $this->supervisor = new ProcessSupervisor($this);
+        $this->commandHandler = new ProcessCommandHandler($this);
+        $this->cliPipeServer = new CliPipeServer($this);
+        $this->signalShutdown = new SignalShutdown($this);
+        $this->statusReporter = new StatusReporter($this);
     }
-
-    /**
-     * master && children process is running status
-     * @return bool
-     */
-    public function isRunning()
-    {
-        if (isset($this->isRunning) && $this->isRunning === true) {
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * getSwooleTableInfo
-     * @param bool $simple
-     * @return string
-     */
-    private function getSwooleTableInfo(bool $simple = true)
-    {
-        $swooleTableInfo = "Disable swoole table (unenabled)";
-        $tableManager = TableManager::getInstance();
-        if ($simple) {
-            // todo
-            $allTableName = $tableManager->getAllTableName();
-            if (!empty($allTableName) && is_array($allTableName)) {
-                $allTableNameStr = implode(',', $allTableName);
-                $swooleTableInfo = "[{$allTableNameStr}]";
-            }
-        } else {
-            //todo
-            $allTableInfo = $tableManager->getAllTableKeyMapRowValue();
-            if (!empty($allTableInfo)) {
-                $swooleTableInfo = $allTableInfo;
-            } else {
-                $swooleTableInfo = "swoole table (enabled), but missing table_name";
-            }
-        }
-        return $swooleTableInfo;
-    }
-
-    /**
-     * getSysvmsgInfo
-     * @return array
-     */
-    private function getSysvmsgInfo()
-    {
-        $msgSysvmsgInfo = 'Disable sysvmsg (unenable)';
-        $sysvmsgManager = SysvmsgManager::getInstance();
-        if (defined('ENABLE_WORKERFY_SYSVMSG_MSG') && ENABLE_WORKERFY_SYSVMSG_MSG == 1) {
-            $msgQueueInfo = $sysvmsgManager->getAllMsgQueueWaitToPopNum();
-            if (!empty($msgQueueInfo)) {
-                $msgSysvmsgInfo = '';
-                foreach ($msgQueueInfo as $info) {
-                    list($msgQueueName, $waitToReadNum) = $info;
-                    $msgSysvmsgInfo .= "[queue_name:$msgQueueName,queue_number:$waitToReadNum]" . ',';
-                }
-                $msgSysvmsgInfo = trim($msgSysvmsgInfo, ',');
-            }
-        }
-        $sysKernelInfo = array_values($sysvmsgManager->getSysKernelInfo(true));
-        list($msgmax, $msgmnb, $msgmni) = $sysKernelInfo;
-        $sysKernel = "[单个消息体最大字节msgmax:{$msgmax},队列的最大容量msgmnb:{$msgmnb},队列最大个数:{$msgmni}]";
-        return [$msgSysvmsgInfo, $sysKernel];
-    }
-
-    /**
-     * @return float|int
-     */
-    private function getMaxProcessNum()
-    {
-        return (swoole_cpu_num()) * (self::NUM_PEISHU);
-    }
-
-    /**
-     * 实时加载配置文件路径
-     *
-     * @param string $confPath
-     * @return array
-     */
-    public static function loadWorkerConf(string $confPath)
-    {
-        $conf = self::defaultLoadWorkerConf($confPath);
-        return $conf;
-    }
-
-    /**
-     * @return array
-     */
-    public static function includeWorkerConf()
-    {
-        $fileConfPath = self::$confPath;
-        if (empty($fileConfPath)) {
-            $fileConfPath = WORKER_CONF_FILE;
-        }
-        $conf = include $fileConfPath;
-        if (self::isGroupedWorkerConf($conf)) {
-            $conf = self::resolveGroupedWorkerConf($conf);
-        }
-        self::findDuplicateProcessName($conf);
-        return $conf;
-    }
-
-    /**
-     * 是否为分组形式的 worker 配置：顶层键为分组名，值为进程配置列表。
-     *
-     * @param array<int|string, mixed> $conf
-     */
-    public static function isGroupedWorkerConf(array $conf): bool
-    {
-        if ($conf === []) {
-            return false;
-        }
-
-        foreach ($conf as $key => $value) {
-            if (is_int($key)) {
-                return false;
-            }
-            if (!is_string($key) || !is_array($value)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * 按 CLI --group= 解析分组配置。
-     *
-     * 未指定 --group 时合并所有分组；指定后仅返回这些分组（多个用英文逗号分隔）。
-     *
-     * @param array<string, array<int, array<string, mixed>>> $groupedConf
-     *
-     * @return list<array<string, mixed>>
-     */
-    public static function resolveGroupedWorkerConf(array $groupedConf): array
-    {
-        $groupParam = Helper::getCliParams('group');
-        $groupNames = Helper::parseGroupNames(is_string($groupParam) ? $groupParam : null);
-
-        // 为空，那取所有
-        if ($groupNames === []) {
-            $items = [];
-            foreach ($groupedConf as $groupName => $groupItems) {
-                $items = array_merge($items, self::normalizeGroupProcessItems((string) $groupName, $groupItems));
-            }
-            return $items;
-        }
-
-        $available = implode(', ', array_keys($groupedConf));
-        $items = [];
-        foreach ($groupNames as $groupName) {
-            if (!isset($groupedConf[$groupName]) || !is_array($groupedConf[$groupName])) {
-                WorkerException::throw("未找到分组 [{$groupName}]，可选分组：{$available}");
-            }
-            $items = array_merge($items, self::normalizeGroupProcessItems($groupName, $groupedConf[$groupName]));
-        }
-
-        return $items;
-    }
-
-    /**
-     * @param mixed $groupItems
-     *
-     * @return list<array<string, mixed>>
-     */
-    private static function normalizeGroupProcessItems(string $groupName, array $groupItems): array
-    {
-        $items = array_values($groupItems);
-        foreach ($items as $item) {
-            if (!is_array($item) || !isset($item['process_name'])) {
-                WorkerException::throw("分组 [{$groupName}] 中存在无效的进程配置项，请检查 worker 配置文件");
-            }
-        }
-
-        return $items;
-    }
-
-    /**
-     * @param string $confPath
-     * @return array
-     */
-    protected static function defaultLoadWorkerConf(string $confPath)
-    {
-        if (empty(self::$confPath)) {
-            self::$confPath = realpath($confPath);
-        }
-
-        $currentProcessConfList = self::includeWorkerConf();
-        $currentProcessConfListMap = array_column($currentProcessConfList, null, 'process_name');
-
-        // confctl 读改写经统一 Store：独占锁 + 原子 rename，损坏 JSON 不覆盖
-        $store = new ConfCtlStore(ConfCtlStore::defaultPath());
-        $fileProcessConfListMap = $store->update(function (array $fileProcessConfListMap) use ($currentProcessConfListMap) {
-            // 最新的进程不包括历史的进程的，将lockfile中的进程删除
-            foreach ($fileProcessConfListMap as $processName => $fileProcessConf) {
-                if (!isset($currentProcessConfListMap[$processName])) {
-                    unset($fileProcessConfListMap[$processName]);
-                }
-            }
-
-            if (!empty($currentProcessConfListMap)) {
-                foreach ($currentProcessConfListMap as $processName => $currentProcessConf) {
-                    if (!isset($fileProcessConfListMap[$processName])) {
-                        $fileProcessConfListMap[$processName] = [
-                            'start_time' => date('Y-m-d H:i:s'),
-                            'stop_time'  => '',
-                            'running'    => 1,
-                        ];
-                    }
-                }
-            }
-
-            return $fileProcessConfListMap;
-        });
-
-        // lockFile标志为running=0停止状态的，这里无需启动
-        foreach ($fileProcessConfListMap as $processName => $fileProcessConf) {
-            if (isset($currentProcessConfListMap[$processName]) && ($fileProcessConf['running'] ?? 1) == 0) {
-                unset($currentProcessConfListMap[$processName]);
-            }
-        }
-
-        return array_values($currentProcessConfListMap);
-   }
-
-    /**
-     * @param string $confPath
-     * @param array $conf
-     * @return void
-     */
-    public static function findDuplicateProcessName(array &$conf)
-    {
-        $processNames = array_column($conf, 'process_name');
-        $uniqueProcessNames = array_unique($processNames);
-        $duplicateProcessNames = array_diff_assoc($processNames, $uniqueProcessNames);
-        if (!empty($duplicateProcessNames)) {
-            $processNameStr = implode(',', $duplicateProcessNames);
-            WorkerException::throw("conf配置项存在重复命名的进程[{$processNameStr}],请检查");
-        }
-    }
-
-    /**
-     * @param bool $showAll
-     * @return string
-     */
-    private function getOptionParams(bool $showAll = false)
-    {
-        $cliParams = '';
-        $envCliParams = getenv('ENV_CLI_PARAMS') ? json_decode(getenv('ENV_CLI_PARAMS'), true) : [];
-
-        foreach ($envCliParams as $env=>$value) {
-            if (in_array($env, ['help','quiet','verbose','version','ansi','no-interaction'])) {
-                continue;
-            }
-            $cliParams .= '--' . $env . '=' . $value . ' ';
-        }
-
-        $cliParams = trim($cliParams);
-        if ($showAll == false) {
-            if (strlen($cliParams) > 1000) {
-                $cliParams = substr($cliParams, 0, 1000) . '...(参数过长,省略)';
-            }
-        }
-
-        if (empty($cliParams)) {
-            $cliParams = '(no)';
-        }
-
-        return $cliParams;
-    }
-
-    /**
-     * @param string $processName
-     * @param int $workerId
-     * @param int $pid
-     * @param string $status
-     * @param string $startTime
-     * @param int $rebootCount
-     * @param string $processType
-     * @return string
-     */
-    private function statusInfoFormat(
-        string $processName,
-        int $workerId,
-        int $pid,
-        string $status,
-        string $startTime = '',
-        int $rebootCount = 0,
-        string $processType = ''
-    )
-    {
-        if ($processName == $this->getMasterWorkerName()) {
-            $childrenNum = 0;
-            foreach ($this->processWorkers as $processes) {
-                $childrenNum += count($processes);
-            }
-            $pid = Swfy::getMasterPid();
-            $startScriptFile = WORKER_START_SCRIPT_FILE;
-            $pidFile         = WORKER_PID_FILE;
-            $cpuNum          = swoole_cpu_num();
-            $memory          = Helper::getMemoryUsage();
-            $phpVersion      = PHP_VERSION;
-            $swooleVersion   = swoole_version();
-            $enableCliPipe   = is_resource($this->cliPipeFd) ? 1 : 0;
-            list($msgSysvmsgInfo, $sysKernel) = $this->getSysvmsgInfo();
-            $swooleTableInfo = $this->getSwooleTableInfo();
-            $cliParams       = $this->getOptionParams(false);
-            $maxNum          = $this->getMaxProcessNum();
-            $hostname        = gethostname();
-            $infoItem = [
-                'master_name' => $processName,
-                'master_worker_id(default 0)' => $workerId,
-                'swoole_master_pid' => $pid,
-                'master_status' => $status,
-                'start_time'=> $startTime,
-                'cli_option_params' => $cliParams,
-                'start_script_file' => $startScriptFile,
-                'pid_file' =>  $pidFile,
-                'children_num' => $childrenNum,
-                'cpu_num' => $cpuNum,
-                'max_process_num(cpu_num * 8)' => $maxNum,
-                'memory' => $memory,
-                'php_version' => $phpVersion,
-                'swoole_version' => $swooleVersion,
-                'enable_cli_pipe' => $enableCliPipe,
-                'sysvmsg_kernel' => $sysKernel,
-                'sysvmsg_status' => $msgSysvmsgInfo,
-                'swoole_table_name' => $swooleTableInfo,
-                'hostname'=> $hostname,
-            ];
-            $formattedData = [];
-            foreach ($infoItem as $name=>$value) {
-                $formattedData[] = $name.': '.$value;
-            }
-            $info = implode($this->getSeparator(), $formattedData).$this->getSeparator();
-        } else {
-            // worker info
-            $memory = $this->processStatusList[$processName][$workerId]['memory'] ?? '--';
-            $info = "【{$processName}@{$workerId}】【{$processType}】: 进程名称name: $processName, 进程编号worker_id: $workerId, 进程Pid: $pid, 进程状态status：$status, 启动(重启)时间：$startTime, 内存占用：$memory, reboot次数：$rebootCount\n-----------\n";
-        }
-
-        return $info;
-    }
-
-    /**
-     * @return string
-     */
-    private function getSeparator()
-    {
-        return PHP_EOL;
-    }
-
-
 }

@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace PHPUintTest\Unit\Worker;
 
 use PHPUintTest\TestCase;
-use ReflectionMethod;
-use ReflectionProperty;
 use Swoolefy\Worker\AbstractBaseWorker;
 use Swoolefy\Worker\MainManager;
 
@@ -22,7 +20,7 @@ final class DynamicProcessLifecycleTest extends TestCase
      */
     public function testForkNewProcessDefaultsToStaticType(): void
     {
-        $method = new ReflectionMethod(MainManager::class, 'forkNewProcess');
+        $method = new \ReflectionMethod(MainManager::class, 'forkNewProcess');
         $params = $method->getParameters();
         $this->assertGreaterThanOrEqual(6, count($params));
         $this->assertSame('processType', $params[5]->getName());
@@ -39,7 +37,8 @@ final class DynamicProcessLifecycleTest extends TestCase
         $manager = $this->newManagerStub();
         $processName = 'p0-dynamic-demo';
         $key = md5($processName);
-        $this->setPrivate($manager, 'processLists', [
+        $registry = $manager->getRegistry();
+        $registry->replaceLists([
             $key => [
                 'process_name' => $processName,
                 'process_class' => 'DemoProcess',
@@ -52,7 +51,7 @@ final class DynamicProcessLifecycleTest extends TestCase
                 'enable_coroutine' => true,
             ],
         ]);
-        $this->setPrivate($manager, 'processWorkers', [
+        $registry->replaceWorkers([
             $key => [
                 0 => $this->fakeProcess($processName, 0, 1001, false),
             ],
@@ -76,21 +75,22 @@ final class DynamicProcessLifecycleTest extends TestCase
         $key = md5($processName);
         $static = $this->fakeProcess($processName, 0, 3001, false);
         $dynamic = $this->fakeProcess($processName, 1, 3002, true);
+        $registry = $manager->getRegistry();
 
-        $this->setPrivate($manager, 'processLists', [
+        $registry->replaceLists([
             $key => [
                 'process_name' => $processName,
                 'dynamic_process_worker_num' => 1,
                 'dynamic_process_destroying' => false,
             ],
         ]);
-        $this->setPrivate($manager, 'processWorkers', [
+        $registry->replaceWorkers([
             $key => [
                 0 => $static,
                 1 => $dynamic,
             ],
         ]);
-        $this->setPrivate($manager, 'stoppingDynamicProcesses', []);
+        $registry->replaceStoppingDynamic([]);
 
         $manager->destroyDynamicProcess($processName, 1);
 
@@ -98,27 +98,24 @@ final class DynamicProcessLifecycleTest extends TestCase
         $this->assertSame($processName, $manager->writes[0][0]);
         $this->assertSame(AbstractBaseWorker::WORKERFY_PROCESS_EXIT_FLAG, $manager->writes[0][1]);
         $this->assertSame(1, $manager->writes[0][2]);
-        $this->assertSame(1, $this->getPrivate($manager, 'processLists')[$key]['dynamic_process_worker_num']);
-        $this->assertTrue($this->getPrivate($manager, 'processLists')[$key]['dynamic_process_destroying']);
-        $this->assertSame([$dynamic->getPid() => $processName], $this->getPrivate($manager, 'stoppingDynamicProcesses'));
+        $this->assertSame(1, $registry->allLists()[$key]['dynamic_process_worker_num']);
+        $this->assertTrue($registry->allLists()[$key]['dynamic_process_destroying']);
+        $this->assertSame([$dynamic->getPid() => $processName], $registry->stoppingDynamicProcesses());
 
-        // 重复停止同一 PID：幂等，不再发信号、不改计数
         $manager->destroyDynamicProcess($processName, 1);
         $this->assertCount(1, $manager->writes);
-        $this->assertSame(1, $this->getPrivate($manager, 'processLists')[$key]['dynamic_process_worker_num']);
+        $this->assertSame(1, $registry->allLists()[$key]['dynamic_process_worker_num']);
 
-        // 模拟 SIGCHLD reap：先移除进程，再重算计数
-        $workers = $this->getPrivate($manager, 'processWorkers');
+        $workers = $registry->allWorkers();
         unset($workers[$key][1]);
-        $this->setPrivate($manager, 'processWorkers', $workers);
-        $stopping = $this->getPrivate($manager, 'stoppingDynamicProcesses');
+        $registry->replaceWorkers($workers);
+        $stopping = $registry->stoppingDynamicProcesses();
         unset($stopping[$dynamic->getPid()]);
-        $this->setPrivate($manager, 'stoppingDynamicProcesses', $stopping);
+        $registry->replaceStoppingDynamic($stopping);
 
         $this->assertSame(0, $manager->storageDynamicProcessNum($processName));
-        $this->assertSame(0, $this->getPrivate($manager, 'processLists')[$key]['dynamic_process_worker_num']);
+        $this->assertSame(0, $registry->allLists()[$key]['dynamic_process_worker_num']);
 
-        // 再次 storage 不会变成负数
         $this->assertSame(0, $manager->storageDynamicProcessNum($processName));
     }
 
@@ -207,20 +204,5 @@ final class DynamicProcessLifecycleTest extends TestCase
                 return $this->workerId;
             }
         };
-    }
-
-    private function setPrivate(object $object, string $property, mixed $value): void
-    {
-        $ref = new ReflectionProperty(MainManager::class, $property);
-        $ref->setAccessible(true);
-        $ref->setValue($object, $value);
-    }
-
-    private function getPrivate(object $object, string $property): mixed
-    {
-        $ref = new ReflectionProperty(MainManager::class, $property);
-        $ref->setAccessible(true);
-
-        return $ref->getValue($object);
     }
 }

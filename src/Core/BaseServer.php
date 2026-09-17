@@ -180,8 +180,6 @@ class BaseServer
             Swfy::setSwooleServer($server);
             // 启动动态运行时的Coroutine
             self::runtimeEnableCoroutine();
-            // 记录主进程加载的公共files,worker重启不会在加载的
-            self::getIncludeFiles($workerId);
             // registerShutdown
             self::registerShutdownFunction();
             // 重启worker时，刷新字节cache
@@ -586,24 +584,6 @@ class BaseServer
         }
         if (function_exists('opcache_reset')) {
             opcache_reset();
-        }
-    }
-
-    /**
-     * @param int $workerId
-     * @return void
-     */
-    public static function getIncludeFiles(int $workerId)
-    {
-        if (isset(static::$setting['log_file']) && $workerId == 0) {
-            $path = pathinfo(static::$setting['log_file'], PATHINFO_DIRNAME);
-            $filePath = $path . '/includes.json';
-            $includes = get_included_files();
-            if (is_file($filePath)) {
-                @unlink($filePath);
-            }
-            @file_put_contents($filePath, json_encode($includes));
-            @chmod($filePath, 0766);
         }
     }
 
