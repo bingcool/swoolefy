@@ -14,6 +14,7 @@ namespace Swoolefy\Worker\Traits;
 use Swoolefy\Core\CommandRunner;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Worker\AbstractBaseWorker;
+use Swoolefy\Worker\Helper;
 
 /**
  * 父进程接收指令处理
@@ -159,7 +160,12 @@ trait MainProcessCommandTrait
         $execBinFile = SystemEnv::PhpBinFile();
         $scriptFile  = WORKER_START_SCRIPT_FILE;
         $appName     = APP_NAME;
-        $execScript  = implode(' ', [$scriptFile, 'restart', $appName, '--force=1']);
+        $extra       = Helper::workerRestartCliSuffix();
+        $execParts   = [$scriptFile, 'restart', $appName, '--force=1'];
+        if ($extra !== '') {
+            $execParts[] = $extra;
+        }
+        $execScript  = implode(' ', $execParts);
         list($command) = $runner->exec($execBinFile, $execScript, [],true, 'nobup_restart.log', false);
         exec($command, $output, $code);
     }

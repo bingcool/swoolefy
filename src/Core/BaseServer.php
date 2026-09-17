@@ -418,8 +418,8 @@ class BaseServer
      */
     public static function filterFaviconIcon(\Swoole\Http\Request $request, \Swoole\Http\Response $response)
     {
-        if ($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
-            return $response->end();
+        if (\Swoolefy\Http\IgnoreRouteConfig::endIfIgnored($request, $response)) {
+            return true;
         }
         return null;
     }

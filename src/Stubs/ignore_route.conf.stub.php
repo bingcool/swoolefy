@@ -5,7 +5,7 @@ declare(strict_types=1);
 /**
  * HTTP 忽略路由（create 时复制为 Config/ignore_route.php）
  *
- * 匹配的 URI 会在进入路由分发前直接结束响应，避免浏览器或探针请求触发 Not Found 报错。
+     * 匹配的 URI 会在进入路由分发前以 HTTP 204 结束，避免浏览器或探针请求触发 Not Found。
  *
  * @see \Swoolefy\Http\IgnoreRouteConfig
  * @see \Swoolefy\Http\HttpServer

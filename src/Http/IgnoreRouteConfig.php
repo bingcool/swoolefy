@@ -97,6 +97,36 @@ final class IgnoreRouteConfig
         return false;
     }
 
+    /**
+     * 忽略路由统一结束响应：204 No Content，无 body。
+     *
+     * 空 200 容易被探针/浏览器当成异常；204 明确表示成功且无内容。
+     */
+    public static function endIgnored(\Swoole\Http\Response $response): void
+    {
+        if (method_exists($response, 'isWritable') && !$response->isWritable()) {
+            return;
+        }
+
+        $response->status(204);
+        $response->header('Content-Length', '0');
+        $response->end();
+    }
+
+    /**
+     * 若命中忽略路由则写 204 并返回 true。
+     */
+    public static function endIfIgnored(Request $request, \Swoole\Http\Response $response): bool
+    {
+        if (!self::shouldIgnore($request)) {
+            return false;
+        }
+
+        self::endIgnored($response);
+
+        return true;
+    }
+
     private function matches(string $path): bool
     {
         if (in_array($path, $this->routes, true)) {

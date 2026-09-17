@@ -106,7 +106,7 @@ class MainDaemonProcess extends AbstractMainProcess
             
             \$mainManager->start();
         }catch (\Throwable \$exception) {
-            var_dump(\$exception->getMessage(), \$exception->getTraceAsString());
+            \Swoolefy\Core\BaseServer::catchException(\$exception);
         }
     }
 }

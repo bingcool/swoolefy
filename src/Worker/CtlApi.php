@@ -163,7 +163,11 @@ class CtlApi
 
         $this->returnSuccess([
             'total' => $total,
-            'list' => $confList
+            'list' => $confList,
+            'groups' => Helper::parseGroupNames(
+                is_string(Helper::getCliParams('group')) ? Helper::getCliParams('group') : ''
+            ),
+            'serviceName' => defined('WORKER_SERVICE_NAME') ? WORKER_SERVICE_NAME : '',
         ]);
     }
 
@@ -172,6 +176,13 @@ class CtlApi
      */
     public function start(string $processName)
     {
+        if (!$this->isProcessInCurrentInstance($processName)) {
+            $this->returnFail('进程不属于当前分组实例', [
+                'process_name' => $processName,
+                'serviceName' => defined('WORKER_SERVICE_NAME') ? WORKER_SERVICE_NAME : '',
+            ]);
+            return;
+        }
         $action = WORKER_CLI_RESTART;
         $this->sendPipeCommand($processName, $action);
         $this->lockProcessRuntimeFile($processName, $action);
@@ -184,6 +195,13 @@ class CtlApi
      */
     public function stop(string $processName)
     {
+        if (!$this->isProcessInCurrentInstance($processName)) {
+            $this->returnFail('进程不属于当前分组实例', [
+                'process_name' => $processName,
+                'serviceName' => defined('WORKER_SERVICE_NAME') ? WORKER_SERVICE_NAME : '',
+            ]);
+            return;
+        }
         $action = WORKER_CLI_STOP;
         $this->sendPipeCommand($processName, $action);
         $this->lockProcessRuntimeFile($processName, $action);
@@ -261,7 +279,12 @@ class CtlApi
         }
 
         $appName    = APP_NAME;
-        $execScript = implode(' ',[$scriptFile, 'restart', $appName, '--force=1']);
+        $extra      = Helper::workerRestartCliSuffix();
+        $execParts  = [$scriptFile, 'restart', $appName, '--force=1'];
+        if ($extra !== '') {
+            $execParts[] = $extra;
+        }
+        $execScript = implode(' ', $execParts);
         list($command) = $runner->exec($execBinFile, $execScript, [],true, '/dev/null', false);
 
         $message = [
@@ -278,6 +301,20 @@ class CtlApi
             'action' => 'restart',
             'time' => date('Y-m-d H:i:s')
         ]);
+    }
+
+    /**
+     * 当前 Daemon/Cron 实例（含 --group 过滤后）是否包含该进程。
+     */
+    private function isProcessInCurrentInstance(string $processName): bool
+    {
+        if ($processName === '') {
+            return false;
+        }
+        $confList = MainManager::includeWorkerConf();
+        $confListMap = array_column($confList, null, 'process_name');
+
+        return isset($confListMap[$processName]);
     }
 
     /**

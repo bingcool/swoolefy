@@ -246,12 +246,12 @@ class RestartCmd extends BaseCmd
     {
         fmtPrintInfo("-----------正在重启服务进程中，请等待-----------");
 
-        $input = new ArrayInput([
+        $input = new ArrayInput(array_merge([
             'command' => 'start',
             self::APP_NAME => $appName,
             '--' . self::DAEMON => 1,
             '--' . self::START_MODEL => 'restart',
-        ]);
+        ], \Swoolefy\Worker\Helper::workerRestartInputOptions()));
         $output = new ConsoleOutput();
         $this->getApplication()->run($input, $output);
     }

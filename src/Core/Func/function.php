@@ -134,7 +134,13 @@ function initConsoleStyleIo()
 function makeServerName(string $appName)
 {
     if (IS_DAEMON_SERVICE == 1 && IS_CRON_SERVICE == 0 && IS_SCRIPT_SERVICE == 0 ) {
-        return strtolower($appName.'-'.'daemon');
+        $serverName = strtolower($appName.'-'.'daemon');
+        $groupSuffix = \Swoolefy\Worker\Helper::daemonGroupInstanceSuffix();
+        if ($groupSuffix !== '') {
+            $serverName .= '-' . $groupSuffix;
+        }
+
+        return $serverName;
     }
 
     if (IS_CRON_SERVICE == 1) {

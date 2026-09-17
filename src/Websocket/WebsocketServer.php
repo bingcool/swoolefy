@@ -18,6 +18,7 @@ use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\SystemEnv;
+use Swoolefy\Http\IgnoreRouteConfig;
 use Swoolefy\Util\Helper;
 use Swoolefy\Core\Coroutine\Context as SwooleContext;
 
@@ -377,8 +378,8 @@ abstract class WebsocketServer extends BaseServer
             if ($acceptHttpRequest) {
                 $this->webServer->on('request', function (Request $request, Response $response) {
                     try {
-                        if ($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
-                            return $response->end();
+                        if (IgnoreRouteConfig::endIfIgnored($request, $response)) {
+                            return true;
                         }
                         if (self::serveSocketIoTestPage($request, $response)) {
                             return true;

@@ -42,6 +42,7 @@ define('IS_CRON_SERVICE', 0);
 define('IS_SCRIPT_SERVICE', 0);
 define('PHP_BIN_FILE','/usr/bin/php');
 
+// --group= 会追加到服务名，隔离 PID / 管道 / confctl，例如 test-daemon-group_1
 define('WORKER_SERVICE_NAME', makeServerName($_SERVER['argv'][2]));
 
 define('WORKER_START_SCRIPT_FILE', str_contains($_SERVER['SCRIPT_FILENAME'], $_SERVER['PWD']) ? $_SERVER['SCRIPT_FILENAME'] : $_SERVER['PWD'].'/'.$_SERVER['SCRIPT_FILENAME']);

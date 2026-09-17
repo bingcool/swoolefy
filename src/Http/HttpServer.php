@@ -163,8 +163,7 @@ abstract class HttpServer extends BaseServer
          * request
          */
         $this->webServer->on('request', function (Request $request, Response $response) {
-            if (IgnoreRouteConfig::shouldIgnore($request)) {
-                $response->end();
+            if (IgnoreRouteConfig::endIfIgnored($request, $response)) {
                 return true;
             }
 

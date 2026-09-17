@@ -2012,7 +2012,7 @@ class MainManager
     public static function resolveGroupedWorkerConf(array $groupedConf): array
     {
         $groupParam = Helper::getCliParams('group');
-        $groupNames = self::parseGroupNames($groupParam);
+        $groupNames = Helper::parseGroupNames(is_string($groupParam) ? $groupParam : null);
 
         // 为空，那取所有
         if ($groupNames === []) {
@@ -2033,28 +2033,6 @@ class MainManager
         }
 
         return $items;
-    }
-
-    /**
-     * @param $groupParam
-     * @return list<string>
-     */
-    private static function parseGroupNames(?string $groupParam): array
-    {
-        if (!is_string($groupParam) || trim($groupParam) === '') {
-            return [];
-        }
-
-        $names = [];
-        foreach (explode(',', $groupParam) as $name) {
-            $name = trim($name);
-            if ($name === '') {
-                continue;
-            }
-            $names[] = $name;
-        }
-
-        return array_values(array_unique($names));
     }
 
     /**
