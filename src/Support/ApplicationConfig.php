@@ -13,8 +13,6 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support;
 
-use Symfony\Component\Yaml\Yaml;
-
 /**
  * 应用配置入口：application.yaml + APP_PATH/Config/*.php。
  *
@@ -23,6 +21,7 @@ use Symfony\Component\Yaml\Yaml;
  *
  * 注意：加载 workflow.php / neuron_ai.php / job.php 等**不依赖** application.yaml；
  * yaml 仅用于 Nacos 等声明式开关（{@see isEnableNacosRegister()}）。
+ * YAML 由 {@see YamlFileConfig::load()} 解析，支持 `${VAR}` → env('VAR')。
  */
 final class ApplicationConfig
 {
@@ -38,7 +37,7 @@ final class ApplicationConfig
     {
         $appPath = self::resolveAppPath();
         $yamlFile = $appPath . '/application.yaml';
-        $yaml = is_file($yamlFile) ? (array) Yaml::parseFile($yamlFile) : [];
+        $yaml = YamlFileConfig::load($yamlFile);
 
         return new self($appPath, $yamlFile, $yaml);
     }
@@ -147,7 +146,7 @@ final class ApplicationConfig
             return false;
         }
 
-        $yaml = (array) Yaml::parseFile(self::applicationYamlPath());
+        $yaml = YamlFileConfig::load(self::applicationYamlPath());
         $nacos = (array) ($yaml['nacos'] ?? []);
 
         if (!array_key_exists('enable_nacos_register', $nacos)) {

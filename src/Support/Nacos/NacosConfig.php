@@ -15,9 +15,9 @@ namespace Swoolefy\Support\Nacos;
 
 use Swoolefy\Exception\NacosMonitorException;
 use Swoolefy\Support\ApplicationConfig;
+use Swoolefy\Support\YamlFileConfig;
 use Swoolefy\Library\Nacos\Client;
 use Swoolefy\Library\Nacos\ClientConfig;
-use Symfony\Component\Yaml\Yaml;
 
 /**
  * 读取 nacos.yaml（Nacos 服务器连接）
@@ -43,7 +43,7 @@ final class NacosConfig
     public static function load(): self
     {
         $nacosFilePath = self::resolveNacosFilePath();
-        $yaml = is_file($nacosFilePath) ? (array) Yaml::parseFile($nacosFilePath) : [];
+        $yaml = YamlFileConfig::load($nacosFilePath);
         $nacos = (array) ($yaml['nacos'] ?? []);
 
         return new self(
