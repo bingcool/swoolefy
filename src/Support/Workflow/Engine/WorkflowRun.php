@@ -46,6 +46,12 @@ final class WorkflowRun
          * @var list<string>
          */
         public array $executedNodeIds = [],
+        /**
+         * Runtime 快照乐观锁版本；与 CompiledWorkflow::version()（定义版本）无关。
+         *
+         * 新 Run 为 0。每次 CAS 成功后由 Store 写成 expected+1；失败禁止改本字段。
+         */
+        public int $revision = 0,
     ) {
     }
 }

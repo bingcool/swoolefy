@@ -16,6 +16,7 @@ namespace Swoolefy\Support\Workflow\Engine;
 use PDO;
 use PDOException;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
+use Swoolefy\Support\Workflow\Exception\WorkflowRuntimeException;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
 use Throwable;
 
@@ -23,7 +24,7 @@ use Throwable;
  * 关系库 Run 快照存储 —— 生产级跨 Worker 持久化。
  *
  * 能力：
- *   - RunStoreInterface：幂等 UPSERT save / find
+ *   - RunStoreInterface：幂等 UPSERT save / revision CAS / find
  *   - PauseTaskQueryableInterface：按 status + assignee 索引查询 WAITING
  *
  * PDO 可直接注入，或注入 `Closure(): PDO`（Factory 生产路径用后者：
@@ -32,9 +33,11 @@ use Throwable;
  * 高可用要点：
  *   - 使用事务提交快照，避免半写入
  *   - UPSERT 幂等，Worker 重试安全
- *   - 查询列（status / assignee / updated_at）冗余存储，避免扫 JSON
+ *   - 查询列（status / revision / assignee / updated_at）冗余存储，避免扫 JSON
  *   - payload 存完整 {@see WorkflowRunSnapshot}，恢复时从 Registry 取 CompiledWorkflow
  *   - 须预执行 Schema/workflow_runs.sql 建表
+ *   - CAS 用单条 UPDATE … WHERE，禁止 GET→PHP 判断→SET
+ *   - 死锁最多重试 3 次；rowCount=0（条件不匹配）不得重试
  *
  * 支持驱动：mysql / mariadb / sqlite（单测，表由测试侧预装）
  */
@@ -59,13 +62,10 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
     /** {@inheritdoc} */
     public function save(WorkflowRun $run): void
     {
-        $snapshot = WorkflowRunSnapshot::fromRun($run)->toArray();
-        $payload = json_encode($snapshot, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
-        $assignee = $this->resolveAssignee($run);
+        $payload = WorkflowRunSnapshot::encode($run);
         $pdo = $this->connection();
-
-        $driver = (string) $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
-        $sql = $this->upsertSql($driver);
+        $sql = $this->upsertSql((string) $pdo->getAttribute(PDO::ATTR_DRIVER_NAME));
+        $params = $this->writeParams($run, $payload, $run->revision);
 
         $attempts = 0;
         $lastError = null;
@@ -74,17 +74,7 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
             try {
                 $pdo->beginTransaction();
                 $stmt = $pdo->prepare($sql);
-                $stmt->execute([
-                    ':run_id' => $run->runId,
-                    ':workflow_id' => $run->compiled->workflowId(),
-                    ':version' => $run->compiled->version(),
-                    ':status' => $run->status->value,
-                    ':pause_node_id' => $run->pauseNodeId,
-                    ':assignee' => $assignee,
-                    ':payload' => $payload,
-                    ':created_at' => $run->createdAt,
-                    ':updated_at' => $run->updatedAt,
-                ]);
+                $stmt->execute($params);
                 $pdo->commit();
 
                 return;
@@ -93,7 +83,6 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
                     $pdo->rollBack();
                 }
                 $lastError = $e;
-                // 死锁 / 瞬时锁等待：短暂退避后重试
                 if ($attempts < 3 && $this->isRetryable($e)) {
                     usleep(50_000 * $attempts);
                     continue;
@@ -102,42 +91,78 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
             }
         }
 
-        throw new WorkflowException(
+        throw new WorkflowRuntimeException(
             'Failed to persist workflow run [' . $run->runId . ']: ' . ($lastError?->getMessage() ?? 'unknown'),
             0,
             $lastError,
         );
     }
 
+    /** {@inheritdoc} */
+    public function saveIfRevision(WorkflowRun $run, int $expectedRevision): bool
+    {
+        return $this->casUpdate(
+            $run,
+            $expectedRevision + 1,
+            'AND revision = :expected_revision',
+            [':expected_revision' => $expectedRevision],
+            $expectedRevision,
+        );
+    }
+
+    /** {@inheritdoc} */
+    public function saveIfStatusAndRevision(
+        WorkflowRun $run,
+        RunStatus $expectedStatus,
+        int $expectedRevision,
+    ): bool {
+        return $this->casUpdate(
+            $run,
+            $expectedRevision + 1,
+            'AND status = :expected_status AND revision = :expected_revision',
+            [
+                ':expected_status' => $expectedStatus->value,
+                ':expected_revision' => $expectedRevision,
+            ],
+            $expectedRevision,
+        );
+    }
+
     /**
-     * CAS 条件更新 —— resume 并发安全。
+     * CAS 条件更新 —— 仅比对 status。
      *
      * SQL 语义：UPDATE ... WHERE run_id=? AND status=:expected_status
      * rowCount=0 表示已被其他 Worker resume/cancel，返回 false。
-     * 死锁 / 锁等待超时与 {@see save()} 相同，最多重试 3 次。
      *
      * {@inheritdoc}
      */
     public function saveIfStatus(WorkflowRun $run, RunStatus $expectedStatus): bool
     {
-        $snapshot = WorkflowRunSnapshot::fromRun($run)->toArray();
-        $payload = json_encode($snapshot, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
-        $assignee = $this->resolveAssignee($run);
+        return $this->casUpdate(
+            $run,
+            $run->revision,
+            'AND status = :expected_status',
+            [':expected_status' => $expectedStatus->value],
+            null,
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $extraWhereParams
+     */
+    private function casUpdate(
+        WorkflowRun $run,
+        int $persistRevision,
+        string $whereExtra,
+        array $extraWhereParams,
+        ?int $bumpFromRevision,
+    ): bool {
+        $payload = WorkflowRunSnapshot::encode($run, $persistRevision);
         $pdo = $this->connection();
         $driver = (string) $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
-        $sql = $this->updateIfStatusSql($driver);
-
-        $params = [
-            ':run_id' => $run->runId,
-            ':workflow_id' => $run->compiled->workflowId(),
-            ':version' => $run->compiled->version(),
-            ':status' => $run->status->value,
-            ':pause_node_id' => $run->pauseNodeId,
-            ':assignee' => $assignee,
-            ':payload' => $payload,
-            ':updated_at' => $run->updatedAt,
-            ':expected_status' => $expectedStatus->value,
-        ];
+        $sql = $this->updateSql($driver, $whereExtra);
+        $params = $this->writeParams($run, $payload, $persistRevision) + $extraWhereParams;
+        unset($params[':created_at']);
 
         $attempts = 0;
         $lastError = null;
@@ -147,8 +172,15 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute($params);
 
-                // MySQL/InnoDB：status 不匹配时 rowCount=0
-                return $stmt->rowCount() > 0;
+                if ($stmt->rowCount() > 0) {
+                    if ($bumpFromRevision !== null) {
+                        $run->revision = $bumpFromRevision + 1;
+                    }
+
+                    return true;
+                }
+
+                return false;
             } catch (Throwable $e) {
                 $lastError = $e;
                 if ($attempts < 3 && $this->isRetryable($e)) {
@@ -159,21 +191,45 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
             }
         }
 
-        throw new WorkflowException(
+        throw new WorkflowRuntimeException(
             'Failed to CAS persist workflow run [' . $run->runId . ']: ' . ($lastError?->getMessage() ?? 'unknown'),
             0,
             $lastError,
         );
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    private function writeParams(WorkflowRun $run, string $payload, int $revision): array
+    {
+        return [
+            ':run_id' => $run->runId,
+            ':workflow_id' => $run->compiled->workflowId(),
+            ':version' => $run->compiled->version(),
+            ':status' => $run->status->value,
+            ':revision' => $revision,
+            ':pause_node_id' => $run->pauseNodeId,
+            ':assignee' => $this->resolveAssignee($run),
+            ':payload' => $payload,
+            ':created_at' => $run->createdAt,
+            ':updated_at' => $run->updatedAt,
+        ];
+    }
+
     /** {@inheritdoc} */
     public function find(string $runId): ?WorkflowRun
     {
-        $stmt = $this->connection()->prepare(
-            "SELECT payload FROM {$this->table} WHERE run_id = :run_id AND deleted_at IS NULL LIMIT 1",
-        );
-        $stmt->execute([':run_id' => $runId]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        try {
+            $stmt = $this->connection()->prepare(
+                "SELECT payload FROM {$this->table} WHERE run_id = :run_id AND deleted_at IS NULL LIMIT 1",
+            );
+            $stmt->execute([':run_id' => $runId]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (Throwable $e) {
+            throw new WorkflowRuntimeException("Failed to load workflow run [{$runId}]: " . $e->getMessage(), 0, $e);
+        }
+
         if (!is_array($row) || !isset($row['payload']) || !is_string($row['payload']) || $row['payload'] === '') {
             return null;
         }
@@ -181,7 +237,7 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
         try {
             $payload = json_decode($row['payload'], true, 512, JSON_THROW_ON_ERROR);
         } catch (Throwable $e) {
-            throw new WorkflowException("Corrupt workflow run payload [{$runId}]", 0, $e);
+            throw new WorkflowRuntimeException("Corrupt workflow run payload [{$runId}]", 0, $e);
         }
 
         if (!is_array($payload)) {
@@ -272,8 +328,8 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
     private function upsertSql(string $driver): string
     {
         $table = $this->table;
-        $columns = 'run_id, workflow_id, version, status, pause_node_id, assignee, payload, created_at, updated_at, deleted_at';
-        $values = ':run_id, :workflow_id, :version, :status, :pause_node_id, :assignee, :payload, :created_at, :updated_at, NULL';
+        $columns = 'run_id, workflow_id, version, status, revision, pause_node_id, assignee, payload, created_at, updated_at, deleted_at';
+        $values = ':run_id, :workflow_id, :version, :status, :revision, :pause_node_id, :assignee, :payload, :created_at, :updated_at, NULL';
 
         if ($driver === 'sqlite') {
             return "INSERT INTO {$table} ({$columns}) VALUES ({$values})
@@ -281,6 +337,7 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
                     workflow_id = excluded.workflow_id,
                     version = excluded.version,
                     status = excluded.status,
+                    revision = excluded.revision,
                     pause_node_id = excluded.pause_node_id,
                     assignee = excluded.assignee,
                     payload = excluded.payload,
@@ -288,12 +345,12 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
                     deleted_at = NULL";
         }
 
-        // MySQL / MariaDB
         return "INSERT INTO {$table} ({$columns}) VALUES ({$values})
             ON DUPLICATE KEY UPDATE
                 workflow_id = VALUES(workflow_id),
                 version = VALUES(version),
                 status = VALUES(status),
+                revision = VALUES(revision),
                 pause_node_id = VALUES(pause_node_id),
                 assignee = VALUES(assignee),
                 payload = VALUES(payload),
@@ -301,33 +358,25 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
                 deleted_at = NULL";
     }
 
-    private function updateIfStatusSql(string $driver): string
+    private function updateSql(string $driver, string $whereExtra): string
     {
         $table = $this->table;
-
-        if ($driver === 'sqlite') {
-            return "UPDATE {$table} SET
-                workflow_id = :workflow_id,
+        $set = 'workflow_id = :workflow_id,
                 version = :version,
                 status = :status,
+                revision = :revision,
                 pause_node_id = :pause_node_id,
                 assignee = :assignee,
                 payload = :payload,
                 updated_at = :updated_at,
-                deleted_at = NULL
-                WHERE run_id = :run_id AND status = :expected_status AND deleted_at IS NULL";
+                deleted_at = NULL';
+        $where = "run_id = :run_id {$whereExtra} AND deleted_at IS NULL";
+
+        if ($driver === 'sqlite') {
+            return "UPDATE {$table} SET {$set} WHERE {$where}";
         }
 
-        return "UPDATE `{$table}` SET
-            workflow_id = :workflow_id,
-            version = :version,
-            status = :status,
-            pause_node_id = :pause_node_id,
-            assignee = :assignee,
-            payload = :payload,
-            updated_at = :updated_at,
-            deleted_at = NULL
-            WHERE run_id = :run_id AND status = :expected_status AND deleted_at IS NULL";
+        return "UPDATE `{$table}` SET {$set} WHERE {$where}";
     }
 
     private function isRetryable(Throwable $e): bool
@@ -345,7 +394,6 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
 
         $code = (string) $e->getCode();
 
-        // MySQL deadlock / lock wait
         return in_array($code, ['40001', '1213', '1205'], true);
     }
 }

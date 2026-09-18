@@ -25,6 +25,7 @@ use PDO;
  * | 约束 | 仅支持 SQLite；表名须符合标识符规则 |
  *
  * 生产环境须预执行 `Schema/workflow_runs.sql`，本类仅供单元/集成测试快速建表。
+ * 表结构含 `revision`（Runtime CAS 版本，DEFAULT 0）。
  */
 final class WorkflowRunsSchemaInstaller
 {
@@ -32,7 +33,7 @@ final class WorkflowRunsSchemaInstaller
      * 在给定 PDO（须为 SQLite）上创建 workflow_runs 表及查询索引。
      *
      * 验证目的：DbRunStore 相关用例无需依赖外部数据库迁移即可在内存库中运行。
-     * 表结构对齐生产 schema：run_id、workflow_id、status、pause_node_id、assignee、payload 等。
+     * 表结构对齐生产 schema：run_id、workflow_id、status、revision、pause_node_id、assignee、payload 等。
      *
      * @param PDO $pdo SQLite 连接（通常为 `sqlite::memory:`）
      * @param string $table 表名，默认 `workflow_runs`
@@ -55,6 +56,7 @@ final class WorkflowRunsSchemaInstaller
                 workflow_id TEXT NOT NULL,
                 version TEXT NOT NULL DEFAULT '1.0.0',
                 status TEXT NOT NULL,
+                revision INTEGER NOT NULL DEFAULT 0,
                 pause_node_id TEXT NULL,
                 assignee TEXT NULL,
                 payload TEXT NOT NULL,

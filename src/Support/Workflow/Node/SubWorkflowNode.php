@@ -18,6 +18,7 @@ use Swoolefy\Support\Workflow\Engine\RunContext;
 use Swoolefy\Support\Workflow\Engine\RunStatus;
 use Swoolefy\Support\Workflow\Engine\SubWorkflowRunner;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
+use Swoolefy\Support\Workflow\Exception\WorkflowRuntimeException;
 use Swoolefy\Support\Workflow\State\WorkflowState;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
 use Throwable;
@@ -70,6 +71,8 @@ final class SubWorkflowNode extends AbstractNode
 
         try {
             $subRunId = $this->runner->run($compiled, $input);
+        } catch (WorkflowRuntimeException $e) {
+            throw $e;
         } catch (Throwable $e) {
             return NodeExecutionResult::failed(
                 $e instanceof WorkflowException

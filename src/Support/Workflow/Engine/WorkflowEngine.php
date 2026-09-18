@@ -15,6 +15,8 @@ namespace Swoolefy\Support\Workflow\Engine;
 
 use Swoolefy\Support\Workflow\Definition\CompiledWorkflow;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
+use Swoolefy\Support\Workflow\Exception\WorkflowRuntimeConflictException;
+use Swoolefy\Support\Workflow\Exception\WorkflowRuntimeException;
 use Swoolefy\Support\Workflow\Node\AbstractNode;
 use Swoolefy\Support\Workflow\Node\ConfigurableTimeoutNodeInterface;
 use Swoolefy\Support\Workflow\Node\NodeInterface;
@@ -32,6 +34,10 @@ use Throwable;
  *   4. WAITING → 持久化快照并停止（HITL / PauseNode）
  *   5. FAILED → 标记 Run 失败并抛异常；若 metadata.saga=true 则逆序 compensate（Phase 4）
  *   6. RETRY → {@see executeNode()} 内退避重试
+ *
+ * 持久化：新建 Run 用 save()；之后 Runtime mutation 走 saveIfRevision，
+ * 状态迁移走 saveIfStatusAndRevision。CAS 失败抛 WorkflowRuntimeConflictException，
+ * 立即 Abort：不 Node FAILED、不 Saga、不 stale save。
  *
  * 横切能力（指标、追踪、重试元数据）走 {@see PluginManager}，不走 EventBus。
  * EventBus 仅用于对外 SSE/WebSocket 广播。
@@ -70,13 +76,10 @@ final class WorkflowEngine
      */
     public function start(CompiledWorkflow $compiled, array $input): string
     {
-        // 生成全局唯一 runId，格式 run_YYYYMMDD_{16位hex}
         $runId = WorkflowRunTime::generateRunId();
-        // 按编译期 schema 校验并规范化初始输入，写入 WorkflowState.data
         $state = WorkflowState::fromInput($input, $compiled->schemas());
         $now = WorkflowRunTime::now();
 
-        // 新建 Run 快照，初始状态 RUNNING（尚未执行任何节点）
         $run = new WorkflowRun(
             runId: $runId,
             compiled: $compiled,
@@ -86,37 +89,32 @@ final class WorkflowEngine
             updatedAt: $now,
         );
 
-        // run.start 成功后即占用插件资源（如 RateLimit 槽位）；须保证失败路径释放
         $runStartAcquired = false;
         $runCompleteFired = false;
         try {
-            // 通知插件 Run 开始（Metrics / Tracing / RateLimit 等可在此记录起点）
             $this->plugins->fireRunStart($run, $input);
             $runStartAcquired = true;
-            // 首次落库，便于外部通过 runId 观测到「已创建」状态
+            // 首次落库 revision=0，是唯一允许的无条件 save()
             $this->runStore->save($run);
 
             try {
-                // 单入口：Compiler 保证 entryNodes 恰好一个
                 $entry = $compiled->entryNodes()[0];
                 $this->executeFromNode($run, $entry);
+            } catch (WorkflowRuntimeException $e) {
+                throw $e;
             } catch (Throwable $e) {
-                // 节点异常 / Saga 补偿失败等：统一标记 FAILED 并释放 Plugin 槽位
                 $this->handleRunFailure($run, $e);
                 $runCompleteFired = true;
                 throw $e;
             }
 
-            // executeFromNode 正常跑完 DAG 后 status 仍为 RUNNING，此处转为终态 COMPLETED
-            // 若中途进入 WAITING（HITL）或 FAILED / CANCELLED，则跳过此分支
             if ($run->status === RunStatus::RUNNING) {
                 $run->status = RunStatus::COMPLETED;
                 $run->currentNodeId = null;
                 $run->updatedAt = WorkflowRunTime::now();
-                $this->runStore->save($run);
+                $this->persistTransition($run, RunStatus::RUNNING);
             }
 
-            // WAITING 表示 Run 尚未结束，需等待 resume；此时不触发 run.complete，与 resume() 行为对齐
             if ($run->status !== RunStatus::WAITING) {
                 $this->plugins->fireRunComplete($run);
                 $runCompleteFired = true;
@@ -124,8 +122,8 @@ final class WorkflowEngine
 
             return $runId;
         } catch (Throwable $e) {
-            // save() 失败等：run.start 已占用资源但尚未 fireRunComplete
-            if ($runStartAcquired && !$runCompleteFired && $run->status !== RunStatus::WAITING) {
+            // Runtime Abort 也要释放 RateLimit 槽位；WAITING 成功持久化走正常 return，不会进这里
+            if ($runStartAcquired && !$runCompleteFired) {
                 $this->plugins->fireRunComplete($run);
             }
 
@@ -136,13 +134,6 @@ final class WorkflowEngine
     /**
      * 恢复处于 WAITING 状态的 Run（HITL 人工审批后继续）。
      *
-     * 流程：
-     *   1. 校验 Run 处于 WAITING 且 pauseNodeId 非空
-     *   2. 合并 feedback 到 state.data
-     *   3. CAS：saveIfStatus(WAITING) — 防并发 double-resume；CAS 前清空 pauseNodeId 并落库
-     *   4. 调用 PauseNode::resume + 重新求值条件边
-     *   5. 从下一节点继续 executeFromNode
-     *
      * @param array<string, mixed> $feedback 审批结果，如 ['approved' => true, 'reason' => 'ok']
      *
      * @throws WorkflowException Run 非 WAITING 或 CAS 失败
@@ -151,31 +142,20 @@ final class WorkflowEngine
     {
         $run = $this->requireRun($runId);
 
-        // 内存态校验：只有 WAITING 且记录了暂停节点才允许 resume
         if ($run->status !== RunStatus::WAITING || $run->pauseNodeId === null) {
             throw new WorkflowException("Run {$runId} is not waiting for resume");
         }
 
-        // 先保存 pauseNodeId 到局部变量：后续清空 run.pauseNodeId 后仍需要用它做路由
         $pauseNodeId = $run->pauseNodeId;
-        // 审批结果写入 state，条件边可读取 data.feedback.approved 等字段
         $run->state->mergeData(['feedback' => $feedback]);
         $run->status = RunStatus::RUNNING;
-        // CAS 前清空 pauseNodeId：若 CAS 成功后进程崩溃，持久化层不会仍显示「运行中且暂停中」
         $run->pauseNodeId = null;
         $run->updatedAt = WorkflowRunTime::now();
 
-        // CAS：仅当 DB/Redis 中 status 仍为 WAITING 时才写入 RUNNING
-        // 与 cancel(WAITING) 互斥，防止两个 Worker 同时 resume 同一 Run
-        if (!$this->runStore->saveIfStatus($run, RunStatus::WAITING)) {
-            throw new WorkflowException(
-                "Run {$runId} is not waiting for resume (already resumed or cancelled?)",
-            );
-        }
+        $this->persistTransition($run, RunStatus::WAITING);
 
         $this->plugins->fireResume($run, $feedback);
 
-        // 调用 PauseNode / SubWorkflowNode 的 resume 钩子，允许节点根据 feedback 修改 state
         $pauseNode = $run->compiled->node($pauseNodeId);
         try {
             if ($pauseNode instanceof AbstractNode) {
@@ -183,23 +163,20 @@ final class WorkflowEngine
                 $pauseNode->resume($ctx, $run->state, $feedback);
             }
         } catch (Throwable $e) {
-            // 子流程仍 WAITING 等：回滚为 WAITING，避免父 Run 卡在 RUNNING 且 pauseNodeId 已清空
+            // CAS RUNNING rev N → WAITING rev N+1；失败则 Conflict，禁止无条件 save()
             $run->status = RunStatus::WAITING;
             $run->pauseNodeId = $pauseNodeId;
             $run->updatedAt = WorkflowRunTime::now();
-            $this->runStore->save($run);
+            $this->persistTransition($run, RunStatus::RUNNING);
             throw $e;
         }
 
-        // 基于更新后的 state 重新求值暂停节点的出边（条件边 / 默认边）
         $next = $this->scheduler->resolveNextNode($run->compiled, $pauseNodeId, $run->state);
-        // 持久化 resume 后的 state（含 feedback、PauseNode 副作用）
-        $this->runStore->save($run);
+        $this->persistMutation($run);
 
-        // 暂停节点之后无后继：直接完成（例如审批拒绝且无后续分支）
         if ($next === null) {
             $run->status = RunStatus::COMPLETED;
-            $this->runStore->save($run);
+            $this->persistTransition($run, RunStatus::RUNNING);
             $this->plugins->fireRunComplete($run);
 
             return;
@@ -207,20 +184,23 @@ final class WorkflowEngine
 
         try {
             $this->executeFromNode($run, $next);
+        } catch (WorkflowRuntimeException $e) {
+            if ($run->status !== RunStatus::WAITING) {
+                $this->plugins->fireRunComplete($run);
+            }
+            throw $e;
         } catch (Throwable $e) {
             $this->handleRunFailure($run, $e);
             throw $e;
         }
 
-        // 与 start() 相同：正常跑完 DAG 后 RUNNING → COMPLETED
         if ($run->status === RunStatus::RUNNING) {
             $run->status = RunStatus::COMPLETED;
             $run->currentNodeId = null;
             $run->updatedAt = WorkflowRunTime::now();
-            $this->runStore->save($run);
+            $this->persistTransition($run, RunStatus::RUNNING);
         }
 
-        // 与 start() 对齐：resume 后再次进入 WAITING 时不触发 run.complete
         if ($run->status !== RunStatus::WAITING) {
             $this->plugins->fireRunComplete($run);
         }
@@ -229,9 +209,8 @@ final class WorkflowEngine
     /**
      * 取消运行。
      *
-     * WAITING：CAS saveIfStatus(WAITING) → CANCELLED，与 resume 竞态互斥；立即 fireRunComplete。
-     * RUNNING：协作式取消 —— 写入 _cancelRequested，并立即 fireRunComplete 释放 RateLimit 等槽位；
-     *          executeFromNode 在节点间隙检测后转为 CANCELLED（若已提前 complete 则不再重复触发）。
+     * WAITING：CAS status+revision → CANCELLED，与 resume 竞态互斥。
+     * RUNNING：协作式取消，_cancelRequested 与 CAS 同一次写入。
      *
      * @throws WorkflowException 终态不可取消，或 CAS 失败（并发 resume/cancel）
      */
@@ -239,7 +218,6 @@ final class WorkflowEngine
     {
         $run = $this->requireRun($runId);
 
-        // 终态 Run 不可再取消，避免覆盖历史结果
         if (in_array($run->status, [
             RunStatus::COMPLETED,
             RunStatus::FAILED,
@@ -255,39 +233,26 @@ final class WorkflowEngine
         $run->updatedAt = WorkflowRunTime::now();
 
         if ($run->status === RunStatus::WAITING) {
-            // HITL 暂停中：CAS 原子改为 CANCELLED，与 resume 的 CAS(WAITING→RUNNING) 互斥
+            $from = $run->status;
             $run->status = RunStatus::CANCELLED;
-            if (!$this->runStore->saveIfStatus($run, RunStatus::WAITING)) {
-                throw new WorkflowException(
-                    "Run {$runId} cancel failed (status changed concurrently)",
-                );
-            }
-
-            // WAITING Run 在 start/resume 时不会触发 run.complete；取消后进入终态，必须释放插件资源。
+            $this->persistTransition($run, $from);
             $this->plugins->fireRunComplete($run);
 
             return;
         }
 
         if ($run->status === RunStatus::RUNNING) {
-            // 无法立即打断当前节点 IO；写入协作式取消标志，并立即释放 RateLimit 槽位
             $run->state->set('_cancelRequested', true);
             $run->state->set('_runCompleteFired', true);
-            // CAS 确保 Run 仍处于 RUNNING，防止与 resume 或其他 cancel 竞态
-            if (!$this->runStore->saveIfStatus($run, RunStatus::RUNNING)) {
-                throw new WorkflowException(
-                    "Run {$runId} cancel failed (status changed concurrently)",
-                );
-            }
-
+            $this->persistTransition($run, RunStatus::RUNNING);
             $this->plugins->fireRunComplete($run);
 
             return;
         }
 
-        // 兜底：其他非终态直接标记 CANCELLED
+        $from = $run->status;
         $run->status = RunStatus::CANCELLED;
-        $this->runStore->save($run);
+        $this->persistTransition($run, $from);
     }
 
     /** 按 runId 获取运行实例，不存在抛 WorkflowException。 */
@@ -314,14 +279,12 @@ final class WorkflowEngine
      */
     public function listPauseTasks(?string $assignee = null): array
     {
-        // 仅支持可查询 WAITING 列表的存储后端（DbRunStore / RedisRunStore / InMemoryRunStore）
         if (!$this->runStore instanceof PauseTaskQueryableInterface) {
             return [];
         }
 
         $tasks = [];
         foreach ($this->runStore->listWaiting($assignee) as $run) {
-            // 任务详情来自 PauseNode 执行时写入的 nodeOutputs[pauseNodeId]
             $pauseOutput = $run->state->outputOf((string) $run->pauseNodeId) ?? [];
             $tasks[] = [
                 'runId' => $run->runId,
@@ -339,15 +302,12 @@ final class WorkflowEngine
 
     /**
      * 从指定节点沿 DAG 顺序执行，直到无下一跳、WAITING 或 FAILED。
-     * 每个节点执行后保存 Run 快照（便于观测与后续 Redis 持久化）。
      */
     private function executeFromNode(WorkflowRun $run, string $nodeId): void
     {
         $current = $nodeId;
 
-        // 线性遍历 DAG：每次 SUCCESS 后 resolveNextNode 决定下一跳
         while ($current !== null) {
-            // 节点间隙检测取消请求（支持跨 Worker 协作式 cancel）
             if ($this->applyCancellationIfRequested($run)) {
                 return;
             }
@@ -357,27 +317,24 @@ final class WorkflowEngine
                 throw new WorkflowException("Node {$current} not found in compiled workflow");
             }
 
-            // 节点执行前先落库 currentNodeId，便于外部观测「正在执行哪个节点」
             $run->currentNodeId = $current;
             $run->updatedAt = WorkflowRunTime::now();
-            $this->runStore->save($run);
+            $this->persistMutation($run);
 
             $result = $this->executeNode($run, $node);
 
             if ($result->status === NodeStatus::WAITING) {
-                // HITL / PauseNode：持久化输出并进入 WAITING，等待 resume
                 $this->persistNodeOutput($run->state, $current, $result);
                 $run->status = RunStatus::WAITING;
                 $run->pauseNodeId = $current;
                 $run->updatedAt = WorkflowRunTime::now();
-                $this->runStore->save($run);
+                $this->persistTransition($run, RunStatus::RUNNING);
                 $this->plugins->firePause($run, $node);
 
                 return;
             }
 
             if ($result->status === NodeStatus::FAILED) {
-                // 节点失败：可选 Saga 补偿，然后抛异常中断 executeFromNode
                 $this->handleNodeFailure($run, $current, $result);
 
                 return;
@@ -387,17 +344,14 @@ final class WorkflowEngine
                 throw new WorkflowException("Unexpected node status {$result->status->value}");
             }
 
-            // SUCCESS：合并输出到 state，发布 SSE 事件，记录 Saga 已成功节点
             $this->persistNodeOutput($run->state, $current, $result);
             $this->publishResultEvents($run, $current, $result);
             $run->executedNodeIds[] = $current;
 
-            // 根据条件边 / 默认边解析下一节点；null 表示 DAG 结束
             $current = $this->scheduler->resolveNextNode($run->compiled, $current, $run->state);
 
             if ($current !== null) {
                 $run->lastRoutedEdge = $current;
-                // 对外广播路由事件，前端可展示「从 A 到 B」
                 $this->events->publish('edge.route', [
                     'runId' => $run->runId,
                     'from' => $run->currentNodeId,
@@ -412,16 +366,13 @@ final class WorkflowEngine
      */
     private function executeNode(WorkflowRun $run, NodeInterface $node): NodeExecutionResult
     {
-        // 解析本节点超时：节点级配置 > 引擎 defaultNodeTimeoutSeconds
         $timeout = $this->resolveNodeTimeout($node);
 
         return $this->retryExecutor->execute(
             $node,
-            // nodeTimeoutSeconds 传入 RunContext，供 AgentParallelNode 等内部调度与引擎超时对齐
             new RunContext($run->runId, $run->compiled, 1, [], $timeout),
             $run->state,
             function (NodeInterface $node, RunContext $ctx, WorkflowState $state) use ($timeout): NodeExecutionResult {
-                // TimeoutGuard 在 Swoole 协程内用 Channel 超时；CLI 非协程环境不强制超时
                 return TimeoutGuard::run(
                     fn (): NodeExecutionResult => $this->executeNodeOnce($node, $ctx, $state),
                     $timeout,
@@ -431,7 +382,7 @@ final class WorkflowEngine
         );
     }
 
-    /** 单次节点执行（不含重试循环）。 */
+    /** 单次节点执行（不含重试循环）。Runtime 异常在转为 FAILED / fireNodeFail 之前抛出。 */
     private function executeNodeOnce(NodeInterface $node, RunContext $ctx, WorkflowState $state): NodeExecutionResult
     {
         $this->plugins->fireNodeBefore($ctx, $node, $state);
@@ -439,18 +390,17 @@ final class WorkflowEngine
 
         try {
             if ($node instanceof AbstractNode) {
-                // 推荐路径：AbstractNode::run() 内部统一 beforeExecute → execute → afterExecute
                 $result = $node->run($ctx, $state);
             } else {
-                // 兼容直接实现 NodeInterface 的自定义节点
                 $node->beforeExecute($ctx, $state);
                 $result = $node->execute($ctx, $state);
                 if ($result->status === NodeStatus::SUCCESS) {
                     $node->afterExecute($ctx, $state, $result);
                 }
             }
+        } catch (WorkflowRuntimeException $e) {
+            throw $e;
         } catch (Throwable $e) {
-            // 未捕获异常统一转为 FAILED 结果，由上层 handleNodeFailure 处理
             $result = NodeExecutionResult::failed($e);
         }
 
@@ -475,7 +425,6 @@ final class WorkflowEngine
     {
         if ($node instanceof ConfigurableTimeoutNodeInterface) {
             $timeout = $node->configuredTimeoutSeconds();
-            // 返回 0 表示节点未单独配置，回退引擎全局默认
             if ($timeout > 0) {
                 return (float) $timeout;
             }
@@ -486,14 +435,11 @@ final class WorkflowEngine
 
     /**
      * 持久化节点输出：写入 nodeOutputs[nodeId]，并将关联数组键合并进 data。
-     * 使 AINode 输出可被条件边表达式读取，如 data['decision']['approved']。
      */
     private function persistNodeOutput(WorkflowState $state, string $nodeId, NodeExecutionResult $result): void
     {
-        // 完整输出保留在 nodeOutputs，供 listPauseTasks / 调试回溯
         $state->setNodeOutput($nodeId, $result->output);
 
-        // 将 output 的顶层 string key 扁平合并到 data，方便条件边直接引用
         if (is_array($result->output)) {
             foreach ($result->output as $key => $value) {
                 if (is_string($key)) {
@@ -523,36 +469,73 @@ final class WorkflowEngine
     }
 
     /**
+     * 同 status 下的 Runtime mutation：saveIfRevision(N)。
+     */
+    private function persistMutation(WorkflowRun $run): void
+    {
+        $expected = $run->revision;
+        if (!$this->runStore->saveIfRevision($run, $expected)) {
+            throw $this->conflict($run, $expected);
+        }
+    }
+
+    /**
+     * 状态迁移：saveIfStatusAndRevision(expectedStatus, N)，禁止拆成两次 CAS。
+     */
+    private function persistTransition(WorkflowRun $run, RunStatus $expectedStatus): void
+    {
+        $expected = $run->revision;
+        if (!$this->runStore->saveIfStatusAndRevision($run, $expectedStatus, $expected)) {
+            throw $this->conflict($run, $expected);
+        }
+    }
+
+    private function conflict(WorkflowRun $run, int $expectedRevision): WorkflowRuntimeConflictException
+    {
+        return new WorkflowRuntimeConflictException(
+            $run->runId,
+            $run->compiled->workflowId(),
+            $expectedRevision,
+            $run->compiled->version(),
+        );
+    }
+
+    /**
      * 节点 FAILED 处理：写 error，可选触发 Saga 补偿后抛 WorkflowException。
      *
-     * Saga 路径：runCompensation → COMPENSATED；非 Saga：FAILED。
+     * Runtime 异常不得进入本方法（executeNodeOnce 已上抛）。
      */
     private function handleNodeFailure(WorkflowRun $run, string $nodeId, NodeExecutionResult $result): void
     {
+        if ($result->error instanceof WorkflowRuntimeException) {
+            throw $result->error;
+        }
+
         $message = $result->error?->getMessage() ?? 'Node failed';
         $run->error = "Node {$nodeId} failed: {$message}";
         $run->updatedAt = WorkflowRunTime::now();
 
         if ($this->isSagaEnabled($run)) {
-            // Saga 模式：逆序 compensate 已成功节点，最终状态 COMPENSATED 或补偿失败 FAILED
             $this->runCompensation($run);
         } else {
             $run->status = RunStatus::FAILED;
-            $this->runStore->save($run);
+            $this->persistTransition($run, RunStatus::RUNNING);
         }
 
-        // 抛异常中断 executeFromNode，由 start/resume 外层 catch 进入 handleRunFailure
         throw new WorkflowException($run->error);
     }
 
     /**
      * start/resume 外层 catch：更新 Run 状态并 fireRunComplete 释放 Plugin 槽位。
      *
-     * 注意：COMPENSATED / COMPENSATING / WAITING 不被覆盖为 FAILED。
+     * Runtime 不得进入；COMPENSATED / COMPENSATING / WAITING / CANCELLED 不被覆盖为 FAILED。
      */
     private function handleRunFailure(WorkflowRun $run, Throwable $e): void
     {
-        // Saga 补偿完成 / 进行中、HITL 暂停、已取消：保留原 status，不强制改 FAILED
+        if ($e instanceof WorkflowRuntimeException) {
+            throw $e;
+        }
+
         if (!in_array($run->status, [RunStatus::COMPENSATED, RunStatus::COMPENSATING, RunStatus::WAITING, RunStatus::CANCELLED], true)) {
             $run->status = RunStatus::FAILED;
         }
@@ -560,35 +543,35 @@ final class WorkflowEngine
             $run->error = $e->getMessage();
         }
         $run->updatedAt = WorkflowRunTime::now();
-        $this->runStore->save($run);
-        // 失败也触发 run.complete，确保 Plugin 释放资源（与成功路径对称）
-        $this->plugins->fireRunComplete($run);
+        try {
+            $this->persistMutation($run);
+        } finally {
+            $this->plugins->fireRunComplete($run);
+        }
     }
 
     /**
-     * 执行 Saga 逆序补偿，结果写入 state.compensatedNodes。
-     *
-     * 成功 → RunStatus::COMPENSATED；补偿异常 → FAILED 并追加 error。
+     * 执行 Saga 逆序补偿。CAS 失败则 Runtime Abort，不要再 Saga 一遍。
      */
     private function runCompensation(WorkflowRun $run): void
     {
-        // 先标记 COMPENSATING 并落库，便于观测补偿进行中
+        $from = $run->status;
         $run->status = RunStatus::COMPENSATING;
-        $this->runStore->save($run);
+        $this->persistTransition($run, $from);
 
         try {
-            // 按 executedNodeIds 逆序调用各节点的 compensate 钩子
             $sagaResult = $this->sagaCoordinator->compensate($run, $run->executedNodeIds);
             $run->state->set('compensatedNodes', $sagaResult->compensatedNodeIds);
             $run->status = RunStatus::COMPENSATED;
+        } catch (WorkflowRuntimeException $e) {
+            throw $e;
         } catch (Throwable $e) {
-            // 补偿本身失败：Run 终态 FAILED，error 追加补偿异常信息
             $run->status = RunStatus::FAILED;
             $run->error = ($run->error ?? '') . ' | compensation: ' . $e->getMessage();
         }
 
         $run->updatedAt = WorkflowRunTime::now();
-        $this->runStore->save($run);
+        $this->persistTransition($run, RunStatus::COMPENSATING);
     }
 
     /** 是否启用 Saga：Definition.metadata.saga = true 且已有成功节点。 */
@@ -596,7 +579,6 @@ final class WorkflowEngine
     {
         $meta = $run->compiled->metadata();
 
-        // 无已成功节点时无需补偿（例如入口节点即失败）
         return filter_var($meta['saga'] ?? false, FILTER_VALIDATE_BOOLEAN)
             && $run->executedNodeIds !== [];
     }
@@ -604,33 +586,37 @@ final class WorkflowEngine
     /**
      * 检测持久化层的取消请求（协作式 cancel）。
      *
-     * 从 RunStore 重新读取，支持跨 Worker cancel RUNNING 中的 Run。
+     * 已是 CANCELLED：只对齐内存，禁止 save 旧对象。
+     * _cancelRequested：基于 fresh.revision 写成 CANCELLED。
      */
     private function applyCancellationIfRequested(WorkflowRun $run): bool
     {
-        // 每次节点开始前从存储层读取最新快照，而非仅依赖内存态
         $fresh = $this->runStore->find($run->runId);
         if ($fresh === null) {
             return false;
         }
 
-        // 其他 Worker 已将 WAITING Run CAS 为 CANCELLED
         if ($fresh->status === RunStatus::CANCELLED) {
             $run->status = RunStatus::CANCELLED;
+            $run->revision = $fresh->revision;
             $run->updatedAt = WorkflowRunTime::now();
-            $this->runStore->save($run);
             $this->plugins->fireRunComplete($run);
 
             return true;
         }
 
-        // 本 Worker 或其他 Worker 写入了 _cancelRequested 协作式取消标志
         if ($fresh->state->get('_cancelRequested', false)) {
+            $completeAlreadyFired = (bool) $fresh->state->get('_runCompleteFired', false);
+            $expectedRevision = $fresh->revision;
+            $fresh->status = RunStatus::CANCELLED;
+            $fresh->updatedAt = WorkflowRunTime::now();
+            if (!$this->runStore->saveIfStatusAndRevision($fresh, RunStatus::RUNNING, $expectedRevision)) {
+                throw $this->conflict($fresh, $expectedRevision);
+            }
             $run->status = RunStatus::CANCELLED;
-            $run->updatedAt = WorkflowRunTime::now();
-            $this->runStore->save($run);
-            // cancel(RUNNING) 可能已提前 fireRunComplete 释放槽位，避免 Metrics/Tracing 双计
-            if (!$fresh->state->get('_runCompleteFired', false)) {
+            $run->revision = $fresh->revision;
+            $run->updatedAt = $fresh->updatedAt;
+            if (!$completeAlreadyFired) {
                 $this->plugins->fireRunComplete($run);
             }
 

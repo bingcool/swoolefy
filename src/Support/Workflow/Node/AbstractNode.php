@@ -17,6 +17,7 @@ use Swoolefy\Support\Workflow\Engine\NodeExecutionResult;
 use Swoolefy\Support\Workflow\Engine\NodeStatus;
 use Swoolefy\Support\Workflow\Engine\RunContext;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
+use Swoolefy\Support\Workflow\Exception\WorkflowRuntimeException;
 use Swoolefy\Support\Workflow\State\WorkflowState;
 use Throwable;
 
@@ -70,6 +71,8 @@ abstract class AbstractNode implements NodeInterface
             }
 
             return $result;
+        } catch (WorkflowRuntimeException $e) {
+            throw $e;
         } catch (WorkflowException $e) {
             $this->onFail($ctx, $state, $e);
             throw $e;

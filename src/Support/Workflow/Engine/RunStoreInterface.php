@@ -16,21 +16,39 @@ namespace Swoolefy\Support\Workflow\Engine;
 /**
  * Run 快照存储接口。
  *
- * saveIfStatus 用于 HITL resume 的 CAS（Compare-And-Swap）：
- * 仅当持久化层记录的 status 仍为 expectedStatus 时才写入，
- * 防止并发 resume 或 cancel 导致状态覆盖。
+ * saveIfStatus 仅比 status，保留给 HITL / Redis CAS 单测。
+ * Engine 业务路径的状态迁移必须走 saveIfStatusAndRevision，避免
+ * 「status 相同、字段已被别人改」的丢失更新。
+ *
+ * 返回值：true=CAS 成功；false=条件不匹配（conflict）。
+ * Redis 超时、连接失败、Lua 失败、JSON 损坏必须抛异常，不得 return false。
  */
 interface RunStoreInterface
 {
-    /** 保存或更新 Run 快照（无条件覆盖）。 */
+    /** 保存或更新 Run 快照（无条件覆盖）。仅用于新建 Run。 */
     public function save(WorkflowRun $run): void;
 
     /**
-     * 条件写入 —— resume 并发安全的核心。
+     * 仅当持久化 revision == $expectedRevision 时写入。
+     * 成功后持久化 revision 为 expected+1，并更新 $run->revision。
+     */
+    public function saveIfRevision(WorkflowRun $run, int $expectedRevision): bool;
+
+    /**
+     * 仅当持久化 status == $expectedStatus 且 revision == $expectedRevision 时写入。
+     * 禁止拆成 saveIfStatus + saveIfRevision 两次调用。
+     * 成功后持久化 revision 为 expected+1，并更新 $run->revision。
+     */
+    public function saveIfStatusAndRevision(
+        WorkflowRun $run,
+        RunStatus $expectedStatus,
+        int $expectedRevision,
+    ): bool;
+
+    /**
+     * 条件写入 —— 仅比对 status（不比对 revision）。
      *
-     * 典型用法：WorkflowEngine::resume() 在将 status 改为 RUNNING 后，
-     * 调用 saveIfStatus($run, RunStatus::WAITING)；若返回 false 说明
-     * 其他 Worker 已 resume/cancel，当前请求应失败。
+     * 典型用法：历史 HITL 测试。Engine 新路径不要再用本方法做状态迁移。
      *
      * @return bool true=写入成功；false=expectedStatus 不匹配或 Run 不存在
      */

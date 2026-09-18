@@ -24,7 +24,8 @@ use Swoolefy\Support\Workflow\WorkflowRegistry;
  * 从 {@see WorkflowRegistry} 重新 compile，保证拓扑与注册表一致。
  *
  * 关键字段：
- *   - workflowId / version — 多版本 Registry 索引键
+ *   - workflowId / version — 多版本 Registry 索引键（定义版本，禁止当 snapshot revision）
+ *   - revision — Runtime 快照乐观锁版本；旧 payload 缺字段视为 0
  *   - status / pauseNodeId — HITL resume CAS 依据
  *   - state — WorkflowState 完整数组
  *   - executedNodeIds — Saga 补偿逆序依据
@@ -50,6 +51,8 @@ final class WorkflowRunSnapshot
         public readonly ?string $error = null,
         public readonly ?string $lastRoutedEdge = null,
         public readonly array $executedNodeIds = [],
+        /** Runtime 快照 CAS 版本；与 version（定义版本）无关。 */
+        public readonly int $revision = 0,
     ) {
     }
 
@@ -69,7 +72,27 @@ final class WorkflowRunSnapshot
             error: $run->error,
             lastRoutedEdge: $run->lastRoutedEdge,
             executedNodeIds: $run->executedNodeIds,
+            revision: $run->revision,
         );
+    }
+
+    /**
+     * 编码持久化 JSON。
+     *
+     * $persistRevision 非 null 时只改写入 payload 的 revision，finally 还原对象，
+     * 避免 CAS 失败后本地 $run->revision 被提前写成 N+1。
+     */
+    public static function encode(WorkflowRun $run, ?int $persistRevision = null): string
+    {
+        $original = $run->revision;
+        if ($persistRevision !== null) {
+            $run->revision = $persistRevision;
+        }
+        try {
+            return json_encode(self::fromRun($run)->toArray(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        } finally {
+            $run->revision = $original;
+        }
     }
 
     /** @return array<string, mixed> JSON 可序列化数组 */
@@ -88,6 +111,7 @@ final class WorkflowRunSnapshot
             'error' => $this->error,
             'lastRoutedEdge' => $this->lastRoutedEdge,
             'executedNodeIds' => $this->executedNodeIds,
+            'revision' => $this->revision,
         ];
     }
 
@@ -107,6 +131,7 @@ final class WorkflowRunSnapshot
             error: isset($payload['error']) ? (string) $payload['error'] : null,
             lastRoutedEdge: isset($payload['lastRoutedEdge']) ? (string) $payload['lastRoutedEdge'] : null,
             executedNodeIds: is_array($payload['executedNodeIds'] ?? null) ? $payload['executedNodeIds'] : [],
+            revision: (int) ($payload['revision'] ?? 0),
         );
     }
 
@@ -144,6 +169,7 @@ final class WorkflowRunSnapshot
             error: $this->error,
             lastRoutedEdge: $this->lastRoutedEdge,
             executedNodeIds: $this->executedNodeIds,
+            revision: $this->revision,
         );
     }
 }

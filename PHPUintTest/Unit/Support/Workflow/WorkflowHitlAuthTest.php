@@ -506,9 +506,9 @@ final class WorkflowHitlAuthTest extends TestCase
 }
 
 /**
- * RunStore 装饰器：在 saveIfStatus 时记录 run 的 pauseNodeId。
+ * RunStore 装饰器：在 resume CAS 时记录 run 的 pauseNodeId。
  *
- * 用于验证 resume CAS 持久化时是否正确清空 pauseNodeId。
+ * 用于验证 resume 将 WAITING→RUNNING 持久化时是否正确清空 pauseNodeId。
  */
 final class PauseNodeIdSpyRunStore implements RunStoreInterface, PauseTaskQueryableInterface
 {
@@ -521,6 +521,23 @@ final class PauseNodeIdSpyRunStore implements RunStoreInterface, PauseTaskQuerya
     public function save(WorkflowRun $run): void
     {
         $this->inner->save($run);
+    }
+
+    public function saveIfRevision(WorkflowRun $run, int $expectedRevision): bool
+    {
+        return $this->inner->saveIfRevision($run, $expectedRevision);
+    }
+
+    public function saveIfStatusAndRevision(
+        WorkflowRun $run,
+        RunStatus $expectedStatus,
+        int $expectedRevision,
+    ): bool {
+        if ($expectedStatus === RunStatus::WAITING) {
+            $this->pauseNodeIdAtCas = $run->pauseNodeId;
+        }
+
+        return $this->inner->saveIfStatusAndRevision($run, $expectedStatus, $expectedRevision);
     }
 
     public function saveIfStatus(WorkflowRun $run, RunStatus $expectedStatus): bool

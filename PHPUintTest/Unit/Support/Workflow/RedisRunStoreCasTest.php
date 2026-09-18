@@ -194,4 +194,103 @@ final class RedisRunStoreCasTest extends TestCase
         $ttlAfter = (int) $redis->ttl($key);
         $this->assertGreaterThan(0, $ttlAfter, 'non-WAITING run applies configured TTL');
     }
+
+    /**
+     * 验证：saveIfRevision 在匹配时写入 N+1，错 revision 不改存储且不改本地 revision。
+     */
+    public function testRedisSaveIfRevisionCas(): void
+    {
+        $this->requireRedis();
+        [$store, $registry] = $this->makeRedisRunStore();
+        $run = $this->makeWaitingRun($registry, 'run_rev_ok');
+        $run->revision = 10;
+        $store->save($run);
+
+        $this->assertTrue($store->saveIfRevision($run, 10), 'rev 10 matches');
+        $this->assertSame(11, $run->revision, 'local revision bumped after success');
+        $this->assertSame(11, $store->find('run_rev_ok')?->revision, 'persisted revision 11');
+
+        $stale = $store->find('run_rev_ok');
+        $this->assertNotNull($stale);
+        $stale->currentNodeId = 'should-not-write';
+        $before = $stale->revision;
+        $this->assertFalse($store->saveIfRevision($stale, 10), 'stale revision rejected');
+        $this->assertSame($before, $stale->revision, 'local revision unchanged on conflict');
+        $this->assertSame(11, $store->find('run_rev_ok')?->revision, 'store unchanged');
+        $this->assertSame(null, $store->find('run_rev_ok')?->currentNodeId, 'fields unchanged');
+    }
+
+    /**
+     * 验证：status+revision 双条件，错 status 或错 revision 均返回 false。
+     */
+    public function testRedisSaveIfStatusAndRevision(): void
+    {
+        $this->requireRedis();
+        [$store, $registry] = $this->makeRedisRunStore();
+        $run = $this->makeWaitingRun($registry, 'run_dual_cas');
+        $run->revision = 4;
+        $store->save($run);
+
+        $run->status = RunStatus::RUNNING;
+        $this->assertFalse($store->saveIfStatusAndRevision($run, RunStatus::RUNNING, 4), 'wrong status');
+        $this->assertFalse($store->saveIfStatusAndRevision($run, RunStatus::WAITING, 99), 'wrong revision');
+        $this->assertTrue($store->saveIfStatusAndRevision($run, RunStatus::WAITING, 4), 'both match');
+        $this->assertSame(5, $store->find('run_dual_cas')?->revision);
+        $this->assertSame(RunStatus::RUNNING, $store->find('run_dual_cas')?->status);
+    }
+
+    /**
+     * 验证：两个独立快照同时 saveIfRevision(10)，仅一次成功，最终 revision=11。
+     */
+    public function testRedisConcurrentSaveIfRevision(): void
+    {
+        $this->requireRedis();
+        [$store, $registry] = $this->makeRedisRunStore();
+        $run = $this->makeWaitingRun($registry, 'run_rev_race');
+        $run->status = RunStatus::RUNNING;
+        $run->revision = 10;
+        $store->save($run);
+
+        $first = $store->find('run_rev_race');
+        $second = $store->find('run_rev_race');
+        $this->assertNotNull($first);
+        $this->assertNotNull($second);
+        $first->currentNodeId = 'winner';
+        $second->currentNodeId = 'loser';
+
+        $this->assertTrue($store->saveIfRevision($first, 10), 'first writer wins');
+        $this->assertFalse($store->saveIfRevision($second, 10), 'second writer conflicts');
+
+        $found = $store->find('run_rev_race');
+        $this->assertSame(11, $found?->revision);
+        $this->assertSame('winner', $found?->currentNodeId);
+    }
+
+    /**
+     * 验证：Redis JSON 损坏时 CAS 抛 Runtime，不得伪装成 false。
+     */
+    public function testRedisCorruptJsonThrowsRuntimeNotFalse(): void
+    {
+        $this->requireRedis();
+        [$store, $registry] = $this->makeRedisRunStore();
+        $run = $this->makeWaitingRun($registry, 'run_corrupt');
+        $store->save($run);
+
+        $ref = new ReflectionClass($store);
+        $prefixProp = $ref->getProperty('prefix');
+        $prefixProp->setAccessible(true);
+        $prefix = $prefixProp->getValue($store);
+        $redisProp = $ref->getProperty('redis');
+        $redisProp->setAccessible(true);
+        /** @var Redis $redis */
+        $redis = $redisProp->getValue($store);
+        $redis->set($prefix . 'run_corrupt', 'not-json{');
+
+        try {
+            $ok = $store->saveIfStatus($run, RunStatus::WAITING);
+            $this->fail('corrupt payload must throw, got ' . ($ok ? 'true' : 'false'));
+        } catch (\Swoolefy\Support\Workflow\Exception\WorkflowRuntimeException $e) {
+            $this->assertTrue(str_contains($e->getMessage(), 'Corrupt'), $e->getMessage());
+        }
+    }
 }
