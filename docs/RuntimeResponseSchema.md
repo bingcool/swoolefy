@@ -72,6 +72,8 @@
             "fetch_total": "int",
             "release_total": "int",
             "fetch_error_total": "int",
+            "fallback_total": "int",
+            "fallback_reject_total": "int",
             "balance": "fetch_total - release_total"
           }
         }

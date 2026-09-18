@@ -26,6 +26,8 @@ final class RuntimeMetrics
     public const POOL_FETCH_TOTAL = 'swoolefy_pool_fetch_total';
     public const POOL_RELEASE_TOTAL = 'swoolefy_pool_release_total';
     public const POOL_FETCH_ERROR_TOTAL = 'swoolefy_pool_fetch_error_total';
+    public const POOL_FALLBACK_TOTAL = 'swoolefy_pool_fallback_total';
+    public const POOL_FALLBACK_REJECT_TOTAL = 'swoolefy_pool_fallback_reject_total';
     public const POOL_UNATTRIBUTED_TOTAL = 'swoolefy_pool_unattributed_total';
     /** Cron Registry 内 Job 总数（含 Disabled）。固定名，无任务标签。 */
     public const CRON_JOBS_TOTAL = 'swoolefy_cron_jobs_total';
@@ -44,7 +46,7 @@ final class RuntimeMetrics
     public const CRON_SCHEDULER_ERRORS = 'swoolefy_cron_scheduler_errors_total';
 
     /**
-     * @var array<string, array{fetch_total:int,release_total:int,fetch_error_total:int}>
+     * @var array<string, array{fetch_total:int,release_total:int,fetch_error_total:int,fallback_total:int,fallback_reject_total:int}>
      */
     private array $poolMetrics = [];
 
@@ -59,6 +61,8 @@ final class RuntimeMetrics
                     'fetch_total' => 0,
                     'release_total' => 0,
                     'fetch_error_total' => 0,
+                    'fallback_total' => 0,
+                    'fallback_reject_total' => 0,
                 ];
             }
         }
@@ -110,6 +114,20 @@ final class RuntimeMetrics
     {
         $this->registry->counter(self::POOL_FETCH_ERROR_TOTAL)->increment();
         $this->incrementPoolMetric($name, 'fetch_error_total');
+    }
+
+    /** 记录池耗尽后成功 creatObject 降级。 */
+    public function poolFallbackCreated(string $name): void
+    {
+        $this->registry->counter(self::POOL_FALLBACK_TOTAL)->increment();
+        $this->incrementPoolMetric($name, 'fallback_total');
+    }
+
+    /** 记录 fallback 配额拒绝（立即 503）。 */
+    public function poolFallbackRejected(string $name): void
+    {
+        $this->registry->counter(self::POOL_FALLBACK_REJECT_TOTAL)->increment();
+        $this->incrementPoolMetric($name, 'fallback_reject_total');
     }
 
     /**
@@ -188,7 +206,7 @@ final class RuntimeMetrics
      * 快照在单个 Worker、单线程协程调度模型中读取；每次加一没有 yield，因此不会出现
      * 半次更新。不同指标读取之间仍可能穿插协程调度，调用方应将其视为诊断近似值。
      *
-     * @return array<string, array{fetch_total:int,release_total:int,fetch_error_total:int,balance:int}>
+     * @return array<string, array{fetch_total:int,release_total:int,fetch_error_total:int,fallback_total:int,fallback_reject_total:int,balance:int}>
      */
     public function poolSnapshot(): array
     {
@@ -198,7 +216,8 @@ final class RuntimeMetrics
                 'fetch_total' => $metrics['fetch_total'],
                 'release_total' => $metrics['release_total'],
                 'fetch_error_total' => $metrics['fetch_error_total'],
-                // 正余额仅是诊断信号，不能据此断言发生资源泄漏。
+                'fallback_total' => $metrics['fallback_total'],
+                'fallback_reject_total' => $metrics['fallback_reject_total'],
                 'balance' => $metrics['fetch_total'] - $metrics['release_total'],
             ];
         }
@@ -209,7 +228,7 @@ final class RuntimeMetrics
     /**
      * 增加已知别名的指标；未知输入只计入一个固定计数器，绝不动态创建别名键。
      *
-     * @param 'fetch_total'|'release_total'|'fetch_error_total' $metric
+     * @param 'fetch_total'|'release_total'|'fetch_error_total'|'fallback_total'|'fallback_reject_total' $metric
      */
     private function incrementPoolMetric(string $name, string $metric): void
     {

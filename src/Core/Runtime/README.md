@@ -337,6 +337,8 @@ curl --fail --silent 'http://127.0.0.1:9501/api/runtime?memory_history=1' \
 | `worker.pool.aliases.<alias>.fetch_total` | `int` | 次 | 该别名成功从组件池取得对象的累计数。 | 对应全部池汇总计数器的一个归因分量。 |
 | `worker.pool.aliases.<alias>.release_total` | `int` | 次 | 该别名受跟踪对象成功归还组件池的累计数。 | 只覆盖 `ComponentTrait` 当前的池化对象生命周期。 |
 | `worker.pool.aliases.<alias>.fetch_error_total` | `int` | 次 | 该别名获取时抛异常或返回非对象的累计数。 | 不含错误原因。 |
+| `worker.pool.aliases.<alias>.fallback_total` | `int` | 次 | 池耗尽后成功 creatObject 降级的累计数。 | 不含连接对象。 |
+| `worker.pool.aliases.<alias>.fallback_reject_total` | `int` | 次 | fallback 配额拒绝次数。 | 立即 503，不再等待。 |
 | `worker.pool.aliases.<alias>.balance` | `int` | 次 | 该别名的 `fetch_total - release_total`。 | 正值仅是诊断信号，不能据此断言连接泄漏。 |
 
 `worker.pool.aliases` 只暴露已配置的组件别名，不暴露连接对象、DSN 或容量；别名不来自请求输入，因此不会产生动态高基数。未知、空白或缺失别名的事件不会插入此映射，也不会静默归属到其他池，而会累计到固定的 `worker.metrics.pool.counter.swoolefy_pool_unattributed_total`。它只覆盖 `ComponentTrait` 中实际池化组件的成功 fetch/release 及 fetch 失败路径，不能代表应用自行管理的任意连接池。

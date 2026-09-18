@@ -220,7 +220,7 @@ final class RuntimeDiagnostics
      * 未知或缺失别名不会出现在此映射中，而是由
      * worker.metrics.pool.counter.swoolefy_pool_unattributed_total 明确记录。
      *
-     * @return array<string, array{fetch_total:int,release_total:int,fetch_error_total:int,balance:int}>
+     * @return array<string, array{fetch_total:int,release_total:int,fetch_error_total:int,fallback_total:int,fallback_reject_total:int,balance:int}>
      */
     public function pool(): array
     {

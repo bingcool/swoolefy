@@ -12,8 +12,11 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Coroutine\CoroutinePools;
+use Swoolefy\Core\Coroutine\PoolFallbackLease;
+use Swoolefy\Core\Coroutine\PoolsHandler;
 use Swoolefy\Core\Dto\ContainerObjectDto;
 use Swoolefy\Core\Runtime\RuntimeRegistry;
+use Swoolefy\Exception\ComponentPoolExhaustedException;
 use Swoolefy\Exception\SystemException;
 
 trait ComponentTrait
@@ -164,6 +167,9 @@ trait ComponentTrait
     public function clearComponent($comAliasName = null, bool $isAll = false)
     {
         if ($isAll) {
+            foreach ($this->containers as $obj) {
+                $this->releaseFallbackLease($obj);
+            }
             $this->containers = [];
             return true;
         }
@@ -178,6 +184,7 @@ trait ComponentTrait
 
         foreach ($comAliasName as $aliasName) {
             if (isset($this->containers[$aliasName])) {
+                $this->releaseFallbackLease($this->containers[$aliasName]);
                 unset($this->containers[$aliasName]);
             }
         }
@@ -244,39 +251,84 @@ trait ComponentTrait
         }
 
         if (array_key_exists($name, $components)) {
-            // mysql|redis进程池中直接赋值
-            if (in_array($name, $this->componentPools) && $cid >= 0) {
-                /** @var \Swoolefy\Core\Coroutine\PoolsHandler $poolHandler */
-                $poolHandler = CoroutinePools::getInstance()->getPool($name);
-                if (is_object($poolHandler)) {
-                    try {
-                        $this->containers[$name] = $poolHandler->fetchObj();
-                    } catch (\Throwable $throwable) {
-                        // 保持连接池原有的失败语义，同时记录此次获取失败。
-                        RuntimeRegistry::metrics()?->poolFetchError($name);
-                        throw $throwable;
-                    }
-                    // 仅在实际连接池操作后观测；指标不得阻塞连接池流程。
-                    if (isset($this->containers[$name]) && is_object($this->containers[$name])) {
-                        RuntimeRegistry::metrics()?->poolFetched($name);
-                    } else {
-                        RuntimeRegistry::metrics()?->poolFetchError($name);
-                    }
-                }
-                // 若没有设置进程池处理实例,则降级到创建实例模式
-                if (isset($this->containers[$name]) && is_object($this->containers[$name])) {
-                    $objId = spl_object_id($this->containers[$name]);
-                    if (!in_array($objId, $this->componentPoolsObjIds)) {
-                        array_push($this->componentPoolsObjIds, $objId);
-                    }
-                    return $this->containers[$name];
-                }
+            if (in_array($name, $this->componentPools, true) && $cid >= 0) {
+                return $this->getPooledOrFallback($name, $components[$name]);
             }
             return $this->creatObject($name, $components[$name]);
         }
 
         return false;
 
+    }
+
+    /**
+     * 池命中则借出；超时 null 后走 fallback 配额，用尽立即 503。
+     *
+     * @param \Closure $definition
+     */
+    private function getPooledOrFallback(string $name, \Closure $definition): ContainerObjectDto
+    {
+        $poolHandler = CoroutinePools::getInstance()->getPool($name);
+        if (!$poolHandler instanceof PoolsHandler) {
+            throw new SystemException("component_pools [{$name}] has no PoolsHandler");
+        }
+
+        try {
+            $this->containers[$name] = $poolHandler->fetchObj();
+        } catch (\Throwable $throwable) {
+            RuntimeRegistry::metrics()?->poolFetchError($name);
+            throw $throwable;
+        }
+
+        if (isset($this->containers[$name]) && is_object($this->containers[$name])) {
+            RuntimeRegistry::metrics()?->poolFetched($name);
+            $objId = spl_object_id($this->containers[$name]);
+            if (!in_array($objId, $this->componentPoolsObjIds, true)) {
+                $this->componentPoolsObjIds[] = $objId;
+            }
+
+            return $this->containers[$name];
+        }
+
+        RuntimeRegistry::metrics()?->poolFetchError($name);
+
+        if (!$poolHandler->reserveFallback()) {
+            try {
+                RuntimeRegistry::metrics()?->poolFallbackRejected($name);
+            } catch (\Throwable) {
+            }
+            throw new ComponentPoolExhaustedException(
+                $name,
+                $poolHandler->getPoolsNum(),
+                $poolHandler->getFallbackMax(),
+                $poolHandler->getFallbackInflight(),
+            );
+        }
+
+        try {
+            $dto = $this->creatObject($name, $definition);
+            $dto->__fallbackLease = new PoolFallbackLease($poolHandler);
+            try {
+                RuntimeRegistry::metrics()?->poolFallbackCreated($name);
+            } catch (\Throwable) {
+            }
+
+            return $dto;
+        } catch (\Throwable $throwable) {
+            $poolHandler->releaseFallback();
+            throw $throwable;
+        }
+    }
+
+    private function releaseFallbackLease(mixed $obj): void
+    {
+        if (!$obj instanceof ContainerObjectDto) {
+            return;
+        }
+        $lease = $obj->__fallbackLease;
+        if ($lease instanceof PoolFallbackLease) {
+            $lease->release();
+        }
     }
 
     /**
@@ -363,6 +415,8 @@ trait ComponentTrait
                     CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
                     RuntimeRegistry::metrics()?->poolReleased($name);
                     unset($this->componentPoolsObjIds[$key]);
+                } else {
+                    $this->releaseFallbackLease($obj);
                 }
             }
         }

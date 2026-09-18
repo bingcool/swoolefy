@@ -21,7 +21,14 @@ return [
             'max_push_timeout' => 2,
             'max_pop_timeout' => 1,
             'max_life_timeout' => 10,
-            'enable_tick_clear_pool' => 0
+            'enable_tick_clear_pool' => 0,
+            // 连接池耗尽时可以降级，但降级连接必须纳入总并发连接预算，不能绕过限制量保护
+            // 连接池降级创建实例同时最大在线实例，防止降级后高并发下大量创建
+            'fallback' => [
+                'enabled' => true,
+                // 建议设置为max_pool_num的2-3倍
+                'max_concurrent' => 5,
+            ],
         ],
 
         'cache' => [
@@ -29,7 +36,14 @@ return [
             'max_push_timeout' => 2,
             'max_pop_timeout' => 1,
             'max_life_timeout' => 10,
-            'enable_tick_clear_pool' => 0
+            'enable_tick_clear_pool' => 0,
+            // 连接池耗尽时可以降级，但降级连接必须纳入总并发连接预算，不能绕过限制量保护
+            // 连接池降级创建实例同时最大在线实例，防止降级后高并发下大量创建
+            'fallback' => [
+                'enabled' => true,
+                // 建议设置为max_pool_num的2-3倍
+                'max_concurrent' => 10,
+            ],
         ]
     ],
 

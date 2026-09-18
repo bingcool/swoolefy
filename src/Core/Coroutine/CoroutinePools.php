@@ -11,10 +11,13 @@
 
 namespace Swoolefy\Core\Coroutine;
 
+use Swoolefy\Core\SingletonTrait;
+use Swoolefy\Exception\SystemException;
+
 class CoroutinePools
 {
 
-    use \Swoolefy\Core\SingletonTrait;
+    use SingletonTrait;
 
     /**
      * @var array
@@ -28,7 +31,11 @@ class CoroutinePools
         'max_pool_num' => 30,
         'max_push_timeout'   => 2,
         'max_pop_timeout'    => 1,
-        'max_life_timeout'   => 10
+        'max_life_timeout'   => 10,
+        'fallback' => [
+            'enabled' => true,
+            'max_concurrent' => null,
+        ],
     ];
 
     /**
@@ -62,10 +69,46 @@ class CoroutinePools
                 $poolsHandler->setLifeTime($poolConfig['max_life_timeout']);
             }
 
+            $poolsHandler->setFallbackPolicy(...self::resolveFallbackPolicy(
+                $poolConfig,
+                $poolsHandler->getPoolsNum(),
+                $poolName,
+            ));
+
             $poolsHandler->setBuildCallable($constructor);
             $poolsHandler->registerPools($poolName);
             return $poolsHandler;
         });
+    }
+
+    /**
+     * @return array{0: bool, 1: int} [enabled, maxConcurrent]
+     */
+    private static function resolveFallbackPolicy(array $poolConfig, int $poolsNum, string $poolName): array
+    {
+        $fallback = array_merge(
+            ['enabled' => true, 'max_concurrent' => null],
+            is_array($poolConfig['fallback'] ?? null) ? $poolConfig['fallback'] : [],
+        );
+        $enabled = filter_var($fallback['enabled'] ?? true, FILTER_VALIDATE_BOOLEAN);
+        if (!$enabled) {
+            return [false, 0];
+        }
+
+        if (!isset($fallback['max_concurrent'])) {
+            return [true, 2 * max(0, $poolsNum)];
+        }
+
+        if (!is_numeric($fallback['max_concurrent'])) {
+            throw new SystemException("component_pools [{$poolName}] fallback.max_concurrent must be an integer >= 0");
+        }
+
+        $maxConcurrent = (int) $fallback['max_concurrent'];
+        if ($maxConcurrent < 0) {
+            throw new SystemException("component_pools [{$poolName}] fallback.max_concurrent must be an integer >= 0");
+        }
+
+        return [true, $maxConcurrent];
     }
 
     /**

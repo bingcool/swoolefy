@@ -46,7 +46,8 @@ use Swoolefy\Exception\SystemException;
  * - 未过期且未满：在借用协程内同步 push，成功后安全递减 callCount
  * - push 超时 / 已过期 / 池已满：丢弃对象并 decreaseCallCount，必要时 refillOne 补回空闲槽
  *
- * 取不到对象时返回 null，上层 ComponentTrait 可降级 creatObject。
+ * 取不到对象时返回 null。上层 ComponentTrait 可在 fallback 配额内 creatObject；
+ * 配额用尽必须立即拒绝，禁止再 wait / 再 fetch。
  */
 class PoolsHandler
 {
@@ -96,6 +97,21 @@ class PoolsHandler
      * @var int
      */
     protected $objectCount = 0;
+
+    /**
+     * 是否允许池耗尽后 creatObject 降级。
+     */
+    protected bool $fallbackEnabled = true;
+
+    /**
+     * 当前 Worker 内同时在线的降级连接上限。
+     */
+    protected int $fallbackMax = 0;
+
+    /**
+     * 当前仍存活的降级连接数。
+     */
+    protected int $fallbackInflight = 0;
 
     /**
      * @var int
@@ -171,6 +187,54 @@ class PoolsHandler
     public function getLifeTime()
     {
         return $this->lifeTime;
+    }
+
+    /**
+     * 配置池外降级配额。maxConcurrent=0 或 enabled=false 时 reserveFallback 立即失败。
+     */
+    public function setFallbackPolicy(bool $enabled, int $maxConcurrent): void
+    {
+        $this->fallbackEnabled = $enabled;
+        $this->fallbackMax = max(0, $maxConcurrent);
+    }
+
+    public function getFallbackMax(): int
+    {
+        return $this->fallbackMax;
+    }
+
+    public function getFallbackInflight(): int
+    {
+        return $this->fallbackInflight;
+    }
+
+    public function isFallbackEnabled(): bool
+    {
+        return $this->fallbackEnabled;
+    }
+
+    /**
+     * 无 yield 预占一条降级额度。失败立即返回 false，不得 pop / sleep。
+     */
+    public function reserveFallback(): bool
+    {
+        if (!$this->fallbackEnabled || $this->fallbackInflight >= $this->fallbackMax) {
+            return false;
+        }
+
+        ++$this->fallbackInflight;
+
+        return true;
+    }
+
+    /**
+     * 归还一条降级额度；inflight 不会减到负数。
+     */
+    public function releaseFallback(): void
+    {
+        if ($this->fallbackInflight > 0) {
+            --$this->fallbackInflight;
+        }
     }
 
     /**
@@ -334,7 +398,7 @@ class PoolsHandler
     /**
      * 从池中取出对象；成功时 callCount+1。
      *
-     * @return object|null
+     * @return ContainerObjectDto|null
      * @throws \Exception
      */
     public function fetchObj()
@@ -373,7 +437,7 @@ class PoolsHandler
      * 旧实现：忙时 sleep(0.01) 一次，channel 仍空则直接 null，池命中率不稳。
      * 现实现：优先空闲 / 懒创建，否则阻塞等待归还，超时后再短重试。
      *
-     * @return object|null
+     * @return ContainerObjectDto|null
      */
     protected function getObj()
     {
@@ -563,7 +627,7 @@ class PoolsHandler
      * 弹出后若已过期：先释放旧对象容量，再经 make() 统一重建，避免把失效连接交给业务。
      *
      * @param float|null $timeout
-     * @return object|null
+     * @return ContainerObjectDto|null
      */
     protected function pop(?float $timeout = null)
     {

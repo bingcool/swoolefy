@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Core\Dto;
 
+use Swoolefy\Core\Coroutine\PoolFallbackLease;
+
 class ContainerObjectDto extends AbstractDto
 {
     /**
@@ -52,9 +54,14 @@ class ContainerObjectDto extends AbstractDto
     private $__tagetObjectId;
 
     /**
+     * 池外降级连接的配额租约；池化对象为 null。
+     */
+    private mixed $__fallbackLease = null;
+
+    /**
      * @var array
      */
-    private $__attributes = ['__coroutineId','__objInitTime','__objExpireTime','__object','__comAliasName','__tagetObjectId'];
+    private $__attributes = ['__coroutineId','__objInitTime','__objExpireTime','__object','__comAliasName','__tagetObjectId','__fallbackLease'];
 
     /**
      * @param $name
@@ -80,6 +87,19 @@ class ContainerObjectDto extends AbstractDto
         }else {
             return $this->__object->$name;
         }
+    }
+
+    /**
+     * 与 {@see __get()} 对齐；否则 isset($dto->__coroutineId) 在类外恒为 false，
+     * ComponentTrait::get() 会误判成跨协程并再次 creatObject。
+     */
+    public function __isset($name)
+    {
+        if (in_array($name, $this->__attributes, true)) {
+            return isset($this->$name);
+        }
+
+        return isset($this->__object->$name);
     }
 
     /**
@@ -118,7 +138,14 @@ class ContainerObjectDto extends AbstractDto
      */
     public function __destruct()
     {
-        unset($this->__object);
+        if ($this->__fallbackLease instanceof PoolFallbackLease) {
+            $this->__fallbackLease->release();
+        }
+        unset($this->__fallbackLease, $this->__object);
     }
 
+    public function __clone()
+    {
+        $this->__fallbackLease = null;
+    }
 }

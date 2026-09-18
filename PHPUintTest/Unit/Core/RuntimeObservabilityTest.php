@@ -69,6 +69,8 @@ final class RuntimeObservabilityTest extends TestCase
         $metrics->poolFetchError('redis');
         $metrics->poolFetched('mysql');
         $metrics->poolReleased('mysql');
+        $metrics->poolFallbackCreated('redis');
+        $metrics->poolFallbackRejected('mysql');
         $metrics->poolFetched('untrusted-name');
         $snapshot = $metrics->snapshot();
         self::assertSame(1, $snapshot['counter'][RuntimeMetrics::HTTP_REQUESTS_TOTAL]);
@@ -78,18 +80,24 @@ final class RuntimeObservabilityTest extends TestCase
         self::assertSame(2, $snapshot['counter'][RuntimeMetrics::POOL_RELEASE_TOTAL]);
         self::assertArrayNotHasKey('untrusted-name', $snapshot['counter']);
         self::assertSame(1, $snapshot['counter'][RuntimeMetrics::POOL_FETCH_ERROR_TOTAL]);
+        self::assertSame(1, $snapshot['counter'][RuntimeMetrics::POOL_FALLBACK_TOTAL]);
+        self::assertSame(1, $snapshot['counter'][RuntimeMetrics::POOL_FALLBACK_REJECT_TOTAL]);
         self::assertSame(1, $snapshot['counter'][RuntimeMetrics::POOL_UNATTRIBUTED_TOTAL]);
         self::assertSame([
             'redis' => [
                 'fetch_total' => 2,
                 'release_total' => 1,
                 'fetch_error_total' => 1,
+                'fallback_total' => 1,
+                'fallback_reject_total' => 0,
                 'balance' => 1,
             ],
             'mysql' => [
                 'fetch_total' => 1,
                 'release_total' => 1,
                 'fetch_error_total' => 0,
+                'fallback_total' => 0,
+                'fallback_reject_total' => 1,
                 'balance' => 0,
             ],
         ], $metrics->poolSnapshot());
@@ -165,12 +173,16 @@ final class RuntimeObservabilityTest extends TestCase
                 'fetch_total' => 2,
                 'release_total' => 1,
                 'fetch_error_total' => 0,
+                'fallback_total' => 0,
+                'fallback_reject_total' => 0,
                 'balance' => 1,
             ],
             'db' => [
                 'fetch_total' => 0,
                 'release_total' => 0,
                 'fetch_error_total' => 1,
+                'fallback_total' => 0,
+                'fallback_reject_total' => 0,
                 'balance' => 0,
             ],
         ], $pool);
