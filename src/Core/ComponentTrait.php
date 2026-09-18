@@ -19,24 +19,39 @@ use Swoolefy\Core\Runtime\RuntimeRegistry;
 use Swoolefy\Exception\ComponentPoolExhaustedException;
 use Swoolefy\Exception\SystemException;
 
+/**
+ * 组件容器（App / EventController / Swoole 共用）。
+ *
+ * 连接池路径的技术约束：
+ * - 池对象进 componentPoolsObjIds，请求结束 push 回 channel
+ * - 池耗尽后的降级对象不进池，额度挂在 Worker 级 PoolsHandler 的 lease 上
+ * - 配额用尽立即 503，不再次等待
+ * - 本进程未 addPool（Cron/Daemon）时，即使 conf 写了 component_pools 也走 creatObject
+ */
 trait ComponentTrait
 {
 
     /**
-     * containers
-     * @var array
+     * 当前请求/协程作用域内已解析的组件实例。
+     *
+     * @var array<string, mixed>
      */
     protected $containers = [];
 
     /**
-     * componentPools
-     * @var array
+     * 已启用连接池的组件别名（来自 app_conf.component_pools 的 keys）。
+     *
+     * @var list<string>
      */
     protected $componentPools = [];
 
     /**
-     * componentPoolsObjIds 进程池的组件对象id,区分非来自进程池的组件,因为来自进程的组件不能push到进程池,否则会污染
-     * @var array
+     * 本请求从连接池借出的对象 spl_object_id。
+     *
+     * 只记录 fetchObj() 成功的对象。fallback creatObject 的结果不得写入：
+     * pushComponentPools() 只归还这里登记过的 id，避免把一次性连接推进 channel 污染池。
+     *
+     * @var list<int>
      */
     protected $componentPoolsObjIds = [];
 
@@ -159,8 +174,10 @@ trait ComponentTrait
     }
 
     /**
-     * clearComponent
-     * @param string|array $comAliasName
+     * 释放组件引用。池化对象由 {@see pushComponentPools()} 先归还 channel；
+     * 这里负责释放 fallback 租约，避免请求结束后面额度泄漏。
+     *
+     * @param string|array|null $comAliasName
      * @param bool $isAll
      * @return bool
      */
@@ -211,6 +228,12 @@ trait ComponentTrait
     }
 
     /**
+     * 解析组件。连接池别名在协程内走 {@see getPooledOrFallback()}：
+     * 池命中借出；耗尽则按 Worker 级 fallback 配额建连或立即 503。
+     *
+     * 同一 cid 再次 get() 必须命中 containers，否则会再占一条连接/额度。
+     * 该判断依赖 DTO 的 {@see ContainerObjectDto::__isset()}。
+     *
      * @param string $name
      * @return ContainerObjectDto|bool
      */
@@ -222,7 +245,8 @@ trait ComponentTrait
         if (isset($this->containers[$name])) {
             if (is_object($this->containers[$name])) {
                 $containerObject = $this->containers[$name];
-                // 同一个协程中的单例对象,解决在不同协程 $this->get('db') 时组件上下文污染问题
+                // 同一协程单例：必须命中，否则会再借池或再占 fallback 额度。
+                // isset() 依赖 ContainerObjectDto::__isset()，不能删。
                 if (isset($containerObject->__coroutineId) && $containerObject->__coroutineId == $cid) {
                     return $containerObject;
                 } else {
@@ -252,7 +276,13 @@ trait ComponentTrait
 
         if (array_key_exists($name, $components)) {
             if (in_array($name, $this->componentPools, true) && $cid >= 0) {
-                return $this->getPooledOrFallback($name, $components[$name]);
+                $poolHandler = CoroutinePools::getInstance()->getPool($name);
+                // 只有本进程真正 addPool 之后才走池/配额。Cron/Daemon 等 Worker Service
+                // 不会 registerComponentPools，app.conf 里的 component_pools 只给 HTTP Worker 用；
+                // 此时必须 creatObject，不能当成「池丢了」抛错，否则拉配置/心跳全部失败。
+                if ($poolHandler instanceof PoolsHandler) {
+                    return $this->getPooledOrFallback($name, $components[$name], $poolHandler);
+                }
             }
             return $this->creatObject($name, $components[$name]);
         }
@@ -262,17 +292,20 @@ trait ComponentTrait
     }
 
     /**
-     * 池命中则借出；超时 null 后走 fallback 配额，用尽立即 503。
+     * 池命中则借出；fetchObj 超时 null 后走 fallback 配额，用尽立即 503。
+     *
+     * 调用方已确认 $poolHandler 存在。本进程未 register 的别名不得进入这里。
+     *
+     * 关键路径（禁止改成「再等一轮 popTimeout」）：
+     * 1. fetchObj 成功 → 记入 componentPoolsObjIds，请求结束 push 回池。
+     * 2. fetchObj null → 立即 reserveFallback（无 yield）。失败抛 503。
+     * 3. reserve 成功再 creatObject；建连失败必须 releaseFallback，否则额度空洞。
+     * 4. 降级 DTO 挂 {@see PoolFallbackLease}，不进 componentPoolsObjIds。
      *
      * @param \Closure $definition
      */
-    private function getPooledOrFallback(string $name, \Closure $definition): ContainerObjectDto
+    private function getPooledOrFallback(string $name, \Closure $definition, PoolsHandler $poolHandler): ContainerObjectDto
     {
-        $poolHandler = CoroutinePools::getInstance()->getPool($name);
-        if (!$poolHandler instanceof PoolsHandler) {
-            throw new SystemException("component_pools [{$name}] has no PoolsHandler");
-        }
-
         try {
             $this->containers[$name] = $poolHandler->fetchObj();
         } catch (\Throwable $throwable) {
@@ -292,6 +325,7 @@ trait ComponentTrait
 
         RuntimeRegistry::metrics()?->poolFetchError($name);
 
+        // 池内等待已经结束；这里只做账本判断，禁止再 fetch / sleep
         if (!$poolHandler->reserveFallback()) {
             try {
                 RuntimeRegistry::metrics()?->poolFallbackRejected($name);
@@ -307,6 +341,7 @@ trait ComponentTrait
 
         try {
             $dto = $this->creatObject($name, $definition);
+            // 租约必须在 creatObject 成功之后挂上：成功前失败由下面 catch 回滚
             $dto->__fallbackLease = new PoolFallbackLease($poolHandler);
             try {
                 RuntimeRegistry::metrics()?->poolFallbackCreated($name);
@@ -320,6 +355,9 @@ trait ComponentTrait
         }
     }
 
+    /**
+     * 幂等归还 fallback 额度。池化对象的 __fallbackLease 为 null，调用是空操作。
+     */
     private function releaseFallbackLease(mixed $obj): void
     {
         if (!$obj instanceof ContainerObjectDto) {
@@ -344,7 +382,11 @@ trait ComponentTrait
     }
 
     /**
-     *pushComponentPools
+     * 请求结束把本请求借出的池化对象还回 channel。
+     *
+     * 只处理 componentPoolsObjIds 中的 spl_object_id；fallback 对象不在该名单里，
+     * 随后由 clearComponent 关连接并释放租约，禁止 pushObj。
+     *
      * @return bool
      */
     protected function pushComponentPools()
@@ -396,7 +438,8 @@ trait ComponentTrait
     }
 
     /**
-     * __unset
+     * 按组件名释放。池化对象 push 回 channel；不在池 id 名单里的视为 fallback，只还额度。
+     *
      * @param string $name
      */
     public function __unset(string $name)

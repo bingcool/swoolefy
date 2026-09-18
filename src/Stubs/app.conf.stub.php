@@ -22,11 +22,10 @@ return [
             'max_pop_timeout' => 1,
             'max_life_timeout' => 10,
             'enable_tick_clear_pool' => 0,
-            // 连接池耗尽时可以降级，但降级连接必须纳入总并发连接预算，不能绕过限制量保护
-            // 连接池降级创建实例同时最大在线实例，防止降级后高并发下大量创建
+            // 池耗尽后允许降级建连，但降级连接计入当前 Worker inflight，不得绕过 max_pool_num。
+            // max_concurrent 省略则为 2*max_pool_num（总上限约 3x）；0 或 enabled=false 则立即 503。
             'fallback' => [
                 'enabled' => true,
-                // 建议设置为max_pool_num的2-3倍
                 'max_concurrent' => 5,
             ],
         ],
@@ -37,11 +36,10 @@ return [
             'max_pop_timeout' => 1,
             'max_life_timeout' => 10,
             'enable_tick_clear_pool' => 0,
-            // 连接池耗尽时可以降级，但降级连接必须纳入总并发连接预算，不能绕过限制量保护
-            // 连接池降级创建实例同时最大在线实例，防止降级后高并发下大量创建
+            // 池耗尽后允许降级建连，但降级连接计入当前 Worker inflight，不得绕过 max_pool_num。
+            // max_concurrent 省略则为 2*max_pool_num（总上限约 3x）；0 或 enabled=false 则立即 503。
             'fallback' => [
                 'enabled' => true,
-                // 建议设置为max_pool_num的2-3倍
                 'max_concurrent' => 10,
             ],
         ]

@@ -291,6 +291,9 @@ class EventCtrl implements EventCtrlInterface
     public function workerStart($server, $worker_id)
     {
         if (!SystemEnv::isWorkerService()) {
+            // HTTP/RPC 等普通 Worker 才建 Channel 池。Cron/Daemon 共用同一份
+            // component_pools 配置，但不会 addPool；ComponentTrait 对缺 Handler
+            // 的别名走 creatObject，避免拉库/心跳被「has no PoolsHandler」打死。
             $this->registerComponentPools();
         }
 
@@ -376,13 +379,12 @@ class EventCtrl implements EventCtrlInterface
      *              'max_pop_timeout' => 1,
      *              'max_life_timeout' => 10,
      *              'enable_tick_clear_pool' => 1,
-     *              // 连接池耗尽时可以降级，但降级连接必须纳入总并发连接预算，不能绕过限制量保护
-     *              // 连接池降级创建实例同时最大在线实例，防止降级后高并发下大量创建
+     *              // 池耗尽后允许降级建连，但降级连接计入当前 Worker inflight，
+     *              // 不得绕过 max_pool_num。省略 max_concurrent 时默认 2*max_pool_num（总上限约 3x）。
      *              'fallback' => [
      *                  'enabled' => true,
-     *                   // 建议设置为max_pool_num的2-3倍
-     *                   'max_concurrent' => 10,
-     *               ],
+     *                  'max_concurrent' => 10,
+     *              ],
      *      ]
      * ],
      *

@@ -26,7 +26,9 @@ final class RuntimeMetrics
     public const POOL_FETCH_TOTAL = 'swoolefy_pool_fetch_total';
     public const POOL_RELEASE_TOTAL = 'swoolefy_pool_release_total';
     public const POOL_FETCH_ERROR_TOTAL = 'swoolefy_pool_fetch_error_total';
+    /** 池耗尽后 creatObject 降级成功次数（不含连接对象）。 */
     public const POOL_FALLBACK_TOTAL = 'swoolefy_pool_fallback_total';
+    /** fallback 配额拒绝次数；对应立即 503，不再次等待。 */
     public const POOL_FALLBACK_REJECT_TOTAL = 'swoolefy_pool_fallback_reject_total';
     public const POOL_UNATTRIBUTED_TOTAL = 'swoolefy_pool_unattributed_total';
     /** Cron Registry 内 Job 总数（含 Disabled）。固定名，无任务标签。 */
@@ -116,14 +118,22 @@ final class RuntimeMetrics
         $this->incrementPoolMetric($name, 'fetch_error_total');
     }
 
-    /** 记录池耗尽后成功 creatObject 降级。 */
+    /**
+     * 记录池耗尽后成功 creatObject 降级。
+     *
+     * 只在租约挂上之后计数，建连失败回滚额度时不会虚增。
+     */
     public function poolFallbackCreated(string $name): void
     {
         $this->registry->counter(self::POOL_FALLBACK_TOTAL)->increment();
         $this->incrementPoolMetric($name, 'fallback_total');
     }
 
-    /** 记录 fallback 配额拒绝（立即 503）。 */
+    /**
+     * 记录 fallback 配额拒绝（立即 503）。
+     *
+     * 与 fetch_error_total 分开：后者含池内等待超时，本计数才是「额度用尽被挡」。
+     */
     public function poolFallbackRejected(string $name): void
     {
         $this->registry->counter(self::POOL_FALLBACK_REJECT_TOTAL)->increment();
@@ -205,6 +215,8 @@ final class RuntimeMetrics
      *
      * 快照在单个 Worker、单线程协程调度模型中读取；每次加一没有 yield，因此不会出现
      * 半次更新。不同指标读取之间仍可能穿插协程调度，调用方应将其视为诊断近似值。
+     *
+     * fallback 字段与 balance 无关：降级连接不进池，balance 仍是 fetch - release。
      *
      * @return array<string, array{fetch_total:int,release_total:int,fetch_error_total:int,fallback_total:int,fallback_reject_total:int,balance:int}>
      */

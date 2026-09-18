@@ -16,6 +16,9 @@ use Swoolefy\Exception\SystemException;
 
 /**
  * ComponentTrait 池耗尽后的 fallback 配额与立即拒绝。
+ *
+ * 覆盖方案不变量：3x 默认、lease 随 clear 释放、建连失败回滚、双池隔离、
+ * 未 register 的别名走 creatObject、同一 cid 不二次占额。
  */
 final class ComponentPoolFallbackTest extends CoroutineTestCase
 {
@@ -35,6 +38,7 @@ final class ComponentPoolFallbackTest extends CoroutineTestCase
         parent::tearDown();
     }
 
+    /** 池满 + fallback 额度用尽后立即 503，不得再等一轮 popTimeout。 */
     public function testExplicitQuotaRejectsImmediatelyAfterPoolWait(): void
     {
         $this->runInCoroutine(function (): void {
@@ -66,6 +70,7 @@ final class ComponentPoolFallbackTest extends CoroutineTestCase
         });
     }
 
+    /** 未配置 max_concurrent 时 fallback 上限为 2 * max_pool_num（总 3x）。 */
     public function testDefaultMaxConcurrentIsTwicePoolSize(): void
     {
         $this->runInCoroutine(function (): void {
@@ -88,6 +93,7 @@ final class ComponentPoolFallbackTest extends CoroutineTestCase
         });
     }
 
+    /** clearComponent 必须释放租约，否则后续请求会永久少一条额度。 */
     public function testClearComponentReleasesFallbackQuota(): void
     {
         $this->runInCoroutine(function (): void {
@@ -107,6 +113,7 @@ final class ComponentPoolFallbackTest extends CoroutineTestCase
         });
     }
 
+    /** creatObject 失败必须回滚已预占的 inflight，避免额度空洞。 */
     public function testCreatObjectFailureRollsBackQuota(): void
     {
         $this->runInCoroutine(function (): void {
@@ -133,6 +140,7 @@ final class ComponentPoolFallbackTest extends CoroutineTestCase
         });
     }
 
+    /** enabled=false 时池耗尽直接 503，且不得再执行构造回调。 */
     public function testDisabledFallbackRejectsWithoutExtraConstruct(): void
     {
         $this->runInCoroutine(function (): void {
@@ -156,6 +164,7 @@ final class ComponentPoolFallbackTest extends CoroutineTestCase
         });
     }
 
+    /** 同一 cid 二次 get 命中容器：池对象不占 fallback，降级对象也不二次 reserve。 */
     public function testSameCoroutineGetDoesNotReserveTwice(): void
     {
         $this->runInCoroutine(function (): void {
@@ -177,6 +186,7 @@ final class ComponentPoolFallbackTest extends CoroutineTestCase
         });
     }
 
+    /** 各别名独立账本：db 额度用尽不能挡住 redis 的 fallback。 */
     public function testDbQuotaDoesNotBlockRedisFallback(): void
     {
         $this->runInCoroutine(function (): void {
@@ -200,7 +210,11 @@ final class ComponentPoolFallbackTest extends CoroutineTestCase
         });
     }
 
-    public function testMissingPoolHandlerThrowsSystemException(): void
+    /**
+     * Cron/Daemon 不 register 池：conf 里有 component_pools 仍应 creatObject，不能抛错。
+     * 连接风暴防护只在本进程已经 addPool 之后生效。
+     */
+    public function testMissingPoolHandlerCreatesComponentDirectly(): void
     {
         $this->runInCoroutine(function (): void {
             BaseServer::setAppConf([
@@ -211,15 +225,19 @@ final class ComponentPoolFallbackTest extends CoroutineTestCase
                     'ghost' => ['max_pool_num' => 1],
                 ],
             ]);
-            try {
-                $this->newHost()->get('ghost');
-                $this->fail('missing handler must not creatObject unbounded');
-            } catch (SystemException $e) {
-                $this->assertTrue(str_contains($e->getMessage(), 'has no PoolsHandler'));
-            }
+            $host = $this->newHost();
+            $obj = $host->get('ghost');
+            $this->assertIsObject($obj);
+            $this->assertNotContains(
+                spl_object_id($obj),
+                $host->pooledObjIds(),
+                'unregistered pool alias must not look like a pooled checkout',
+            );
+            $this->assertNull($obj->__fallbackLease);
         });
     }
 
+    /** 负数 max_concurrent 必须在 addPool 启动期拒绝，不能带着错误配额跑。 */
     public function testNegativeMaxConcurrentRejectedAtAddPool(): void
     {
         $this->expectException(SystemException::class);
@@ -232,6 +250,9 @@ final class ComponentPoolFallbackTest extends CoroutineTestCase
     }
 
     /**
+     * 注册一个可被 ComponentTrait 取用的池。popTimeout 故意很短，便于断言
+     * 「额度拒绝路径没有第二次完整等待」。
+     *
      * @param array<string, mixed> $fallback
      * @param callable(): object|null $constructor
      */
@@ -265,11 +286,15 @@ final class ComponentPoolFallbackTest extends CoroutineTestCase
         return $pool;
     }
 
+    /** 每个请求/协程一个 Trait 宿主，模拟 App 级 containers，避免互相命中单例。 */
     private function newHost(): FallbackPoolHost
     {
         return new FallbackPoolHost();
     }
 
+    /**
+     * CoroutinePools 是进程单例；用例之间必须拆掉 instance，否则别名与额度会串。
+     */
     private function resetCoroutinePools(): void
     {
         $ref = new ReflectionProperty(CoroutinePools::class, 'instance');
@@ -278,6 +303,10 @@ final class ComponentPoolFallbackTest extends CoroutineTestCase
     }
 }
 
+/**
+ * 最小 ComponentTrait 宿主。不注册进 Application，用来验证
+ * 同一 cid 命中依赖 DTO::__isset，而不是 Application::getApp()。
+ */
 final class FallbackPoolHost
 {
     use ComponentTrait;

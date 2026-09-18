@@ -13,6 +13,13 @@ namespace Swoolefy\Core\Dto;
 
 use Swoolefy\Core\Coroutine\PoolFallbackLease;
 
+/**
+ * 组件容器包装对象：把真实连接藏在 __object 里，框架元数据走私有属性。
+ *
+ * 池化对象与 fallback 对象共用本 DTO。区分方式：
+ * - 池化：__fallbackLease=null，且 spl_object_id 记入 ComponentTrait::$componentPoolsObjIds
+ * - 降级：挂 {@see PoolFallbackLease}，请求结束关连接，绝不 push 回 channel
+ */
 class ContainerObjectDto extends AbstractDto
 {
     /**
@@ -54,7 +61,9 @@ class ContainerObjectDto extends AbstractDto
     private $__tagetObjectId;
 
     /**
-     * 池外降级连接的配额租约；池化对象为 null。
+     * 池外降级连接的配额租约；池化对象保持 null。
+     *
+     * 额度与对象生命周期绑定：clearComponent / 析构都会 release，lease 内部幂等。
      */
     private mixed $__fallbackLease = null;
 
@@ -64,6 +73,8 @@ class ContainerObjectDto extends AbstractDto
     private $__attributes = ['__coroutineId','__objInitTime','__objExpireTime','__object','__comAliasName','__tagetObjectId','__fallbackLease'];
 
     /**
+     * 框架元数据走私有属性；其余赋值转发到真实连接对象。
+     *
      * @param $name
      * @param $value
      */
@@ -77,6 +88,8 @@ class ContainerObjectDto extends AbstractDto
     }
 
     /**
+     * 读取框架元数据或转发到真实连接。
+     *
      * @param $name
      * @return mixed
      */
@@ -90,8 +103,10 @@ class ContainerObjectDto extends AbstractDto
     }
 
     /**
-     * 与 {@see __get()} 对齐；否则 isset($dto->__coroutineId) 在类外恒为 false，
-     * ComponentTrait::get() 会误判成跨协程并再次 creatObject。
+     * 必须与 {@see __get()} 对齐。
+     *
+     * 私有属性在类外 `isset($dto->__coroutineId)` 若不走 __isset，PHP 恒为 false。
+     * ComponentTrait::get() 会因此误判成跨协程，再 creatObject 多占连接/额度。
      */
     public function __isset($name)
     {
@@ -134,7 +149,7 @@ class ContainerObjectDto extends AbstractDto
     }
 
     /**
-     * @return void
+     * 对象销毁时归还 fallback 额度（若有）。池化对象 lease 为 null，无副作用。
      */
     public function __destruct()
     {
@@ -144,6 +159,10 @@ class ContainerObjectDto extends AbstractDto
         unset($this->__fallbackLease, $this->__object);
     }
 
+    /**
+     * clone 不得带走租约：否则两个 DTO 析构会对同一 inflight 减两次。
+     * 克隆体若仍当降级连接用，必须重新 reserve 并挂新 lease。
+     */
     public function __clone()
     {
         $this->__fallbackLease = null;

@@ -217,8 +217,8 @@ final class RuntimeDiagnostics
     /**
      * 返回按组件池别名归因的当前 Worker 生命周期计数器，不暴露连接池对象。
      *
-     * 未知或缺失别名不会出现在此映射中，而是由
-     * worker.metrics.pool.counter.swoolefy_pool_unattributed_total 明确记录。
+     * fallback_total / fallback_reject_total 与 fetch 分列：前者是池外降级成功，
+     * 后者是额度用尽立即 503。未知别名仍只进 unattributed，不动态开键。
      *
      * @return array<string, array{fetch_total:int,release_total:int,fetch_error_total:int,fallback_total:int,fallback_reject_total:int,balance:int}>
      */

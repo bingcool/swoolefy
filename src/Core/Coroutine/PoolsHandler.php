@@ -46,8 +46,13 @@ use Swoolefy\Exception\SystemException;
  * - 未过期且未满：在借用协程内同步 push，成功后安全递减 callCount
  * - push 超时 / 已过期 / 池已满：丢弃对象并 decreaseCallCount，必要时 refillOne 补回空闲槽
  *
- * 取不到对象时返回 null。上层 ComponentTrait 可在 fallback 配额内 creatObject；
- * 配额用尽必须立即拒绝，禁止再 wait / 再 fetch。
+ * 取不到对象时返回 null。上层 {@see \Swoolefy\Core\ComponentTrait} 可在 fallback
+ * 配额内 creatObject；配额用尽必须立即拒绝，禁止再 wait / 再 fetch。
+ *
+ * ## 池外 fallback 配额（Worker 级 inflight）
+ * - fallbackInflight / fallbackMax 与 objectCount 独立：降级对象不进 channel
+ * - reserveFallback / releaseFallback 与 objectCount 同一协议：无 yield 预占
+ * - 额度活在 {@see PoolFallbackLease} 上，随对象生命周期释放，不是 get() 返回时释放
  */
 class PoolsHandler
 {
@@ -100,16 +105,20 @@ class PoolsHandler
 
     /**
      * 是否允许池耗尽后 creatObject 降级。
+     *
+     * false 时 reserveFallback() 恒失败，上层立即 503，不会再新建连接。
      */
     protected bool $fallbackEnabled = true;
 
     /**
-     * 当前 Worker 内同时在线的降级连接上限。
+     * 当前 Worker 内同时在线的降级连接上限（进程内 inflight，非跨进程）。
      */
     protected int $fallbackMax = 0;
 
     /**
-     * 当前仍存活的降级连接数。
+     * 当前仍存活、尚未归还额度的降级连接数。
+     *
+     * 只统计池外对象；池内借出走 callCount / objectCount，互不混账。
      */
     protected int $fallbackInflight = 0;
 
@@ -190,7 +199,10 @@ class PoolsHandler
     }
 
     /**
-     * 配置池外降级配额。maxConcurrent=0 或 enabled=false 时 reserveFallback 立即失败。
+     * 配置池外降级配额。
+     *
+     * maxConcurrent 会被钳到 >= 0。enabled=false 或 max=0 时
+     * {@see reserveFallback()} 立即失败，内部不得 pop / sleep。
      */
     public function setFallbackPolicy(bool $enabled, int $maxConcurrent): void
     {
@@ -198,23 +210,35 @@ class PoolsHandler
         $this->fallbackMax = max(0, $maxConcurrent);
     }
 
+    /**
+     * 当前 Worker 允许的降级 inflight 上限（0 表示禁止再新建）。
+     */
     public function getFallbackMax(): int
     {
         return $this->fallbackMax;
     }
 
+    /**
+     * 当前仍占用额度的降级连接数，供 503 文案与诊断使用。
+     */
     public function getFallbackInflight(): int
     {
         return $this->fallbackInflight;
     }
 
+    /**
+     * 池耗尽后是否允许走 creatObject 降级。
+     */
     public function isFallbackEnabled(): bool
     {
         return $this->fallbackEnabled;
     }
 
     /**
-     * 无 yield 预占一条降级额度。失败立即返回 false，不得 pop / sleep。
+     * 无 yield 预占一条降级额度。
+     *
+     * 成功才 ++inflight。失败立即 false：此时 channel 等待已经结束，
+     * 禁止在本方法内再次 popTimeout，否则会把拒绝路径拉成两次超时。
      */
     public function reserveFallback(): bool
     {
@@ -228,7 +252,10 @@ class PoolsHandler
     }
 
     /**
-     * 归还一条降级额度；inflight 不会减到负数。
+     * 归还一条降级额度。inflight 不会减到负数（防御重复释放）。
+     *
+     * 正常路径由 {@see PoolFallbackLease::release()} 调用；lease 已保证幂等，
+     * 这里的下限检查是第二层保护。
      */
     public function releaseFallback(): void
     {
@@ -415,6 +442,8 @@ class PoolsHandler
                 $targetObj->enableDynamicDebug();
             }
             // 出 channel 对象绑定到当前协程；pushObj 用它拒绝重复、错误和陈旧归还。
+            // 返回 null 表示池内策略已走完（含 popTimeout + 短重试），上层只允许
+            // 按 fallback 配额建连或立即 503，不能再调一次 fetchObj。
             if (!is_object($obj)) {
                 return null;
             }

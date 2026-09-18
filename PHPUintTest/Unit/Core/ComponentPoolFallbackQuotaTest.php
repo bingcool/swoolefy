@@ -21,9 +21,12 @@ use Swoolefy\Exception\ComponentPoolExhaustedException;
 
 /**
  * fallback 配额账本与 503 文案（无需协程）。
+ *
+ * PoolsHandler 的 inflight 与 Channel 无关：reserve/release 是无 yield 整数账本。
  */
 final class ComponentPoolFallbackQuotaTest extends TestCase
 {
+    /** 预占成功才 ++inflight；超额立即 false，不得 sleep。 */
     public function testReserveAndReleaseStayWithinMax(): void
     {
         $pool = new PoolsHandler();
@@ -40,6 +43,7 @@ final class ComponentPoolFallbackQuotaTest extends TestCase
         $this->assertFalse($pool->reserveFallback());
     }
 
+    /** enabled=false 或 max=0 时永远 reserve 失败。 */
     public function testDisabledOrZeroMaxNeverReserves(): void
     {
         $disabled = new PoolsHandler();
@@ -52,6 +56,7 @@ final class ComponentPoolFallbackQuotaTest extends TestCase
         $this->assertFalse($zero->reserveFallback());
     }
 
+    /** clear 与析构都会 release，只允许 --inflight 一次。 */
     public function testLeaseReleaseIsIdempotent(): void
     {
         $pool = new PoolsHandler();
@@ -66,6 +71,7 @@ final class ComponentPoolFallbackQuotaTest extends TestCase
         $this->assertTrue($pool->reserveFallback());
     }
 
+    /** 类外 isset($dto->__coroutineId) 必须为 true，否则 get() 会误判跨协程。 */
     public function testContainerObjectDtoIssetExposesLeaseAttributes(): void
     {
         $dto = new \Swoolefy\Core\Dto\ContainerObjectDto();
@@ -75,6 +81,7 @@ final class ComponentPoolFallbackQuotaTest extends TestCase
         $this->assertFalse(isset($dto->__fallbackLease));
     }
 
+    /** HTTP 503 + 中文「达到最大上限」文案，contextData 只含容量账本。 */
     public function testExhaustedExceptionMessageIsChineseWithLimits(): void
     {
         $e = new ComponentPoolExhaustedException('db', 20, 40, 40);
