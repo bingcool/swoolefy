@@ -86,6 +86,12 @@ return [
                 unset(\$jobId, \$cronTaskId, \$result);
                 (new \App\Module\Cron\Service\CronTaskService())->ackRunOnce(\$requestId);
             },
+            'run_once_precheck' => static function (int \$requestId): string {
+                return (new \App\Module\Cron\Service\ExecutionService())->precheckRunOnce(\$requestId);
+            },
+            'run_once_claim' => static function (int \$requestId): string {
+                return (new \App\Module\Cron\Service\ExecutionService())->claimRunOnce(\$requestId);
+            },
             // 节点心跳落库：upsert cron_agent_node.last_heartbeat_at / heartbeat_interval
             'node_heartbeat_ack' => static function (string \$nodeId, int \$heartbeatInterval = 15): void {
                 (new \App\Module\Cron\Service\CronTaskService())->ackNodeHeartbeat(\$nodeId, \$heartbeatInterval);
@@ -135,6 +141,12 @@ return [
             'run_once_ack' => static function (string \$jobId, int \$cronTaskId, \$result = null, int \$requestId = 0): void {
                 unset(\$jobId, \$cronTaskId, \$result);
                 (new \App\Module\Cron\Service\CronTaskService())->ackRunOnce(\$requestId);
+            },
+            'run_once_precheck' => static function (int \$requestId): string {
+                return (new \App\Module\Cron\Service\ExecutionService())->precheckRunOnce(\$requestId);
+            },
+            'run_once_claim' => static function (int \$requestId): string {
+                return (new \App\Module\Cron\Service\ExecutionService())->claimRunOnce(\$requestId);
             },
             'heartbeat_interval' => env('CRON_HEARTBEAT_INTERVAL', 15),
             'node_heartbeat_ack' => static function (string \$nodeId, int \$heartbeatInterval = 15): void {

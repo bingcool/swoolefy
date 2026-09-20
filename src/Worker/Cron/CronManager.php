@@ -108,6 +108,7 @@ final class CronManager
      * @param null|callable(string,int):void $nodeHeartbeatAck 心跳回调 `(string $nodeId, int $interval=…): void`；第二参可选
      * @param null|callable(int):string $runOncePrecheck 消费前闸门，返回 execute|ack|defer
      * @param null|callable(int,int):string $scheduleSlotClaim 调度 Slot 抢占。仅 {@see CronScheduleSlotClaimConst::TRIGGER} 调用；参数 (cronTaskId, plannedAt unix 秒)；必须返回 CREATED|DUPLICATE|FAILED。null 则跳过抢占（视为 CREATED）
+     * @param null|callable(int):string $runOnceClaim RunOnce Claim。在 writeLog(RUNNING) 之前调用；返回 created|ack|defer|failed。原子边界仍是 UNIQUE(request_id)
      */
     public function __construct(
         private $fetcher,
@@ -123,6 +124,7 @@ final class CronManager
         private $nodeHeartbeatAck = null,
         private $runOncePrecheck = null,
         private $scheduleSlotClaim = null,
+        private $runOnceClaim = null,
     ) {
         $this->heartbeatIntervalSeconds = CronNodeLiveness::normalizeInterval($heartbeatIntervalSeconds);
         $this->registry = new RuntimeJobRegistry();
@@ -462,6 +464,8 @@ final class CronManager
         $this->currentRunOnceRequestId = max(0, $requestId);
         try {
             return $this->runInCoroutineIfNeeded(fn (): ExecutionResult => $this->doRunOnceNow($jobId));
+        } catch (CronRunOnceAlreadyClaimedException $e) {
+            return $this->runOnceClaimedResult($e);
         } catch (\Throwable $e) {
             // 控制面调用也必须失败隔离，不得拖垮 Worker / HTTP
             return ExecutionResult::failed('runOnceNow 异常已隔离: ' . $e->getMessage());
@@ -649,6 +653,18 @@ final class CronManager
                     return ExecutionResult::failed('调度Slot抢占失败');
                 }
             }
+            if ($source === 'runOnceNow' && $this->currentRunOnceRequestId > 0) {
+                $claim = $this->claimRunOnceRequest($this->currentRunOnceRequestId);
+                if ($claim === CronRunOnceClaimConst::ACK) {
+                    return ExecutionResult::success('run once already claimed');
+                }
+                if ($claim === CronRunOnceClaimConst::DEFER) {
+                    return ExecutionResult::skipped('run once already claimed');
+                }
+                if ($claim === CronRunOnceClaimConst::FAILED) {
+                    return ExecutionResult::failed('run once claim failed');
+                }
+            }
             $this->writeLog(
                 $snapshot,
                 $this->formatStartMessage($job, $source),
@@ -658,6 +674,9 @@ final class CronManager
             $result = $this->runWithRetry($snapshot);
             $this->writeExecutionResult($job, $snapshot, $result, $source, $startedAt, $started);
             $this->metrics->recordRun($result->status, microtime(true) - $started);
+        } catch (CronRunOnceAlreadyClaimedException $e) {
+            $this->debug('run once execution already claimed request_id=' . $this->currentRunOnceRequestId);
+            $result = $this->runOnceClaimedResult($e);
         } catch (\Throwable $e) {
             // Job Exception ≠ Worker Exception（含 retry 循环外的兜底）
             $result = ExecutionResult::failed($e->getMessage());
@@ -720,6 +739,43 @@ final class CronManager
         ));
 
         return CronScheduleSlotClaimConst::FAILED;
+    }
+
+    /**
+     * RunOnce Claim 快路径。未配置回调视为 CREATED，真正的原子边界是 UNIQUE INSERT。
+     *
+     * @return CronRunOnceClaimConst::CREATED|CronRunOnceClaimConst::ACK|CronRunOnceClaimConst::DEFER|CronRunOnceClaimConst::FAILED
+     */
+    private function claimRunOnceRequest(int $requestId): string
+    {
+        if (!is_callable($this->runOnceClaim) || $requestId <= 0) {
+            return CronRunOnceClaimConst::CREATED;
+        }
+        try {
+            $gate = (string) ($this->runOnceClaim)($requestId);
+        } catch (\Throwable $e) {
+            $this->debug('runOnceClaim failed: ' . $e->getMessage());
+
+            return CronRunOnceClaimConst::FAILED;
+        }
+        if ($gate === CronRunOnceClaimConst::CREATED || $gate === 'execute') {
+            return CronRunOnceClaimConst::CREATED;
+        }
+        if ($gate === CronRunOnceClaimConst::ACK) {
+            return CronRunOnceClaimConst::ACK;
+        }
+        if ($gate === CronRunOnceClaimConst::DEFER) {
+            return CronRunOnceClaimConst::DEFER;
+        }
+
+        return CronRunOnceClaimConst::FAILED;
+    }
+
+    private function runOnceClaimedResult(CronRunOnceAlreadyClaimedException $e): ExecutionResult
+    {
+        return $e->shouldAck()
+            ? ExecutionResult::success('run once already claimed')
+            : ExecutionResult::skipped('run once already claimed');
     }
 
     /**
@@ -1064,7 +1120,6 @@ final class CronManager
                 'finished_at' => date('Y-m-d H:i:s', $now),
                 'duration_ms' => 0,
                 'node_id' => $job->definition->nodeId,
-                'request_id' => $this->currentRunOnceRequestId > 0 ? $this->currentRunOnceRequestId : null,
             ],
         );
         $this->metrics->recordRun(ExecutionResult::SKIPPED);
@@ -1146,6 +1201,8 @@ final class CronManager
             } catch (\ArgumentCountError) {
                 ($this->logWriter)($dto, $execBatchId, $message, $pid);
             }
+        } catch (CronRunOnceAlreadyClaimedException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             $this->debug('cron_task_log 写入失败（已隔离）: ' . $e->getMessage());
         }

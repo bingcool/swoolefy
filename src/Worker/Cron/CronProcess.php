@@ -31,6 +31,7 @@ use Swoolefy\Worker\Dto\CronUrlTaskMetaDtoWorker;
  * - onShutDown() 必须 cronManager->stop() 并注销 RuntimeRegistry cron snapshot
  * - runOnceNow() 转给 CronManager，引擎未启动时返回 FAILED
  * - args['schedule_slot_claim']：调度 Slot 抢占，返回 {@see CronScheduleSlotClaimConst} 三态；仅 onTrigger
+ * - args['run_once_claim']：RunOnce Claim，返回 {@see CronRunOnceClaimConst}；UNIQUE(request_id) 才是原子边界
  *
  * 本类不再走 CrontabManager::addRule。进程内本地 crontab 见 {@see CronLocalProcess}，
  * 那是另一条产品线，不参与本引擎。
@@ -117,6 +118,7 @@ class CronProcess extends AbstractWorkerProcess
             runOncePrecheck: $args['run_once_precheck'] ?? null,
             // 仅 TRIGGER 调用；null 则不抢 Slot（静态 conf / 无 DB）
             scheduleSlotClaim: $args['schedule_slot_claim'] ?? null,
+            runOnceClaim: $args['run_once_claim'] ?? null,
         );
     }
 
@@ -226,7 +228,9 @@ class CronProcess extends AbstractWorkerProcess
                  */
                 $logRuntime = new $logClass();
                 $logRuntime->logCronTaskRuntime($scheduleTask, $execBatchId, $message, $pid, $execution);
-            }catch (\Throwable $e) {
+            } catch (CronRunOnceAlreadyClaimedException $e) {
+                throw $e;
+            } catch (\Throwable $e) {
                 $errorMsg = "CronTaskInterface logCronTaskRuntime error: {$e->getMessage()}";
                 $logger = LogManager::getInstance()->getLogger(LogManager::CRON_FORK_LOG);
                 $logger->error($errorMsg);
