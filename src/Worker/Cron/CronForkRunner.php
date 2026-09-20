@@ -251,14 +251,16 @@ class CronForkRunner
             $pid        = $execOutput[0] ?? -1;
 
             if ($pid) {
-                $runProcessMetaDto = $this->createRunProcessMeta((int)trim($pid), $command);
+                $runProcessMetaDto = $this->createRunProcessMeta((int)trim((string) $pid), $command);
                 $cronScriptPidFileOption = AbstractKernel::getCronScriptPidFileOptionField();
                 if (isset($extend[$cronScriptPidFileOption])) {
                     $cronScriptPidFile = $extend[$cronScriptPidFileOption];
+                    // 文件尚未生成时保留 echo $! / echo $$ 的 PID，供 GC 判断包装进程是否仍存活。
                     if (is_file($cronScriptPidFile)) {
-                        $runProcessMetaDto->pid = (int)trim(file_get_contents($cronScriptPidFile));
-                    }else {
-                        $runProcessMetaDto->pid = 0;
+                        $pidFromFile = $this->readPositivePidFromFile($cronScriptPidFile);
+                        if ($pidFromFile > 0) {
+                            $runProcessMetaDto->pid = $pidFromFile;
+                        }
                     }
                     $runProcessMetaDto->pid_file = $cronScriptPidFile;
                     $this->debug("【{$this->cronName}】拉起新的进程pid_file:".$runProcessMetaDto->pid_file);
@@ -341,28 +343,18 @@ class CronForkRunner
                     @stream_set_blocking($pipes[2], false);
                 }
 
-                $runProcessMetaDto = $this->createRunProcessMeta($status['pid'] ?? -1, $command);
+                $wrapperPid = (int) ($status['pid'] ?? 0);
+                $runProcessMetaDto = $this->createRunProcessMeta($wrapperPid > 0 ? $wrapperPid : -1, $command);
 
                 $cronScriptPidFileOption = AbstractKernel::getCronScriptPidFileOptionField();
-                if (isset($extend[$cronScriptPidFileOption]) || $runType == CronForkTaskMetaDtoWorker::RUN_TYPE) {
-                    $cronScriptPidFile = $extend[$cronScriptPidFileOption];
-                    // 非阻塞轮询 pid 文件：最多等待 10 秒，每 100ms 检查一次。
-                    $deadline = microtime(true) + env('CRON_MAX_WAIT_FORK_TIME', 10.0);
-                    while (microtime(true) < $deadline) {
-                        if (is_file($cronScriptPidFile)) {
-                            $pidNum = trim(file_get_contents($cronScriptPidFile));
-                            if (is_numeric($pidNum) && $pidNum > 0) {
-                                $runProcessMetaDto->pid = $pidNum;
-                                break;
-                            }
-                        }
-                        if (\Swoole\Coroutine::getCid() >= 0) {
-                            System::sleep(0.1);
-                        } else {
-                            usleep(100000);
-                        }
+                $waitingPidFile = isset($extend[$cronScriptPidFileOption]) || $runType == CronForkTaskMetaDtoWorker::RUN_TYPE;
+                if ($waitingPidFile) {
+                    $cronScriptPidFile = (string) ($extend[$cronScriptPidFileOption] ?? '');
+                    if ($cronScriptPidFile !== '') {
+                        // 最多等 CRON_MAX_WAIT_FORK_TIME；包装进程已死且无 pid_file 则立即跳出，避免空转 10s。
+                        $this->waitForCronScriptPidFile($runProcessMetaDto, $cronScriptPidFile, $proc_process);
+                        $runProcessMetaDto->pid_file = $cronScriptPidFile;
                     }
-                    $runProcessMetaDto->pid_file = $cronScriptPidFile;
                     $this->debug("【{$this->cronName}】拉起新的(swoolefy script)进程pid_file:".$runProcessMetaDto->pid_file);
                 } else {
                     $this->debug("【{$this->cronName}】拉起新的进程pid:".$runProcessMetaDto->pid);
@@ -371,8 +363,11 @@ class CronForkRunner
                 $statusProperty = $runProcessMetaDto->toArray();
                 $params = [$pipes[0], $pipes[1], $pipes[2], $statusProperty];
 
-                // 协程环境设置channel控制并发数，isNextHandle()函数判断是否可以并发拉起下一个进程
-                if (\Swoole\Coroutine::getCid() >= 0) {
+                // 已死且无 pid_file 不占并发槽。必须看 proc_get_status.running：
+                // wait 之前子进程可能已成僵尸，kill(pid,0) 仍为 true。
+                $gotPidFile = $this->readPositivePidFromFile((string) $runProcessMetaDto->pid_file) > 0;
+                $occupySlot = $gotPidFile || $this->isProcResourceRunning($proc_process);
+                if (\Swoole\Coroutine::getCid() >= 0 && $occupySlot) {
                     $this->runProcessMetaPool[] = $runProcessMetaDto;
                     $this->debug("【{$this->cronName}】拉起后当前runProcessMetaPool的Size=".count($this->runProcessMetaPool));
                 }
@@ -669,7 +664,12 @@ class CronForkRunner
                             $itemList[] = $runProcessMetaItem;
                         }
                     } else {
-                        // 检测10次后，依然没有pid文件生成，说明此时脚本的启动已经可能异常了
+                        // pid_file 已配置但尚未生成：进程已死或 pid<=0 视为启动失败，立即释放槽位。
+                        $alivePid = (int) $runProcessMetaItem->pid;
+                        if ($alivePid <= 0 || !$this->isOsProcessAlive($alivePid)) {
+                            continue;
+                        }
+                        // 仍存活：继续等慢启动写文件，最多 10 次，避免误杀。
                         if ($runProcessMetaItem->check_pid_not_exist_count < 10) {
                             $runProcessMetaItem->check_total_count++;
                             $runProcessMetaItem->check_pid_not_exist_count++;
@@ -744,6 +744,74 @@ class CronForkRunner
                 }
             }
         });
+    }
+
+    /**
+     * 等待脚本写出 pid_file。
+     *
+     * 用 proc_get_status.running 判断包装进程是否已退出（wait 前可能是僵尸，
+     * kill(pid,0) 仍成功，不能用来提前结束等待）。
+     *
+     * @param resource $procProcess
+     */
+    private function waitForCronScriptPidFile(
+        RunProcessMetaDtoWorker $runProcessMetaDto,
+        string $cronScriptPidFile,
+        $procProcess,
+    ): void {
+        $deadline = microtime(true) + (float) env('CRON_MAX_WAIT_FORK_TIME', 10.0);
+        while (microtime(true) < $deadline) {
+            $pidFromFile = $this->readPositivePidFromFile($cronScriptPidFile);
+            if ($pidFromFile > 0) {
+                $runProcessMetaDto->pid = $pidFromFile;
+                return;
+            }
+            if (!$this->isProcResourceRunning($procProcess)) {
+                return;
+            }
+            $this->sleepInterval(0.1);
+        }
+    }
+
+    /**
+     * @param resource $procProcess
+     */
+    private function isProcResourceRunning($procProcess): bool
+    {
+        if (!is_resource($procProcess) && !is_object($procProcess)) {
+            return false;
+        }
+        $status = @proc_get_status($procProcess);
+
+        return is_array($status) && !empty($status['running']);
+    }
+
+    private function readPositivePidFromFile(string $pidFile): int
+    {
+        if ($pidFile === '' || !is_file($pidFile)) {
+            return 0;
+        }
+        $pidNum = trim((string) file_get_contents($pidFile));
+        if (!is_numeric($pidNum)) {
+            return 0;
+        }
+        $pid = (int) $pidNum;
+
+        return $pid > 0 ? $pid : 0;
+    }
+
+    private function isOsProcessAlive(int $pid): bool
+    {
+        return $pid > 0 && \Swoole\Process::kill($pid, 0);
+    }
+
+    private function sleepInterval(float $seconds): void
+    {
+        if (\Swoole\Coroutine::getCid() >= 0) {
+            System::sleep($seconds);
+            return;
+        }
+        usleep((int) round($seconds * 1000000));
     }
 
     /**

@@ -310,14 +310,26 @@ class GoWaitGroup
 
     /**
      * reset
+     *
+     * wait 结束后只清运行态，不把 waitCompleted 拉回 false。
+     * 同一实例禁止第二轮 wait：late callback 到达时必须仍被闩住。
+     * 下一轮并行等待请 new 新实例（batchParallelRunWait 已如此）。
+     *
      * @return void
      */
     protected function reset()
     {
+        $this->resetRuntimeState();
+    }
+
+    /**
+     * 清 count / result / waiting，保留 waitCompleted 终态闩。
+     */
+    protected function resetRuntimeState(): void
+    {
         $this->result = [];
         $this->count = 0;
         $this->waiting = false;
-        $this->waitCompleted = false;
     }
 
 }

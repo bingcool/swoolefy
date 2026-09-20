@@ -182,6 +182,83 @@ final class SwoolefyExceptionResponseTest extends TestCase
 
         return $request;
     }
+
+    public function testAppExceptionUsesExceptionLocationWhenFunctionIsNotE(): void
+    {
+        try {
+            throw new \RuntimeException('normal-trace');
+        } catch (\RuntimeException $e) {
+            CapturingSwoolefyException::$lastErrorMsg = '';
+            CapturingSwoolefyException::appException($e);
+            $this->assertSame(
+                sprintf('%s in file %s on line %d', 'normal-trace', $e->getFile(), $e->getLine()),
+                CapturingSwoolefyException::$lastErrorMsg,
+            );
+        }
+    }
+
+    public function testAppExceptionDoesNotThrowOnEmptyOrIncompleteTrace(): void
+    {
+        $cases = [
+            $this->exceptionWithTrace('empty-trace', []),
+            $this->exceptionWithTrace('incomplete-trace', [[]]),
+            $this->exceptionWithTrace('missing-function', [['class' => 'Foo', 'type' => '->']]),
+            $this->exceptionWithTrace('e-without-file-line', [['function' => 'E']]),
+        ];
+
+        foreach ($cases as $exception) {
+            CapturingSwoolefyException::$lastErrorMsg = '';
+            CapturingSwoolefyException::appException($exception);
+            $this->assertSame(
+                sprintf('%s in file %s on line %d', $exception->getMessage(), $exception->getFile(), $exception->getLine()),
+                CapturingSwoolefyException::$lastErrorMsg,
+            );
+        }
+    }
+
+    public function testAppExceptionUsesThinkphpEFrameLocation(): void
+    {
+        $synthetic = $this->exceptionWithTrace('synthetic-E', [
+            ['function' => 'E', 'file' => '/tmp/thinkphp-E.php', 'line' => 42],
+        ]);
+        CapturingSwoolefyException::$lastErrorMsg = '';
+        CapturingSwoolefyException::appException($synthetic);
+        $this->assertSame(
+            'synthetic-E in file /tmp/thinkphp-E.php on line 42',
+            CapturingSwoolefyException::$lastErrorMsg,
+        );
+    }
+
+    /**
+     * Exception::getTrace() 为 final，单测通过反射写入内部 trace。
+     *
+     * @param list<array<string, mixed>> $trace
+     */
+    private function exceptionWithTrace(string $message, array $trace): \RuntimeException
+    {
+        $exception = new \RuntimeException($message);
+        $prop = new ReflectionProperty(\Exception::class, 'trace');
+        $prop->setAccessible(true);
+        $prop->setValue($exception, $trace);
+
+        return $exception;
+    }
+}
+
+/**
+ * 捕获 shutHalt 入参，断言 appException 组装的 message/file/line 格式。
+ */
+final class CapturingSwoolefyException extends SwoolefyException
+{
+    public static string $lastErrorMsg = '';
+
+    public static function shutHalt(
+        string $errorMsg,
+        $errorType,
+        \Throwable|null $throwable
+    ): void {
+        self::$lastErrorMsg = $errorMsg;
+    }
 }
 
 /**

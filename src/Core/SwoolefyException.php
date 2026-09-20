@@ -63,9 +63,13 @@ class SwoolefyException
     {
         $error['message'] = $exception->getMessage();
         $trace = $exception->getTrace();
-        if ('E' == $trace[0]['function']) {
-            $error['file'] = $trace[0]['file'];
-            $error['line'] = $trace[0]['line'];
+        $firstTrace = $trace[0] ?? [];
+
+        // ThinkPHP E() 历史兼容：仅当首帧函数名确为 E 时改用该帧位置。
+        // 空 trace / 缺 function 不得再 Warning，否则 handleError 会盖住原始异常。
+        if (($firstTrace['function'] ?? '') === 'E') {
+            $error['file'] = $firstTrace['file'] ?? $exception->getFile();
+            $error['line'] = $firstTrace['line'] ?? $exception->getLine();
         } else {
             $error['file'] = $exception->getFile();
             $error['line'] = $exception->getLine();

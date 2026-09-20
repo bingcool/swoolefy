@@ -212,6 +212,9 @@ final class WorkflowEngine
      * WAITING：CAS status+revision → CANCELLED，与 resume 竞态互斥。
      * RUNNING：协作式取消，_cancelRequested 与 CAS 同一次写入。
      *
+     * run.complete 由 {@see PluginManager::fireRunComplete()} 置 `_runCompleteFired` 闩，
+     * 再 persist，保证 store 可读回该标志；recovery 不得二次 fire。
+     *
      * @throws WorkflowException 终态不可取消，或 CAS 失败（并发 resume/cancel）
      */
     public function cancel(string $runId): void
@@ -235,17 +238,17 @@ final class WorkflowEngine
         if ($run->status === RunStatus::WAITING) {
             $from = $run->status;
             $run->status = RunStatus::CANCELLED;
-            $this->persistTransition($run, $from);
+            // fire 先于 persist：由 fireRunComplete 置闩再写入 store，recovery 才能跳过二次 fire。
             $this->plugins->fireRunComplete($run);
+            $this->persistTransition($run, $from);
 
             return;
         }
 
         if ($run->status === RunStatus::RUNNING) {
             $run->state->set('_cancelRequested', true);
-            $run->state->set('_runCompleteFired', true);
-            $this->persistTransition($run, RunStatus::RUNNING);
             $this->plugins->fireRunComplete($run);
+            $this->persistTransition($run, RunStatus::RUNNING);
 
             return;
         }
@@ -600,6 +603,12 @@ final class WorkflowEngine
             $run->status = RunStatus::CANCELLED;
             $run->revision = $fresh->revision;
             $run->updatedAt = WorkflowRunTime::now();
+            // 以 store 快照为准：执行中的 $run 可能尚未合并 _runCompleteFired。
+            if ($fresh->state->get('_runCompleteFired', false)) {
+                $run->state->set('_runCompleteFired', true);
+
+                return true;
+            }
             $this->plugins->fireRunComplete($run);
 
             return true;

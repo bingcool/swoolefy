@@ -93,9 +93,19 @@ final class PluginManager
         }
     }
 
-    /** Run 完成或失败时触发。 */
+    /**
+     * Run 完成或失败时触发。
+     *
+     * `_runCompleteFired` 是 completion side-effect 闩（可随 RunStore 读回），
+     * 不是业务状态。已闩住则本方法为空操作，保证 hook 体每个 Run 最多一轮。
+     */
     public function fireRunComplete(WorkflowRun $run): void
     {
+        if ($run->state->get('_runCompleteFired', false)) {
+            return;
+        }
+        $run->state->set('_runCompleteFired', true);
+
         foreach ($this->registry->hooks('run.complete') as $hook) {
             $hook($run);
         }
