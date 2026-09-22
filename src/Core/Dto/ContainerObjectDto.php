@@ -78,11 +78,11 @@ class ContainerObjectDto extends AbstractDto
      * @param $name
      * @param $value
      */
-    public function __set($name, $value)
+    public function __set(string $name, mixed $value): void
     {
-        if(in_array($name, $this->__attributes)) {
+        if (in_array($name, $this->__attributes, true)) {
             $this->$name = $value;
-        }else {
+        } else {
             $this->__object->$name = $value;
         }
     }
@@ -93,13 +93,13 @@ class ContainerObjectDto extends AbstractDto
      * @param $name
      * @return mixed
      */
-    public function __get($name)
+    public function __get(string $name): mixed
     {
-        if(in_array($name, $this->__attributes)) {
-           return $this->$name;
-        }else {
-            return $this->__object->$name;
+        if (in_array($name, $this->__attributes, true)) {
+            return $this->$name;
         }
+
+        return $this->__object->$name;
     }
 
     /**
@@ -108,7 +108,7 @@ class ContainerObjectDto extends AbstractDto
      * 私有属性在类外 `isset($dto->__coroutineId)` 若不走 __isset，PHP 恒为 false。
      * ComponentTrait::get() 会因此误判成跨协程，再 creatObject 多占连接/额度。
      */
-    public function __isset($name)
+    public function __isset(string $name): bool
     {
         if (in_array($name, $this->__attributes, true)) {
             return isset($this->$name);
