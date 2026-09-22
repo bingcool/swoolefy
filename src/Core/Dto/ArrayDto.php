@@ -11,12 +11,18 @@
 
 namespace Swoolefy\Core\Dto;
 
+use ArrayAccess;
+use IteratorAggregate;
+use JsonSerializable;
 use ReflectionProperty;
+use Swoolefy\Core\Dto\Concerns\InteractsWithDtoArrayAccess;
 use Swoolefy\DataStruct\ArrayInterface;
 use Swoolefy\Util\CovertProperty;
 
-class ArrayDto extends \stdClass implements ArrayInterface
+class ArrayDto extends \stdClass implements ArrayInterface, ArrayAccess, JsonSerializable, IteratorAggregate
 {
+    use InteractsWithDtoArrayAccess;
+
     /**
      * @return static
      */
@@ -88,6 +94,10 @@ class ArrayDto extends \stdClass implements ArrayInterface
             return $this->valueToDeepArray($value->toDeepArray());
         }
 
+        if ($value instanceof JsonSerializable) {
+            return $this->valueToDeepArray($value->jsonSerialize());
+        }
+
         if (is_object($value) && method_exists($value, 'toArray')) {
             return $this->valueToDeepArray($value->toArray());
         }
@@ -146,7 +156,7 @@ class ArrayDto extends \stdClass implements ArrayInterface
      *
      * Find the declaring ReflectionProperty for a non-static instance field on $this (walks class parents, skips stdClass).
      */
-    private function reflectionPropertyForDeclaredField(string $name): ?ReflectionProperty
+    protected function reflectionPropertyForDeclaredField(string $name): ?ReflectionProperty
     {
         for (
             $class = new \ReflectionClass($this);

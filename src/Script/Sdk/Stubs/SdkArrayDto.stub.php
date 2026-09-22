@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace __SDK_SUPPORT_NAMESPACE__;
 
+use ArrayAccess;
+use IteratorAggregate;
+use JsonSerializable;
 use ReflectionProperty;
 
 /**
  * SDK copy of core DTO helpers (no framework deps).
  */
-class SdkArrayDto extends \stdClass
+class SdkArrayDto extends \stdClass implements ArrayAccess, JsonSerializable, IteratorAggregate
 {
+    use SdkInteractsWithDtoArrayAccess;
     public function toArray(): array
     {
         $out = [];
@@ -42,7 +46,7 @@ class SdkArrayDto extends \stdClass
         return $this->valueToDeepArray($this->toArray());
     }
 
-    private function valueToDeepArray(mixed $value): mixed
+    protected function valueToDeepArray(mixed $value): mixed
     {
         if (is_array($value)) {
             foreach ($value as $key => $item) {
@@ -55,6 +59,10 @@ class SdkArrayDto extends \stdClass
         // SdkArrayInteger / SdkArrayString：序列化前转为纯数组
         if ($value instanceof SdkArrayInterface) {
             return $this->valueToDeepArray($value->toDeepArray());
+        }
+
+        if ($value instanceof JsonSerializable) {
+            return $this->valueToDeepArray($value->jsonSerialize());
         }
 
         if ($value instanceof self) {
@@ -190,7 +198,7 @@ class SdkArrayDto extends \stdClass
         return $class->newInstance();
     }
 
-    private function reflectionPropertyForDeclaredField(string $name): ?ReflectionProperty
+    protected function reflectionPropertyForDeclaredField(string $name): ?ReflectionProperty
     {
         for (
             $class = new \ReflectionClass($this);

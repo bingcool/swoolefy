@@ -27,6 +27,7 @@ final class SdkSupportWriter
         }
 
         $files = [
+            'SdkInteractsWithDtoArrayAccess.php' => 'SdkInteractsWithDtoArrayAccess',
             'SdkArrayDto.php' => 'SdkArrayDto',
             'SdkAbstractDto.php' => 'SdkAbstractDto',
             'SdkBaseRequest.php' => 'SdkBaseRequest',

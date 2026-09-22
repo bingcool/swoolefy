@@ -35,4 +35,9 @@ class BaseResponse extends ArrayDto
     {
         return $this->data;
     }
+
+    public static function builder(): static
+    {
+        return new static();
+    }
 }
