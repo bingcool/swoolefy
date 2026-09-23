@@ -660,7 +660,7 @@ PHP;
             $paramStr = '';
             if ($type !== null) {
                 if ($type instanceof ReflectionNamedType) {
-                    $typeName = $type->getName();
+                    $typeName = $this->formatParameterTypeName($type->getName());
                     // 处理可空类型
                     if ($type->allowsNull() && $typeName !== 'mixed') {
                         $paramStr .= '?';
@@ -675,7 +675,7 @@ PHP;
                             if ($t->getName() === 'null') {
                                 $hasNull = true;
                             } else {
-                                $types[] = $t->getName();
+                                $types[] = $this->formatParameterTypeName($t->getName());
                             }
                         }
                     }
@@ -701,6 +701,22 @@ PHP;
         }
         
         return $params;
+    }
+
+    /**
+     * 生成 SDK 方法签名中的类型名：框架/外部类必须用根命名空间，避免落在 Client 子命名空间下被误解析。
+     */
+    private function formatParameterTypeName(string $typeName): string
+    {
+        if (str_starts_with($typeName, '\\')) {
+            return $typeName;
+        }
+
+        return match ($typeName) {
+            'int', 'float', 'bool', 'string', 'array', 'object', 'callable', 'iterable', 'mixed', 'null', 'void', 'never',
+            'self', 'parent', 'static' => $typeName,
+            default => '\\' . $typeName,
+        };
     }
 
     /**

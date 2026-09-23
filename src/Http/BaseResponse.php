@@ -13,6 +13,10 @@ namespace Swoolefy\Http;
 
 use Swoolefy\Core\Dto\ArrayDto;
 
+/**
+ * @template T
+ * @extends ArrayDto
+ */
 class BaseResponse extends ArrayDto
 {
     /**
@@ -25,17 +29,27 @@ class BaseResponse extends ArrayDto
      */
     private string $msg = 'success';
 
+    /**
+     * @param T $data
+     * @return $this
+     */
     public function setData($data)
     {
         $this->data = $data;
         return $this;
     }
 
+    /**
+     * @return T
+     */
     public function getData()
     {
         return $this->data;
     }
 
+    /**
+     * @return static
+     */
     public static function builder(): static
     {
         return new static();
