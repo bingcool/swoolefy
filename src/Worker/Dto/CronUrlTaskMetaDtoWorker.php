@@ -116,9 +116,8 @@ class CronUrlTaskMetaDtoWorker extends WorkerAbstractDto
     public static function load(array $taskItem)
     {
         $scheduleTask = new self();
-        foreach ($taskItem as $property => $value) {
-            $scheduleTask->$property = $value;
-        }
+        $scheduleTask->copyProperty($taskItem);
+
         return $scheduleTask;
     }
 }
