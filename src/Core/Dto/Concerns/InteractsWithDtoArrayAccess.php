@@ -29,15 +29,19 @@ trait InteractsWithDtoArrayAccess
             return false;
         }
 
-        if ($this->dtoOffsetViaGetter($name) !== null) {
-            return true;
-        }
-
         $property = $this->reflectionPropertyForDeclaredField($name);
         if ($property !== null) {
             $property->setAccessible(true);
+            if (!$property->isInitialized($this)) {
+                return false;
+            }
 
-            return $property->isInitialized($this);
+            return $property->getValue($this) !== null;
+        }
+
+        $getter = $this->dtoOffsetViaGetter($name);
+        if ($getter !== null) {
+            return $getter() !== null;
         }
 
         return array_key_exists($name, get_object_vars($this));
@@ -53,11 +57,6 @@ trait InteractsWithDtoArrayAccess
             return null;
         }
 
-        $viaGetter = $this->dtoOffsetViaGetter($name);
-        if ($viaGetter !== null) {
-            return $viaGetter();
-        }
-
         $property = $this->reflectionPropertyForDeclaredField($name);
         if ($property !== null) {
             $property->setAccessible(true);
@@ -66,6 +65,11 @@ trait InteractsWithDtoArrayAccess
             }
 
             return null;
+        }
+
+        $viaGetter = $this->dtoOffsetViaGetter($name);
+        if ($viaGetter !== null) {
+            return $viaGetter();
         }
 
         $vars = get_object_vars($this);
@@ -86,6 +90,7 @@ trait InteractsWithDtoArrayAccess
             throw new \InvalidArgumentException('offset 不能为空');
         }
 
+        // 保留 setter 优先：部分 DTO（如分页入参）在 setter 内做归一化/校验。
         if ($this->dtoTrySetter($name, $value)) {
             return;
         }
@@ -113,23 +118,15 @@ trait InteractsWithDtoArrayAccess
         }
 
         $property = $this->reflectionPropertyForDeclaredField($name);
-        if ($property === null || $property->isReadOnly()) {
-            unset($this->{$name});
-
+        if ($property === null) {
             return;
         }
 
-        $property->setAccessible(true);
-        if (!$property->hasType()) {
-            $property->setValue($this, null);
-
-            return;
+        if ($property->isReadOnly()) {
+            throw new LogicException("只读字段不可 unset: {$name}");
         }
 
-        $type = $property->getType();
-        if ($type instanceof ReflectionNamedType && $type->allowsNull()) {
-            $property->setValue($this, null);
-        }
+        $this->unsetDeclaredProperty($property);
     }
 
     public function __get(string $name): mixed
@@ -168,22 +165,30 @@ trait InteractsWithDtoArrayAccess
     public static function fromArray(array $data): static
     {
         $obj = new static();
-        $ref = new \ReflectionClass($obj);
 
         foreach ($data as $key => $value) {
             if (!is_string($key) && !is_int($key)) {
                 continue;
             }
             $name = (string) $key;
-            if ($name === '' || !$ref->hasProperty($name)) {
+            if ($name === '') {
                 continue;
             }
-            $property = $ref->getProperty($name);
+
+            $property = $obj->reflectionPropertyForDeclaredField($name);
+            if ($property === null) {
+                continue;
+            }
+
             if ($property->isStatic() || $property->isReadOnly()) {
                 continue;
             }
+
             $property->setAccessible(true);
-            $property->setValue($obj, static::hydratePropertyValue($property, $value));
+            $property->setValue(
+                $obj,
+                static::hydratePropertyValue($property, $value),
+            );
         }
 
         return $obj;
@@ -228,6 +233,25 @@ trait InteractsWithDtoArrayAccess
         }
 
         return $value;
+    }
+
+    /**
+     * 在 property 声明类作用域内执行 native unset，使 typed property 回到 uninitialized。
+     */
+    private function unsetDeclaredProperty(ReflectionProperty $property): void
+    {
+        $name = $property->getName();
+        $declaringClass = $property->getDeclaringClass();
+
+        $unsetter = \Closure::bind(
+            static function (object $object) use ($name): void {
+                unset($object->{$name});
+            },
+            null,
+            $declaringClass->getName(),
+        );
+
+        $unsetter($this);
     }
 
     /**
