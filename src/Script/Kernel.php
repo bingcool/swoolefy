@@ -18,6 +18,7 @@ use Swoolefy\Script\GenerateCronService;
 use Swoolefy\Script\GenerateDaemonService;
 use Swoolefy\Script\GenerateApiDoc;
 use Swoolefy\Script\GenerateSdk;
+use Swoolefy\Script\GenerateInterfaceApi;
 use Swoolefy\Script\TestScript;
 use Swoolefy\Core\Schedule\Schedule;
 use Swoolefy\Worker\Cron\CronForkProcess;
@@ -37,6 +38,7 @@ class Kernel extends AbstractKernel
         GenerateDaemonService::command => [GenerateDaemonService::class, 'handle'],
         GenerateApiDoc::command        => [GenerateApiDoc::class, 'handle'],
         GenerateSdk::command           => [GenerateSdk::class, 'handle'],
+        GenerateInterfaceApi::command  => [GenerateInterfaceApi::class, 'handle'],
         TestScript::command            => [TestScript::class, 'handle'],
     ];
 

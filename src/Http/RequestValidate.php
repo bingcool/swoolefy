@@ -75,7 +75,7 @@ class RequestValidate
             }
 
             $itemClass = '';
-            foreach ($property->getAttributes(ValidationRule::class) as $attribute) {
+            foreach (ContractAnnotation::propertyAttributes($property, ...ContractAnnotation::validationRuleClasses()) as $attribute) {
                 $ic = $attribute->newInstance()->getItemClass();
                 if ($ic !== '') {
                     $itemClass = $ic;
@@ -92,7 +92,7 @@ class RequestValidate
                 unset($row);
             }
 
-            if ($property->getAttributes(StringToInt::class) === []) {
+            if (!ContractAnnotation::propertyHasAnyAttribute($property, ...ContractAnnotation::stringToIntClasses())) {
                 continue;
             }
 
@@ -149,7 +149,7 @@ class RequestValidate
         $reflectionClass = new \ReflectionClass($class);
         $validationRules = [];
         foreach ($reflectionClass->getProperties() as $property) {
-            $attributes = $property->getAttributes(ValidationRule::class);
+            $attributes = ContractAnnotation::propertyAttributes($property, ...ContractAnnotation::validationRuleClasses());
             if (empty($attributes)) {
                 continue;
             }
@@ -344,7 +344,7 @@ class RequestValidate
                 continue;
             }
 
-            if (!empty($property->getAttributes(ValidationRule::class))) {
+            if (ContractAnnotation::propertyHasAnyAttribute($property, ...ContractAnnotation::validationRuleClasses())) {
                 continue;
             }
 

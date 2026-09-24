@@ -164,7 +164,7 @@ class ActionResultNormalizer
             }
 
             $exported = $prop->getValue($object);
-            if ($prop->getAttributes(IntToString::class) !== []) {
+            if (ContractAnnotation::propertyHasAnyAttribute($prop, ...ContractAnnotation::intToStringClasses())) {
                 $exported = static::applyIntToStringOnAnnotatedValue($exported);
             }
 
