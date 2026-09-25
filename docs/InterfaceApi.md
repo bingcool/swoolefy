@@ -821,7 +821,7 @@ abstract class BaseClientApi
 命令在 `InterfaceApi` 仓库根目录执行：
 
 ```text
-php bin/generate-client.php
+php InterfaceApi/bin/generate-client.php --service=ScheduleJob/App
 ```
 
 不读取服务端仓库。输入是本包里带 `#[RouteGroup]` 的接口。

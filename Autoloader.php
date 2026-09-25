@@ -27,7 +27,7 @@ if (!class_exists(__NAMESPACE__ . '\\Autoloader', false)) {
         private static $baseDirectory = null;
 
         /** @var list<string> */
-        private static $rootNamespace = ['__APP_NAMESPACE__'];
+        private static $rootNamespace = ['__APP_NAMESPACE__', 'InterfaceApi'];
 
         /** @var array<string, true> */
         private static $classMapNamespace = [];
@@ -137,11 +137,19 @@ if (!class_exists(__NAMESPACE__ . '\\Autoloader', false)) {
                     continue;
                 }
 
-                $parts = explode('\\', $className);
-                $filepath = self::baseDirectory()
-                    . DIRECTORY_SEPARATOR
-                    . implode(DIRECTORY_SEPARATOR, $parts)
-                    . '.php';
+                if ($namespace === 'InterfaceApi') {
+                    $suffix = substr($className, strlen('InterfaceApi\\'));
+                    $filepath = self::resolveInterfaceApiDirectory(self::baseDirectory())
+                        . DIRECTORY_SEPARATOR
+                        . str_replace('\\', DIRECTORY_SEPARATOR, $suffix)
+                        . '.php';
+                } else {
+                    $parts = explode('\\', $className);
+                    $filepath = self::baseDirectory()
+                        . DIRECTORY_SEPARATOR
+                        . implode(DIRECTORY_SEPARATOR, $parts)
+                        . '.php';
+                }
 
                 if (!is_file($filepath)) {
                     clearstatcache(true, $filepath);
@@ -153,6 +161,59 @@ if (!class_exists(__NAMESPACE__ . '\\Autoloader', false)) {
 
                 break;
             }
+        }
+
+        /**
+         * InterfaceApi 契约根目录（与 App 同级在项目内，或 dev 下与项目同级的独立仓库）。
+         *
+         * @param string|null $projectRoot 默认 {@see baseDirectory()}
+         */
+        public static function interfaceApiRoot(?string $projectRoot = null): string
+        {
+            $root = $projectRoot !== null ? rtrim($projectRoot, '/\\') : self::baseDirectory();
+
+            return self::resolveInterfaceApiDirectory($root);
+        }
+
+        /**
+         * 本地独立 InterfaceApi 仓库：设置环境变量 REGISTER_LOCAL_INTERFACE_API=1，方便每个项目都可以直接自动注册本地InterfaceApi仓库
+         * 这样可以本地快速开发调试，不需去动composer.json
+         */
+        private static function resolveInterfaceApiDirectory(string $projectRoot): string
+        {
+            $embedded = $projectRoot . DIRECTORY_SEPARATOR . 'InterfaceApi';
+            if (self::isInterfaceApiTree($embedded)) {
+                return realpath($embedded) ?: $embedded;
+            }
+
+            if (self::isRegisterLocalInterfaceApi()) {
+                $sibling = dirname($projectRoot) . DIRECTORY_SEPARATOR . 'InterfaceApi';
+                if (self::isInterfaceApiTree($sibling)) {
+                    return realpath($sibling) ?: $sibling;
+                }
+            }
+
+            return $embedded;
+        }
+
+        private static function isInterfaceApiTree(string $path): bool
+        {
+            return is_dir($path . DIRECTORY_SEPARATOR . 'Support');
+        }
+
+        /** 本地独立 InterfaceApi 仓库：环境变量 REGISTER_LOCAL_INTERFACE_API=1 */
+        private static function isRegisterLocalInterfaceApi(): bool
+        {
+            if (function_exists('env')) {
+                $v = env('REGISTER_LOCAL_INTERFACE_API');
+                if ($v === '1' || $v === 1 || $v === true) {
+                    return true;
+                }
+            }
+
+            $fromEnv = getenv('REGISTER_LOCAL_INTERFACE_API');
+
+            return $fromEnv === '1';
         }
 
         /**
