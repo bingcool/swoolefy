@@ -140,7 +140,8 @@ if (!class_exists(__NAMESPACE__ . '\\Autoloader', false)) {
                     continue;
                 }
 
-                if ($namespace === 'InterfaceApi') {
+                // 本地是否启用InterfaceApi 命名空间的仓库
+                if ($namespace === 'InterfaceApi' && self::isRegisterLocalInterfaceApi()) {
                     $suffix = substr($className, strlen('InterfaceApi\\'));
                     $filepath = self::resolveInterfaceApiDirectory(self::baseDirectory())
                         . DIRECTORY_SEPARATOR
@@ -188,28 +189,17 @@ if (!class_exists(__NAMESPACE__ . '\\Autoloader', false)) {
 
         /**
          * 约定：
-         * - 默认：{项目根}/InterfaceApi（与 App 同级）；未命中时由 Composer vendor 中的 interface-api 继续解析
-         * - REGISTER_LOCAL_INTERFACE_API=1：仅用 {项目上级}/{interfaceApiServiceDirName}（默认 interface-api-service），
+         * - 本地开发环境 REGISTER_LOCAL_INTERFACE_API=1：仅用 {项目上级}/{interfaceApiServiceDirName}（默认 interface-api-service），本地环境就算安装了进vendor也不会使用。
+         * - dev|测试|生产环境 REGISTER_LOCAL_INTERFACE_API=0（默认，或者不设置），使用composer.json require 安装的的vendor下的interface-api包
          *   不再加载项目内 InterfaceApi/；本地找不到类时抛错，不回退 vendor
          */
         private static function resolveInterfaceApiDirectory(string $projectRoot): string
         {
-            $embedded = $projectRoot . DIRECTORY_SEPARATOR . 'InterfaceApi';
-
-            if (self::isRegisterLocalInterfaceApi()) {
-                $localRepo = dirname($projectRoot) . DIRECTORY_SEPARATOR . self::$interfaceApiServiceDirName;
-                if (self::isInterfaceApiTree($localRepo)) {
-                    return realpath($localRepo) ?: $localRepo;
-                }
-
-                return $localRepo;
+            $localRepo = dirname($projectRoot) . DIRECTORY_SEPARATOR . self::$interfaceApiServiceDirName;
+            if (self::isInterfaceApiTree($localRepo)) {
+                return realpath($localRepo) ?: $localRepo;
             }
-
-            if (self::isInterfaceApiTree($embedded)) {
-                return realpath($embedded) ?: $embedded;
-            }
-
-            return $embedded;
+            return $localRepo;
         }
 
         private static function isInterfaceApiTree(string $path): bool
