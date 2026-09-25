@@ -43,12 +43,11 @@
 - [十五、⚡ 协程单例](#nav-15-singleton)
 - [十六、⚡ 协程并发](#nav-16-concurrent)
 - [十七、🗄️ 数据库操作](#nav-17-db)
-- [十八、📦 SDK 自动生成](#nav-18-sdk)
-- [十九、📘 ApiDoc 自动生成](#nav-19-apidoc)
-- [二十、☁️ Nacos 微服务集成](#nav-20-nacos)
-- [二十一、🤖 AI / Workflow 工作流](#nav-21-ai-workflow)
-- [二十二、🧠 AI Agent / RAG / MCP / OCR 大模型能力](#nav-22-ai-capabilities)
-- [二十三、📬 Job 异步任务](#nav-23-job)
+- [十八、📘 ApiDoc 自动生成](#nav-19-apidoc)
+- [十九、☁️ Nacos 微服务集成](#nav-20-nacos)
+- [二十、🤖 AI / Workflow 工作流](#nav-21-ai-workflow)
+- [二十一、🧠 AI Agent / RAG / MCP / OCR 大模型能力](#nav-22-ai-capabilities)
+- [二十二、📬 Job 异步任务](#nav-23-job)
 - [🔐 Auth 统一身份](#nav-auth)
 - [🌐 I18n 国际化](#nav-i18n)
 - [🧪 PHPUnit / PHPUintTest](#nav-phpunit)
@@ -118,7 +117,6 @@
   - **配置变更监听**: 长轮询 Nacos 配置，拉取最新内容写入 `APP_PATH/.env`，自动执行 `restart --force` 使 Worker 加载新配置
   - **服务注册**: 应用实例注册到 Nacos 注册中心，支持心跳保活（`application.yaml` → `nacos.service_register`）
   - **服务发现**: `DiscoveryClient` 拉取健康实例，内置 `random` / `round_robin` / `weight` 负载均衡
-  - **SDK 服务发现**: `gen:sdk` 生成的 API 客户端在未传入 Guzzle Client 时，自动通过 Nacos 解析目标服务 `base_uri`（`serviceName` 在生成时从 `application.yaml` 注入）
 - 🔐 **Auth 统一身份**（`src/Support/Auth/`）:
   - **AuthUser + JwtAuthGuard**: 签发 / 验票同一 Guard；组件名 `auth.guard`
   - **FrameworkContext**: 协程 Context 存 array 快照，`goApp` 可透传；禁止进程级「当前用户」
@@ -461,8 +459,6 @@ docker run -d -it --security-opt seccomp=unconfined -p 9501:9501 -p 9502:9502 -v
   | 配置变更监听   | 长轮询配置 → 写入 `.env` → 后台 `cli.php restart {App} --force=1` | `NacosMonitor`、`ConfigWatcher`（见 [Monitor/README.md](src/Support/Nacos/Monitor/README.md)） |
   | 服务注册     | 注册实例到 Nacos 并定时心跳                                        | `ServiceRegister`                                                                          |
   | 服务发现     | 实例列表缓存 + 负载均衡选节点                                         | `DiscoveryClient`、`DiscoveryConfig`、`LoadBalancerFactory`                                  |
-  | SDK 服务发现 | `gen:sdk` 生成客户端，未传 Guzzle 时自动 Nacos 发现 `base_uri`        | `BaseClientApi`、`SdkNacosServiceDiscovery`（sdk自动生成）                                        |
-
     自定义进程示例（`Event.php` 中注册）：
     服务发现代码示例：
 
@@ -1393,228 +1389,8 @@ $db->newQuery()->table('tbl_users')->where(['id', '=', 100])->field(['id', 'user
 
 
 
-### 十八、📦 SDK 自动生成
 
-swoolefy 提供了 **SDK 自动生成工具**，可以扫描项目的 Route 路由配置，自动提取 API 接口信息和 Request/Response DTO，生成类型安全的 PHP 客户端 SDK 代码。
-
-#### 核心特性
-
-- 🔍 **自动扫描路由**: 解析 `App/Router` 目录下的所有路由配置文件
-- 📝 **提取 DTO**: 自动识别控制器方法中的 Request 和 Response 类型声明
-- 🎯 **类型安全**: 生成的 SDK 包含完整的类型声明，IDE 智能提示友好
-- 🔄 **自动更新**: 路由变更后重新生成即可，无需手动维护
-- ☁️ **Nacos 服务发现**: 生成时通过 `NacosServiceRegisterConfig` 注入 `BaseClientApi::$serviceName`；构造 API 客户端时未传入 `ClientInterface` 则委托框架 `DiscoveryClient` 自动解析 `base_uri`（需 `NACOS_FILE_PATH` / `APP_PATH` 下存在 `nacos.yaml` 与 `application.yaml`）
-
-
-
-#### 使用方法
-
-```bash
-# 基本用法：扫描默认 App/Router 目录，生成到 GenerateSdk 目录
-php script.php start App --c=gen:sdk
-
-# 指定路由目录
-php script.php start App --c=gen:sdk --router=App/Router
-
-# 指定输出目录 ProjectName 是具体项目名 OrderService
-php script.php start App --c=gen:sdk --out=../sdk-library/{ProjectName}
-```
-
-
-
-#### 生成的 SDK 结构
-
-```
-GenerateSdk/
-├── {ProjectName}/
-│   └── {AppName}/
-│       ├── Support/              # SDK 基础支撑类
-│       │   ├── BaseClientApi.php           # HTTP 客户端基类（可选 Nacos 发现）
-│       │   ├── SdkNacosServiceDiscovery.php  # 委托 DiscoveryClient 解析 base_uri
-│       │   ├── SdkArrayDto.php
-│       │   ├── SdkCovertProperty.php
-│       │   └── ...
-│       ├── Controller/
-│       │   └── Client/
-│       │       ├── IndexApi.php      # 对应 IndexController
-│       │       ├── UserApi.php       # 对应 UserController
-│       │       └── OrderApi.php      # 对应 OrderController
-│       ├── Request/              # Request DTO
-│       │   └── UserLoginRequest.php
-│       └── Response/             # Response DTO
-│           └── UserListResponse.php
-```
-
-
-
-#### 示例代码
-
-**使用生成的 API 客户端（固定地址 / 自定义 Client）：**
-
-```php
-use GenerateSdk\MyProject\App\Controller\Client\UserApi;
-use GenerateSdk\MyProject\App\Request\UserLoginRequest;
-
-// 指定固定 base_uri（不走 Nacos 服务发现）
-$api = UserApi::makeService(null, 'http://127.0.0.1:9501');
-
-// 自定义 Guzzle Client（完全手动）
-$client = new \GuzzleHttp\Client(['base_uri' => 'http://api.example.com/']);
-$api = new UserApi($client);
-
-// 使用 Request DTO 调用
-$request = new UserLoginRequest();
-$request->setUsername('admin');
-$request->setPassword('123456');
-/** @var UserLoginResponse $response */
-$response = $api->login($request);
-
-var_dump($response->getToken());
-var_dump($response->getUserId());
-```
-
-**Nacos 服务发现 SDK 详细用法：**
-
-生成 SDK 时会从 `application.yaml` → `nacos.service_register.service_name` 注入 `BaseClientApi::$serviceName`。  
-调用 `makeService()` 且**不传** `$httpClient` / `$baseUri` 时，自动通过 Nacos 发现可用实例并设置 Guzzle `base_uri`。
-
-**前置条件**
-
-
-| 项    | 说明                                                                                           |
-| ---- | -------------------------------------------------------------------------------------------- |
-| 依赖   | SDK 包需 `composer require bingcool/swoolefy`（`SdkNacosServiceDiscovery` 委托 `DiscoveryClient`） |
-| 配置文件 | 配置目录下需存在 `nacos.yaml`（Nacos 连接）与 `application.yaml`（`discovery_service_client` 等）            |
-| 配置路径 | `NACOS_FILE_PATH`（nacos.yaml）+ `APP_PATH`（application.yaml）                                  |
-
-
-```php
-use GenerateSdk\MyProject\Order\Client\OrderApi;
-use GenerateSdk\MyProject\Order\Request\CreateOrderRequest;
-
-// ① Nacos 服务发现（推荐）
-// serviceName 已在 gen:sdk 时注入，无需手写 base_uri
-$orderApi = OrderApi::makeService();
-
-// ② GET / PUT / DELETE 等幂等请求：Connect/Request 异常默认重试 1 次（最大可通过 options 调到 3）
-$orderListReq = new OrderListRequest();
-$orderListReq->setName('手机');
-$orderListReq->setPage(1);
-$orderListReq->setSize(20);
-// 可选，
-$options = [
-     // 可选，可设置 headers、connect_retry_num、timeout 等 Guzzle 选项
-    'headers' => [
-        'Authorization' => 'Bearer ' . $token,
-        'X-Request-Id'  => uniqid('req_', true),
-    ],
-    'connect_retry_num' => 2, // 可选，0~3；不传则 GET 默认 1
-];
-
-$list = $orderApi->list($orderListReq, $options);
-
-
-// ③ POST 写操作：默认不重试（保证幂等由业务决定），需显式开启
-$createReq = new CreateOrderRequest();
-$createReq->setProductId(1001);
-$createReq->setQuantity(2);
-
-$result = $orderApi->create($createReq, [
-    // POST 默认 connect_retry_num=0；仅当业务确认接口幂等时才设置connect_retry_num时开启重试机制
-    'connect_retry_num' => 1,
-    'headers' => [
-        'Authorization' => 'Bearer ' . $token,
-        'Idempotency-Key' => 'order-create-' . $createReq->getProductId(), //建议配合幂等键
-    ],
-]);
-
-// ④ 固定 base_uri（不走 Nacos，指定GuzzleHttp\Client对象，失败时退避 200ms / 500ms / 1s 后重试同一地址）
-$client = new \GuzzleHttp\Client([
-    'base_uri' => 'http://api.example.com/',
-]);
-$orderApi = OrderApi::makeService($client);
-// ⑤ GET / PUT / DELETE 等幂等请求
-$orderDetailReq = new OrderDetailRequest();
-$orderListReq->setOrderId(1001);
-$detail = $orderApi->detail($orderDetailReq);
-
-```
-
-**重试与日志说明**
-
-
-| 场景                          | 行为                                                                             |
-| --------------------------- | ------------------------------------------------------------------------------ |
-| Nacos 发现 + 重试               | `RequestException` 时重新 `choose` 节点后立即重试，**无退避**                                |
-| 固定地址 + 重试                   | 同一 `base_uri` 退避 **200ms → 500ms → 1s** 后重试                                    |
-| GET/HEAD/PUT/DELETE/OPTIONS | 默认重试 **1** 次                                                                   |
-| POST/PATCH 等                | 默认 **0** 次，须 `$options['connect_retry_num']` 显式指定                              |
-| 重试上限                        | `connect_retry_num` 最大 **3**                                                   |
-| 日志                          | 重试时写入 guzzle_curl 日志（`CurlProxyHandler::buildLogChannel()`），含失败/下一跳 IP:端口及异常信息 |
-
-
-> `$options['connect_retry_num']` 为 SDK 专用参数，不会传给 Guzzle；自定义请求头通过 `$options['headers']` 传入，会与默认 `Content-Type: application/json` 合并。
-
-**控制器返回值类型声明最佳实践：**
-
-为了让 SDK 生成更准确，建议在控制器 action 方法中添加返回值类型声明：
-
-```php
-<?php
-namespace App\Controller;
-
-use Swoolefy\Core\Controller\BController;
-use App\Request\UserLoginRequest;
-use App\Response\UserLoginResponse;
-
-class UserController extends BController
-{
-    // ✅ 有返回对象时声明具体类型
-    public function login(UserLoginRequest $request): UserLoginResponse
-    {
-        return $response;
-    }
-    
-    // ✅ 无返回值时使用 bool
-    public function delete(int $id): bool
-    {
-        return true;
-    }
-    
-    // ✅ 返回数组时使用 array
-    public function list(): array
-    {
-        return ['total' => 100, 'list' => []];
-    }
-}
-```
-
-
-
-#### 工作原理
-
-1. **扫描路由文件**: 解析 `App/Router/*.php` 中的所有路由定义
-2. **反射分析**: 通过 PHP Reflection 分析控制器方法的参数和返回类型
-3. **提取 DTO**: 识别 `Test\`* 命名空间下的 Request/Response 类
-4. **生成代码**:
-  - 复制 DTO 类到 SDK 目录，移除框架依赖
-  - 生成 API 客户端类，每个控制器对应一个 `*Api.php` 文件
-  - 生成 Guzzle HTTP 客户端调用代码
-5. **类型转换**: 自动处理 JSON 响应到 DTO 对象的转换
-
-
-
-#### 注意事项
-
-- 控制器方法建议使用类型声明（Request/Response 类或标量类型）
-- DTO 类应位于 `App/Request`、`App/Response` 或 `App/Dto` 目录下
-- 生成的 SDK 可在 PHP-FPM 或 CLI 中使用；启用 Nacos 服务发现时需依赖 `bingcool/swoolefy`（`SdkNacosServiceDiscovery` 委托 `DiscoveryClient`）
-- SDK 基于 Guzzle HTTP 客户端，需要安装 `guzzlehttp/guzzle` 依赖
-- Nacos 发现配置：`NACOS_FILE_PATH` 指定 nacos.yaml，`APP_PATH` 指定 application.yaml
-
-
-
-### 十九、📘 ApiDoc 自动生成
+### 十八、📘 ApiDoc 自动生成
 
 swoolefy 提供了 **ApiDoc 自动生成工具**（`gen:apidoc`），扫描 Route 的 `dispatch_route`，结合 Request/Response DTO 与注解生成 **OpenAPI 3.0** YAML。生成结果可放到 `swaggerui/apidoc/`，用内置 Swagger UI 浏览。
 
@@ -1703,9 +1479,9 @@ class UserCreateRequest extends BaseRequest
 
 
 
-### 二十、☁️ Nacos 微服务集成
+### 十九、☁️ Nacos 微服务集成
 
-框架内置 Nacos **配置监听**、**服务注册**、**服务发现**，并与 `gen:sdk` 生成的 HTTP 客户端打通。实现位于 `src/Support/Nacos/`，应用侧参考 `Test/nacos.yaml`、`Test/application.yaml` 与 `Test/Process/NacosProcess/`。
+框架内置 Nacos **配置监听**、**服务注册**、**服务发现**。实现位于 `src/Support/Nacos/`，应用侧参考 `Test/nacos.yaml`、`Test/application.yaml` 与 `Test/Process/NacosProcess/`。
 
 #### 配置文件
 
@@ -1847,24 +1623,9 @@ $metadata = $instance?->getMetadata() ?? [];
 
 
 
-#### 与 gen:sdk 的关系
+独立 **InterfaceApi** 契约包的 HTTP Client 在未指定 `base_uri` 时可委托 `DiscoveryClient` 选实例；详见 [docs/InterfaceApi.md](docs/InterfaceApi.md)。
 
-
-| 步骤  | 行为                                                                                                                                       |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| 生成时 | 通过 `NacosServiceRegisterConfig` 读取 `service_register.service_name`，写入 `BaseClientApi::$serviceName`                                      |
-| 运行时 | `UserApi::make()` 未传 Guzzle Client → `SdkNacosServiceDiscovery` → `DiscoveryClient::choose()` → 设置 Guzzle `base_uri`，并保存选中实例的 `metadata` |
-
-
-SDK 客户端可读取当前选中实例 metadata：
-
-```php
-$api = UserApi::makeService();
-$metadata = $api->getNacosInstanceMetadata();
-$version = $api->getNacosInstanceMetadataValue('version', 0);
-```
-
-SDK 调用下游服务时会自动透传入口请求中的白名单 Header，并兼容框架已有协程级 `x-trace-id`：
+调用下游 HTTP 服务时可透传入口请求中的白名单 Header，并兼容框架已有协程级 `x-trace-id`：
 
 
 | Header         | 说明                             |
@@ -1891,13 +1652,9 @@ $userAgent = FrameworkContext::getUserAgent();
 $userCode = FrameworkContext::get('x-user-code');
 ```
 
-```bash
-php script.php start App --c=gen:sdk --router=App/Router --out=../generate-sdk-library/OrderService
-```
-
 更多 API 说明见 [src/Support/Nacos/README.md](src/Support/Nacos/README.md)。
 
-### 二十一、🤖 AI / Workflow 工作流
+### 二十、🤖 AI / Workflow 工作流
 
 框架内置 **DAG 工作流引擎** + **Neuron AI** 集成，支持 AI 决策分支、多 Agent 并行、RAG 知识库、MCP 工具调用与人机协同（HITL）。已实现 **Phase 1–4** 及 **生产加固（Phase A/B/P0）**：HITL API 鉴权、status 脱敏、resume CAS、多版本 Registry、Embedding fail-fast、MCP 租户 DB、RAG 显式 tenantId、启动期 `ProductionHealthCheck` 等。
 
@@ -2002,7 +1759,7 @@ composer test:workflow
 
 大模型原语（Agent / RAG / MCP / OCR）详见 [二十二、AI Agent / RAG / MCP / OCR 大模型能力](#nav-22-ai-capabilities)。
 
-### 二十二、🧠 AI Agent / RAG / MCP / OCR 大模型能力
+### 二十一、🧠 AI Agent / RAG / MCP / OCR 大模型能力
 
 在 Workflow 编排之外，框架提供可独立使用的 **大模型能力层**：LLM 装配、多 Agent 路由、RAG 检索增强、MCP 工具协议、文档 OCR，以及可选的 CapabilityCenter 工具筛选。底层复用 [Neuron AI](https://docs.neuron-ai.dev/)，运行时由 Swoolefy 协程 / 组件容器承载。
 
@@ -2150,7 +1907,7 @@ composer test:capability
 
 K8s 运行期探针：`GET /health`（liveness）、`GET /ready`（readiness，可配 Redis/DB）；路由 `HealthRoutes::register()`，配置 `Config/health.php`（见 `src/Http/Health/`）。
 
-### 二十三、📬 Job 异步任务
+### 二十二、📬 Job 异步任务
 
 在**现有自定义进程消费**（Redis / AMQP / Kafka）之上提供统一 Job 信封、Handler、Registry 与重试/退避，**默认不新建 SQL 表**，不替换 `ProcessManager` / `Event.php` 进程模型。
 

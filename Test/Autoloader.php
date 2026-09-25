@@ -27,7 +27,7 @@ if (!class_exists(__NAMESPACE__ . '\\Autoloader', false)) {
         private static $baseDirectory = null;
 
         /** @var list<string> */
-        private static $rootNamespace = ['Test', 'InterfaceApi'];
+        private static $rootNamespace = ['Test'];
 
         /** @var array<string, true> */
         private static $classMapNamespace = [];

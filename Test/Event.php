@@ -103,7 +103,6 @@ class Event extends EventHandler
             // ProcessManager::getInstance()->addProcess('multi-call', \Test\Process\TestProcess\MultiCall::class);
 
             // nacos|SDK调用进程
-            // ProcessManager::getInstance()->addProcess('TestSdk', \Test\Process\TestSdk\TestRequest::class);
 
             // Nacos 配置变更 → reload Worker / Task 进程
 //            ProcessManager::getInstance()->addProcess(

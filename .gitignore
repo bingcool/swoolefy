@@ -13,7 +13,6 @@ swag.php
 /protocol
 /vendor
 /*Service
-/GenerateSdk
 Test/.env
 Test/Storage/Logs/
 .DS_Store

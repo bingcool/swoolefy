@@ -71,27 +71,9 @@ Response 只声明强类型 `$data`。`code`、`msg` 在 `BaseResponse` 上。�
 
 ## 4. Support 实现
 
-命名空间一律为 `InterfaceApi\Support`。行为对齐现有 `Swoolefy\Annotation\*`、`Swoolefy\Http\BaseRequest`、`Swoolefy\Http\BaseResponse`、`Swoolefy\Core\Dto\AbstractDto`，以及 `src/Script/Sdk/Stubs/BaseClientApi.stub.php`。契约包不依赖 Swoolefy，因此 `BaseRequest` 不再持有 `RequestInput`。
+命名空间一律为 `InterfaceApi\Support`。行为对齐现有 `Swoolefy\Annotation\*`、`Swoolefy\Http\BaseRequest`、`Swoolefy\Http\BaseResponse`、`Swoolefy\Core\Dto\AbstractDto`；`BaseClientApi` 骨架见 §4.10。契约包不依赖 Swoolefy，因此 `BaseRequest` 不再持有 `RequestInput`。
 
-### 4.0 初始化 Support 目录（CLI）
-
-在 **Swoolefy 仓库**里执行脚本，把本节所需的注解与基础类一次性写入目标目录。命令注册名为 `init::interface`（`Swoolefy\Script\GenerateInterfaceApi`）。
-
-```bash
-php script.php start {AppName} --c=init::interface --out=/path/to/output
-```
-
-| 参数 | 说明 |
-|---|---|
-| `{AppName}` | 与 `script.php start` 一致的应用名，用于加载对应 `Scripts/Kernel`（例如 `Test`）。 |
-| `--c=init::interface` | 固定为 Support 初始化命令。 |
-| `--out` | **必填**。契约包或工作副本的根目录；可为绝对路径，或相对当前应用 `ROOT_PATH` 的相对路径。 |
-
-生成结果目录为 **`{out}/InterfaceApi/Support/`**（命名空间仍为 `InterfaceApi\Support`，与 §1 中独立包布局里的 `Support/` 等价，只是多一层 `InterfaceApi` 目录便于直接落在项目根下）。
-
-示例：将 Support 写到 `/home/wwwroot/swoolefy` 时，会创建 `/home/wwwroot/swoolefy/InterfaceApi/Support/*.php`，包含 `Route`、`RouteGroup`、`ApiProperty`、`ValidationRule`、`ArrayDto`、`BaseRequest`、`BaseResponse`、`BaseClientApi` 等本节列出的全部 Support 文件。生成后可将 `InterfaceApi/Support` 挪到 InterfaceApi 仓库根下的 `Support/`，或调整 `--out` 指向 InterfaceApi 包根目录并在包内保留 `InterfaceApi/Support` 与 composer PSR-4 映射一致。
-
-重复执行会**覆盖**同名文件；若目录已手工修改，请先备份或纳入版本控制后再跑命令。
+Support 源码维护在 InterfaceApi 仓库的 `Support/` 目录（见 §1），由契约包自行维护，不由 Swoolefy CLI 生成。
 
 ### 4.1 Route 与 RouteGroup
 
@@ -681,7 +663,7 @@ class ChatResponse extends BaseResponse
 
 生成的 Client 继承本类。JSON 接口的调用链是：`mergeClientOptions` → `requestWithConnectRetry` → `parseResponseByHeaders` → 业务码校验 → `CovertProperty` 填回 Response。
 
-连接重试、Nacos 换节点、SSE、下载、XML 的行为与 `src/Script/Sdk/Stubs/BaseClientApi.stub.php` 保持一致。下面给出 Client 生成所依赖的骨架。`serviceName` 由生成器按该应用的 Nacos 服务名写入子类。
+连接重试、Nacos 换节点、SSE、下载、XML 的行为与历史 SDK 客户端基类一致。下面给出 Client 生成所依赖的骨架。`serviceName` 由生成器按该应用的 Nacos 服务名写入子类。
 
 ```php
 <?php
@@ -814,7 +796,7 @@ abstract class BaseClientApi
 }
 ```
 
-`CovertProperty::toCovertDeepProperty($payload, Response::class)` 按属性类型和 `#[ArrayList]` 把整份 JSON（含 `code`、`msg`、`data`）填回 Response 对象。嵌套 `$data` 递归填充。实现与 `src/Script/Sdk/Stubs/SdkCovertProperty.stub.php` 相同，命名空间改为 `InterfaceApi\Support`。
+`CovertProperty::toCovertDeepProperty($payload, Response::class)` 按属性类型和 `#[ArrayList]` 把整份 JSON（含 `code`、`msg`、`data`）填回 Response 对象。嵌套 `$data` 递归填充；完整实现位于 `InterfaceApi\Support\CovertProperty`。
 
 ## 5. 扫描并生成 Client
 
