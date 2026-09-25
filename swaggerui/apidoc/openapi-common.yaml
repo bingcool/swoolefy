@@ -1496,6 +1496,226 @@ paths:
                   - msg
                   - trace_id
                   - data
+  /api/log/error:
+    get:
+      tags:
+        - Log
+      summary: '测试 error_log 进程级日志写入'
+      operationId: getLogControllerError
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/log/goapp:
+    get:
+      tags:
+        - Log
+      summary: '测试 goApp 嵌套协程内 info/error 日志写入'
+      operationId: getLogControllerGoAppLog
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/log/info:
+    get:
+      tags:
+        - Log
+      summary: '测试 info_log 进程级日志写入'
+      operationId: getLogControllerInfo
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/log/system-error:
+    get:
+      tags:
+        - Log
+      summary: '抛异常触发 system_error_log 自动记录'
+      operationId: getLogControllerSystemError
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
   /api/queue/push:
     get:
       tags:
@@ -1900,6 +2120,61 @@ paths:
         - Redis
       summary: '测试 Redis 扩展读写'
       operationId: getRedisControllerTestRedis
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/runtime:
+    get:
+      tags:
+        - Runtime
+      summary: 测试Runtime指标
+      operationId: getRuntimeControllerRuntime
       responses:
         200:
           description: success

@@ -29,6 +29,9 @@ if (!class_exists(__NAMESPACE__ . '\\Autoloader', false)) {
         /** @var list<string> */
         private static $rootNamespace = ['__APP_NAMESPACE__', 'InterfaceApi'];
 
+        /** @var string interface-api 独立契约仓目录名（REGISTER_LOCAL_INTERFACE_API=1 时需要与项目同级目录） */
+        private static $interfaceApiServiceDirName = 'interface-api-service';
+
         /** @var array<string, true> */
         private static $classMapNamespace = [];
 
@@ -157,6 +160,14 @@ if (!class_exists(__NAMESPACE__ . '\\Autoloader', false)) {
 
                 if (is_file($filepath)) {
                     require_once $filepath;
+                } elseif ($namespace === 'InterfaceApi' && self::isRegisterLocalInterfaceApi()) {
+                    throw new \RuntimeException(
+                        'REGISTER_LOCAL_INTERFACE_API=1：仅从本地契约仓加载 InterfaceApi\\，未找到 '
+                        . $className
+                        . '，期望文件 '
+                        . $filepath
+                        . '（不会回退到 vendor/composer 安装的 interface-api）',
+                    );
                 }
 
                 break;
@@ -176,21 +187,26 @@ if (!class_exists(__NAMESPACE__ . '\\Autoloader', false)) {
         }
 
         /**
-         * 本地独立 InterfaceApi 仓库：设置环境变量 REGISTER_LOCAL_INTERFACE_API=1，方便每个项目都可以直接自动注册本地InterfaceApi仓库
-         * 这样可以本地快速开发调试，不需去动composer.json
+         * 约定：
+         * - 默认：{项目根}/InterfaceApi（与 App 同级）；未命中时由 Composer vendor 中的 interface-api 继续解析
+         * - REGISTER_LOCAL_INTERFACE_API=1：仅用 {项目上级}/{interfaceApiServiceDirName}（默认 interface-api-service），
+         *   不再加载项目内 InterfaceApi/；本地找不到类时抛错，不回退 vendor
          */
         private static function resolveInterfaceApiDirectory(string $projectRoot): string
         {
             $embedded = $projectRoot . DIRECTORY_SEPARATOR . 'InterfaceApi';
-            if (self::isInterfaceApiTree($embedded)) {
-                return realpath($embedded) ?: $embedded;
-            }
 
             if (self::isRegisterLocalInterfaceApi()) {
-                $sibling = dirname($projectRoot) . DIRECTORY_SEPARATOR . 'InterfaceApi';
-                if (self::isInterfaceApiTree($sibling)) {
-                    return realpath($sibling) ?: $sibling;
+                $localRepo = dirname($projectRoot) . DIRECTORY_SEPARATOR . self::$interfaceApiServiceDirName;
+                if (self::isInterfaceApiTree($localRepo)) {
+                    return realpath($localRepo) ?: $localRepo;
                 }
+
+                return $localRepo;
+            }
+
+            if (self::isInterfaceApiTree($embedded)) {
+                return realpath($embedded) ?: $embedded;
             }
 
             return $embedded;
@@ -201,8 +217,11 @@ if (!class_exists(__NAMESPACE__ . '\\Autoloader', false)) {
             return is_dir($path . DIRECTORY_SEPARATOR . 'Support');
         }
 
-        /** 本地独立 InterfaceApi 仓库：环境变量 REGISTER_LOCAL_INTERFACE_API=1 */
-        private static function isRegisterLocalInterfaceApi(): bool
+        /**
+         * 本地独立 InterfaceApi 仓库：REGISTER_LOCAL_INTERFACE_API=1（env 或 getenv）
+         * 本地联调契约时不改 composer.json require/path
+         */
+        public static function isRegisterLocalInterfaceApi(): bool
         {
             if (function_exists('env')) {
                 $v = env('REGISTER_LOCAL_INTERFACE_API');
@@ -383,7 +402,12 @@ if (!class_exists(__NAMESPACE__ . '\\Autoloader', false)) {
         }
     }
 
-    Autoloader::register();
+    // 本地契约：prepend 优先于 Composer；关闭开关时 register(false) 便于 vendor interface-api
+    if (Autoloader::isRegisterLocalInterfaceApi()) {
+        Autoloader::register(true);
+    } else {
+        Autoloader::register();
+    }
 }
 
 // cli.php 定义 APP_PATH 后再 include 本文件时加载业务常量

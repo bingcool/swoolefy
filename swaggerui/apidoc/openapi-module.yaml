@@ -565,6 +565,21 @@ paths:
                   type: integer
                   nullable: true
                   description: '进程 PID'
+                status:
+                  type: integer
+                  description: '结构化执行状态 0-6；缺省不从 message 猜测'
+                triggerType:
+                  type: integer
+                  description: '触发类型：1-scheduler 2-run_once'
+                durationMs:
+                  type: integer
+                  description: 执行耗时毫秒
+                exitCode:
+                  type: integer
+                  description: 'Shell 退出码'
+                httpStatus:
+                  type: integer
+                  description: 'HTTP 状态码'
               required:
                 - cronId
                 - message
@@ -965,6 +980,124 @@ paths:
                   - msg
                   - trace_id
                   - data
+  /api/v1/dashboard/execution-trend:
+    get:
+      tags:
+        - CronManager
+      summary: 执行趋势
+      operationId: getCronTaskManagerControllerExecutionTrend
+      parameters:
+        -
+          name: range
+          in: query
+          required: false
+          schema:
+            type: string
+          description: '时间范围：24h / 7d / 15d'
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      buckets: { type: array, items: { type: string } }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/dashboard/overview:
+    get:
+      tags:
+        - CronManager
+      summary: 'Dashboard 概览'
+      operationId: getCronTaskManagerControllerDashboardOverview
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      overview: { type: object, properties: { tasks: { type: array, items: { type: string }, description: 任务计数 }, executions: { type: array, items: { type: string }, description: '今日执行计数：与趋势同源 COUNT(DISTINCT exec_batch_id)；today=success+failed+timeout（不含 skipped）' }, nodes: { type: array, items: { type: string }, description: '节点计数；online 按各节点 heartbeat_interval 的存活公式判定' } } }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
   /api/v1/mcp/servers:
     get:
       tags:
@@ -1047,6 +1180,349 @@ paths:
                     type: array
                     items:
                       type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/node-groups:
+    delete:
+      tags:
+        - CronManager
+      summary: 删除节点分组
+      operationId: deleteCronTaskManagerControllerDeleteNodeGroup
+      parameters:
+        -
+          name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: '分组 ID'
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      id: { type: integer, description: '记录 ID' }
+                      deleted: { type: boolean, description: 是否已删除 }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    get:
+      tags:
+        - CronManager
+      summary: 查询节点分组列表
+      operationId: getCronTaskManagerControllerListNodeGroups
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      list: { type: array, items: { type: object, properties: { id: { type: integer, description: '分组 ID' }, groupId: { type: integer, description: '分组 ID（与 id 相同，由 cron_agent_node_group.id 映射，非表列 group_id）' }, groupName: { type: string, description: 分组名称 }, remark: { type: string, description: 备注 }, nodeCount: { type: integer, description: 分组下未软删节点数 }, createdAt: { type: string, description: 创建时间 }, updatedAt: { type: string, description: 更新时间 } } }, description: 节点分组列表 }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    post:
+      tags:
+        - CronManager
+      summary: 创建节点分组
+      operationId: postCronTaskManagerControllerCreateNodeGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                groupName:
+                  type: string
+                  description: 分组名称
+                remark:
+                  type: string
+                  nullable: true
+                  description: 备注
+              required:
+                - groupName
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      id: { type: integer, description: '分组 ID' }
+                      groupId: { type: integer, description: '分组 ID（与 id 相同，由 cron_agent_node_group.id 映射，非表列 group_id）' }
+                      groupName: { type: string, description: 分组名称 }
+                      remark: { type: string, description: 备注 }
+                      nodeCount: { type: integer, description: 分组下未软删节点数 }
+                      createdAt: { type: string, description: 创建时间 }
+                      updatedAt: { type: string, description: 更新时间 }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    put:
+      tags:
+        - CronManager
+      summary: 更新节点分组
+      operationId: putCronTaskManagerControllerUpdateNodeGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  description: '分组 ID'
+                groupName:
+                  type: string
+                  description: 分组名称
+                remark:
+                  type: string
+                  nullable: true
+                  description: 备注
+              required:
+                - id
+                - groupName
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      id: { type: integer, description: '分组 ID' }
+                      groupId: { type: integer, description: '分组 ID（与 id 相同，由 cron_agent_node_group.id 映射，非表列 group_id）' }
+                      groupName: { type: string, description: 分组名称 }
+                      remark: { type: string, description: 备注 }
+                      nodeCount: { type: integer, description: 分组下未软删节点数 }
+                      createdAt: { type: string, description: 创建时间 }
+                      updatedAt: { type: string, description: 更新时间 }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/node-groups/detail:
+    get:
+      tags:
+        - CronManager
+      summary: 查询节点分组详情
+      operationId: getCronTaskManagerControllerGetNodeGroup
+      parameters:
+        -
+          name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: '分组 ID'
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      id: { type: integer, description: '分组 ID' }
+                      groupId: { type: integer, description: '分组 ID（与 id 相同，由 cron_agent_node_group.id 映射，非表列 group_id）' }
+                      groupName: { type: string, description: 分组名称 }
+                      remark: { type: string, description: 备注 }
+                      nodeCount: { type: integer, description: 分组下未软删节点数 }
+                      createdAt: { type: string, description: 创建时间 }
+                      updatedAt: { type: string, description: 更新时间 }
                 required:
                   - code
                   - msg
@@ -1164,7 +1640,7 @@ paths:
                   data:
                     type: object
                     properties:
-                      list: { type: array, items: { type: object, properties: { id: { type: integer, description: '节点 ID' }, nodeName: { type: string, description: 节点名称 }, nodeIp: { type: string, description: '节点 IP' }, remark: { type: string, description: 备注 }, createdAt: { type: string, description: 创建时间 }, updatedAt: { type: string, description: 更新时间 } } }, description: 节点列表 }
+                      list: { type: array, items: { type: object, properties: { id: { type: integer, description: '节点 ID' }, nodeName: { type: string, description: 节点名称 }, nodeIp: { type: string, description: '节点 IP' }, groupId: { type: integer, description: '所属分组 ID；未分组时为 0' }, groupName: { type: string, description: 所属分组名称；未分组时为空 }, remark: { type: string, description: 备注 }, lastHeartbeatAt: { type: string, description: 最近心跳时间；从未心跳时为空 }, heartbeatInterval: { type: integer, description: '该节点心跳间隔（秒），Ack 时由 Worker 写入' }, staleAfterSeconds: { type: integer, description: '超过该秒数未心跳则 offline：max(3*interval, interval+5)' }, status: { type: string, description: 'online / offline（从未心跳视为 offline）' }, taskCount: { type: integer, description: 绑定任务数 }, createdAt: { type: string, description: 创建时间 }, updatedAt: { type: string, description: 更新时间 } } }, description: 节点列表 }
                 required:
                   - code
                   - msg
@@ -1211,6 +1687,9 @@ paths:
                 nodeIp:
                   type: string
                   description: '节点 IP'
+                groupId:
+                  type: integer
+                  description: '所属分组 ID'
                 remark:
                   type: string
                   nullable: true
@@ -1218,6 +1697,7 @@ paths:
               required:
                 - nodeName
                 - nodeIp
+                - groupId
       responses:
         200:
           description: success
@@ -1241,7 +1721,183 @@ paths:
                       id: { type: integer, description: '节点 ID' }
                       nodeName: { type: string, description: 节点名称 }
                       nodeIp: { type: string, description: '节点 IP' }
+                      groupId: { type: integer, description: '所属分组 ID；未分组时为 0' }
+                      groupName: { type: string, description: 所属分组名称；未分组时为空 }
                       remark: { type: string, description: 备注 }
+                      lastHeartbeatAt: { type: string, description: 最近心跳时间；从未心跳时为空 }
+                      heartbeatInterval: { type: integer, description: '该节点心跳间隔（秒），Ack 时由 Worker 写入' }
+                      staleAfterSeconds: { type: integer, description: '超过该秒数未心跳则 offline：max(3*interval, interval+5)' }
+                      status: { type: string, description: 'online / offline（从未心跳视为 offline）' }
+                      taskCount: { type: integer, description: 绑定任务数 }
+                      createdAt: { type: string, description: 创建时间 }
+                      updatedAt: { type: string, description: 更新时间 }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+    put:
+      tags:
+        - CronManager
+      summary: 更新节点
+      operationId: putCronTaskManagerControllerUpdateNode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  description: '节点 ID'
+                nodeName:
+                  type: string
+                  nullable: true
+                  description: 节点名称
+                nodeIp:
+                  type: string
+                  nullable: true
+                  description: '节点 IP'
+                groupId:
+                  type: integer
+                  description: '所属分组 ID'
+                remark:
+                  type: string
+                  nullable: true
+                  description: 备注
+              required:
+                - id
+                - groupId
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      id: { type: integer, description: '节点 ID' }
+                      nodeName: { type: string, description: 节点名称 }
+                      nodeIp: { type: string, description: '节点 IP' }
+                      groupId: { type: integer, description: '所属分组 ID；未分组时为 0' }
+                      groupName: { type: string, description: 所属分组名称；未分组时为空 }
+                      remark: { type: string, description: 备注 }
+                      lastHeartbeatAt: { type: string, description: 最近心跳时间；从未心跳时为空 }
+                      heartbeatInterval: { type: integer, description: '该节点心跳间隔（秒），Ack 时由 Worker 写入' }
+                      staleAfterSeconds: { type: integer, description: '超过该秒数未心跳则 offline：max(3*interval, interval+5)' }
+                      status: { type: string, description: 'online / offline（从未心跳视为 offline）' }
+                      taskCount: { type: integer, description: 绑定任务数 }
+                      createdAt: { type: string, description: 创建时间 }
+                      updatedAt: { type: string, description: 更新时间 }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/nodes/detail:
+    get:
+      tags:
+        - CronManager
+      summary: 查询节点详情
+      operationId: getCronTaskManagerControllerGetNode
+      parameters:
+        -
+          name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: '节点 ID'
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      id: { type: integer, description: '节点 ID' }
+                      nodeName: { type: string, description: 节点名称 }
+                      nodeIp: { type: string, description: '节点 IP' }
+                      groupId: { type: integer, description: '所属分组 ID；未分组时为 0' }
+                      groupName: { type: string, description: 所属分组名称；未分组时为空 }
+                      remark: { type: string, description: 备注 }
+                      lastHeartbeatAt: { type: string, description: 最近心跳时间；从未心跳时为空 }
+                      heartbeatInterval: { type: integer, description: '该节点心跳间隔（秒），Ack 时由 Worker 写入' }
+                      staleAfterSeconds: { type: integer, description: '超过该秒数未心跳则 offline：max(3*interval, interval+5)' }
+                      status: { type: string, description: 'online / offline（从未心跳视为 offline）' }
+                      taskCount: { type: integer, description: 绑定任务数 }
                       createdAt: { type: string, description: 创建时间 }
                       updatedAt: { type: string, description: 更新时间 }
                 required:
@@ -2152,6 +2808,61 @@ paths:
                   - msg
                   - trace_id
                   - data
+  /api/v1/runtime/overview:
+    get:
+      tags:
+        - CronManager
+      summary: 'Runtime 概览'
+      operationId: getCronTaskManagerControllerRuntimeOverview
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      overview: { type: object, properties: { scheduler: { type: array, items: { type: string }, description: 调度器计数 }, sync: { type: array, items: { type: string }, description: '配置同步；processLocal=true 表示仅本进程可见' }, nodes: { type: array, items: { type: string }, description: '节点在线情况（Worker 心跳落库 + 各节点 interval 存活公式）' }, note: { type: string, description: '说明：HTTP Worker 通常读不到 Cron Worker 诊断' } } }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
   /api/v1/tasks:
     delete:
       tags:
@@ -2236,7 +2947,6 @@ paths:
           required: false
           schema:
             type: integer
-            nullable: true
           description: '任务状态：0=禁用, 1=启用'
         -
           name: nodeId
@@ -2244,15 +2954,20 @@ paths:
           required: false
           schema:
             type: integer
-            nullable: true
           description: '节点 ID'
+        -
+          name: groupId
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: '节点分组 ID；-1 表示未分组节点'
         -
           name: execType
           in: query
           required: false
           schema:
             type: integer
-            nullable: true
           description: '执行类型：1=shell, 2=http'
         -
           name: page
@@ -2289,7 +3004,9 @@ paths:
                     type: object
                     properties:
                       total: { type: integer }
-                      list: { type: array, items: { type: object, properties: { id: { type: integer, description: '任务 ID' }, nodeId: { type: integer, description: '节点 ID' }, name: { type: string, description: 任务名称 }, expression: { type: string, description: 'Cron 表达式' }, command: { type: string, description: '执行命令或 URL' }, execType: { type: integer, description: '执行类型：1=shell, 2=http' }, status: { type: integer, description: '任务状态：0=禁用, 1=启用' }, withBlockLapping: { type: integer, description: '是否阻塞重叠执行：0=否, 1=是' }, description: { type: string, description: 任务描述 }, cronBetween: { type: array, items: { type: string }, description: 允许执行时间段列表 }, cronSkip: { type: array, items: { type: string }, description: 跳过执行时间段列表 }, httpMethod: { type: string, description: 'HTTP 请求方法' }, httpBody: { type: array, items: { nullable: true }, nullable: true, description: 'HTTP 请求体' }, httpHeaders: { type: array, items: { nullable: true }, nullable: true, description: 'HTTP 请求头' }, httpRequestTimeOut: { type: integer, description: 'HTTP 请求超时时间（秒）' }, createdAt: { type: string, description: 创建时间 }, updatedAt: { type: string, description: 更新时间 } } } }
+                      page: { type: integer }
+                      pageSize: { type: integer }
+                      list: { type: array, items: { type: object, properties: { id: { type: integer, description: '任务 ID' }, nodeId: { type: integer, description: '节点 ID' }, nodeName: { type: string, description: 节点名称；节点已软删仍尽量回填，找不到则为空 }, groupId: { type: integer, description: '绑定节点所属分组 ID；未分组时为 0' }, groupName: { type: string, description: 绑定节点所属分组名称；未分组时为空 }, name: { type: string, description: 任务名称 }, expression: { type: string, description: 'Cron 表达式' }, command: { type: string, description: '执行命令或 URL' }, execType: { type: integer, description: '执行类型：1=shell, 2=http' }, status: { type: integer, description: '任务状态：0=禁用, 1=启用' }, withBlockLapping: { type: integer, description: '是否阻塞重叠执行：0=否, 1=是' }, retry: { type: integer, description: 失败后重试次数（不含首次；0=不重试） }, expressionType: { type: string, description: '表达式类型：interval=每N秒，cron=Linux Cron（展示层派生，不落库）' }, description: { type: string, description: 任务描述 }, cronBetween: { type: array, items: { type: string }, description: 允许执行时间段列表 }, cronSkip: { type: array, items: { type: string }, description: 跳过执行时间段列表 }, httpMethod: { type: string, description: 'HTTP 请求方法' }, httpBody: { type: array, items: { nullable: true }, nullable: true, description: 'HTTP 请求体' }, httpHeaders: { type: array, items: { nullable: true }, nullable: true, description: 'HTTP 请求头' }, httpRequestTimeOut: { type: integer, description: 'HTTP 请求超时时间（秒）' }, nextRunAt: { type: integer, nullable: true, description: '下次合法执行 unix 秒；禁用或非法表达式为 null（暂停，无下次调度）' }, nextRunAtAt: { type: string, description: '下次合法执行时间（Y-m-d H:i:s）；无则空串，风格同 createdAt / lastHeartbeatAt' }, createdAt: { type: string, description: 创建时间 }, updatedAt: { type: string, description: 更新时间 } } } }
                 required:
                   - code
                   - msg
@@ -2357,6 +3074,10 @@ paths:
                   type: integer
                   nullable: true
                   description: '是否阻塞重叠执行：0 否，1 是'
+                retry:
+                  type: integer
+                  nullable: true
+                  description: 失败后重试次数（不含首次；0=不重试）
                 httpMethod:
                   type: string
                   nullable: true
@@ -2425,7 +3146,7 @@ paths:
                   data:
                     type: object
                     properties:
-                      row: { type: object, properties: { id: { type: integer, description: '任务 ID' }, nodeId: { type: integer, description: '节点 ID' }, name: { type: string, description: 任务名称 }, expression: { type: string, description: 'Cron 表达式' }, command: { type: string, description: '执行命令或 URL' }, execType: { type: integer, description: '执行类型：1=shell, 2=http' }, status: { type: integer, description: '任务状态：0=禁用, 1=启用' }, withBlockLapping: { type: integer, description: '是否阻塞重叠执行：0=否, 1=是' }, description: { type: string, description: 任务描述 }, cronBetween: { type: array, items: { type: string }, description: 允许执行时间段列表 }, cronSkip: { type: array, items: { type: string }, description: 跳过执行时间段列表 }, httpMethod: { type: string, description: 'HTTP 请求方法' }, httpBody: { type: array, items: { nullable: true }, nullable: true, description: 'HTTP 请求体' }, httpHeaders: { type: array, items: { nullable: true }, nullable: true, description: 'HTTP 请求头' }, httpRequestTimeOut: { type: integer, description: 'HTTP 请求超时时间（秒）' }, createdAt: { type: string, description: 创建时间 }, updatedAt: { type: string, description: 更新时间 } } }
+                      row: { type: object, properties: { id: { type: integer, description: '任务 ID' }, nodeId: { type: integer, description: '节点 ID' }, nodeName: { type: string, description: 节点名称；节点已软删仍尽量回填，找不到则为空 }, groupId: { type: integer, description: '绑定节点所属分组 ID；未分组时为 0' }, groupName: { type: string, description: 绑定节点所属分组名称；未分组时为空 }, name: { type: string, description: 任务名称 }, expression: { type: string, description: 'Cron 表达式' }, command: { type: string, description: '执行命令或 URL' }, execType: { type: integer, description: '执行类型：1=shell, 2=http' }, status: { type: integer, description: '任务状态：0=禁用, 1=启用' }, withBlockLapping: { type: integer, description: '是否阻塞重叠执行：0=否, 1=是' }, retry: { type: integer, description: 失败后重试次数（不含首次；0=不重试） }, expressionType: { type: string, description: '表达式类型：interval=每N秒，cron=Linux Cron（展示层派生，不落库）' }, description: { type: string, description: 任务描述 }, cronBetween: { type: array, items: { type: string }, description: 允许执行时间段列表 }, cronSkip: { type: array, items: { type: string }, description: 跳过执行时间段列表 }, httpMethod: { type: string, description: 'HTTP 请求方法' }, httpBody: { type: array, items: { nullable: true }, nullable: true, description: 'HTTP 请求体' }, httpHeaders: { type: array, items: { nullable: true }, nullable: true, description: 'HTTP 请求头' }, httpRequestTimeOut: { type: integer, description: 'HTTP 请求超时时间（秒）' }, nextRunAt: { type: integer, nullable: true, description: '下次合法执行 unix 秒；禁用或非法表达式为 null（暂停，无下次调度）' }, nextRunAtAt: { type: string, description: '下次合法执行时间（Y-m-d H:i:s）；无则空串，风格同 createdAt / lastHeartbeatAt' }, createdAt: { type: string, description: 创建时间 }, updatedAt: { type: string, description: 更新时间 } } }
                 required:
                   - code
                   - msg
@@ -2500,6 +3221,10 @@ paths:
                   type: integer
                   nullable: true
                   description: 是否阻塞重叠执行
+                retry:
+                  type: integer
+                  nullable: true
+                  description: 失败后重试次数（不含首次；0=不重试）
                 httpMethod:
                   type: string
                   nullable: true
@@ -2564,7 +3289,354 @@ paths:
                   data:
                     type: object
                     properties:
-                      row: { type: object, properties: { id: { type: integer, description: '任务 ID' }, nodeId: { type: integer, description: '节点 ID' }, name: { type: string, description: 任务名称 }, expression: { type: string, description: 'Cron 表达式' }, command: { type: string, description: '执行命令或 URL' }, execType: { type: integer, description: '执行类型：1=shell, 2=http' }, status: { type: integer, description: '任务状态：0=禁用, 1=启用' }, withBlockLapping: { type: integer, description: '是否阻塞重叠执行：0=否, 1=是' }, description: { type: string, description: 任务描述 }, cronBetween: { type: array, items: { type: string }, description: 允许执行时间段列表 }, cronSkip: { type: array, items: { type: string }, description: 跳过执行时间段列表 }, httpMethod: { type: string, description: 'HTTP 请求方法' }, httpBody: { type: array, items: { nullable: true }, nullable: true, description: 'HTTP 请求体' }, httpHeaders: { type: array, items: { nullable: true }, nullable: true, description: 'HTTP 请求头' }, httpRequestTimeOut: { type: integer, description: 'HTTP 请求超时时间（秒）' }, createdAt: { type: string, description: 创建时间 }, updatedAt: { type: string, description: 更新时间 } } }
+                      row: { type: object, properties: { id: { type: integer, description: '任务 ID' }, nodeId: { type: integer, description: '节点 ID' }, nodeName: { type: string, description: 节点名称；节点已软删仍尽量回填，找不到则为空 }, groupId: { type: integer, description: '绑定节点所属分组 ID；未分组时为 0' }, groupName: { type: string, description: 绑定节点所属分组名称；未分组时为空 }, name: { type: string, description: 任务名称 }, expression: { type: string, description: 'Cron 表达式' }, command: { type: string, description: '执行命令或 URL' }, execType: { type: integer, description: '执行类型：1=shell, 2=http' }, status: { type: integer, description: '任务状态：0=禁用, 1=启用' }, withBlockLapping: { type: integer, description: '是否阻塞重叠执行：0=否, 1=是' }, retry: { type: integer, description: 失败后重试次数（不含首次；0=不重试） }, expressionType: { type: string, description: '表达式类型：interval=每N秒，cron=Linux Cron（展示层派生，不落库）' }, description: { type: string, description: 任务描述 }, cronBetween: { type: array, items: { type: string }, description: 允许执行时间段列表 }, cronSkip: { type: array, items: { type: string }, description: 跳过执行时间段列表 }, httpMethod: { type: string, description: 'HTTP 请求方法' }, httpBody: { type: array, items: { nullable: true }, nullable: true, description: 'HTTP 请求体' }, httpHeaders: { type: array, items: { nullable: true }, nullable: true, description: 'HTTP 请求头' }, httpRequestTimeOut: { type: integer, description: 'HTTP 请求超时时间（秒）' }, nextRunAt: { type: integer, nullable: true, description: '下次合法执行 unix 秒；禁用或非法表达式为 null（暂停，无下次调度）' }, nextRunAtAt: { type: string, description: '下次合法执行时间（Y-m-d H:i:s）；无则空串，风格同 createdAt / lastHeartbeatAt' }, createdAt: { type: string, description: 创建时间 }, updatedAt: { type: string, description: 更新时间 } } }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/tasks/batch-status:
+    put:
+      tags:
+        - CronManager
+      summary: 批量启停任务
+      operationId: putCronTaskManagerControllerBatchSwitchStatus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+                  description: '任务 ID 列表'
+                status:
+                  type: integer
+                  description: '目标状态：0 禁用，1 启用'
+              required:
+                - ids
+                - status
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      result: { type: object, properties: { updatedIds: { type: array, items: { type: string }, description: '已更新的任务 ID' }, status: { type: integer, description: 目标状态 } } }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/tasks/detail:
+    get:
+      tags:
+        - CronManager
+      summary: 查询定时任务详情
+      operationId: getCronTaskManagerControllerGetTask
+      parameters:
+        -
+          name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: '任务 ID'
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      row: { type: object, properties: { id: { type: integer, description: '任务 ID' }, nodeId: { type: integer, description: '节点 ID' }, nodeName: { type: string, description: 节点名称；节点已软删仍尽量回填，找不到则为空 }, groupId: { type: integer, description: '绑定节点所属分组 ID；未分组时为 0' }, groupName: { type: string, description: 绑定节点所属分组名称；未分组时为空 }, name: { type: string, description: 任务名称 }, expression: { type: string, description: 'Cron 表达式' }, command: { type: string, description: '执行命令或 URL' }, execType: { type: integer, description: '执行类型：1=shell, 2=http' }, status: { type: integer, description: '任务状态：0=禁用, 1=启用' }, withBlockLapping: { type: integer, description: '是否阻塞重叠执行：0=否, 1=是' }, retry: { type: integer, description: 失败后重试次数（不含首次；0=不重试） }, expressionType: { type: string, description: '表达式类型：interval=每N秒，cron=Linux Cron（展示层派生，不落库）' }, description: { type: string, description: 任务描述 }, cronBetween: { type: array, items: { type: string }, description: 允许执行时间段列表 }, cronSkip: { type: array, items: { type: string }, description: 跳过执行时间段列表 }, httpMethod: { type: string, description: 'HTTP 请求方法' }, httpBody: { type: array, items: { nullable: true }, nullable: true, description: 'HTTP 请求体' }, httpHeaders: { type: array, items: { nullable: true }, nullable: true, description: 'HTTP 请求头' }, httpRequestTimeOut: { type: integer, description: 'HTTP 请求超时时间（秒）' }, nextRunAt: { type: integer, nullable: true, description: '下次合法执行 unix 秒；禁用或非法表达式为 null（暂停，无下次调度）' }, nextRunAtAt: { type: string, description: '下次合法执行时间（Y-m-d H:i:s）；无则空串，风格同 createdAt / lastHeartbeatAt' }, createdAt: { type: string, description: 创建时间 }, updatedAt: { type: string, description: 更新时间 } } }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/tasks/duplicate:
+    post:
+      tags:
+        - CronManager
+      summary: 复制定时任务
+      operationId: postCronTaskManagerControllerDuplicateTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  description: '任务 ID'
+              required:
+                - id
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      row: { type: object, properties: { id: { type: integer, description: '任务 ID' }, nodeId: { type: integer, description: '节点 ID' }, nodeName: { type: string, description: 节点名称；节点已软删仍尽量回填，找不到则为空 }, groupId: { type: integer, description: '绑定节点所属分组 ID；未分组时为 0' }, groupName: { type: string, description: 绑定节点所属分组名称；未分组时为空 }, name: { type: string, description: 任务名称 }, expression: { type: string, description: 'Cron 表达式' }, command: { type: string, description: '执行命令或 URL' }, execType: { type: integer, description: '执行类型：1=shell, 2=http' }, status: { type: integer, description: '任务状态：0=禁用, 1=启用' }, withBlockLapping: { type: integer, description: '是否阻塞重叠执行：0=否, 1=是' }, retry: { type: integer, description: 失败后重试次数（不含首次；0=不重试） }, expressionType: { type: string, description: '表达式类型：interval=每N秒，cron=Linux Cron（展示层派生，不落库）' }, description: { type: string, description: 任务描述 }, cronBetween: { type: array, items: { type: string }, description: 允许执行时间段列表 }, cronSkip: { type: array, items: { type: string }, description: 跳过执行时间段列表 }, httpMethod: { type: string, description: 'HTTP 请求方法' }, httpBody: { type: array, items: { nullable: true }, nullable: true, description: 'HTTP 请求体' }, httpHeaders: { type: array, items: { nullable: true }, nullable: true, description: 'HTTP 请求头' }, httpRequestTimeOut: { type: integer, description: 'HTTP 请求超时时间（秒）' }, nextRunAt: { type: integer, nullable: true, description: '下次合法执行 unix 秒；禁用或非法表达式为 null（暂停，无下次调度）' }, nextRunAtAt: { type: string, description: '下次合法执行时间（Y-m-d H:i:s）；无则空串，风格同 createdAt / lastHeartbeatAt' }, createdAt: { type: string, description: 创建时间 }, updatedAt: { type: string, description: 更新时间 } } }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/tasks/execution:
+    get:
+      tags:
+        - CronManager
+      summary: 查询单次执行详情
+      operationId: getCronTaskManagerControllerGetExecution
+      parameters:
+        -
+          name: logId
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: '日志行 ID（优先定位单条执行记录）'
+        -
+          name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: '任务 ID'
+        -
+          name: execBatchId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: '执行批次 ID；register/unregister 等无批次行可空，此时需传 logId'
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      detail: { type: object, properties: { taskId: { type: integer, description: '任务 ID' }, execBatchId: { type: string, description: '执行批次 ID' }, status: { type: string, description: 'register / running / success / failed / skipped / timeout / cancelled / unregister / unknown' }, statusCode: { type: integer, description: 'status 整型' }, triggerType: { type: integer, description: '触发类型：1-scheduler 2-run_once' }, pid: { type: integer, description: '进程 PID' }, scheduledAt: { type: string, description: 计划执行时间 }, startedAt: { type: string, description: 开始时间 }, finishedAt: { type: string, description: 结束时间 }, durationMs: { type: number, description: 耗时毫秒 }, exitCode: { type: integer, nullable: true, description: 'Shell 退出码' }, httpStatus: { type: integer, nullable: true, description: 'HTTP 状态码' }, taskItem: { type: array, items: { nullable: true }, description: 执行时任务快照 }, message: { type: string, description: 日志原文（人类可读） } } }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/tasks/expression/preview:
+    post:
+      tags:
+        - CronManager
+      summary: '预览 Cron 表达式'
+      operationId: postCronTaskManagerControllerPreviewExpression
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                expression:
+                  type: string
+                  description: 'Cron 表达式：纯数字秒级 Interval，或五段 Linux Cron'
+              required:
+                - expression
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      result: { type: object, properties: { valid: { type: boolean, description: 是否合法 }, type: { type: string, description: 'interval 或 cron' }, description: { type: string, description: 人类可读描述或错误信息 }, nextRuns: { type: array, items: { type: string }, description: 接下来若干次执行时间 } } }
                 required:
                   - code
                   - msg
@@ -2603,10 +3675,80 @@ paths:
         -
           name: taskId
           in: query
-          required: true
+          required: false
           schema:
             type: integer
-          description: 任务主键ID）
+          description: 任务主键ID，不传则返回全部任务日志
+        -
+          name: execBatchId
+          in: query
+          required: false
+          schema:
+            type: string
+            nullable: true
+          description: '执行批次 ID'
+        -
+          name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            nullable: true
+          description: '结果状态：register/running/success/failed/skipped/timeout/cancelled/unregister（兼容 pending）'
+        -
+          name: execType
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: '执行类型：1=shell, 2=http'
+        -
+          name: triggerType
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: '触发类型：1=定时, 2=手动执行'
+        -
+          name: taskName
+          in: query
+          required: false
+          schema:
+            type: string
+            nullable: true
+          description: 任务名称（模糊搜索）
+        -
+          name: startTime
+          in: query
+          required: false
+          schema:
+            type: string
+            nullable: true
+          description: 开始时间（含）
+        -
+          name: endTime
+          in: query
+          required: false
+          schema:
+            type: string
+            nullable: true
+          description: 结束时间（含）
+        -
+          name: createdStart
+          in: query
+          required: false
+          schema:
+            type: string
+            nullable: true
+          description: '创建开始时间（含），startTime 别名'
+        -
+          name: createdEnd
+          in: query
+          required: false
+          schema:
+            type: string
+            nullable: true
+          description: '创建结束时间（含），endTime 别名'
         -
           name: page
           in: query
@@ -2642,7 +3784,74 @@ paths:
                     type: object
                     properties:
                       total: { type: integer }
-                      list: { type: array, items: { type: object, properties: { id: { type: integer, description: '日志 ID' }, cronId: { type: integer, description: '关联任务 ID' }, execBatchId: { type: string, description: '执行批次 ID' }, taskItem: { type: array, items: { nullable: true }, nullable: true, description: 任务项快照 }, message: { type: string, description: 运行消息 }, createdAt: { type: string, description: 创建时间 }, updatedAt: { type: string, description: 更新时间 } } } }
+                      list: { type: array, items: { type: object, properties: { id: { type: integer, description: '日志 ID' }, cronId: { type: integer, description: '关联任务 ID' }, taskName: { type: string, description: 任务名称 }, execBatchId: { type: string, description: '执行批次 ID' }, pid: { type: integer, description: '执行进程 PID' }, status: { type: integer, description: '执行状态整型：0-register 1-running 2-success 3-failed 4-skipped 5-timeout 6-cancelled 7-unregister' }, statusName: { type: string, description: 执行状态名称 }, triggerType: { type: integer, description: '触发类型：1-scheduler 2-run_once' }, scheduledAt: { type: string, description: 计划执行时间 }, startedAt: { type: string, description: 实际开始时间 }, finishedAt: { type: string, description: 实际结束时间 }, durationMs: { type: integer, description: 执行耗时毫秒 }, exitCode: { type: integer, nullable: true, description: 'Shell 退出码' }, httpStatus: { type: integer, nullable: true, description: 'HTTP 状态码' }, taskItem: { type: array, items: { nullable: true }, nullable: true, description: 任务项快照 }, message: { type: string, description: 运行消息 }, createdAt: { type: string, description: 创建时间 }, updatedAt: { type: string, description: 更新时间 } } } }
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /api/v1/tasks/run:
+    post:
+      tags:
+        - CronManager
+      summary: 入队手动执行一次
+      operationId: postCronTaskManagerControllerRunTaskOnce
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  description: '任务 ID'
+              required:
+                - id
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: object
+                    properties:
+                      result: { type: object, properties: { id: { type: integer, description: '任务 ID' }, queued: { type: boolean, description: 是否已入队 }, requestedAt: { type: string, description: 入队时间 }, message: { type: string, description: 说明 } } }
                 required:
                   - code
                   - msg
@@ -2685,6 +3894,22 @@ paths:
           schema:
             type: integer
           description: '任务 ID（cron 任务主键）'
+        -
+          name: start
+          in: query
+          required: false
+          schema:
+            type: string
+            nullable: true
+          description: '开始时间（含 created_at >= start），空表示不限制'
+        -
+          name: end
+          in: query
+          required: false
+          schema:
+            type: string
+            nullable: true
+          description: '结束时间（不含 created_at < end），空表示不限制'
       responses:
         200:
           description: success
@@ -2706,13 +3931,20 @@ paths:
                     type: object
                     properties:
                       taskId: { type: integer, description: '任务 ID' }
-                      total: { type: integer, description: 样本总数 }
-                      success: { type: integer, description: 判定为成功的次数 }
-                      failed: { type: integer, description: 判定为失败的次数 }
-                      skipped: { type: integer, description: 判定为跳过的次数 }
-                      successRate: { type: number, description: 成功率（百分比） }
-                      avgDurationMs: { type: number, description: 平均耗时（毫秒） }
-                      samples: { type: integer, description: 参与耗时统计的样本数 }
+                      total: { type: integer, description: 执行记录总条数 }
+                      register: { type: integer, description: register（注册定时任务）次数 }
+                      running: { type: integer, description: 'running 次数' }
+                      success: { type: integer, description: 成功次数 }
+                      failed: { type: integer, description: 失败次数 }
+                      skipped: { type: integer, description: 跳过次数 }
+                      timeout: { type: integer, description: 超时次数 }
+                      cancelled: { type: integer, description: 取消次数 }
+                      finished: { type: integer, description: 已结束次数 }
+                      attempted: { type: integer, description: '成功率分母（不含 skipped）' }
+                      successRate: { type: number, description: '成功率（百分比）；分母为 attempted' }
+                      avgDurationMs: { type: number, description: 'SUCCESS 行平均耗时（毫秒）' }
+                      maxDurationMs: { type: number, description: 'SUCCESS 行最大耗时（毫秒）' }
+                      samples: { type: integer, description: '参与耗时统计的 SUCCESS 行数' }
                 required:
                   - code
                   - msg
@@ -3295,6 +4527,854 @@ paths:
                     type: array
                     items:
                       type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /cron-admin:
+    get:
+      tags:
+        - CronManager
+      summary: 'Cron Admin UI'
+      operationId: getCronAdminControllerIndex
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /cron-admin/assets/css/common.css:
+    get:
+      tags:
+        - CronManager
+      summary: 'Cron Admin UI Static Assets'
+      operationId: getCronAdminControllerAssets
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /cron-admin/assets/css/pages.css:
+    get:
+      tags:
+        - CronManager
+      summary: 'Cron Admin UI Static Assets'
+      operationId: getCronAdminControllerAssets
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /cron-admin/assets/js/app.js:
+    get:
+      tags:
+        - CronManager
+      summary: 'Cron Admin UI Static Assets'
+      operationId: getCronAdminControllerAssets
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /cron-admin/assets/js/common.js:
+    get:
+      tags:
+        - CronManager
+      summary: 'Cron Admin UI Static Assets'
+      operationId: getCronAdminControllerAssets
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /cron-admin/assets/js/dashboard.js:
+    get:
+      tags:
+        - CronManager
+      summary: 'Cron Admin UI Static Assets'
+      operationId: getCronAdminControllerAssets
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /cron-admin/assets/js/detail.js:
+    get:
+      tags:
+        - CronManager
+      summary: 'Cron Admin UI Static Assets'
+      operationId: getCronAdminControllerAssets
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /cron-admin/assets/js/editor.js:
+    get:
+      tags:
+        - CronManager
+      summary: 'Cron Admin UI Static Assets'
+      operationId: getCronAdminControllerAssets
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /cron-admin/assets/js/executions.js:
+    get:
+      tags:
+        - CronManager
+      summary: 'Cron Admin UI Static Assets'
+      operationId: getCronAdminControllerAssets
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /cron-admin/assets/js/nodes.js:
+    get:
+      tags:
+        - CronManager
+      summary: 'Cron Admin UI Static Assets'
+      operationId: getCronAdminControllerAssets
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /cron-admin/assets/js/runtime.js:
+    get:
+      tags:
+        - CronManager
+      summary: 'Cron Admin UI Static Assets'
+      operationId: getCronAdminControllerAssets
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /cron-admin/assets/js/tasks.js:
+    get:
+      tags:
+        - CronManager
+      summary: 'Cron Admin UI Static Assets'
+      operationId: getCronAdminControllerAssets
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /cron-admin/execution.html:
+    get:
+      tags:
+        - CronManager
+      summary: 'Cron Admin UI Static Assets'
+      operationId: getCronAdminControllerAssets
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /cron-admin/index.html:
+    get:
+      tags:
+        - CronManager
+      summary: 'Cron Admin UI Static Assets'
+      operationId: getCronAdminControllerAssets
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /cron-admin/log.html:
+    get:
+      tags:
+        - CronManager
+      summary: 'Cron Admin UI Static Assets'
+      operationId: getCronAdminControllerAssets
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+        400:
+          description: 'validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1
+                  msg:
+                    type: string
+                    example: 'validation failed'
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    nullable: true
+                required:
+                  - code
+                  - msg
+                  - trace_id
+                  - data
+  /cron-admin/task.html:
+    get:
+      tags:
+        - CronManager
+      summary: 'Cron Admin UI Static Assets'
+      operationId: getCronAdminControllerAssets
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  msg:
+                    type: string
+                    example: success
+                  trace_id:
+                    type: string
+                    example: ''
+                  data:
+                    type: string
                 required:
                   - code
                   - msg
