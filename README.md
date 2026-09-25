@@ -44,10 +44,11 @@
 - [十六、⚡ 协程并发](#nav-16-concurrent)
 - [十七、🗄️ 数据库操作](#nav-17-db)
 - [十八、📘 ApiDoc 自动生成](#nav-19-apidoc)
-- [十九、☁️ Nacos 微服务集成](#nav-20-nacos)
-- [二十、🤖 AI / Workflow 工作流](#nav-21-ai-workflow)
-- [二十一、🧠 AI Agent / RAG / MCP / OCR 大模型能力](#nav-22-ai-capabilities)
-- [二十二、📬 Job 异步任务](#nav-23-job)
+- [十九、🔗 微服务接口 API 契约（interface-api-service）](#nav-19-interface-api)
+- [二十、☁️ Nacos 微服务集成](#nav-20-nacos)
+- [二十一、🤖 AI / Workflow 工作流](#nav-21-ai-workflow)
+- [二十二、🧠 AI Agent / RAG / MCP / OCR 大模型能力](#nav-22-ai-capabilities)
+- [二十三、📬 Job 异步任务](#nav-23-job)
 - [🔐 Auth 统一身份](#nav-auth)
 - [🌐 I18n 国际化](#nav-i18n)
 - [🧪 PHPUnit / PHPUintTest](#nav-phpunit)
@@ -89,7 +90,8 @@
 | **Auth** | `AuthUser` + JWT Guard；HTTP / WS / HITL 同门面 | [Auth](docs/Auth.md) · [Support/Auth](src/Support/Auth/README.md) · [简介](#nav-auth) |
 | **Oauth** | QQ / 微信扫码·公众号·小程序 / 支付宝 / 飞书 / 钉钉 / 企微；DI `oauth` | [Oauth](docs/Oauth.md) · library `Oauth` |
 | **I18n** | `LocaleMiddleware` 协商 locale + Symfony `translator` 组件 | [I18n](docs/I18n.md) |
-| **Nacos** | 配置监听、服务注册/发现、SDK `base_uri` 解析 | [Support/Nacos](src/Support/Nacos/README.md) · [二十](#nav-20-nacos) |
+| **InterfaceApi** | 多服务 HTTP 契约包 + 生成 Client + 可选 Nacos 发现 | [docs/InterfaceApi.md](docs/InterfaceApi.md) · [十九](#nav-19-interface-api) |
+| **Nacos** | 配置监听、服务注册/发现、契约 Client / `DiscoveryClient` | [Support/Nacos](src/Support/Nacos/README.md) · [二十](#nav-20-nacos) |
 | **Mqtt** | MQTT 协议服务与优雅停机 | [src/Mqtt](src/Mqtt/README.md) |
 | **Websocket** | 推送、离线、Cluster、Socket.IO 等 | [架构/协议](#nav-arch) · 测试见 PHPUintTest |
 | **PHPUintTest** | PHPUnit 11 单轨；Unit / Coroutine / Http / Websocket | [PHPUnitTest](docs/PHPUnitTest.md) · [简介](#nav-phpunit) |
@@ -113,6 +115,9 @@
   - **GoWaitGroup**: 类似 Go 语言的 WaitGroup，优雅的协程同步等待机制
 - 📦 **组件化**:
   - **bingcool/library** 大量常用协程组件库 @see [https://github.com/bingcool/library](https://github.com/bingcool/library)
+- 🔗 **微服务 API 契约**（[interface-api-service](#nav-19-interface-api)）:
+  - 独立 Composer 契约仓库，按服务定义接口协议（Interface / Request / Response / DTO）并生成类型安全的 **HTTP Client**
+  - 多服务互调时安装契约包即可调用，无需手写 URL 与 JSON 拼装；可选 **Nacos 自动发现** `base_uri`
 - ☁️ **Nacos 微服务集成**:
   - **配置变更监听**: 长轮询 Nacos 配置，拉取最新内容写入 `APP_PATH/.env`，自动执行 `restart --force` 使 Worker 加载新配置
   - **服务注册**: 应用实例注册到 Nacos 注册中心，支持心跳保活（`application.yaml` → `nacos.service_register`）
@@ -1479,7 +1484,69 @@ class UserCreateRequest extends BaseRequest
 
 
 
-### 十九、☁️ Nacos 微服务集成
+<a id="nav-19-interface-api"></a>
+
+### 十九、🔗 微服务接口 API 契约（interface-api-service）
+
+在多个 Swoolefy 服务（或 PHP 应用）之间做 HTTP 调用时，推荐把**接口协议**集中放在独立的 **interface-api-service 契约仓库**，而不是在每个调用方重复维护 URL、请求字段和响应结构。
+
+契约仓库是一个**可单独发布的 Composer 包**（命名空间一般为 `InterfaceApi\`）。其中按「项目 / 应用 / 模块」组织各服务的：
+
+- **契约接口**：带 `#[RouteGroup]`、`#[Route]` 的 `*ApiInterface`（描述路径与动词，供生成 Client 使用）
+- **Request / Response / Dto / Const / Enum**：强类型入参与出参，与服务端 Controller 保持一致
+- **Support/**：与框架解耦的注解与基类（如 `BaseRequest`、`BaseResponse`、`BaseClientApi`）
+- **Client/**：由契约仓库内生成器根据接口扫描结果输出的 **HTTP Client**（基于 Guzzle，方法签名与接口一一对应）
+
+服务端仍用原有 **Router + Controller**；Controller **实现**契约接口，保证入参、返回值与包内定义一致。路由文件负责真实挂载与中间件，契约上的 `Route` 只参与 Client 生成。
+
+#### 适用场景
+
+
+| 场景 | 做法 |
+| --- | --- |
+| 订单服务调用户服务 | 在业务项目 `composer require` 用户服务的契约包，注入 `UserApi` Client 调用 |
+| 多环境 / 多实例 | Client 构造时不传 `base_uri`，由 **Nacos 服务发现** 解析目标服务地址（`BaseClientApi` 内按 `serviceName` 选实例） |
+| 固定网关或本地调试 | `XxxApi::makeService(null, 'https://gateway.example.com/')` 或传入自定义 `ClientInterface` |
+| 流式 / 下载 | 接口方法标注 `StreamResponse`、`DownloadResponse` 等，生成对应解析逻辑的 Client |
+
+#### 安装与调用示例
+
+在**调用方**项目（可以是另一个 Swoolefy 应用，也可以是 PHP-FPM / CLI）安装契约包：
+
+```bash
+composer require your-org/interface-api-service
+```
+
+启用 Nacos 发现时，调用方需能加载 Nacos 配置（例如依赖 `bingcool/swoolefy` 的 `DiscoveryClient`，或契约包文档中说明的等价配置）。契约 Client 子类上的 `serviceName` 在生成时已与提供方在 Nacos 注册名对齐。
+
+```php
+use InterfaceApi\YourProject\Order\Module\Agent\Client\AgentChatApi;
+use InterfaceApi\YourProject\Order\Module\Agent\Request\ChatRequest;
+
+// Nacos 自动发现（未传 Guzzle Client 与 base_uri）
+$api = AgentChatApi::makeService();
+
+$request = ChatRequest::builder();
+$request->setMessage('hello');
+
+$response = $api->chat($request);
+// $response 为契约声明的 ChatResponse，含 code/msg/data 信封解析与 DTO 填充
+```
+
+同一契约包可被多个服务引用：每个提供方发布自己的模块接口，消费方只安装需要的 Composer 包即可类型安全地互调。
+
+#### 仓库形态与生成
+
+典型目录与 PSR-4、Client 生成流程见 **[docs/InterfaceApi.md](docs/InterfaceApi.md)**（InterfaceApi / interface-api-service 技术方案）。契约包内执行生成命令（如 `php InterfaceApi/bin/generate-client.php --service=...`）刷新 `Client/`；**不在 swoolefy 主仓库**通过 `script.php` 生成。
+
+与框架其它能力的关系：
+
+- **ApiDoc（§十八）**：面向对外 OpenAPI 文档；契约包面向**服务间**调用协议与 Client。
+- **Nacos（§二十）**：提供方注册实例；契约 Client 可选对接 `DiscoveryClient` 做地址解析。
+
+
+
+### 二十、☁️ Nacos 微服务集成
 
 框架内置 Nacos **配置监听**、**服务注册**、**服务发现**。实现位于 `src/Support/Nacos/`，应用侧参考 `Test/nacos.yaml`、`Test/application.yaml` 与 `Test/Process/NacosProcess/`。
 
@@ -1654,7 +1721,7 @@ $userCode = FrameworkContext::get('x-user-code');
 
 更多 API 说明见 [src/Support/Nacos/README.md](src/Support/Nacos/README.md)。
 
-### 二十、🤖 AI / Workflow 工作流
+### 二十一、🤖 AI / Workflow 工作流
 
 框架内置 **DAG 工作流引擎** + **Neuron AI** 集成，支持 AI 决策分支、多 Agent 并行、RAG 知识库、MCP 工具调用与人机协同（HITL）。已实现 **Phase 1–4** 及 **生产加固（Phase A/B/P0）**：HITL API 鉴权、status 脱敏、resume CAS、多版本 Registry、Embedding fail-fast、MCP 租户 DB、RAG 显式 tenantId、启动期 `ProductionHealthCheck` 等。
 
@@ -1759,7 +1826,7 @@ composer test:workflow
 
 大模型原语（Agent / RAG / MCP / OCR）详见 [二十二、AI Agent / RAG / MCP / OCR 大模型能力](#nav-22-ai-capabilities)。
 
-### 二十一、🧠 AI Agent / RAG / MCP / OCR 大模型能力
+### 二十二、🧠 AI Agent / RAG / MCP / OCR 大模型能力
 
 在 Workflow 编排之外，框架提供可独立使用的 **大模型能力层**：LLM 装配、多 Agent 路由、RAG 检索增强、MCP 工具协议、文档 OCR，以及可选的 CapabilityCenter 工具筛选。底层复用 [Neuron AI](https://docs.neuron-ai.dev/)，运行时由 Swoolefy 协程 / 组件容器承载。
 
@@ -1907,7 +1974,7 @@ composer test:capability
 
 K8s 运行期探针：`GET /health`（liveness）、`GET /ready`（readiness，可配 Redis/DB）；路由 `HealthRoutes::register()`，配置 `Config/health.php`（见 `src/Http/Health/`）。
 
-### 二十二、📬 Job 异步任务
+### 二十三、📬 Job 异步任务
 
 在**现有自定义进程消费**（Redis / AMQP / Kafka）之上提供统一 Job 信封、Handler、Registry 与重试/退避，**默认不新建 SQL 表**，不替换 `ProcessManager` / `Event.php` 进程模型。
 
