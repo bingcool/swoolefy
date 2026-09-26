@@ -140,7 +140,7 @@ if (!class_exists(__NAMESPACE__ . '\\Autoloader', false)) {
                     continue;
                 }
 
-                // 本地是否启用InterfaceApi 命名空间的仓库
+                // 本地开发环境是否启用InterfaceApi 命名空间的interface-api-service独立api契约仓库
                 if ($namespace === 'InterfaceApi' && self::isRegisterLocalInterfaceApi()) {
                     $suffix = substr($className, strlen('InterfaceApi\\'));
                     $filepath = self::resolveInterfaceApiDirectory(self::baseDirectory())
