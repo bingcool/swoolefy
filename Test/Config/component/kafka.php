@@ -1,9 +1,17 @@
 <?php
 
 /**
- * Kafka 组件入口：合并 kafka/producer、kafka/consumer 下各 Topic 文件。
+ * Kafka 协程组件入口（由 SystemEnv::loadComponents() include 本文件）。
  *
- * 新增 Topic：在 producer/、consumer/ 各增加 php 文件，Topic / group.id 写在对应文件中；公共 librdkafka 默认值见 KafkaConfig。
+ * 目录约定：
+ *   kafka/producer/*.php  — 每个 Topic 一个文件，注册 Producer 组件（如 kafka_topic_xxx_producer）
+ *   kafka/consumer/*.php  — 每个 Topic 一个文件；同一 Topic 的多个消费组写在同一文件内
+ *
+ * Topic 名、group.id 写在对应文件顶部局部变量中；librdkafka 公共默认见 Test\Config\KafkaConfig。
+ *
+ * 注意：
+ * - 聚合变量必须用 $kafkaComponents，不能命名为 $components（会覆盖 loadComponents 外层变量）。
+ * - 勿在组件文件中使用全局 const/define 定义 topic，否则 reloadGlobalConf 重复 include 会报错。
  */
 
 declare(strict_types=1);

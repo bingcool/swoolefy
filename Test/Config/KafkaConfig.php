@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Test\Config;
 
 /**
- * Kafka 公共 librdkafka 默认属性；Topic 名、group.id 在各 component/kafka 文件中定义。
+ * Kafka 公共 librdkafka 默认属性（不含 Topic / consumer group）。
+ *
+ * 各 Topic 在 Config/component/kafka/producer|consumer/*.php 用局部变量声明；
+ * 差异配置传入 producerGlobalProperty([]) / consumerGlobalProperty([]) 覆盖。
  *
  * @see https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md
  */

@@ -1,15 +1,19 @@
 <?php
 
+/**
+ * Topic topicOrder1 — Consumer 组件（同一 Topic 的多个 group.id 可写在同一文件）。
+ *
+ * 组件名：kafka_topic_order_group1_consumer
+ * setGroupId 即 Kafka consumer group；与 Topic 名无关，同 group 内分区负载均衡。
+ */
+
 declare(strict_types=1);
 
 use Test\Config\KafkaConfig;
 
 $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
 
-// topic（文件内变量，避免 reload 时 const/define 重复定义）
 $kafkaTopicOrder1 = 'topicOrder1';
-
-// consumer group1
 $kafkaTopicOrder1ConsumerGroup1 = 'order_group1';
 
 return [
