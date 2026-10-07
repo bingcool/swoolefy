@@ -31,7 +31,9 @@ final class CmdLogWriter
         }
 
         $logFile = WORKER_CTL_LOG_FILE;
-        $maxSize = defined('MAX_LOG_FILE_SIZE') ? MAX_LOG_FILE_SIZE : self::DEFAULT_MAX_SIZE;
+        $maxSize = defined('MAX_LOG_FILE_SIZE')
+            ? (int) constant('MAX_LOG_FILE_SIZE')
+            : self::DEFAULT_MAX_SIZE;
 
         // 文件大小轮转：超过阈值时删除旧文件
         if (is_file($logFile) && filesize($logFile) > $maxSize) {

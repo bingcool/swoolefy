@@ -290,6 +290,10 @@ LUA;
             }
         }
 
+        if (!$redis instanceof Predis) {
+            return $ids;
+        }
+
         $cursor = '0';
         do {
             $result = $redis->scan($cursor, ['MATCH' => $pattern, 'COUNT' => 100]);

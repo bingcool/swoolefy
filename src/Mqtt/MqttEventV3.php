@@ -8,7 +8,6 @@ use Swoolefy\Core\Swfy;
 use Simps\MQTT\Protocol;
 use Simps\MQTT\Protocol\Types;
 use Simps\MQTT\Message\ConnAck;
-use Simps\MQTT\Message\PingResp;
 use Simps\MQTT\Message\PubAck;
 use Simps\MQTT\Message\SubAck;
 use Simps\MQTT\Message\UnSubAck;
@@ -153,7 +152,9 @@ abstract class MqttEventV3
 
     final public function pingReq(): void
     {
-        $this->server->send($this->fd, new PingResp());
+        $this->packAndSend($this->fd, [
+            'type' => Types::PINGRESP,
+        ]);
     }
 
     final public function publishAck($message_id): void
