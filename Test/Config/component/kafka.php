@@ -1,44 +1,37 @@
 <?php
 
 /**
- * +----------------------------------------------------------------------
- * | swoolefy framework bases on swoole extension development, we can use it easily!
- * +----------------------------------------------------------------------
- * | Licensed ( https://opensource.org/licenses/MIT )
- * +----------------------------------------------------------------------
- * | @see https://github.com/bingcool/swoolefy
- * +----------------------------------------------------------------------
+ * Kafka 组件入口：合并 kafka/producer、kafka/consumer 下各 Topic 文件。
+ *
+ * 新增 Topic：在 producer/、consumer/ 各增加 php 文件，Topic / group.id 写在对应文件中；公共 librdkafka 默认值见 KafkaConfig。
  */
 
-use Swoolefy\Library\Amqp\AmqpStreamConnectionFactory;
-use PhpAmqpLib\Connection\AMQPStreamConnection;
-use Swoolefy\Core\Application;
-use Test\Config\AmqpConfig;
-use Test\Config\KafkaConfig;
+declare(strict_types=1);
 
-$dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
+// 勿用 $components：include 时会覆盖 SystemEnv::loadComponents() 中的同名变量
+$kafkaComponents = [];
 
-return [
-
-    // kafka-group1_producer生产者
-    'kafka_topic_order_group1_producer' => function() use($dc) {
-        $kafkaConf = KafkaConfig::KAFKA_TOPICS[KafkaConfig::KAFKA_TOPIC_ORDER1];
-        $producer = new \Swoolefy\Library\Kafka\Producer($dc['kafka_broker_list'], $kafkaConf['topic_name']);
-        if (\Swoolefy\Core\SystemEnv::isDevEnv()) {}
-        $producer->setGlobalProperty($kafkaConf['producer_global_property']);
-        $producer->setTopicProperty($kafkaConf['producer_topic_property']);
-        return $producer;
-    },
-
-    // kafka-group1_producer 消费者
-    'kafka_topic_order_group1_consumer' => function() use($dc) {
-        $kafkaConf = KafkaConfig::KAFKA_TOPICS[KafkaConfig::KAFKA_TOPIC_ORDER1];
-        $consumer = new \Swoolefy\Library\Kafka\Consumer($dc['kafka_broker_list'], $kafkaConf['topic_name']);
-        $consumer->setGroupId($kafkaConf['group_id']);
-        if (\Swoolefy\Core\SystemEnv::isDevEnv()) {
-        }
-        $consumer->setGlobalProperty($kafkaConf['consumer_global_property']);
-        $consumer->setTopicProperty($kafkaConf['consumer_topic_property']);
-        return $consumer;
+$loadDir = static function (string $dir) use (&$kafkaComponents): void {
+    if (!is_dir($dir)) {
+        return;
     }
-];
+    foreach (glob($dir . '/*.php') ?: [] as $file) {
+        $part = require $file;
+        if (!is_array($part)) {
+            throw new \RuntimeException('Kafka component file must return array: ' . $file);
+        }
+        $intersect = array_intersect_key($kafkaComponents, $part);
+        if ($intersect !== []) {
+            throw new \RuntimeException(
+                'Duplicate Kafka component keys: ' . implode(',', array_keys($intersect)) . ' in ' . $file,
+            );
+        }
+        $kafkaComponents = array_merge($kafkaComponents, $part);
+    }
+};
+
+$base = __DIR__ . '/kafka';
+$loadDir($base . '/consumer');
+$loadDir($base . '/producer');
+
+return $kafkaComponents;
