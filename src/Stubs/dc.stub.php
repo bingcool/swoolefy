@@ -51,12 +51,12 @@ return [
     'amqp_connection' => [
         'host_list' => [
             [
-                'host' => '172.17.0.1',
-                'port' => 5672,
-                'user' => 'admin',
-                'password' => 'admin',
-                'vhost' => 'my_vhost'
-            ]
+                'host' => env('AMQP_HOST', '127.0.0.1'),
+                'port' => (int) env('AMQP_PORT', 5672),
+                'user' => env('AMQP_USER', 'guest'),
+                'password' => env('AMQP_PASSWORD', 'guest'),
+                'vhost' => env('AMQP_VHOST', '/'),
+            ],
         ],
         'options' => [
             'is_lazy' => true, //必须设置true
@@ -69,8 +69,11 @@ return [
             'context' => null,
             'keepalive' => true,
             'heartbeat' => 10,
-        ]
+        ],
     ],
 
-    'kafka_broker_list' => ['127.0.0.1:9092'],
+    'kafka_broker_list' => array_values(array_filter(array_map(
+        static fn (string $broker): string => trim($broker),
+        explode(',', (string) env('KAFKA_BROKER_LIST', '127.0.0.1:9092')),
+    ))),
 ];

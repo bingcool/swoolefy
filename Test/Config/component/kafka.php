@@ -24,7 +24,7 @@ return [
     'kafka_topic_order_group1_producer' => function() use($dc) {
         $kafkaConf = KafkaConfig::KAFKA_TOPICS[KafkaConfig::KAFKA_TOPIC_ORDER1];
         $producer = new \Swoolefy\Library\Kafka\Producer($dc['kafka_broker_list'], $kafkaConf['topic_name']);
-        if(\Swoolefy\Core\SystemEnv::isDevEnv()) {}
+        if (\Swoolefy\Core\SystemEnv::isDevEnv()) {}
         $producer->setGlobalProperty($kafkaConf['producer_global_property']);
         $producer->setTopicProperty($kafkaConf['producer_topic_property']);
         return $producer;

@@ -86,14 +86,12 @@ return [
     'amqp_connection' => [
         'host_list' => [
             [
-                'host' => '192.168.1.105',
-                'port' => 5672,
-//                'user' => 'admin',
-//                'password' => 'admin',
-                'user' => 'rabbitmq',
-                'password' => '123456',
-                'vhost' => 'my_vhost'
-            ]
+                'host' => env('AMQP_HOST', '192.168.1.105'),
+                'port' => (int) env('AMQP_PORT', 5672),
+                'user' => env('AMQP_USER', 'rabbitmq'),
+                'password' => env('AMQP_PASSWORD', '123456'),
+                'vhost' => env('AMQP_VHOST', 'my_vhost'),
+            ],
         ],
         'options' => [
             'is_lazy' => true, //必须设置true
@@ -106,8 +104,11 @@ return [
             'context' => null,
             'keepalive' => true,
             'heartbeat' => 10,
-        ]
+        ],
     ],
 
-    'kafka_broker_list' => ['192.168.23.53:9092'],
+    'kafka_broker_list' => array_values(array_filter(array_map(
+        static fn (string $broker): string => trim($broker),
+        explode(',', (string) env('KAFKA_BROKER_LIST', '192.168.23.53:9092')),
+    ))),
 ];
