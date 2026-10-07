@@ -29,7 +29,7 @@ final class CreateCmdExitAndIoTest extends TestCase
     /** @var string 本用例专用应用目录（经 appPathOverride，不依赖全局 APP_PATH） */
     private string $appPath;
 
-    private const TEST_APP_NAME = 'CreateCmdDemoApp';
+    public const TEST_APP_NAME = 'CreateCmdDemoApp';
 
     public static function setUpBeforeClass(): void
     {
