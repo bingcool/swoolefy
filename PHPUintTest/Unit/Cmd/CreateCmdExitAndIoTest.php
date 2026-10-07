@@ -210,6 +210,17 @@ final class CreateCmdExitAndIoTest extends TestCase
         $this->assertFileExists($this->appPath . '/Protocol/conf.php');
         $this->assertFileExists($this->appPath . '/Event.php');
         $this->assertFileExists($this->appPath . '/HttpServer.php');
+        $this->assertFileExists($this->appPath . '/Config/KafkaConfig.php');
+        $this->assertFileExists($this->appPath . '/Config/AmqpConfig.php');
+        $this->assertFileExists($this->appPath . '/Config/component/kafka.php');
+        $this->assertFileExists($this->appPath . '/Config/component/amqp.php');
+        $this->assertFileExists($this->appPath . '/Config/component/kafka/producer/topic_demo.php');
+        $this->assertFileExists($this->appPath . '/Config/component/kafka/consumer/topic_demo.php');
+        $this->assertFileExists($this->appPath . '/Config/component/amqp/connection.php');
+        $this->assertFileExists($this->appPath . '/Config/component/amqp/direct/demo_direct.php');
+        $kafkaConfig = file_get_contents($this->appPath . '/Config/KafkaConfig.php');
+        $this->assertIsString($kafkaConfig);
+        $this->assertStringContainsString('namespace ' . self::TEST_APP_NAME . '\\Config;', $kafkaConfig);
         $this->assertNoStagingLeft();
     }
 

@@ -163,6 +163,56 @@ class CreateCmd extends BaseCmd
                     $this->copyFile(SRC_DIR_ROOT . '/Stubs/auth.component.stub.php', $componentDir . '/auth.php');
                     $this->copyFile(SRC_DIR_ROOT . '/Stubs/translator.component.stub.php', $componentDir . '/translator.php');
 
+                    $kafkaComponentDir = $componentDir . '/kafka';
+                    $this->ensureDirectory($kafkaComponentDir . '/producer');
+                    $this->ensureDirectory($kafkaComponentDir . '/consumer');
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/component.kafka.stub.php', $componentDir . '/kafka.php');
+                    $this->copyAppNamespaceStub(
+                        SRC_DIR_ROOT . '/Stubs/kafka.conf.stub.php',
+                        $appPathDir . '/' . $dir . '/KafkaConfig.php',
+                        $appName,
+                    );
+                    $this->copyAppNamespaceStub(
+                        SRC_DIR_ROOT . '/Stubs/component/kafka/producer/topic_demo.stub.php',
+                        $kafkaComponentDir . '/producer/topic_demo.php',
+                        $appName,
+                    );
+                    $this->copyAppNamespaceStub(
+                        SRC_DIR_ROOT . '/Stubs/component/kafka/consumer/topic_demo.stub.php',
+                        $kafkaComponentDir . '/consumer/topic_demo.php',
+                        $appName,
+                    );
+
+                    $amqpComponentDir = $componentDir . '/amqp';
+                    $this->ensureDirectory($amqpComponentDir . '/direct');
+                    $this->ensureDirectory($amqpComponentDir . '/fanout');
+                    $this->ensureDirectory($amqpComponentDir . '/topic');
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/component.amqp.stub.php', $componentDir . '/amqp.php');
+                    $this->copyAppNamespaceStub(
+                        SRC_DIR_ROOT . '/Stubs/amqp.conf.stub.php',
+                        $appPathDir . '/' . $dir . '/AmqpConfig.php',
+                        $appName,
+                    );
+                    $this->copyFile(
+                        SRC_DIR_ROOT . '/Stubs/component/amqp/connection.stub.php',
+                        $amqpComponentDir . '/connection.php',
+                    );
+                    $this->copyAppNamespaceStub(
+                        SRC_DIR_ROOT . '/Stubs/component/amqp/direct/demo_direct.stub.php',
+                        $amqpComponentDir . '/direct/demo_direct.php',
+                        $appName,
+                    );
+                    $this->copyAppNamespaceStub(
+                        SRC_DIR_ROOT . '/Stubs/component/amqp/fanout/demo_fanout.stub.php',
+                        $amqpComponentDir . '/fanout/demo_fanout.php',
+                        $appName,
+                    );
+                    $this->copyAppNamespaceStub(
+                        SRC_DIR_ROOT . '/Stubs/component/amqp/topic/demo_topic.stub.php',
+                        $amqpComponentDir . '/topic/demo_topic.php',
+                        $appName,
+                    );
+
                     $this->copyFile(SRC_DIR_ROOT . '/Stubs/app.conf.stub.php', $appPathDir . '/' . $dir . '/app.php');
                     $this->copyFile(SRC_DIR_ROOT . '/Stubs/dc.stub.php', $appPathDir . '/' . $dir . '/dc.php');
                     $this->copyFile(SRC_DIR_ROOT . '/Stubs/workflow.conf.stub.php', $appPathDir . '/' . $dir . '/workflow.php');
@@ -410,6 +460,19 @@ class CreateCmd extends BaseCmd
         if (!copy($source, $target)) {
             throw new IOException('Failed to copy file', 0, null, $source, $target);
         }
+    }
+
+    /**
+     * @throws IOException
+     */
+    protected function copyAppNamespaceStub(string $source, string $target, string $appName): void
+    {
+        if (!is_file($source)) {
+            throw new IOException('Source stub missing', 0, null, $source, $target);
+        }
+        $content = $this->readFile($source);
+        $content = str_replace('__APP_NAMESPACE__', $appName, $content);
+        $this->writeFile($target, $content);
     }
 
     /**
@@ -712,6 +775,15 @@ REDIS_PORT=6379
 REDIS_PASSWORD=
 REDIS_DB=1
 
+# AMQP
+AMQP_HOST=127.0.0.1
+AMQP_PORT=5672
+AMQP_USER=guest
+AMQP_PASSWORD=guest
+AMQP_VHOST=/
+
+# Kafka
+KAFKA_BROKER_LIST=127.0.0.1:9092
 
 # OpenTelemetry
 OTEL_PHP_AUTOLOAD_ENABLED=false
