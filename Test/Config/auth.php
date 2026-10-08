@@ -13,7 +13,8 @@
  * | AUTH_JWT_AUDIENCE | 非空则校验 aud |
  *
  * ## claim 映射
- * id_claim / roles_claim / tenant_claim 对应 JwtAuthGuard 读取的 JWT 字段名。
+ * id_claim / tenant_claim 对应 JwtAuthGuard 读取的 JWT 字段名。
+ * roles_claim 已忽略：授权角色来自 auth.role_resolver，禁止直接读 AuthUser::$roles。
  *
  * 组件加载：Config/component/auth.php → Application::get('auth.guard')
  * @see docs/Auth.md

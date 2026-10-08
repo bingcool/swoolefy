@@ -14,11 +14,27 @@
  */
 
 use Swoolefy\Support\Auth\JwtAuthGuard;
+use Swoolefy\Support\Auth\RoleResolverInterface;
 
 $authConfig = include APP_PATH . '/Config/auth.php';
 
 return [
     'auth.guard' => static function () use ($authConfig) {
         return new JwtAuthGuard($authConfig['jwt'] ?? []);
+    },
+
+    /**
+     * 当前服务端角色。验票不会调用；第一次 AuthUser::roles() 才调用。
+     * 空数组表示该用户当前没有任何角色。请换成数据库或权限服务查询，不要读 JWT。
+     */
+    'auth.role_resolver' => static function () {
+        return new class implements RoleResolverInterface {
+            public function currentRoles(string $userId): array
+            {
+                unset($userId);
+
+                return [];
+            }
+        };
     },
 ];

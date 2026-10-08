@@ -33,6 +33,7 @@ final class DiscoveryConfig
         public readonly string $clusters,
         public readonly string $groupName,
         public readonly string $namespaceId,
+        public readonly int $staleTtl,
     ) {
     }
 
@@ -54,8 +55,19 @@ final class DiscoveryConfig
             $namespaceId = $serviceRegisterConfig->namespaceId;
         }
 
+        $cacheTtl = ApplicationConfig::pickInt($discovery, 'cache_ttl', NacosConst::ENV_DISCOVERY_CACHE_TTL, 60);
+        $staleTtl = ApplicationConfig::pickInt(
+            $discovery,
+            'stale_ttl',
+            NacosConst::ENV_DISCOVERY_STALE_TTL,
+            max($cacheTtl * 3, 180),
+        );
+        if ($staleTtl < 0) {
+            $staleTtl = 0;
+        }
+
         return new self(
-            cacheTtl: ApplicationConfig::pickInt($discovery, 'cache_ttl', NacosConst::ENV_DISCOVERY_CACHE_TTL, 60),
+            cacheTtl: $cacheTtl,
             loadBalancer: strtolower(ApplicationConfig::pickString(
                 $discovery,
                 'load_balancer',
@@ -67,6 +79,7 @@ final class DiscoveryConfig
             groupName: $groupName,
             // 与 ServiceRegister 对齐：Open API 中 public 命名空间须传空字符串
             namespaceId: self::normalizeNamespaceId($namespaceId),
+            staleTtl: $staleTtl,
         );
     }
 

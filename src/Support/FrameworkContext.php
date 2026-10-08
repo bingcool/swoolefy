@@ -77,6 +77,7 @@ final class FrameworkContext
      */
     public static function setUser(AuthUser $user): void
     {
+        // 允许写入尚未加载角色的身份（快照 roles = null）
         SwooleContext::set(self::AUTH_USER_KEY, $user->toArray());
 
         HeaderContext::put(HeaderPropagator::HEADER_USER_ID, $user->userId);
@@ -91,12 +92,54 @@ final class FrameworkContext
      */
     public static function user(): ?AuthUser
     {
-        $data = SwooleContext::get(self::AUTH_USER_KEY);
+        $data = self::userSnapshot();
         if (!is_array($data) || ($data['userId'] ?? '') === '') {
             return null;
         }
 
         return AuthUser::fromArray($data);
+    }
+
+    /**
+     * 当前协程身份快照。roles 为 null 表示尚未加载，数组表示已加载。
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function userSnapshot(): ?array
+    {
+        $data = SwooleContext::get(self::AUTH_USER_KEY);
+
+        return is_array($data) ? $data : null;
+    }
+
+    /**
+     * 把第一次 {@see AuthUser::roles()} 的结果写回本请求快照。
+     * 快照缺失时用 $user 补一份已加载身份；已有其他用户时不覆盖。
+     *
+     * @param list<string> $roles
+     */
+    public static function rememberResolvedRoles(string $userId, array $roles, AuthUser $user): void
+    {
+        $data = self::userSnapshot();
+        if (!is_array($data) || ($data['userId'] ?? '') !== $userId) {
+            if (is_array($data)) {
+                return;
+            }
+            self::setUser(new AuthUser(
+                userId: $user->userId,
+                roles: $roles,
+                tenantId: $user->tenantId,
+                claims: $user->claims,
+                via: $user->via,
+                rolesResolved: true,
+            ));
+
+            return;
+        }
+
+        $data['roles'] = array_values($roles);
+        $data['rolesResolved'] = true;
+        SwooleContext::set(self::AUTH_USER_KEY, $data);
     }
 
     /**

@@ -188,11 +188,13 @@ final readonly class AuthUser
         public ?string $tenantId = null,
         public array $claims = [],
         public string $via = 'jwt',
+        public bool $rolesResolved = false,
     ) {}
 
-    public static function fromArray(array $data): self; // userId 空 → AuthException(500)
+    public static function fromArray(array $data): self; // userId 空 → AuthException(500)；roles=null 表示未加载
     public function toArray(): array;                    // Context 快照
-    public function hasRole(string $role): bool;
+    public function roles(): array;                      // 第一次才调用 auth.role_resolver
+    public function hasRole(string $role): bool;         // 走 roles()
     public function isAdmin(): bool;                     // hasRole('admin')
 }
 ```
@@ -200,10 +202,13 @@ final readonly class AuthUser
 | 字段 | 含义 |
 |------|------|
 | `userId` | 用户主键（JWT `uid`/`sub`） |
-| `roles` | 角色列表；HITL / 业务用 `hasRole` / `isAdmin` |
+| `roles` | 已加载的角色列表。未加载时为空，**禁止**直接当授权结果读 |
+| `rolesResolved` | `false` 尚未加载；`true` 时 `$roles` 才是本次请求的服务端授权结果 |
 | `tenantId` | 可选租户；与 `x-tenant-id` 对齐 |
-| `claims` | 其余 JWT claim 只读副本（不含已映射字段） |
+| `claims` | 其余 JWT claim 只读副本（不含已映射字段，也不含角色） |
 | `via` | 通道：`jwt` / `api_key` / `system` 等 |
+
+JWT 校验通过只说明身份凭证有效。授权角色只通过 `AuthUser::roles()` / `hasRole()` / `isAdmin()` 读取。第一次调用才向组件 `auth.role_resolver` 加载，并回写本请求 Context 快照（`roles = null` 表示还没加载，空数组表示当前没有任何角色）。同一请求内后续读取不再打角色源。不要读 JWT 的 `roles` claim，也不要读 `$user->roles` 属性。
 
 ### AuthGuardInterface / JwtAuthGuard
 
@@ -236,7 +241,7 @@ interface AuthGuardInterface
 ```php
 /** @var AuthGuardInterface $guard */
 $guard = Application::getApp()->get('auth.guard');
-$token = $guard->generateToken(new AuthUser(userId: '100', roles: ['operator']));
+$token = $guard->generateToken(new AuthUser(userId: '100'));
 ```
 
 #### Claim ↔ AuthUser
@@ -244,7 +249,7 @@ $token = $guard->generateToken(new AuthUser(userId: '100', roles: ['operator']))
 | Claim（可配） | 默认键 | AuthUser |
 |---------------|--------|----------|
 | `id_claim`，否则 `sub` | `uid` | `userId` |
-| `roles_claim`（数组或逗号串） | `roles` | `roles` |
+| `roles_claim`（数组或逗号串） | `roles` | **忽略**。旧 token 可验签，不进入授权 |
 | `tenant_claim` | `tenant_id` | `tenantId` |
 | 其余 | — | `claims` |
 | — | — | `via = 'jwt'`（仅解析侧） |
@@ -262,7 +267,7 @@ $token = $guard->generateToken(new AuthUser(userId: '100', roles: ['operator']))
 
 #### `generateToken`
 
-- 写入 `iat` / `exp`、`sub` + `id_claim`、`roles_claim` 数组、可选 `tenant` / `iss` / `aud`
+- 写入 `iat` / `exp`、`sub` + `id_claim`、可选 `tenant` / `iss` / `aud`。不写入 `roles` claim
 - 合并 `AuthUser::claims`（不覆盖已映射顶层字段）
 - TTL：参数优先，否则 `jwt.ttl_seconds`（默认 3600）
 - 算法：`HS256` / `HS384` / `HS512`（未知回落 HS256）
@@ -459,7 +464,7 @@ public static function authenticate(Request $request, string $token): array|fals
 
 | API | 行为 |
 |-----|------|
-| `assertAuthorizedForUser(?AuthUser $user, ?string $apiKeyHeader)` | auth 关闭 → 放行；合法 API Key → 放行；否则需用户且 `roles ∩ allowed_roles` |
+| `assertAuthorizedForUser(?AuthUser $user, ?string $apiKeyHeader)` | auth 关闭 → 放行；合法 API Key → 放行；否则需用户且 `roles()` ∩ `allowed_roles`（空 allowed 不调用 `roles()`） |
 | `assertCanResumeForUser(WorkflowRun $run, AuthUser $user)` | 身份 + assignee=`user.userId`；`admin` 可跨 |
 | `assertCanListTasksForUser(?string $filterAssignee, AuthUser $user)` | 非 admin 不可查他人 |
 | `resolveListAssigneeFilterForUser(?string $queryAssignee, AuthUser $user)` | admin 查全部；否则默认收窄为 `user.userId` |

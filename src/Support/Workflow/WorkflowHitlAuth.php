@@ -31,7 +31,8 @@ use Swoolefy\Support\Workflow\Exception\WorkflowPermissionException;
  * | assertCanResumeForUser | resume：身份 + assignee=user.userId（admin 可跨） |
  * | assertCanListTasksForUser | 列表：非 admin 不可查他人 assignee |
  *
- * 角色只认 {@see AuthUser::roles}（JWT claim），**不再信任**客户端自报 `X-Workflow-Role`。
+ * 角色只认第一次 {@see AuthUser::roles()} 向 `auth.role_resolver` 读取的当前服务端角色，
+ * **不再信任** JWT claim 或客户端自报 `X-Workflow-Role`。
  *
  * ## 配置（Config/workflow.php → workflow.hitl）
  * | 配置项 | 说明 |
@@ -53,7 +54,7 @@ final class WorkflowHitlAuth
 
     /**
      * 角色 Header 名（历史兼容；auth_enabled 下已不再单独据此放行）。
-     * 新代码请用 AuthUser::roles。
+     * 新代码请用 AuthUser::roles()。
      */
     public const DEFAULT_ROLE_HEADER = 'X-Workflow-Role';
 
@@ -82,7 +83,7 @@ final class WorkflowHitlAuth
      *
      * 规则（auth_enabled=true）：
      *   1. apiKeyHeader 与配置 api_key 一致（hash_equals）→ 通过（服务间）
-     *   2. 否则必须提供 AuthUser，且 roles ∩ allowed_roles 非空（allowed_roles 空则放行有用户）
+     *   2. 否则必须提供 AuthUser，且 roles() ∩ allowed_roles 非空（allowed_roles 空则放行有用户，不调用 roles()）
      *   3. 仅 Header role、无 JWT、无 Key → 403
      *
      * auth_enabled=false 时直接 return。
@@ -112,7 +113,7 @@ final class WorkflowHitlAuth
             return;
         }
 
-        foreach ($user->roles as $role) {
+        foreach ($user->roles() as $role) {
             if (in_array($role, $allowedRoles, true)) {
                 return;
             }
@@ -145,7 +146,7 @@ final class WorkflowHitlAuth
             return;
         }
 
-        if ($user->isAdmin()) {
+        if ($this->isEnabled() && $user->isAdmin()) {
             return;
         }
 
@@ -222,7 +223,7 @@ final class WorkflowHitlAuth
      */
     public function resolveListAssigneeFilterForUser(?string $queryAssignee, AuthUser $user): ?string
     {
-        $role = $user->isAdmin() ? self::ADMIN_ROLE : null;
+        $role = $this->isEnabled() && $user->isAdmin() ? self::ADMIN_ROLE : null;
 
         return $this->resolveListAssigneeFilter($queryAssignee, $user->userId, $role);
     }

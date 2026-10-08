@@ -13,7 +13,13 @@ declare(strict_types=1);
 
 namespace PHPUintTest\Unit\Support\Workflow;
 
+use Swoolefy\Core\App;
+use Swoolefy\Core\Application;
+use Swoolefy\Core\BaseServer;
 use Swoolefy\Support\Agent\Router\CostAwareRouter;
+use Swoolefy\Support\Auth\AuthUser;
+use Swoolefy\Support\Auth\RoleResolverInterface;
+use Swoolefy\Support\FrameworkContext;
 use Swoolefy\Support\Agent\RouterContext;
 use Swoolefy\Support\Mcp\McpProcessLimitException;
 use Swoolefy\Support\Mcp\McpProcessRunner;
@@ -232,15 +238,62 @@ final class WorkflowPhase4Test extends TestCase
                 ->addNode('a', new ClosureNode('a', static fn ($c, $s) => NodeExecutionResult::success())),
         );
 
-        try {
-            $engine->start($compiled, ['role' => 'guest']);
-            $this->assertTrue(false, 'should deny guest');
-        } catch (WorkflowPermissionException) {
-            $this->assertTrue(true, 'permission denied ok');
-        }
+        $this->withResolvedUser(new AuthUser(userId: 'u-guest', roles: ['guest'], rolesResolved: true), function () use ($engine, $compiled): void {
+            try {
+                $engine->start($compiled, ['role' => 'admin']);
+                $this->assertTrue(false, 'should deny guest even if input says admin');
+            } catch (WorkflowPermissionException) {
+                $this->assertTrue(true, 'permission denied ok');
+            }
+        });
 
-        $runId = $engine->start($compiled, ['role' => 'operator']);
-        $this->assertTrue($runId !== '', 'operator should pass');
+        $this->withResolvedUser(new AuthUser(userId: 'u-op', roles: ['operator'], rolesResolved: true), function () use ($engine, $compiled): void {
+            $runId = $engine->start($compiled, ['role' => 'guest']);
+            $this->assertTrue($runId !== '', 'operator should pass');
+        });
+    }
+
+    /**
+     * 未加载身份第一次 roles() 走 resolver，input 自报 admin 不能放行。
+     */
+    public function testPermissionPluginLoadsRolesFromResolverNotInput(): void
+    {
+        $resolver = new class implements RoleResolverInterface {
+            public int $calls = 0;
+
+            public function currentRoles(string $userId): array
+            {
+                $this->calls++;
+
+                return ['operator'];
+            }
+        };
+        $engine = $this->makeEngine(new PluginManager([new PermissionPlugin(['admin'])]));
+        $compiled = WorkflowBootstrap::compiler()->compile(
+            WorkflowDefinition::create('perm-lazy')
+                ->metadata(['allowedRoles' => ['operator']])
+                ->addNode('a', new ClosureNode('a', static fn ($c, $s) => NodeExecutionResult::success())),
+        );
+
+        $this->withApp(function () use ($resolver, $engine, $compiled): void {
+            Application::getApp()->creatObject('auth.role_resolver', static fn () => $resolver);
+            FrameworkContext::setUser(new AuthUser(userId: 'u-lazy'));
+            try {
+                $runId = $engine->start($compiled, ['role' => 'admin']);
+                $this->assertNotSame('', $runId);
+                $this->assertSame(1, $resolver->calls);
+            } finally {
+                FrameworkContext::clearUser();
+            }
+
+            FrameworkContext::clearUser();
+            try {
+                $engine->start($compiled, ['role' => 'admin']);
+                $this->assertTrue(false, 'missing user must deny');
+            } catch (WorkflowPermissionException) {
+                $this->assertSame(1, $resolver->calls, 'deny without user must not call resolver');
+            }
+        });
     }
 
     /**
@@ -260,18 +313,22 @@ final class WorkflowPhase4Test extends TestCase
                 ->addNode('a', new ClosureNode('a', static fn ($c, $s) => NodeExecutionResult::success())),
         );
 
-        try {
-            $engine->start($compiled, ['role' => 'guest']);
-            $this->assertTrue(false, 'should deny guest after rate-limit acquire');
-        } catch (WorkflowPermissionException) {
-            $this->assertTrue(true, 'permission denied');
-        }
+        $this->withResolvedUser(new AuthUser(userId: 'u-guest', roles: ['guest'], rolesResolved: true), function () use ($engine, $compiled, $rateLimit): void {
+            try {
+                $engine->start($compiled, ['role' => 'admin']);
+                $this->assertTrue(false, 'should deny guest after rate-limit acquire');
+            } catch (WorkflowPermissionException) {
+                $this->assertTrue(true, 'permission denied');
+            }
 
-        $this->assertTrue($rateLimit->activeRuns() === 0, 'rate limit slot released after permission deny');
+            $this->assertTrue($rateLimit->activeRuns() === 0, 'rate limit slot released after permission deny');
+        });
 
-        $runId = $engine->start($compiled, ['role' => 'admin']);
-        $this->assertTrue($runId !== '', 'admin should pass after slot release');
-        $this->assertTrue($rateLimit->activeRuns() === 0, 'slot released after successful run');
+        $this->withResolvedUser(new AuthUser(userId: 'u-admin', roles: ['admin'], rolesResolved: true), function () use ($engine, $compiled, $rateLimit): void {
+            $runId = $engine->start($compiled, ['role' => 'guest']);
+            $this->assertTrue($runId !== '', 'admin should pass after slot release');
+            $this->assertTrue($rateLimit->activeRuns() === 0, 'slot released after successful run');
+        });
     }
 
     /**
@@ -303,6 +360,38 @@ final class WorkflowPhase4Test extends TestCase
         } finally {
             $runner->release();
             $runner->release();
+        }
+    }
+
+    private function withResolvedUser(AuthUser $user, callable $fn): void
+    {
+        $this->withApp(function () use ($user, $fn): void {
+            FrameworkContext::setUser($user);
+            try {
+                $fn();
+            } finally {
+                FrameworkContext::clearUser();
+            }
+        });
+    }
+
+    private function withApp(callable $fn): void
+    {
+        $owned = false;
+        if (!Application::issetApp()) {
+            if (!defined('APP_PATH')) {
+                BaseServer::setAppConf(['components' => []]);
+            }
+            Application::setApp(new App());
+            $owned = true;
+        }
+        try {
+            $fn();
+        } finally {
+            FrameworkContext::clearUser();
+            if ($owned) {
+                Application::removeApp();
+            }
         }
     }
 }

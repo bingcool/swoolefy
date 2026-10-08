@@ -193,14 +193,6 @@ class HttpRoute extends AppDispatch
             throw new DispatchException($errorMsg, HttpStatus::FORBIDDEN);
         }
 
-        // validate class
-        $controllerValidateName = str_replace('Controller','Validation', $controllerNamespace);
-        if (method_exists($controllerValidateName, $action) && $controllerValidateName != $controllerNamespace) {
-            $validation = new $controllerValidateName();
-            $validateRule = $validation->{$action}();
-            $this->requestInput->validate($this->requestInput->all(), $validateRule['rules'] ?? [], $validateRule['messages'] ?? []);
-        }
-
         if (isset($module)) {
             // route params array
             $routeItems = [3, [$module, $controller, $action]];
@@ -233,12 +225,10 @@ class HttpRoute extends AppDispatch
             throw new SystemException('System Request End Error', HttpStatus::INTERNAL_SERVER_ERROR);
         }
 
-        $this->validateActionParamRulesBeforeMiddlewares($class, $action);
-
         // reset app conf
         $this->app->setAppConf($this->appConf);
 
-        // api limit rate
+        // 限流键必须在中间件之前写入，供 ApiUserRateLimiterMiddleware 读取
         if (is_object($this->routeOption)) {
             $this->requestInput->setValue(RouteOption::API_LIMIT_NUM_KEY, $this->routeOption->getLimitNum());
             $this->requestInput->setValue(RouteOption::API_LIMIT_WINDOW_SIZE_TIME_KEY, $this->routeOption->getWindowSizeTime());
@@ -255,6 +245,14 @@ class HttpRoute extends AppDispatch
             // cors response and over finish and stop next call
             return false;
         }
+
+        // 中间件已短路或已抛错时不会走到这里
+        if ($this->app->isEnd()) {
+            return false;
+        }
+
+        $this->validateByControllerValidationClass($class, $action);
+        $this->validateActionParamRules($class, $action);
 
         /**@var BController $controllerInstance */
         $controllerInstance = new $class();
@@ -731,13 +729,30 @@ class HttpRoute extends AppDispatch
     }
 
     /**
-     * Validate action request object annotations before any route middleware runs.
+     * *Validation::{action}()。仅在 before 中间件未短路时执行，且先于注解校验。
+     */
+    protected function validateByControllerValidationClass(string $class, string $action): void
+    {
+        $controllerValidateName = str_replace('Controller', 'Validation', $class);
+        if (method_exists($controllerValidateName, $action) && $controllerValidateName !== $class) {
+            $validation = new $controllerValidateName();
+            $validateRule = $validation->{$action}();
+            $this->requestInput->validate(
+                $this->requestInput->all(),
+                $validateRule['rules'] ?? [],
+                $validateRule['messages'] ?? [],
+            );
+        }
+    }
+
+    /**
+     * 注解参数校验。仅在 before 中间件未短路时执行。
      *
      * @param string $class
      * @param string $action
      * @return void
      */
-    protected function validateActionParamRulesBeforeMiddlewares(string $class, string $action): void
+    protected function validateActionParamRules(string $class, string $action): void
     {
         $inputParams = $this->requestInput->input();
         foreach ($this->getActionParamMetas($class, $action) as $paramMeta) {

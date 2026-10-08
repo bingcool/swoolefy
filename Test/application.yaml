@@ -27,6 +27,7 @@ nacos:
   discovery_service_client:
     load_balancer: random   # random | round_robin | weight
     cache_ttl: 60
+    stale_ttl: 180
     healthy_only: true
     namespace_id: ''
     group_name: 'pwa_group'

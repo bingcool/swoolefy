@@ -50,6 +50,7 @@ final class NacosConst
 
     // application.yaml → nacos.discovery_service_client
     public const ENV_DISCOVERY_CACHE_TTL = 'NACOS_DISCOVERY_CACHE_TTL';
+    public const ENV_DISCOVERY_STALE_TTL = 'NACOS_DISCOVERY_STALE_TTL';
     public const ENV_DISCOVERY_LOAD_BALANCER = 'NACOS_DISCOVERY_LOAD_BALANCER';
     public const ENV_DISCOVERY_HEALTHY_ONLY = 'NACOS_DISCOVERY_HEALTHY_ONLY';
     public const ENV_DISCOVERY_CLUSTERS = 'NACOS_DISCOVERY_CLUSTERS';

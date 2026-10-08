@@ -61,7 +61,8 @@ final class AuthModuleTest extends TestCase
 
         $this->assertInstanceOf(AuthUser::class, $user);
         $this->assertSame('100', $user->userId);
-        $this->assertTrue($user->hasRole('admin'));
+        $this->assertFalse($user->rolesResolved);
+        $this->assertSame([], $user->roles);
         $this->assertSame('t1', $user->tenantId);
         $this->assertSame('jwt', $user->via);
     }
@@ -108,7 +109,7 @@ final class AuthModuleTest extends TestCase
     }
 
     /**
-     * 验证：generateToken 签发的 JWT 可往返认证，自定义 claims 与角色完整保留。
+     * 验证：generateToken 签发的 JWT 可往返认证。角色不写入 token，验票后角色仍未加载。
      */
     public function testJwtAuthGuardGenerateTokenRoundTrip(): void
     {
@@ -122,11 +123,14 @@ final class AuthModuleTest extends TestCase
 
         $token = $guard->generateToken($issued, 1800);
         $this->assertNotSame('', $token);
+        $payload = json_decode(base64_decode(strtr(explode('.', $token)[1], '-_', '+/')), true);
+        $this->assertIsArray($payload);
+        $this->assertArrayNotHasKey('roles', $payload);
 
         $user = $guard->authenticate(['token' => $token]);
         $this->assertInstanceOf(AuthUser::class, $user);
         $this->assertSame('42', $user->userId);
-        $this->assertTrue($user->hasRole('admin'));
+        $this->assertFalse($user->rolesResolved);
         $this->assertSame('acme', $user->tenantId);
         $this->assertSame('ops', $user->claims['dept'] ?? null);
         $this->assertSame('jwt', $user->via);

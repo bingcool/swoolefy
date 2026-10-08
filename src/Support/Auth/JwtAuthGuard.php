@@ -41,7 +41,7 @@ use Swoolefy\Library\Jwt\Validation\Constraint\ValidAt;
  * | Claim | AuthUser |
  * |-------|----------|
  * | id_claim（默认 uid），否则 sub | userId |
- * | roles_claim（默认 roles）数组或逗号串 | roles |
+ * | roles_claim（默认 roles） | 忽略。角色不来自 token，见 {@see AuthUser::roles()} |
  * | tenant_claim（默认 tenant_id） | tenantId |
  * | 其余 | claims |
  * | — | via = jwt（仅解析侧写入） |
@@ -138,21 +138,11 @@ final class JwtAuthGuard implements AuthGuardInterface
             throw new AuthException('Token missing user id claim', Status::UNAUTHORIZED);
         }
 
-        // roles 支持 JSON 数组或 "a,b,c" 字符串
-        $rolesRaw = $claims[$rolesClaim] ?? [];
-        if (is_string($rolesRaw)) {
-            $roles = $rolesRaw === '' ? [] : array_values(array_filter(array_map('trim', explode(',', $rolesRaw))));
-        } elseif (is_array($rolesRaw)) {
-            $roles = array_values(array_map('strval', $rolesRaw));
-        } else {
-            $roles = [];
-        }
-
         $tenantId = isset($claims[$tenantClaim]) && $claims[$tenantClaim] !== ''
             ? (string) $claims[$tenantClaim]
             : null;
 
-        // 已映射字段不重复塞进 claims，避免业务二次解析混淆
+        // roles_claim 即使残留在旧 token 中也不进入授权结果，也不放进 claims
         $reserved = [$idClaim, RegisteredClaims::SUBJECT, $rolesClaim, $tenantClaim];
         $extra = [];
         foreach ($claims as $key => $value) {
@@ -163,10 +153,10 @@ final class JwtAuthGuard implements AuthGuardInterface
 
         return new AuthUser(
             userId: $userId,
-            roles: $roles,
             tenantId: $tenantId,
             claims: $extra,
             via: 'jwt',
+            rolesResolved: false,
         );
     }
 
@@ -195,10 +185,9 @@ final class JwtAuthGuard implements AuthGuardInterface
         $builder = $configuration->builder()
             ->issuedAt($now)
             ->expiresAt($now->modify('+' . $ttl . ' second'))
-            // 标准 sub + 业务 id_claim 双写，authenticate 优先读 id_claim
+            // 标准 sub + 业务 id_claim 双写，authenticate 优先读 id_claim。不写入角色。
             ->relatedTo($user->userId)
-            ->withClaim($idClaim, $user->userId)
-            ->withClaim($rolesClaim, array_values($user->roles));
+            ->withClaim($idClaim, $user->userId);
 
         if ($user->tenantId !== null && $user->tenantId !== '') {
             $builder = $builder->withClaim($tenantClaim, $user->tenantId);

@@ -15,10 +15,25 @@
  */
 
 use Swoolefy\Support\Auth\JwtAuthGuard;
+use Swoolefy\Support\Auth\RoleResolverInterface;
 
 $authcConfig = include APP_PATH . '/Config/auth.php';
 return [
     'auth.guard' => static function () use($authcConfig) {
         return new JwtAuthGuard($authcConfig['jwt'] ?? []);
+    },
+
+    /**
+     * 无缓存。空数组表示当前没有角色。业务角色请改成按 userId 查询，不要读 JWT claim。
+     */
+    'auth.role_resolver' => static function () {
+        return new class implements RoleResolverInterface {
+            public function currentRoles(string $userId): array
+            {
+                unset($userId);
+
+                return [];
+            }
+        };
     },
 ];

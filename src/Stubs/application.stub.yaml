@@ -26,6 +26,9 @@ nacos:
     service_name: ''
     load_balancer: random   # random | round_robin | weight
     cache_ttl: 60
+    # 刷新失败后还能使用旧实例的秒数。0 = 失败后立即清空。成功返回的空列表不受此保护。
+    # 未配置时默认 max(cache_ttl * 3, 180)。环境变量 NACOS_DISCOVERY_STALE_TTL。
+    stale_ttl: 180
     healthy_only: true
     group_name: ''
     namespace_id: ''

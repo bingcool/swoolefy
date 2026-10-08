@@ -63,6 +63,7 @@ class WebsocketAuthCallback
             return false;
         }
 
+        // 只写入未加载角色的身份，握手时不查 auth.role_resolver
         FrameworkContext::setUser($user);
 
         return ['user_id' => $user->userId];

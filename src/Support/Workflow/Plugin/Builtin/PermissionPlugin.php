@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Workflow\Plugin\Builtin;
 
+use Swoolefy\Support\FrameworkContext;
 use Swoolefy\Support\Workflow\Engine\WorkflowRun;
 use Swoolefy\Support\Workflow\Exception\WorkflowPermissionException;
 use Swoolefy\Support\Workflow\Plugin\PluginRegistry;
@@ -24,10 +25,11 @@ use Swoolefy\Support\Workflow\Plugin\WorkflowPluginInterface;
  * 有效角色集 = 插件构造 allowedRoles ∪ WorkflowDefinition.metadata.allowedRoles
  *
  * 校验规则：
- *   - effectiveRoles 为空 → 不限制（开放 Run）
- *   - input[roleKey] 必须在 effectiveRoles 内，否则抛 WorkflowPermissionException
+ *   - effectiveRoles 为空 → 不限制，且不调用 {@see \Swoolefy\Support\Auth\AuthUser::roles()}
+ *   - 否则要求 FrameworkContext::user() 非空，且 roles() 与 effectiveRoles 有交集
+ *   - input 里的 role / roles / tenant 不参与判断
  *
- * 典型 input：{ "role": "operator", "tenantId": "t1", ... }
+ * $roleKey / $tenantKey 只保留构造签名，不再读取 input。
  *
  * @see docs/SwoolefyAI.md §4.12 PermissionPlugin
  */
@@ -35,8 +37,8 @@ final class PermissionPlugin implements WorkflowPluginInterface
 {
     /**
      * @param list<string> $allowedRoles 全局允许角色；空表示仅依赖 Definition metadata
-     * @param string       $roleKey      input 中角色字段名，默认 role
-     * @param string       $tenantKey    input 中租户字段名（错误信息用），默认 tenantId
+     * @param string       $roleKey      保留参数，不再从 input 读取
+     * @param string       $tenantKey    保留参数，租户只取 AuthUser::$tenantId
      */
     public function __construct(
         private readonly array $allowedRoles = [],
@@ -55,8 +57,7 @@ final class PermissionPlugin implements WorkflowPluginInterface
     public function register(PluginRegistry $registry): void
     {
         $registry->onRunStart(function (WorkflowRun $run, array $input): void {
-            $role = $input[$this->roleKey] ?? null;
-            $tenantId = $input[$this->tenantKey] ?? null;
+            unset($input);
 
             $metadataRoles = $run->compiled->metadata()['allowedRoles'] ?? [];
             $effectiveRoles = $this->allowedRoles;
@@ -68,12 +69,22 @@ final class PermissionPlugin implements WorkflowPluginInterface
                 return;
             }
 
-            if (!is_string($role) || $role === '' || !in_array($role, $effectiveRoles, true)) {
-                throw new WorkflowPermissionException(
-                    'Insufficient role for workflow run'
-                    . ($tenantId !== null ? " (tenant={$tenantId})" : ''),
-                );
+            $user = FrameworkContext::user();
+            if ($user === null) {
+                throw new WorkflowPermissionException('Insufficient role for workflow run');
             }
+
+            foreach ($effectiveRoles as $role) {
+                if (is_string($role) && $user->hasRole($role)) {
+                    return;
+                }
+            }
+
+            $tenantId = $user->tenantId;
+            throw new WorkflowPermissionException(
+                'Insufficient role for workflow run'
+                . ($tenantId !== null && $tenantId !== '' ? " (tenant={$tenantId})" : ''),
+            );
         });
     }
 }

@@ -132,7 +132,7 @@ final class WorkflowHitlAuthTest extends TestCase
     public function testHitlAuthWithValidRole(): void
     {
         $auth = new WorkflowHitlAuth($this->hitlConfig());
-        $user = new AuthUser(userId: 'u1', roles: ['admin']);
+        $user = new AuthUser(userId: 'u1', roles: ['admin'], rolesResolved: true);
         $auth->assertAuthorizedForUser($user, null);
 
         $this->expectException(WorkflowPermissionException::class);
@@ -213,14 +213,14 @@ final class WorkflowHitlAuthTest extends TestCase
         ]]));
 
         try {
-            $auth->assertCanResumeForUser($run, new AuthUser(userId: 'wrong-team', roles: ['operator']));
+            $auth->assertCanResumeForUser($run, new AuthUser(userId: 'wrong-team', roles: ['operator'], rolesResolved: true));
             $this->assertTrue(false, 'should throw assignee mismatch');
         } catch (WorkflowPermissionException $e) {
             $this->assertTrue(str_contains($e->getMessage(), 'legal-team'), 'assignee message');
         }
 
-        $auth->assertCanResumeForUser($run, new AuthUser(userId: 'legal-team', roles: ['operator']));
-        $auth->assertCanResumeForUser($run, new AuthUser(userId: 'anyone', roles: ['admin']));
+        $auth->assertCanResumeForUser($run, new AuthUser(userId: 'legal-team', roles: ['operator'], rolesResolved: true));
+        $auth->assertCanResumeForUser($run, new AuthUser(userId: 'anyone', roles: ['admin'], rolesResolved: true));
     }
 
     /**

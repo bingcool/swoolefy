@@ -70,6 +70,7 @@ final class WebsocketAuthCallback
         }
 
         // 与 HTTP 中间件一致：后续同协程可读 FrameworkContext::user()
+        // 只写入未加载角色的身份，握手时不查 auth.role_resolver
         FrameworkContext::setUser($user);
 
         return ['user_id' => $user->userId];

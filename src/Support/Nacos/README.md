@@ -102,12 +102,15 @@ nacos:
 
 | 环境变量 | YAML 键 | 说明 | 默认值 |
 |:---|:---|:---|:---|
-| `NACOS_DISCOVERY_CACHE_TTL` | `nacos.discovery_service_client.cache_ttl` | 实例列表缓存 TTL（秒） | `60` |
+| `NACOS_DISCOVERY_CACHE_TTL` | `nacos.discovery_service_client.cache_ttl` | 刷新间隔（秒）。`<= 0` 表示每次 `getInstances()` 都拉取 | `60` |
+| `NACOS_DISCOVERY_STALE_TTL` | `nacos.discovery_service_client.stale_ttl` | 刷新失败后还能信旧实例多久（秒）。`0` 表示失败后立即清空。成功返回的空列表立即生效，不受此项保护 | `max(cache_ttl * 3, 180)` |
 | `NACOS_DISCOVERY_LOAD_BALANCER` | `nacos.discovery_service_client.load_balancer` | 负载均衡策略 | `random` |
 | `NACOS_DISCOVERY_HEALTHY_ONLY` | `nacos.discovery_service_client.healthy_only` | 仅选健康实例 | `true` |
 | `NACOS_DISCOVERY_CLUSTERS` | `nacos.discovery_service_client.clusters` | 集群名 | 空 |
 
 `load_balancer` 可选值：`random` | `round_robin` | `weight`。
+
+`cache_ttl` 是两次拉取的间隔。`stale_ttl` 只在拉取抛错时决定还能不能继续用上一次成功的实例列表。注册中心成功返回空列表会立刻清空本地实例，不会被 `stale_ttl` 留住。
 
 ### 配置变更监听（`application.yaml` → `nacos.monitor_config_change` → `MonitorConfig`）
 

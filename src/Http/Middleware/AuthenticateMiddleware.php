@@ -42,7 +42,7 @@ use Swoolefy\Support\FrameworkContext;
  *
  * ## 行为
  * 1. 读 `Authorization: Bearer …`
- * 2. Guard 验票 → FrameworkContext::setUser
+ * 2. Guard 验票 → FrameworkContext::setUser（角色未加载，不调用 auth.role_resolver）
  * 3. 若有 tenantId，同步写协程键 `tenant_id`（兼容已有业务 Context）
  * 4. 缺 token / 验票失败 → AuthException(401)
  *
@@ -112,6 +112,7 @@ class AuthenticateMiddleware implements RouteMiddlewareInterface
             throw new AuthException('Unauthenticated', Status::UNAUTHORIZED);
         }
 
+        // 只写入未加载角色的身份。currentRoles() 推迟到第一次 AuthUser::roles()
         FrameworkContext::setUser($user);
 
         // 与部分 Bootstrap / 业务已依赖的 tenant_id Context 键对齐

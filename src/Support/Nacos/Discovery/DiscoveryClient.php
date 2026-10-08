@@ -36,9 +36,16 @@ final class DiscoveryClient
      */
     private array $instances = [];
 
-    private int $lastFetchTime = 0;
+    /** 上次拉取结束时间（成功、成功空列表、捕获到的异常都更新）。 */
+    private int $lastFetchAt = 0;
+
+    /** 上次 driver 正常返回的时间。空列表也算成功。失败不更新。 */
+    private int $lastSuccessAt = 0;
 
     private bool $isFetching = false;
+
+    /** @var null|\Closure(): int */
+    private ?\Closure $clock;
 
     private ?LoadBalancerInterface $loadBalancer = null;
 
@@ -47,12 +54,14 @@ final class DiscoveryClient
         private readonly DiscoveryDriverInterface $driver,
         private readonly DiscoveryConfig $discoveryConfig,
         ?LoadBalancerInterface $loadBalancer = null,
+        ?\Closure $clock = null,
     ) {
         if ('' === $this->serviceName) {
             throw NacosDiscoveryException::throw('discovery service name is required');
         }
 
         $this->loadBalancer = $loadBalancer;
+        $this->clock = $clock;
     }
 
     public static function create(
@@ -103,7 +112,7 @@ final class DiscoveryClient
             return $this->fetchInstances();
         }
 
-        if (!$this->isFetching && (time() - $this->lastFetchTime) >= $cacheTtl) {
+        if (!$this->isFetching && ($this->now() - $this->lastFetchAt) >= $cacheTtl) {
             $this->fetchInstances();
         }
 
@@ -157,26 +166,72 @@ final class DiscoveryClient
     private function fetchInstances(): array
     {
         $this->isFetching = true;
+        $now = $this->now();
         try {
-            $fetched = $this->driver->getInstances($this->serviceName);
-            if ([] !== $fetched) {
-                $this->instances = $fetched;
-                $this->lastFetchTime = time();
-            } elseif ([] === $this->instances) {
+            try {
+                $fetched = $this->driver->getInstances($this->serviceName);
+            } catch (\Throwable) {
+                $this->lastFetchAt = $now;
+                if ($this->canServeStale($now)) {
+                    $this->logWarning(sprintf(
+                        'nacos discovery refresh failed, serve stale service=%s age=%d',
+                        $this->serviceName,
+                        $now - $this->lastSuccessAt,
+                    ));
+
+                    return $this->instances;
+                }
+
                 $this->instances = [];
-                $this->lastFetchTime = time();
-            } else {
-                NacosLogger::get()->warning(sprintf(
-                    'nacos discovery refresh returned empty for service=%s, keep %d cached instance(s)',
+                $this->logWarning(sprintf(
+                    'nacos discovery stale expired service=%s',
                     $this->serviceName,
-                    \count($this->instances),
                 ));
-                $this->lastFetchTime = time();
+
+                return $this->instances;
+            }
+
+            $this->instances = $fetched;
+            $this->lastSuccessAt = $now;
+            $this->lastFetchAt = $now;
+            if ($fetched === []) {
+                $this->logWarning(sprintf(
+                    'nacos discovery empty service=%s',
+                    $this->serviceName,
+                ));
             }
         } finally {
             $this->isFetching = false;
         }
 
         return $this->instances;
+    }
+
+    private function now(): int
+    {
+        if ($this->clock !== null) {
+            return (int) ($this->clock)();
+        }
+
+        return time();
+    }
+
+    private function canServeStale(int $now): bool
+    {
+        $staleTtl = $this->discoveryConfig->staleTtl;
+
+        return $this->instances !== []
+            && $staleTtl > 0
+            && $this->lastSuccessAt > 0
+            && ($now - $this->lastSuccessAt) <= $staleTtl;
+    }
+
+    private function logWarning(string $message): void
+    {
+        try {
+            NacosLogger::get()->warning($message);
+        } catch (\Throwable) {
+            // 未注册 nacos_log 时不改变发现结果
+        }
     }
 }

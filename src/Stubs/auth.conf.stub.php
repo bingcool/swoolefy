@@ -18,7 +18,8 @@
  * | jwt.ttl_seconds | 签发建议 TTL；校验看 token exp |
  * | jwt.issuer / audience | 空串 = 不校验 |
  * | jwt.id_claim | 默认 uid（其次标准 sub） |
- * | jwt.roles_claim / tenant_claim | 角色与租户 claim 名 |
+ * | jwt.roles_claim | 已忽略。JWT 里的角色不作为授权来源，第一次 AuthUser::roles() 才读 auth.role_resolver |
+ * | jwt.tenant_claim | 租户 claim 名 |
  *
  * @see docs/Auth.md
  */
@@ -31,6 +32,7 @@ return [
         'issuer' => env('AUTH_JWT_ISSUER', ''),
         'audience' => env('AUTH_JWT_AUDIENCE', ''),
         'id_claim' => 'uid',
+        // 保留键名仅用于忽略旧 token 中的角色快照，不参与授权
         'roles_claim' => 'roles',
         'tenant_claim' => 'tenant_id',
     ],
