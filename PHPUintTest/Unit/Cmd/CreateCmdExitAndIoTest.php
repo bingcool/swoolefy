@@ -210,6 +210,7 @@ final class CreateCmdExitAndIoTest extends TestCase
         $this->assertFileExists($this->appPath . '/Protocol/conf.php');
         $this->assertFileExists($this->appPath . '/Event.php');
         $this->assertFileExists($this->appPath . '/HttpServer.php');
+        $this->assertFileExists($this->appPath . '/Config/sidecar.php');
         $this->assertFileExists($this->appPath . '/Config/KafkaConfig.php');
         $this->assertFileExists($this->appPath . '/Config/AmqpConfig.php');
         $this->assertFileExists($this->appPath . '/Config/component/kafka.php');

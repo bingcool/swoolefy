@@ -16,6 +16,8 @@ return [
     'app_conf'                 => \Swoolefy\Core\SystemEnv::loadAppConf(),
     'application_bootstrap'    => \Test\Bootstrap::class,
     'event_handler'            => \Test\Event::class,
+    // 外部 Sidecar 与 RocketMQ 消费进程，见 Config/sidecar.php。
+    ...\Swoolefy\Core\Sidecar\SidecarConfig::fromApp(),
     'exception_handler'        => \Test\Exception\ExceptionHandle::class,
     'response_formatter'       => \Swoolefy\Core\ResponseFormatter::class,
     'master_process_name'      => 'php-swoolefy-http-master',

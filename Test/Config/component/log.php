@@ -99,5 +99,14 @@ return [
         $logFilePath = LOG_PATH . '/support/support.log';
         $logger->setLogFilePath($logFilePath);
         return $logger;
+    },
+
+    // Sidecar 调用日志。只记 sidecar、method、requestId、code、durationMs。
+    'sidecar_log' => function($name) {
+        $logger = new \Swoolefy\Util\Log($name);
+        $logger->setChannel('application');
+        $logFilePath = LOG_PATH . '/sidecar/sidecar.log';
+        $logger->setLogFilePath($logFilePath);
+        return $logger;
     }
 ];

@@ -94,5 +94,15 @@ return [
     $logger->setLogFilePath($logFilePath);
     $logger->setRotateDay(2);
     return $logger;
+},
+
+    // sidecar 调用日志。只记 sidecar、method、requestId、code、durationMs。
+    'sidecar_log' => function($name) {
+    $logger = new \Swoolefy\Util\Log($name);
+    $logger->setChannel('application');
+    $logFilePath = LOG_PATH.'/sidecar/sidecar.log';
+    $logger->setLogFilePath($logFilePath);
+    $logger->setRotateDay(2);
+    return $logger;
 }
 ];

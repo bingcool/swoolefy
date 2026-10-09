@@ -227,6 +227,7 @@ class CreateCmd extends BaseCmd
                     $this->copyFile(SRC_DIR_ROOT . '/Stubs/file_storage_system.conf.stub.php', $appPathDir . '/' . $dir . '/file_storage_system.php');
                     $this->copyFile(SRC_DIR_ROOT . '/Stubs/oauth.conf.stub.php', $appPathDir . '/' . $dir . '/oauth.php');
                     $this->copyFile(SRC_DIR_ROOT . '/Stubs/auth.conf.stub.php', $appPathDir . '/' . $dir . '/auth.php');
+                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/sidecar.conf.stub.php', $appPathDir . '/' . $dir . '/sidecar.php');
                     $this->copyFile(SRC_DIR_ROOT . '/Stubs/i18n.conf.stub.php', $appPathDir . '/' . $dir . '/i18n.php');
 
                     if ($protocol == self::WEBSOCKET_PROTOCOL) {
