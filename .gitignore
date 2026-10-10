@@ -16,6 +16,6 @@ swag.php
 Test/.env
 Test/Storage/Logs/
 .DS_Store
-
+*.sock
 .phpunit.cache
 phpunit.xml

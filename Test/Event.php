@@ -91,6 +91,10 @@ class Event extends EventHandler
             //ProcessManager::getInstance()->addProcess('kafka-consumer-topic2', \Test\Process\Kafka\ConsumerKafka::class);
             //ProcessManager::getInstance()->addProcess('kafka-consumer-topic3', \Test\Process\Kafka\ConsumerKafka::class);
 
+            // rocketmq test-demo：生产、消费都走 go-sidecar
+            ProcessManager::getInstance()->addProcess('rocketmq-publish-test-demo', \Test\Process\Rocketmq\ProducerRocketmq::class);
+            ProcessManager::getInstance()->addProcess('rocketmq-consumer-test-demo', \Test\Process\Rocketmq\ConsumerRocketmq::class);
+
 
             // worker进程绑定进程池
             //PoolsManager::getInstance()->addProcessPools('worker-follower-task', \Test\Pools\TestBindWorker::class, 1,true, []);

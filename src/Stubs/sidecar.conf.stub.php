@@ -3,33 +3,11 @@
 declare(strict_types=1);
 
 /**
- * 外部 Sidecar 与 RocketMQ 消费进程（create 时复制为 Config/sidecar.php）。
+ * 业务 Sidecar（create 时复制为 Config/sidecar.php）。
  *
- * 协议 conf.php 通过 {@see \Swoolefy\Core\Sidecar\SidecarConfig::fromApp()} 并入。
- * sidecar_enable 为 false 时不拉起，也不检查二进制。
- * 代理地址和密钥来自 APP_PATH/.env，不写进本文件。
+ * 框架自带的 RocketMQ 进程在 Core/Sidecar/Config/SystemSidecar.php。
+ * 这里返回 [] 表示不追加。以后业务要再拉进程时，返回 sidecars / rocketmq_consumers。
+ * 单项没写的帧大小、超时、inflight、停机等待，使用 .env 里的公共配置。
  */
 
-return [
-    'sidecar_runtime_dir' => '',
-    'sidecars' => [
-        [
-            'sidecar_name' => 'rocketmq',
-            'sidecar_enable' => false,
-            'sidecar_exec_binary' => '/opt/swoolefy/bin/rocketmq-sidecar',
-            'sidecar_args' => [],
-            'sidecar_socket_path' => '',
-            'sidecar_max_frame_bytes' => 16777216,
-            'sidecar_default_timeout_ms' => 3000,
-            'sidecar_max_timeout_ms' => 30000,
-            'sidecar_max_inflight' => 128,
-            'sidecar_shutdown_grace_ms' => 5000,
-            'sidecar_plugins' => 'rocketmq',
-            'sidecar_rocketmq_proxy_endpoint' => env('SIDECAR_ROCKETMQ_PROXY_ENDPOINT', ''),
-            'sidecar_rocketmq_access_key' => env('SIDECAR_ROCKETMQ_ACCESS_KEY', ''),
-            'sidecar_rocketmq_secret_key' => env('SIDECAR_ROCKETMQ_SECRET_KEY', ''),
-            'sidecar_rocketmq_allowed_topics' => '*',
-        ],
-    ],
-    'rocketmq_consumers' => [],
-];
+return [];

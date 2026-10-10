@@ -181,17 +181,15 @@ final class SidecarSpec
             'sidecar_exec_binary' => '/opt/swoolefy/bin/rocketmq-sidecar',
             'sidecar_args' => [],
             'sidecar_socket_path' => '',
-            'sidecar_max_frame_bytes' => 16777216,
-            'sidecar_default_timeout_ms' => 3000,
-            'sidecar_max_timeout_ms' => 30000,
-            'sidecar_max_inflight' => 128,
-            'sidecar_shutdown_grace_ms' => 5000,
             'sidecar_plugins' => 'rocketmq',
             'sidecar_rocketmq_proxy_endpoint' => '',
             'sidecar_rocketmq_access_key' => '',
             'sidecar_rocketmq_secret_key' => '',
             'sidecar_rocketmq_allowed_topics' => '',
         ];
+        foreach (SidecarConfig::publicSettings() as $key => $value) {
+            $defaults[$key] = $value;
+        }
         foreach ($defaults as $key => $value) {
             if (!array_key_exists($key, $row)) {
                 $row[$key] = $value;

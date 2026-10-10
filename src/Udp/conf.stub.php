@@ -16,8 +16,6 @@ return [
     'app_conf'                 => \Swoolefy\Core\SystemEnv::loadAppConf(),
     'application_service'      => '',
     'event_handler'            => \Swoolefy\Core\EventHandler::class,
-    // 外部 Sidecar 与 RocketMQ 消费进程，见 Config/sidecar.php。
-    ...\Swoolefy\Core\Sidecar\SidecarConfig::fromApp(),
     'response_formatter'       => \Swoolefy\Core\ResponseFormatter::class,
     'exception_handler'        => '',
     'master_process_name'      => 'php-swoolefy-udp-master',

@@ -16,7 +16,7 @@ final class SidecarSupervisor
 {
     public static function attach(): void
     {
-        $conf = BaseServer::getConf();
+        $conf = SidecarConfig::forServer(BaseServer::getConf());
         $runtimeDir = self::configuredRuntimeDir($conf);
         $rows = $conf['sidecars'] ?? [];
         if (!is_array($rows)) {

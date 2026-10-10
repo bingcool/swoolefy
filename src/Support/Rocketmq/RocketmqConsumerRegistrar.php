@@ -6,6 +6,7 @@ namespace Swoolefy\Support\Rocketmq;
 
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Process\ProcessManager;
+use Swoolefy\Core\Sidecar\SidecarConfig;
 use Swoolefy\Core\Sidecar\SidecarException;
 use Swoolefy\Core\Sidecar\SidecarSpec;
 
@@ -40,7 +41,7 @@ final class RocketmqConsumerRegistrar
      */
     public static function rows(array $specs): array
     {
-        $conf = BaseServer::getConf();
+        $conf = SidecarConfig::forServer(BaseServer::getConf());
         $raw = $conf['rocketmq_consumers'] ?? [];
         if ($raw === null) {
             $raw = [];

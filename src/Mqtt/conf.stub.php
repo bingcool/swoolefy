@@ -10,8 +10,6 @@ return [
     'app_conf'                 => \Swoolefy\Core\SystemEnv::loadAppConf(),
     'application_service'      => '',
     'event_handler'            => \Swoolefy\Core\EventHandler::class,
-    // 外部 Sidecar 与 RocketMQ 消费进程，见 Config/sidecar.php。
-    ...\Swoolefy\Core\Sidecar\SidecarConfig::fromApp(),
     'exception_handler'        => \Swoolefy\Core\SwoolefyException::class,
     'master_process_name'      => 'php-swoolefy-mqtt-master',
     'manager_process_name'     => 'php-swoolefy-mqtt-manager',
