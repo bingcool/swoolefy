@@ -1,51 +1,40 @@
 <?php
+
 namespace Test\Process\ListProcess;
 
-use Swoolefy\Library\Queues\Queue;
-use Swoolefy\Core\Application;
-use Swoolefy\Core\Process\AbstractProcess;
-use Test\App;
+use Swoolefy\Support\Queue\Dto\ReceivedMessageDto;
+use Swoolefy\Support\Queue\ListQueue\ListQueueConsumerProcessHandler;
 
-class RedisList extends AbstractProcess {
-
-    const queue_order_list = 'queue:order:list';
+/**
+ * Redis List 消费。
+ *
+ * queue_order_list 是 Redis 键，只在 Config/component/queue.php 构造 Queue 时使用。
+ * queue_component 是组件名 queue。生产和消费都写这个名字，才会读写同一个 List。
+ * 不要把 queue_component 写成 queue:order:list。
+ *
+ * onMessage() 里：
+ * - getQueue() 返回组件名 queue，不是 Redis 键。
+ * - getData() 是数组，含业务字段和库字段 __id、__retry_num、__timestamp。
+ * - getPayload() 是这个数组的 JSON。
+ * 正常返回表示消费完成。抛异常会由基类 retry()，1 秒后再投递，最多 5 次。
+ */
+class RedisList extends ListQueueConsumerProcessHandler
+{
     /**
-     * @inheritDoc
+     * Redis List 键。由 queue.php 的 queue 组件使用，消费者不要拿它去连接 Redis。
      */
-    public function run()
+    public const queue_order_list = 'queue:order:list';
+
+    /**
+     * queue.php 里的 List 组件名。
+     */
+    protected string $queue_component = 'queue';
+
+    public function onMessage(ReceivedMessageDto $message): void
     {
-        goTick(2000, function () {
-            $queue = App::getQueue();
-            $queue->push(['name'=> 'bingcoolggg','num' => rand(1,10000)], ['name'=> 'bingcoolffff','num' => rand(1,10000)]);
-        });
-
-        $queue = App::getQueue();
-
-        while (true) {
-            try {
-                // 控制协程并发数
-                if($this->getCurrentRunCoroutineNum() <= 20) {
-                    $result = $queue->pop(3);
-                    if (empty($result)) {
-                        continue;
-                    }
-                    $data = $result[1];
-                    var_dump($data);
-                    // 创建协程单例
-                    goApp(function () use($data) {
-                        $list = new \Test\Process\ListProcess\ListController($data);
-                        //$list->doHandle();
-                    });
-
-                    //$queue->retry($data);
-                    //var_dump('This is Redis List Queue process, pop item='.$data);
-                }
-
-            }catch (\Throwable $e)
-            {
-                var_dump($e->getMessage());
-            }
-        }
-
+        var_dump([
+            'queue' => $message->getQueue(),
+            'payload' => $message->getPayload(),
+        ]);
     }
 }

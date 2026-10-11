@@ -10,10 +10,9 @@
 
 ```php
 use Swoolefy\Support\Job\JobComponentFactory;
-use Test\App;
 
 $publisher = JobComponentFactory::publisher(
-    static fn (array $data) => App::getQueue()->push($data),
+    static fn (array $data) => (new \Swoolefy\Support\Queue\ListQueue\ListQueueProducer())->push($data),
 );
 
 $publisher->dispatch('order.paid.notify', [
@@ -43,8 +42,8 @@ Demo 进程：
 
 | 进程 | 说明 |
 |------|------|
-| `OrderNotifyConsumer` | 单 Handler Redis |
-| `JobRedisMultiConsumer` | Registry 多 jobType |
+| `JobRedisMultiConsumer` | 组件 `queue`，Registry 多 jobType。延迟重试写入组件 `delayQueue` |
+| `OrderNotifyConsumer` | 组件 `delayQueue`，只处理到期的 `order.paid.notify` |
 | `JobAmqpConsumer` | AMQP + Registry |
 | `JobKafkaConsumer` | Kafka + Registry |
 

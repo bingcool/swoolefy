@@ -17,7 +17,7 @@ namespace Swoolefy\Support\Job;
  * 组装信封，并将可 JSON 序列化的数组交给用户传入的 publish callable。
  *
  * @example
- * $publisher = new JobPublisher(fn (array $data) => App::getQueue()->push($data));
+ * $publisher = new JobPublisher(fn (array $data) => (new \Swoolefy\Support\Queue\ListQueue\ListQueueProducer())->push($data));
  * $publisher->dispatch('order.paid.notify', ['orderId' => 1], ['tenantId' => 't1']);
  */
 final class JobPublisher

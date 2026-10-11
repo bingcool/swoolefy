@@ -1,93 +1,72 @@
 <?php
-/**
- * +----------------------------------------------------------------------
- * | swoolefy framework bases on swoole extension development, we can use it easily!
- * +----------------------------------------------------------------------
- * | Licensed ( https://opensource.org/licenses/MIT )
- * +----------------------------------------------------------------------
- * | @see https://github.com/bingcool/swoolefy
- * +----------------------------------------------------------------------
- */
 
 declare(strict_types=1);
 
 namespace Test\Process\JobProcess;
 
-use Swoolefy\Core\Process\AbstractProcess;
 use Swoolefy\Support\Job\JobComponentFactory;
 use Swoolefy\Support\Job\JobEnvelope;
-use Test\App;
+use Swoolefy\Support\Queue\DelayQueue\DelayQueueProducer;
+use Swoolefy\Support\Queue\Dto\ReceivedMessageDto;
+use Swoolefy\Support\Queue\ListQueue\ListQueueConsumerProcessHandler;
+use Swoolefy\Support\Queue\ListQueue\ListQueueProducer;
+use Swoolefy\Support\Queue\QueueComponent;
 use Test\Module\Job\OrderExportHandler;
 use Test\Module\Job\OrderPaidNotifyHandler;
 
 /**
- * 基于 {@see JobHandlerRegistry} 的多 jobType Redis 消费 Demo。
+ * 多 jobType 的 List 消费。组件名是 queue，对应 queue.php 的 List。
  *
- * Event.php：
- *   ProcessManager::getInstance()->addProcess(
- *       'job-redis-multi',
- *       JobRedisMultiConsumer::class,
- *       true, [], null, true,
- *   );
+ * getData() 是 Job 信封数组，另外带有组件写入的 __id、__retry_num、__timestamp。
+ * fromArray() 只取信封字段。没有 jobType 的消息直接返回，基类不会再 retry()。
+ *
+ * Runner 要求重试时，这里重新 push 一条新消息，然后正常返回。原消息已经在 pop() 时离开 List。
+ * - delayMs 为 0：写回组件 queue，本进程马上可以再取到。
+ * - delayMs 大于 0：写入组件 delayQueue，秒数由毫秒向上取整。到期后由 OrderNotifyConsumer 处理。
+ * 不要在这里抛异常代替重试，否则基类还会对原消息再 retry() 一次。
+ *
+ * 超过次数的死信使用这个 List 组件上的 Redis 连接，键是 job:dead:default。
  */
-final class JobRedisMultiConsumer extends AbstractProcess
+final class JobRedisMultiConsumer extends ListQueueConsumerProcessHandler
 {
-    public function run()
+    /**
+     * queue.php 的 List 组件。立即重试也写回这个组件。
+     */
+    protected string $queue_component = 'queue';
+
+    public function onMessage(ReceivedMessageDto $message): void
     {
-        // 多 Handler 共进程：按 jobType 路由
+        $data = $message->getData();
+        if ($data === [] || !isset($data['jobType'])) {
+            return;
+        }
+
         $registry = JobComponentFactory::registry(
             new OrderPaidNotifyHandler(),
             new OrderExportHandler(),
         );
         $runner = JobComponentFactory::runner();
-        $redis = App::getRedis();
-        $redisObj = is_object($redis) && method_exists($redis, 'getObject') ? $redis->getObject() : $redis;
-        $dlq = JobComponentFactory::redisDeadLetter($redisObj);
+        // 死信走组件自带的 Redis，不再单独 connect。
+        $dlq = JobComponentFactory::redisDeadLetter(
+            QueueComponent::get($this->queue_component)->getRedis(),
+        );
+        $runner->runRegistered(
+            $registry,
+            JobEnvelope::fromArray($data),
+            requeue: static function (JobEnvelope $next, int $delayMs): void {
+                if ($delayMs > 0) {
+                    // 延迟重试进 delayQueue。delayMs 是毫秒，push 的第二个参数是秒。
+                    $seconds = max(1, (int) ceil($delayMs / 1000));
+                    (new DelayQueueProducer())->push($next->toArray(), $seconds);
 
-        while (true) {
-            try {
-                if ($this->getCurrentRunCoroutineNum() > 20) {
-                    \Swoole\Coroutine::sleep(0.05);
-                    continue;
+                    return;
                 }
-
-                $queue = App::getQueue();
-                // 重试次数由 Job 层掌管；传输层预算设高
-                $queue->setRetryTimes(32);
-                $result = $queue->pop(3);
-                if (empty($result)) {
-                    continue;
-                }
-
-                $raw = $result[1] ?? null;
-                if (is_string($raw)) {
-                    $decoded = json_decode($raw, true);
-                    $raw = is_array($decoded) ? $decoded : null;
-                }
-                if (!is_array($raw)) {
-                    continue;
-                }
-
-                // 多类型消费者要求标准信封；非法结构直接跳过
-                $job = JobEnvelope::fromArray($raw);
-                goApp(function () use ($runner, $registry, $job, $queue, $dlq) {
-                    $runner->runRegistered(
-                        $registry,
-                        $job,
-                        requeue: static function (JobEnvelope $next, int $delayMs) use ($queue): void {
-                            // ms → 秒（Queue::retry）
-                            $seconds = max(1, (int) ceil($delayMs / 1000));
-                            $queue->retry($next->toArray(), $seconds);
-                        },
-                        dead: static function (JobEnvelope $failed, string $error) use ($dlq): void {
-                            $dlq->push($failed, $error, 'default');
-                        },
-                    );
-                });
-            } catch (\Throwable $e) {
-                $this->onHandleException($e);
-                \Swoole\Coroutine::sleep(1);
-            }
-        }
+                // 立即重试进 queue。新消息会有新的 __id。
+                (new ListQueueProducer())->push($next->toArray());
+            },
+            dead: static function (JobEnvelope $failed, string $error) use ($dlq): void {
+                $dlq->push($failed, $error, 'default');
+            },
+        );
     }
 }

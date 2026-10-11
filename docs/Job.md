@@ -272,16 +272,21 @@ $registry = JobComponentFactory::registry(
     new OrderExportHandler(),
 );
 $runner = JobComponentFactory::runner();
-$dlq = JobComponentFactory::redisDeadLetter($redisObj);
+$dlq = JobComponentFactory::redisDeadLetter(
+    \Swoolefy\Support\Queue\QueueComponent::get('queue')->getRedis(),
+);
 
 $job = JobEnvelope::fromArray($raw);
 $runner->runRegistered(
     $registry,
     $job,
-    requeue: static function (JobEnvelope $next, int $delayMs) use ($queue): void {
-        // Job 层单位是 ms；Queue::retry 用秒
-        $seconds = max(1, (int) ceil($delayMs / 1000));
-        $queue->retry($next->toArray(), $seconds);
+    requeue: static function (JobEnvelope $next, int $delayMs): void {
+        if ($delayMs > 0) {
+            $seconds = max(1, (int) ceil($delayMs / 1000));
+            (new DelayQueueProducer())->push($next->toArray(), $seconds);
+            return;
+        }
+        (new ListQueueProducer())->push($next->toArray());
     },
     dead: static function (JobEnvelope $failed, string $error) use ($dlq): void {
         $dlq->push($failed, $error, 'default');
@@ -289,7 +294,7 @@ $runner->runRegistered(
 );
 ```
 
-单 Handler 渐进迁移：[`OrderNotifyConsumer.php`](../Test/Process/JobProcess/OrderNotifyConsumer.php)（可用 `JobEnvelope::wrapLegacy`）。
+立即重试写入组件 `queue`，延迟重试写入组件 `delayQueue`。到期后的单 Handler 消费见 [`OrderNotifyConsumer.php`](../Test/Process/JobProcess/OrderNotifyConsumer.php)（可用 `JobEnvelope::wrapLegacy`）。
 
 ### 6.2 AMQP / Kafka
 

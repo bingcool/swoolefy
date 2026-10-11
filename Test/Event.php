@@ -47,7 +47,8 @@ class Event extends EventHandler
             //$pid = ProcessManager::getInstance()->getProcessByName('cron')->getPid();
             //var_dump('pid='.$pid);
 
-            // redis的队列消费
+            // redis list：组件名 queue，Redis 键 queue:order:list。生产、消费分开，同一个组件只开一个消费进程
+            // ProcessManager::getInstance()->addProcess('redis-list-publish', \Test\Process\ListProcess\RedisListPublish::class);
             // ProcessManager::getInstance()->addProcess('redis_list_test', \Test\Process\ListProcess\RedisList::class,true, [], null, true);
 
             // Job 轻量封装 demo：统一信封 + JobRunner 重试/死信（见 docs/Job.md）
@@ -58,8 +59,9 @@ class Event extends EventHandler
             // ProcessManager::getInstance()->addProcess('job-amqp-consumer', \Test\Process\JobProcess\JobAmqpConsumer::class, true, [], null, true);
             // ProcessManager::getInstance()->addProcess('job-kafka-consumer', \Test\Process\JobProcess\JobKafkaConsumer::class, true, [], null, true);
 
-            // redis的延迟队列消费
-            // ProcessManager::getInstance()->addProcess('redis_delay_list_test', \Test\Process\QueueProcess\Queue::class,true, [], null, true);
+            // redis 延迟队列：组件名 delayQueue，Redis 键 queue:order:delay。生产时延迟 2 秒，同一个组件只开一个消费进程
+            ProcessManager::getInstance()->addProcess('redis-delay-publish', \Test\Process\QueueProcess\QueuePublish::class);
+            ProcessManager::getInstance()->addProcess('redis_delay_list_test', \Test\Process\QueueProcess\Queue::class,true, [], null, true);
 
 
             // amqp-direct 生产队
@@ -84,12 +86,12 @@ class Event extends EventHandler
             // ProcessManager::getInstance()->addProcess('amqp-consumer-topic', \Test\Process\AmqpProcess\AmqpConsumerTopic::class);
 
             // 死信队列：消息在延迟队列停留 10 秒后进入对应模式的死信队列
-            ProcessManager::getInstance()->addProcess('amqp-publish-dlx-direct', \Test\Process\AmqpProcess\AmqpPublishDlxDirect::class);
-            ProcessManager::getInstance()->addProcess('amqp-consumer-dlx-direct', \Test\Process\AmqpProcess\AmqpConsumerDlxDirect::class);
-            ProcessManager::getInstance()->addProcess('amqp-publish-dlx-fanout', \Test\Process\AmqpProcess\AmqpPublishDlxFanout::class);
-            ProcessManager::getInstance()->addProcess('amqp-consumer-dlx-fanout', \Test\Process\AmqpProcess\AmqpConsumerDlxFanout::class);
-            ProcessManager::getInstance()->addProcess('amqp-publish-dlx-topic', \Test\Process\AmqpProcess\AmqpPublishDlxTopic::class);
-            ProcessManager::getInstance()->addProcess('amqp-consumer-dlx-topic', \Test\Process\AmqpProcess\AmqpConsumerDlxTopic::class);
+//            ProcessManager::getInstance()->addProcess('amqp-publish-dlx-direct', \Test\Process\AmqpProcess\AmqpPublishDlxDirect::class);
+//            ProcessManager::getInstance()->addProcess('amqp-consumer-dlx-direct', \Test\Process\AmqpProcess\AmqpConsumerDlxDirect::class);
+//            ProcessManager::getInstance()->addProcess('amqp-publish-dlx-fanout', \Test\Process\AmqpProcess\AmqpPublishDlxFanout::class);
+//            ProcessManager::getInstance()->addProcess('amqp-consumer-dlx-fanout', \Test\Process\AmqpProcess\AmqpConsumerDlxFanout::class);
+//            ProcessManager::getInstance()->addProcess('amqp-publish-dlx-topic', \Test\Process\AmqpProcess\AmqpPublishDlxTopic::class);
+//            ProcessManager::getInstance()->addProcess('amqp-consumer-dlx-topic', \Test\Process\AmqpProcess\AmqpConsumerDlxTopic::class);
 
             // kafka-topic 生产队列
             // ProcessManager::getInstance()->addProcess('kafka-publish-topic', \Test\Process\Kafka\ProducerKafka::class);
