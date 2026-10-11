@@ -1,22 +1,17 @@
 <?php
 namespace Test\Process\Kafka;
 
-use Swoolefy\Library\Kafka\Producer;
-use Swoolefy\Core\Application;
 use Swoolefy\Core\Process\AbstractProcess;
-
+use Swoolefy\Support\Kafka\KafkaProducer;
 
 class ProducerKafka extends AbstractProcess
 {
     public function run()
     {
-        /**
-         * @var Producer $producer
-         */
-        $producer = Application::getApp()->get('kafka_topic_order_group1_producer');
+        $producer = new KafkaProducer('topicOrder1');
 
         while (true) {
-            $producer->produce('kafka-producer:'.date('Y-m-d H:i:s'));
+            $producer->produce('kafka-producer:' . date('Y-m-d H:i:s'));
             \Swoole\Coroutine::sleep(0.2);
         }
     }

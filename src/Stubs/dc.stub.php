@@ -78,9 +78,9 @@ return [
     ],
 
     /**
-     * Kafka broker 列表，供 component/kafka 的 Producer / Consumer 使用。
+     * Kafka broker 列表。Support\Kafka 的生产者和消费进程读取这里。
      * .env KAFKA_BROKER_LIST 为逗号分隔，如 127.0.0.1:9092,127.0.0.1:9093。
-     * Topic 与 group.id 不写在这里，写在各 producer/consumer 文件的局部变量中。
+     * Topic 与 group.id 写在业务类上。
      */
     'kafka_broker_list' => array_values(array_filter(array_map(
         static fn (string $broker): string => trim($broker),

@@ -7,10 +7,8 @@ namespace __APP_NAMESPACE__\Config;
 /**
  * Kafka 公共 librdkafka 默认属性（不含 Topic 名、consumer group）。
  *
- * Topic / group.id 写在 Config/component/kafka/producer|consumer/*.php 顶部局部变量；
- * 本类只提供可复用默认值。差异配置传入各方法的 $override，用 array_replace 覆盖同名键。
- *
- * 组件入口：Config/component/kafka.php（由 SystemEnv::loadComponents() include）。
+ * Support\Kafka 的生产者和消费者读取这里的 librdkafka 属性。
+ * Topic、group.id 写在业务类上。
  * Broker 列表：Config/dc.php 的 kafka_broker_list，来自 .env KAFKA_BROKER_LIST（逗号分隔）。
  *
  * @see https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md

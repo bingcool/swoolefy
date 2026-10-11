@@ -7,8 +7,8 @@ namespace Test\Config;
 /**
  * Kafka 公共 librdkafka 默认属性（不含 Topic / consumer group）。
  *
- * 各 Topic 在 Config/component/kafka/producer|consumer/*.php 用局部变量声明；
- * 差异配置传入 producerGlobalProperty([]) / consumerGlobalProperty([]) 覆盖。
+ * Support\Kafka 的生产者和消费者读取这里的 librdkafka 属性。
+ * Topic、group.id 写在业务类上。Broker 列表不写在这里。
  *
  * @see https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md
  */

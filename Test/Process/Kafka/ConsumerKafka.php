@@ -1,42 +1,23 @@
 <?php
 namespace Test\Process\Kafka;
 
-use Swoolefy\Library\Kafka\Consumer;
-use Swoolefy\Core\Application;
-use Swoolefy\Core\Process\AbstractProcess;
+use Swoolefy\Support\Kafka\Dto\ReceivedMessageDto;
+use Swoolefy\Support\Kafka\KafkaConsumerProcessHandler;
 
-class ConsumerKafka extends AbstractProcess
+class ConsumerKafka extends KafkaConsumerProcessHandler
 {
-    public function run()
+    protected string $topic = 'topicOrder1';
+
+    protected string $consumerGroup = 'order_group1';
+
+    public function onMessage(ReceivedMessageDto $message): void
     {
-        /**
-         * @var Consumer $consumer
-         */
-        $consumer = Application::getApp()->get('kafka_topic_order_group1_consumer');
-
-        while (true) {
-            $message = $consumer->consume();
-
-            if (!empty($message)) {
-                var_dump('offset=' . $message->offset . '--- err=' . $message->err . '--partition=' . $message->partition);
-                switch ($message->err) {
-                    case RD_KAFKA_RESP_ERR_NO_ERROR:
-                        //  解释数据
-                        $payload = json_decode($message->payload, true) ?? $message->payload;
-                        var_dump($payload);
-                        break;
-                    case RD_KAFKA_RESP_ERR__PARTITION_EOF:
-                        rd_kafka_err2str(RD_KAFKA_RESP_ERR__PARTITION_EOF);
-                        echo "No more messages; will wait for more";
-                        break;
-                    case RD_KAFKA_RESP_ERR__TIMED_OUT:
-                        var_dump('time out!');
-                        break;
-                    default:
-                        var_dump("nothing");
-                        break;
-                }
-            }
-        }
+        var_dump(
+            'topic=' . $message->getTopic()
+            . ' partition=' . $message->getPartition()
+            . ' offset=' . $message->getOffset()
+            . ' key=' . $message->getKey()
+            . ' payload=' . $message->getPayload()
+        );
     }
 }

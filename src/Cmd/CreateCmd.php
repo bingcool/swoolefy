@@ -162,24 +162,9 @@ class CreateCmd extends BaseCmd
                     $this->copyFile(SRC_DIR_ROOT . '/Stubs/oauth.component.stub.php', $componentDir . '/oauth.php');
                     $this->copyFile(SRC_DIR_ROOT . '/Stubs/auth.component.stub.php', $componentDir . '/auth.php');
                     $this->copyFile(SRC_DIR_ROOT . '/Stubs/translator.component.stub.php', $componentDir . '/translator.php');
-
-                    $kafkaComponentDir = $componentDir . '/kafka';
-                    $this->ensureDirectory($kafkaComponentDir . '/producer');
-                    $this->ensureDirectory($kafkaComponentDir . '/consumer');
-                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/component.kafka.stub.php', $componentDir . '/kafka.php');
                     $this->copyAppNamespaceStub(
                         SRC_DIR_ROOT . '/Stubs/kafka.conf.stub.php',
                         $appPathDir . '/' . $dir . '/KafkaConfig.php',
-                        $appName,
-                    );
-                    $this->copyAppNamespaceStub(
-                        SRC_DIR_ROOT . '/Stubs/component/kafka/producer/topic_demo.stub.php',
-                        $kafkaComponentDir . '/producer/topic_demo.php',
-                        $appName,
-                    );
-                    $this->copyAppNamespaceStub(
-                        SRC_DIR_ROOT . '/Stubs/component/kafka/consumer/topic_demo.stub.php',
-                        $kafkaComponentDir . '/consumer/topic_demo.php',
                         $appName,
                     );
 
