@@ -94,13 +94,12 @@ return [
             ],
         ],
         'options' => [
-            'is_lazy' => true, //必须设置true
             'insist' => false,
             'login_method' => 'AMQPLAIN',
             'login_response' => '',
             'locale' => 'en_US',
             'connection_timeout' => 3.0,
-            'read_write_timeout' => 3.0,
+            'read_write_timeout' => 30.0,
             'context' => null,
             'keepalive' => true,
             'heartbeat' => 10,

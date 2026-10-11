@@ -1,122 +1,34 @@
 <?php
+
 namespace Test\Process\AmqpProcess;
 
-use Swoolefy\Library\Amqp\AmqpDelayTopicQueue;
-use Swoolefy\Library\Amqp\AmqpTopicQueue;
-use Swoolefy\Core\Application;
-use Swoolefy\Core\Process\AbstractProcess;
-use PhpAmqpLib\Connection\AMQPStreamConnection;
+use Swoolefy\Support\Amqp\AmqpConsumerProcessHandler;
+use Swoolefy\Support\Amqp\Dto\ReceivedMessageDto;
 
-class AmqpConsumerTopic extends AbstractProcess
+/**
+ * Topic 消费。收 AmqpPublishTopic 直接发出的消息。
+ *
+ * 只写 bindingKey = orderSaveEvent.#，不写 routingKey。
+ * 消费进程不发消息。这个模式能匹配 orderSaveEvent.send，也能匹配 orderSaveEvent 开头的其他键。
+ *
+ * onMessage() 里 getRoutingKey() 是这条消息实际带的键，例如 orderSaveEvent.send，不是 bindingKey 那个模式。
+ */
+class AmqpConsumerTopic extends AmqpConsumerProcessHandler
 {
-    public function run()
+    protected string $exchange = AmqpConst::EXCHANGE_TOPIC;
+
+    protected string $exchangeType = 'topic';
+
+    protected string $queue = AmqpConst::QUEUE_TOPIC_ADD;
+
+    /** 队列匹配模式。Topic 消费用它决定收哪些 routingKey，自己不设置消息键。 */
+    protected string $bindingKey = AmqpConst::BINDING_TOPIC_ADD;
+
+    public function onMessage(ReceivedMessageDto $message): void
     {
-        $this->handle3();
+        var_dump([
+            'routingKey' => $message->getRoutingKey(),
+            'payload' => $message->getPayload(),
+        ]);
     }
-
-    public function handle1() {
-        /**
-         * @var AmqpTopicQueue $amqpTopicConsumer
-         */
-        $amqpTopicConsumer = Application::getApp()->get('orderAddTopicQueue');
-        $amqpTopicConsumer->consumer([$this, 'process_message']);
-        //$amqpTopicConsumer->consumerWithTime([$this, 'process_message']);
-    }
-
-    public function handle3() {
-        /**
-         * @var AmqpDelayTopicQueue $amqpDelayTopicConsumer
-         */
-        $amqpDelayTopicConsumer = Application::getApp()->get('orderDelayTopicQueue');
-        //$amqpTopicConsumer->consumer([$this, 'process_message']);
-
-        $amqpDelayTopicConsumer->consumerWithTime([$this, 'process_message']);
-    }
-
-
-    public function handle2() {
-        $exchange = AMQPConst::AMQP_EXCHANGE_ROUTER_TOPIC;
-        $queue = AmqpConst::AMQP_QUEUE_TOPIC;
-        $consumerTag = AmqpConst::AMQP_CONSUMER_TAG;
-
-        $connection = new AMQPStreamConnection(
-            AmqpConst::AMQP_HOST,
-            AmqpConst::AMQP_PORT,
-            AmqpConst::AMQP_USER,
-            AmqpConst::AMQP_PASS,
-            AmqpConst::AMQP_VHOST
-        );
-        $channel = $connection->channel();
-
-        /*
-        The following code is the same both in the consumer and the producer.
-        In this way we are sure we always have a queue to consume from and an
-        exchange where to publish messages.
-        */
-
-        /*
-        queue: Queue from where to get the messages
-        consumer_tag: ConsumerKafka identifier
-        no_local: Don't receive messages published by this consumer.
-        no_ack: If set to true, automatic acknowledgement mode will be used by this consumer. See https://www.rabbitmq.com/confirms.html for details.
-        exclusive: Request exclusive consumer access, meaning only this consumer can access the queue
-        nowait:
-        callback: A PHP Callback
-        */
-
-        register_shutdown_function([$this, 'shutdown'], $channel, $connection);
-
-        $channel->basic_consume($queue, $consumerTag, false, false, false, false, [$this, 'process_message']);
-
-        // Loop as long as the channel has callbacks registered
-        $channel->consume();
-    }
-
-
-    /**
-     * @param \PhpAmqpLib\Message\AMQPMessage $message
-     */
-    public function process_message($message)
-    {
-        $message->ack();
-        // 匹配出不同的route key 做不通的处理，类似策略模式
-        switch ($message->getRoutingKey()) {
-            case 'orderSaveEvent.send':
-                    echo "当前时间：".date('Y-m-d H:i:s')."\n";
-                    var_dump($message->getBody(), $message->getRoutingKey(),$message->getConsumerTag());
-                    echo "---------\n";
-                break;
-            case 'orderSaveEvent.aa':
-                echo "当前时间：".date('Y-m-d H:i:s')."\n";
-                    var_dump($message->getBody(), $message->getRoutingKey());
-                    echo "---------\n";
-                break;
-            default:
-                echo "当前时间default：".date('Y-m-d H:i:s')."\n";
-                var_dump($message->getBody(), $message->getRoutingKey());
-                echo "---------\n";
-                break;
-        }
-
-// Send a message with the string "quit" to cancel the consumer.
-        if ($message->body === 'quit') {
-            $message->getChannel()->basic_cancel($message->getConsumerTag());
-        }
-    }
-
-    /**
-     * @param \PhpAmqpLib\Channel\AMQPChannel $channel
-     * @param \PhpAmqpLib\Connection\AbstractConnection $connection
-     */
-    public function shutdown($channel, $connection)
-    {
-        $channel->close();
-        $connection->close();
-    }
-
-    public function onShutDown()
-    {
-        parent::onShutDown();
-    }
-
 }

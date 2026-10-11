@@ -49,9 +49,9 @@ return [
     ],
 
     /**
-     * RabbitMQ 连接参数，供 Config/component/amqp/connection.php 的 amqpConnection 使用。
+     * RabbitMQ 连接参数。Support\Amqp 的生产者和消费进程读取这里。
      * 账号与地址优先读 .env：AMQP_HOST、AMQP_PORT、AMQP_USER、AMQP_PASSWORD、AMQP_VHOST。
-     * host_list 可配置多节点；options.is_lazy 必须为 true（协程懒连接）。
+     * host_list 可配置多节点。read_write_timeout 必须不小于 heartbeat 的 2 倍。
      */
     'amqp_connection' => [
         'host_list' => [
@@ -64,13 +64,12 @@ return [
             ],
         ],
         'options' => [
-            'is_lazy' => true, // 必须为 true：协程环境下延迟到首次使用时再连接
             'insist' => false,
             'login_method' => 'AMQPLAIN',
             'login_response' => '',
             'locale' => 'en_US',
             'connection_timeout' => 3.0, // 建连超时（秒）
-            'read_write_timeout' => 3.0, // 读写超时（秒），应大于 heartbeat
+            'read_write_timeout' => 30.0, // 读写超时（秒），必须 >= heartbeat * 2
             'context' => null,
             'keepalive' => true,
             'heartbeat' => 10, // 心跳间隔（秒）

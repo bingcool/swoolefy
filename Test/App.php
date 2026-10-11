@@ -96,11 +96,6 @@ class App
         return \Swoolefy\Core\Application::getApp()->get('redis-subscribe');
     }
 
-    public static function getAmqpConnection()
-    {
-        return \Swoolefy\Core\Application::getApp()->get('amqpConnection')->getObject();
-    }
-
     /**
      * @return DurationLimiter|ContainerObjectDto
      */

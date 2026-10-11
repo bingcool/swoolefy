@@ -1,106 +1,35 @@
 <?php
+
 namespace Test\Process\AmqpProcess;
 
-use Swoolefy\Library\Amqp\AmqpAbstract;
-use Swoolefy\Library\Amqp\AmqpDelayDirectQueue;
-use Swoolefy\Library\Amqp\AmqpDirectQueue;
-use Swoolefy\Core\Application;
 use Swoolefy\Core\Process\AbstractProcess;
-use PhpAmqpLib\Connection\AMQPStreamConnection;
-use PhpAmqpLib\Exchange\AMQPExchangeType;
-use PhpAmqpLib\Message\AMQPMessage;
+use Swoolefy\Support\Amqp\AmqpProducer;
 
-class AmqpPublish extends AbstractProcess {
-
+/**
+ * Direct 生产。消息直接进入业务队列，不经过延迟和死信。
+ *
+ * - bindingKey = order-direct-add：把 QUEUE_DIRECT_ADD 绑到 EXCHANGE_DIRECT。这是队列规则。
+ * - routingKey = order-direct-add：打在这一次消息上。Direct 要求它和 bindingKey 完全相同，消息才进得去。
+ *
+ * publish() 没有传第二个参数，所以用的就是构造时的 routingKey。
+ */
+class AmqpPublish extends AbstractProcess
+{
     public function run()
     {
-        $this->handle1();
-    }
-
-    public function handle1() {
-        \Swoolefy\Core\Timer\TickManager::tickTimer(3000, function () {
-            /**
-             * @var AmqpDirectQueue $amqpDirect
-             */
-            $amqpDirect = Application::getApp()->get('orderAddDirectQueue');
-            $messageBody = "amqp direct ".'time:'.time();
-            $message = new AMQPMessage($messageBody, array('content_type' => 'text/plain', 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT));
-            $amqpDirect->publish($message);
-        });
-    }
-
-    /**
-     * 延迟队列
-     * @return void
-     */
-    public function handle3() {
-        \Swoolefy\Core\Timer\TickManager::tickTimer(3000, function () {
-            /**
-             * @var AmqpDelayDirectQueue $amqpDelayDirect
-             */
-            $amqpDelayDirect = Application::getApp()->get('orderDelayDirectQueue');
-
-            $messages = [
-                ['body' => date('Y-m-d H:i:s').'-Low priority message-1', 'priority' => 1, 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT],
-//                ['body' => 'Medium priority message-5', 'priority' => 5, 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT],
-                //['body' => date('Y-m-d H:i:s').'High priority message-10', 'priority' => 10, 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT]
-            ];
-
-            foreach ($messages as $msgData) {
-                $message = new AMQPMessage(
-                    $msgData['body'],
-                    [
-                        'content_type' => 'text/plain',
-                        'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
-                        'priority' => $msgData['priority']
-                    ]);
-                $amqpDelayDirect->publish($message);
-            }
-        });
-    }
-
-    public function handle2() {
-        $exchange = AmqpConst::AMQP_EXCHANGE_ROUTER;
-        $queue = AmqpConst::AMQP_QUEUE;
-
-        \Swoolefy\Core\Timer\TickManager::tickTimer(3000, function () use($exchange, $queue) {
-
-            $connection = new AMQPStreamConnection(AmqpConst::AMQP_HOST,AmqpConst::AMQP_PORT, AmqpConst::AMQP_USER, AmqpConst::AMQP_PASS, AmqpConst::AMQP_VHOST);
-            $channel = $connection->channel();
-
-            /*
-                The following code is the same both in the consumer and the producer.
-                In this way we are sure we always have a queue to consume from and an
-                    exchange where to publish messages.
-            */
-
-            /*
-                name: $queue
-                passive: false
-                durable: true // the queue will survive server restarts
-                exclusive: false // the queue can be accessed in other channels
-                auto_delete: false //the queue won't be deleted once the channel is closed.
-            */
-            $channel->queue_declare($queue, false, true, false, false);
-
-            /*
-                name: $exchange
-                type: direct
-                passive: false
-                durable: true // the exchange will survive server restarts
-                auto_delete: false //the exchange won't be deleted once the channel is closed.
-            */
-
-            $channel->exchange_declare($exchange, AMQPExchangeType::DIRECT, false, true, false);
-
-            $channel->queue_bind($queue, $exchange);
-
-            $messageBody = "name phone";
-            $message = new AMQPMessage($messageBody, array('content_type' => 'text/plain', 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT));
-            $channel->basic_publish($message, $exchange);
-
-            $channel->close();
-            $connection->close();
-        });
+        $producer = new AmqpProducer(
+            exchange: AmqpConst::EXCHANGE_DIRECT,
+            exchangeType: 'direct',
+            queue: AmqpConst::QUEUE_DIRECT_ADD,
+            // 队列绑到交换机的键。
+            bindingKey: AmqpConst::ROUTING_DIRECT_ADD,
+            // 打在消息上的键。Direct 下必须和 bindingKey 相同。
+            routingKey: AmqpConst::ROUTING_DIRECT_ADD,
+            queueArguments: ['x-max-priority' => 10],
+        );
+        while (true) {
+            $producer->publish('amqp direct time:' . time());
+            \Swoole\Coroutine::sleep(3);
+        }
     }
 }

@@ -215,9 +215,8 @@ final class CreateCmdExitAndIoTest extends TestCase
         $this->assertFileExists($this->appPath . '/Config/AmqpConfig.php');
         $this->assertFileDoesNotExist($this->appPath . '/Config/component/kafka.php');
         $this->assertDirectoryDoesNotExist($this->appPath . '/Config/component/kafka');
-        $this->assertFileExists($this->appPath . '/Config/component/amqp.php');
-        $this->assertFileExists($this->appPath . '/Config/component/amqp/connection.php');
-        $this->assertFileExists($this->appPath . '/Config/component/amqp/direct/demo_direct.php');
+        $this->assertFileDoesNotExist($this->appPath . '/Config/component/amqp.php');
+        $this->assertDirectoryDoesNotExist($this->appPath . '/Config/component/amqp');
         $kafkaConfig = file_get_contents($this->appPath . '/Config/KafkaConfig.php');
         $this->assertIsString($kafkaConfig);
         $this->assertStringContainsString('namespace ' . self::TEST_APP_NAME . '\\Config;', $kafkaConfig);

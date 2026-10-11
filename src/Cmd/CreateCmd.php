@@ -168,33 +168,9 @@ class CreateCmd extends BaseCmd
                         $appName,
                     );
 
-                    $amqpComponentDir = $componentDir . '/amqp';
-                    $this->ensureDirectory($amqpComponentDir . '/direct');
-                    $this->ensureDirectory($amqpComponentDir . '/fanout');
-                    $this->ensureDirectory($amqpComponentDir . '/topic');
-                    $this->copyFile(SRC_DIR_ROOT . '/Stubs/component.amqp.stub.php', $componentDir . '/amqp.php');
                     $this->copyAppNamespaceStub(
                         SRC_DIR_ROOT . '/Stubs/amqp.conf.stub.php',
                         $appPathDir . '/' . $dir . '/AmqpConfig.php',
-                        $appName,
-                    );
-                    $this->copyFile(
-                        SRC_DIR_ROOT . '/Stubs/component/amqp/connection.stub.php',
-                        $amqpComponentDir . '/connection.php',
-                    );
-                    $this->copyAppNamespaceStub(
-                        SRC_DIR_ROOT . '/Stubs/component/amqp/direct/demo_direct.stub.php',
-                        $amqpComponentDir . '/direct/demo_direct.php',
-                        $appName,
-                    );
-                    $this->copyAppNamespaceStub(
-                        SRC_DIR_ROOT . '/Stubs/component/amqp/fanout/demo_fanout.stub.php',
-                        $amqpComponentDir . '/fanout/demo_fanout.php',
-                        $appName,
-                    );
-                    $this->copyAppNamespaceStub(
-                        SRC_DIR_ROOT . '/Stubs/component/amqp/topic/demo_topic.stub.php',
-                        $amqpComponentDir . '/topic/demo_topic.php',
                         $appName,
                     );
 
