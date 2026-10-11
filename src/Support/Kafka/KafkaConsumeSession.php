@@ -11,10 +11,21 @@ use Swoolefy\Support\Kafka\Dto\ReceivedMessageDto;
  */
 final class KafkaConsumeSession
 {
+    /**
+     * @var \RdKafka\KafkaConsumer
+     */
     private \RdKafka\KafkaConsumer $consumer;
 
+    /**
+     * @var \RdKafka\Message
+     */
     private ?\RdKafka\Message $pending = null;
 
+    /**
+     * @param string $topic
+     * @param string $consumerGroup
+     * @param string $brokers
+     */
     public function __construct(
         private readonly string $topic,
         private readonly string $consumerGroup,
@@ -35,6 +46,9 @@ final class KafkaConsumeSession
         $this->consumer->subscribe([$this->topic]);
     }
 
+    /**
+     * @return ReceivedMessageDto|null
+     */
     public function poll(): ?ReceivedMessageDto
     {
         $message = $this->consumer->consume(1000);
@@ -58,6 +72,9 @@ final class KafkaConsumeSession
         throw new KafkaException('kafka consume failed: ' . $reason);
     }
 
+    /**
+     * Commit the pending message.
+     */
     public function commit(): void
     {
         if ($this->pending === null) {
@@ -67,6 +84,10 @@ final class KafkaConsumeSession
         $this->pending = null;
     }
 
+    /**
+     * @param int $err
+     * @return bool
+     */
     private function isQuiet(int $err): bool
     {
         if (defined('RD_KAFKA_RESP_ERR__TIMED_OUT') && $err === RD_KAFKA_RESP_ERR__TIMED_OUT) {

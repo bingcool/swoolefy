@@ -59,7 +59,8 @@ abstract class KafkaConsumerProcessHandler extends AbstractProcess
             if ($pending === null) {
                 try {
                     $pending = $session->poll();
-                } catch (\Throwable) {
+                } catch (\Throwable $exception) {
+                    $this->onHandleException($exception);
                     \Swoole\Coroutine::sleep(0.5);
                     continue;
                 }
@@ -75,7 +76,8 @@ abstract class KafkaConsumerProcessHandler extends AbstractProcess
                 $this->onMessage($pending);
                 $session->commit();
                 $pending = null;
-            } catch (\Throwable) {
+            } catch (\Throwable $exception) {
+                $this->onHandleException($exception);
                 \Swoole\Coroutine::sleep(0.5);
             }
         }

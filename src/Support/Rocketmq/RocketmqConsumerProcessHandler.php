@@ -40,12 +40,13 @@ abstract class RocketmqConsumerProcessHandler extends AbstractProcess
         while ($this->running) {
             try {
                 $messages = $session->receive();
-            } catch (\Throwable) {
-                \Swoole\Coroutine::sleep(1);
+            } catch (\Throwable $exception) {
+                $this->onHandleException($exception);
+                \Swoole\Coroutine::sleep(0.5);
                 continue;
             }
             if ($messages === []) {
-                \Swoole\Coroutine::sleep(0.5);
+                \Swoole\Coroutine::sleep(0.2);
                 continue;
             }
             foreach ($messages as $message) {
@@ -54,7 +55,8 @@ abstract class RocketmqConsumerProcessHandler extends AbstractProcess
                 }
                 try {
                     $this->onMessage($message);
-                } catch (\Throwable) {
+                } catch (\Throwable $exception) {
+                    $this->onHandleException($exception);
                     continue;
                 }
                 $session->ack($message);

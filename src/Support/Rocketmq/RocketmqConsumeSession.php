@@ -9,14 +9,25 @@ use Swoolefy\Support\Rocketmq\Dto\AckMessageRequestDto;
 use Swoolefy\Support\Rocketmq\Dto\ReceiveMessageRequestDto;
 use Swoolefy\Support\Rocketmq\Dto\ReceiveMessageResponseDto;
 use Swoolefy\Support\Rocketmq\Dto\ReceivedMessageDto;
+use Swoolefy\Support\SupportLog;
 
 /**
  * 一次消费订阅上的拉取和确认。调用方负责循环和 onMessage。
  */
 final class RocketmqConsumeSession
 {
+    /**
+     * @var SidecarClient
+     */
     private SidecarClient $client;
 
+    /**
+     * @param string $topic
+     * @param string $consumerGroup
+     * @param string $consumerTag
+     * @param int $maxNum
+     * @param int $invisibleMs
+     */
     public function __construct(
         private readonly string $topic,
         private readonly string $consumerGroup,
@@ -52,6 +63,9 @@ final class RocketmqConsumeSession
         return $out;
     }
 
+    /**
+     * @param ReceivedMessageDto $message
+     */
     public function ack(ReceivedMessageDto $message): void
     {
         try {
@@ -60,12 +74,28 @@ final class RocketmqConsumeSession
             $ack->setReceiptHandle($message->getReceiptHandle());
             $ack->setMessageId($message->getMessageId());
             $ack->setTopic($message->getTopic());
-            $this->client->assertOk($this->client->call('rocketmq', 'rocketmq.consumer.ack', $ack, 3000));
-        } catch (\Throwable) {
+            $this->client->assertOk($this->client->call('rocketmq', 'rocketmq.consumer.ack', $ack, 5000));
+        } catch (\Throwable $exception) {
             // 确认失败不退出进程。不可见时间结束后由 RocketMQ 再投。
+            try {
+                SupportLog::error('error', SupportLog::CHANNEL, [
+                    'message' => $exception->getMessage(),
+                    'file' => $exception->getFile(),
+                    'line' => $exception->getLine(),
+                    'trace' => $exception->getTraceAsString(),
+                ]);
+            }catch (\Throwable) {
+
+            }
         }
     }
 
+    /**
+     * @param int $value
+     * @param int $min
+     * @param int $max
+     * @return int
+     */
     private function bounded(int $value, int $min, int $max): int
     {
         if ($value < $min) {
