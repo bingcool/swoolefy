@@ -338,7 +338,7 @@ if ($id === false) {
 未配置 `sidecar_socket_path` 时：
 
 ```text
-{runtime_dir}/sidecars/{app}-{port}-{name}.sock
+{runtime_dir}/sidecars_sock/{app}-{port}-{name}.sock
 ```
 
 `runtime_dir` 取配置 `sidecar_runtime_dir`，缺省为 `APP_PATH . '/runtime'`，不用所有实例共享的 `/tmp/*.sock`。目录 `0700`，socket 由外部进程创建后设为 `0600`。单机多实例靠 app 名和监听端口区分。
@@ -366,7 +366,7 @@ final class SocketEndpoint
         if ($app === '' || $port <= 0) {
             throw new SidecarException('cannot build sidecar socket path without app name and port');
         }
-        return rtrim($runtimeDir, '/') . '/sidecars/' . $app . '-' . $port . '-' . $name . '.sock';
+        return rtrim($runtimeDir, '/') . '/sidecars_sock/' . $app . '-' . $port . '-' . $name . '.sock';
     }
 
     public static function prepare(string $path): void

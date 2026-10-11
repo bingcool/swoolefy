@@ -17,5 +17,6 @@ Test/.env
 Test/Storage/Logs/
 .DS_Store
 *.sock
+sidecars_sock/
 .phpunit.cache
 phpunit.xml

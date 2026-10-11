@@ -22,7 +22,8 @@ final class SocketEndpoint
             throw new SidecarException('cannot build sidecar socket path without app name and port');
         }
 
-        return rtrim($runtimeDir, '/') . '/sidecars/' . $app . '-' . $port . '-' . $name . '.sock';
+        // 目录名 sidecars_sock 已写入 .gitignore，socket 文件不进入仓库。
+        return rtrim($runtimeDir, '/') . '/sidecars_sock/' . $app . '-' . $port . '-' . $name . '.sock';
     }
 
     public static function prepare(string $path): void

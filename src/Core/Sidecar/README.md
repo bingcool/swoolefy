@@ -172,7 +172,7 @@ SIDECAR_ROCKETMQ_SECRET_KEY=
 `sidecar_socket_path` 为空时：
 
 ```text
-{sidecar_runtime_dir}/sidecars/{APP_NAME}-{port}-{sidecar_name}.sock
+{sidecar_runtime_dir}/sidecars_sock/{APP_NAME}-{port}-{sidecar_name}.sock
 ```
 
 `APP_NAME` 是常量 `APP_NAME`。`port` 是当前协议配置里的 `port`。应用名缺失或端口不大于 0，抛 `cannot build sidecar socket path without app name and port`。
@@ -180,7 +180,7 @@ SIDECAR_ROCKETMQ_SECRET_KEY=
 框架把 `sidecar_runtime_dir` 设成了 `APP_PATH`，所以默认文件是：
 
 ```text
-{APP_PATH}/sidecars/{APP_NAME}-{port}-rocketmq.sock
+{APP_PATH}/sidecars_sock/{APP_NAME}-{port}-rocketmq.sock
 ```
 
 如果运行目录也是空字符串，`SidecarSpec` 再用 `APP_PATH/runtime` 作为目录。显式写了绝对路径时，用该路径，不再拼接。

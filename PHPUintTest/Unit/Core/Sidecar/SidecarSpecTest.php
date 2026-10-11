@@ -97,7 +97,7 @@ final class SidecarSpecTest extends TestCase
         ], '/tmp/sidecar-runtime');
 
         $this->assertInstanceOf(SidecarSpec::class, $spec);
-        $this->assertSame('/tmp/sidecar-runtime/sidecars/SidecarSpec-9501-rocketmq.sock', $spec->socketPath);
+        $this->assertSame('/tmp/sidecar-runtime/sidecars_sock/SidecarSpec-9501-rocketmq.sock', $spec->socketPath);
         $this->assertSame(['--flag'], $spec->args);
         $env = $spec->environment();
         $this->assertSame('1', $env['SIDECAR_ENABLE']);
