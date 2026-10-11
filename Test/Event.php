@@ -60,8 +60,8 @@ class Event extends EventHandler
             // ProcessManager::getInstance()->addProcess('job-kafka-consumer', \Test\Process\JobProcess\JobKafkaConsumer::class, true, [], null, true);
 
             // redis 延迟队列：组件名 delayQueue，Redis 键 queue:order:delay。生产时延迟 2 秒，同一个组件只开一个消费进程
-            ProcessManager::getInstance()->addProcess('redis-delay-publish', \Test\Process\QueueProcess\QueuePublish::class);
-            ProcessManager::getInstance()->addProcess('redis_delay_list_test', \Test\Process\QueueProcess\Queue::class,true, [], null, true);
+            //ProcessManager::getInstance()->addProcess('redis-delay-publish', \Test\Process\QueueProcess\QueuePublish::class);
+            //ProcessManager::getInstance()->addProcess('redis_delay_list_test', \Test\Process\QueueProcess\Queue::class,true, [], null, true);
 
 
             // amqp-direct 生产队
@@ -81,22 +81,22 @@ class Event extends EventHandler
             //ProcessManager::getInstance()->addProcess('amqp-consumer-fanout1', \Test\Process\AmqpProcess\AmqpConsumerFanout1::class);
             
             // amqp-topic 生产队
-            ProcessManager::getInstance()->addProcess('amqp-publish-topic', \Test\Process\AmqpProcess\AmqpPublishTopic::class);
+            //ProcessManager::getInstance()->addProcess('amqp-publish-topic', \Test\Process\AmqpProcess\AmqpPublishTopic::class);
             // amqp-topic 消费队列
-            ProcessManager::getInstance()->addProcess('amqp-consumer-topic', \Test\Process\AmqpProcess\AmqpConsumerTopic::class);
+            //ProcessManager::getInstance()->addProcess('amqp-consumer-topic', \Test\Process\AmqpProcess\AmqpConsumerTopic::class);
 
             // 死信队列：消息在延迟队列停留 10 秒后进入对应模式的死信队列
-            ProcessManager::getInstance()->addProcess('amqp-publish-dlx-direct', \Test\Process\AmqpProcess\AmqpPublishDlxDirect::class);
-            ProcessManager::getInstance()->addProcess('amqp-consumer-dlx-direct', \Test\Process\AmqpProcess\AmqpConsumerDlxDirect::class);
-            ProcessManager::getInstance()->addProcess('amqp-publish-dlx-fanout', \Test\Process\AmqpProcess\AmqpPublishDlxFanout::class);
-            ProcessManager::getInstance()->addProcess('amqp-consumer-dlx-fanout', \Test\Process\AmqpProcess\AmqpConsumerDlxFanout::class);
-            ProcessManager::getInstance()->addProcess('amqp-publish-dlx-topic', \Test\Process\AmqpProcess\AmqpPublishDlxTopic::class);
-            ProcessManager::getInstance()->addProcess('amqp-consumer-dlx-topic', \Test\Process\AmqpProcess\AmqpConsumerDlxTopic::class);
+            //ProcessManager::getInstance()->addProcess('amqp-publish-dlx-direct', \Test\Process\AmqpProcess\AmqpPublishDlxDirect::class);
+            //ProcessManager::getInstance()->addProcess('amqp-consumer-dlx-direct', \Test\Process\AmqpProcess\AmqpConsumerDlxDirect::class);
+            //ProcessManager::getInstance()->addProcess('amqp-publish-dlx-fanout', \Test\Process\AmqpProcess\AmqpPublishDlxFanout::class);
+            //ProcessManager::getInstance()->addProcess('amqp-consumer-dlx-fanout', \Test\Process\AmqpProcess\AmqpConsumerDlxFanout::class);
+            //ProcessManager::getInstance()->addProcess('amqp-publish-dlx-topic', \Test\Process\AmqpProcess\AmqpPublishDlxTopic::class);
+            //ProcessManager::getInstance()->addProcess('amqp-consumer-dlx-topic', \Test\Process\AmqpProcess\AmqpConsumerDlxTopic::class);
 
             // kafka-topic 生产队列
-            ProcessManager::getInstance()->addProcess('kafka-publish-topic', \Test\Process\Kafka\ProducerKafka::class);
+            //ProcessManager::getInstance()->addProcess('kafka-publish-topic', \Test\Process\Kafka\ProducerKafka::class);
             // kafka-topic 消费队列
-            ProcessManager::getInstance()->addProcess('kafka-consumer-topic1', \Test\Process\Kafka\ConsumerKafka::class);
+            //ProcessManager::getInstance()->addProcess('kafka-consumer-topic1', \Test\Process\Kafka\ConsumerKafka::class);
             //ProcessManager::getInstance()->addProcess('kafka-consumer-topic2', \Test\Process\Kafka\ConsumerKafka::class);
             //ProcessManager::getInstance()->addProcess('kafka-consumer-topic3', \Test\Process\Kafka\ConsumerKafka::class);
 
