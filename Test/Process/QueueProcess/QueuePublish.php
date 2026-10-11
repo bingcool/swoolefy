@@ -20,7 +20,7 @@ class QueuePublish extends AbstractProcess
         while (true) {
             $producer->push([
                 'order_id' => random_int(1000, 9999),
-                'publishedAt' => date('Y-m-d H:i:s'),
+                'published_at' => date('Y-m-d H:i:s'),
             ], 2);
             \Swoole\Coroutine::sleep(2);
         }

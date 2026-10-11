@@ -34,8 +34,8 @@ class Queue extends DelayQueueConsumerProcessHandler
             'queue' => $message->getQueue(),
             'payload' => $message->getPayload(),
             // 入队 unix 时间。加上生产时的延迟秒数才是可见时间。
-            'readyAt' => $message->getReadyAt(),
-            'receivedAt' => date('Y-m-d H:i:s'),
+            'ready_at' => $message->getReadyAt(),
+            'received_at' => date('Y-m-d H:i:s'),
         ]);
     }
 }
