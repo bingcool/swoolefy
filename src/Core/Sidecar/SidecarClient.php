@@ -9,6 +9,7 @@ use Swoole\Coroutine\Client;
 use Swoolefy\Core\Dto\AbstractDto;
 use Swoolefy\Core\Sidecar\Dto\SidecarRequestDto;
 use Swoolefy\Core\Sidecar\Dto\SidecarResponseDto;
+use Swoolefy\Core\Sidecar\Dto\VersionRequestDto;
 
 /**
  * Worker 协程内一次调用一条 UDS 连接。不保留 Client。
@@ -87,6 +88,21 @@ final class SidecarClient
         } finally {
             $client->close();
         }
+    }
+
+    /**
+     * 读取 sidecar 进程的发布版本。版本号定义在 Go 的 internal/version.Version。
+     */
+    public function version(string $name, int $timeoutMs = 0): string
+    {
+        $response = $this->call($name, 'sidecar.version', new VersionRequestDto(), $timeoutMs);
+        $this->assertOk($response);
+        $version = $response->getPayload()['version'] ?? '';
+        if (!is_string($version) || $version === '') {
+            throw new SidecarException('sidecar version is absent');
+        }
+
+        return $version;
     }
 
     public function assertOk(SidecarResponseDto $response): void

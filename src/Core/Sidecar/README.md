@@ -58,7 +58,7 @@ Go 启动顺序：
 
 1. 读取 `SIDECAR_*`。缺 `SIDECAR_SOCKET_PATH` 时进程以状态码 1 退出，标准错误是 `sidecar config: SIDECAR_SOCKET_PATH`。
 2. 按 `SIDECAR_PLUGINS` 加载插件。当前只认识 `rocketmq`。
-3. 注册 `health.check`，再注册插件方法。
+3. 注册 `sidecar.version`、`health.check`，再注册插件方法。
 4. 创建 socket 目录（`0700`），`listen` 时用 `umask 0077`，socket 文件权限是 `0600`。
 5. `listenerOk` 置为真，插件 `Start()`。RocketMQ Producer 在后台连代理；Consumer 等到第一次 `receive` 才按订阅启动。
 6. 接受连接。收到 `SIGTERM` 或 `SIGINT` 后停止接入，取消上下文，等待在途请求最多 `sidecar_shutdown_grace_ms`，再停插件。
@@ -247,6 +247,7 @@ Linux 二进制是 `CGO_ENABLED=0` 的静态 ELF。不要用 Go 1.20 编译：�
 
 | method | 作用 |
 | --- | --- |
+| `sidecar.version` | 读取发布版本。payload 为空，响应只有 `version` |
 | `health.check` | 读本进程状态。不向代理发探测 |
 | `rocketmq.producer.send` | 发送一条消息 |
 | `rocketmq.consumer.receive` | 按消费组 + Topic 拉一批 |
@@ -256,7 +257,7 @@ Linux 二进制是 `CGO_ENABLED=0` 的静态 ELF。不要用 Go 1.20 编译：�
 
 | 字段 | 含义 |
 | --- | --- |
-| `version` | Go sidecar 版本，当前 `0.1.0` |
+| `version` | Go sidecar 版本，与 `sidecar.version` 相同。发新版本时改 `swoolefy-go-sidecar/internal/version/version.go` 的 `Version` 后重新编译 |
 | `uptimeMs` | 进程已运行毫秒 |
 | `listenerOk` | socket 是否仍在接入 |
 | `inflight` | 当前在途请求数 |
@@ -272,6 +273,7 @@ $producer = new \Swoolefy\Support\Rocketmq\RocketmqProducer(
     new \Swoolefy\Core\Sidecar\SidecarClient()
 );
 
+$version = $producer->version(3000);
 $health = $producer->health(3000);
 
 $request = new \Swoolefy\Support\Rocketmq\Dto\SendMessageRequestDto();

@@ -28,6 +28,14 @@ final class RocketmqProducer
         return SendMessageResponseDto::fromArray($response->getPayload());
     }
 
+    /**
+     * 读取当前 rocketmq sidecar 二进制的发布版本。
+     */
+    public function version(int $timeoutMs = 0): string
+    {
+        return $this->client->version('rocketmq', $timeoutMs);
+    }
+
     public function health(int $timeoutMs = 0): HealthCheckResponseDto
     {
         $response = $this->client->call('rocketmq', 'health.check', new HealthCheckRequestDto(), $timeoutMs);
