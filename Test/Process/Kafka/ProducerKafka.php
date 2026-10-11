@@ -12,7 +12,7 @@ class ProducerKafka extends AbstractProcess
 
         while (true) {
             $producer->produce('kafka-producer:' . date('Y-m-d H:i:s'));
-            \Swoole\Coroutine::sleep(0.2);
+            \Swoole\Coroutine::sleep(1);
         }
     }
 }
