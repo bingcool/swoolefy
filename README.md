@@ -49,6 +49,7 @@
 - [二十一、🤖 AI / Workflow 工作流](#nav-21-ai-workflow)
 - [二十二、🧠 AI Agent / RAG / MCP / OCR 大模型能力](#nav-22-ai-capabilities)
 - [二十三、📬 Job 异步任务](#nav-23-job)
+- [二十四、🚀 Go Sidecar / RocketMQ](#nav-24-sidecar)
 - [🔐 Auth 统一身份](#nav-auth)
 - [🌐 I18n 国际化](#nav-i18n)
 - [🧪 PHPUnit / PHPUintTest](#nav-phpunit)
@@ -68,6 +69,7 @@
 | **内置组件** | `log` · `session` · `mysql` · `pgsql` · `redis` · `mongodb` · `kafka` · `amqp` · `uuid` · `route` / `middleware` · `cache` · `queue` · `rateLimit` · `traceId` |
 | **Auth** | JWT Guard + `FrameworkContext` 协程身份；HTTP / WS / Workflow HITL 共用；`goApp` 可透传（array 快照） |
 | **Job** | 统一信封 / Handler / Registry / 重试退避 / Redis 死信；对接现有 Redis·AMQP·Kafka 自定义进程（零建表） |
+| **Go Sidecar / RocketMQ** | 本机 Go 进程通过 Unix socket 提供 RocketMQ 发送、拉取、确认 |
 | **AI 一体化** | Neuron LLM、Workflow DAG、AINode 流式、六种 Agent 路由、RAG（租户隔离）、MCP、**DocumentOcr**（DOCX / 图片 / PDF → Markdown → RAG） |
 | **生产级工作流** | 条件边 AI 决策、人机协同 HITL、节点超时、Saga、快照恢复、Provider Fallback |
 | **测试** | PHPUnit 11 单轨：`PHPUintTest/`（Unit / Coroutine / Http / Websocket）；`composer test` 默认绿灯 |
@@ -87,6 +89,7 @@
 | **DocumentOcr** | DOCX / 图片 / PDF → Markdown，可接入 RAG | [DocumentOcr](docs/DocumentOcr.md) · [Support/DocumentOcr](src/Support/DocumentOcr/README.md) · [二十二](#nav-22-ai-capabilities) |
 | **CapabilityCenter** | 能力/工具注册与发现（Agent / MCP 共用） | [CapabilityTool](docs/CapabilityTool.md) · [Support/CapabilityCenter](src/Support/CapabilityCenter/README.md) |
 | **Job** | 轻量异步任务信封与 Runner，不替换进程模型 | [Job](docs/Job.md) · [Support/Job](src/Support/Job/README.md) · [二十三](#nav-23-job) |
+| **Go Sidecar** | 本机 Go 进程；PHP 经 Unix socket 调用，当前全面支持 RocketMQ | [Sidecar](src/Core/Sidecar/README.md) · [RocketMQ](src/Support/Rocketmq/README.md) · [二十四](#nav-24-sidecar) |
 | **Auth** | `AuthUser` + JWT Guard；HTTP / WS / HITL 同门面 | [Auth](docs/Auth.md) · [Support/Auth](src/Support/Auth/README.md) · [简介](#nav-auth) |
 | **Oauth** | QQ / 微信扫码·公众号·小程序 / 支付宝 / 飞书 / 钉钉 / 企微；DI `oauth` | [Oauth](docs/Oauth.md) · library `Oauth` |
 | **I18n** | `LocaleMiddleware` 协商 locale + Symfony `translator` 组件 | [I18n](docs/I18n.md) |
@@ -134,6 +137,10 @@
   - **MCP**: HTTP/SSE Tools、DB 多租户配置、stdio 生产禁用（`src/Support/Mcp/`）
   - **DocumentOcr**: Pandoc（DOCX/HTML/MD）+ DeepSeek OCR（图片/PDF）→ Markdown → RAG（`src/Support/DocumentOcr/`，详见 [docs/DocumentOcr.md](docs/DocumentOcr.md)）
   - **Workflow**: DAG 工作流引擎，支持 AI 决策分支、多 Agent 并行、RAG/MCP 节点与人机协同 HITL（详见 [二十一](#nav-21-ai-workflow)、[二十二](#nav-22-ai-capabilities)）
+- 🚀 **Go Sidecar / RocketMQ**（`src/Core/Sidecar/`、`src/Support/Rocketmq/`）:
+  - 启动时拉起本机 [swoolefy-go-sidecar](https://github.com/bingcool/swoolefy-go-sidecar) 进程，Worker 与自定义进程通过 Unix socket 调用
+  - **已全面支持 RocketMQ**：生产发送、消费拉取、成功后确认；协议服务进程与常驻 worker 两种消费方式
+  - 二进制在 `src/Core/Sidecar/Bin/`，按 macOS / Linux 自动选择（详见 [二十四](#nav-24-sidecar)）
 - 📬 **Job 异步任务**（`src/Support/Job/`）:
   - 统一信封 + Handler + Registry + 重试/退避 + Redis 死信重放
   - 对接现有 Redis / AMQP / Kafka 自定义进程，**不新建 SQL 表**、不替换 `ProcessManager`（详见 [二十三](#nav-23-job)、[docs/Job.md](docs/Job.md)）
@@ -183,6 +190,30 @@ echo $t->trans('hello');
 | `composer test:coverage` | 文本覆盖率（无强制门槛） |
 
 详见 [docs/PHPUnitTest.md](docs/PHPUnitTest.md)。
+
+<a id="nav-24-sidecar"></a>
+
+### 二十四、🚀 Go Sidecar / RocketMQ
+
+PHP 不直接连接 RocketMQ。Swoole 启动时拉起本机 Go 进程 [swoolefy-go-sidecar](https://github.com/bingcool/swoolefy-go-sidecar)，Worker 和自定义进程通过 Unix socket 发 JSON 帧调用它。发送、拉取、确认在 Go 插件里完成。
+
+RocketMQ 已全面支持：
+
+| 能力 | 说明 |
+|------|------|
+| 生产 | `RocketmqProducer::send()` |
+| 消费 | `RocketmqConsumerProcessHandler`（协议服务自定义进程）、`RocketmqConsumerWorkerProcessHandler`（常驻 worker） |
+| 确认 | `onMessage()` 正常返回后 ack；异常或确认失败不 ack |
+| 版本 | `sidecar.version` 读取 Go 进程发布版本 |
+
+二进制放在 `src/Core/Sidecar/Bin/`：macOS 使用 `go-sidecar-mac`，Linux 使用 `go-sidecar-linux`。框架按 `PHP_OS_FAMILY` 选择，部署机器不用安装 Go，也不用安装 UPX。
+
+| 文档 | 说明 |
+|------|------|
+| [src/Core/Sidecar/README.md](src/Core/Sidecar/README.md) | 进程、帧、配置、启动流程 |
+| [src/Core/Sidecar/Bin/README.md](src/Core/Sidecar/Bin/README.md) | 两个二进制的由来和作用 |
+| [src/Support/Rocketmq/README.md](src/Support/Rocketmq/README.md) | 生产与两种消费进程 |
+| [swoolefy-go-sidecar](https://github.com/bingcool/swoolefy-go-sidecar) | Go 模块与 Release 二进制 |
 
 ### 🏛️ 架构设计
 
@@ -430,6 +461,7 @@ docker run -d -it --security-opt seccomp=unconfined -p 9501:9501 -p 9502:9502 -v
 - [x] 支持自定义进程管理ProcessManager，进程池管理PoolsManger
 - [x] 支持底层异常错误的所有日志捕捉,支持全局日志,包括debug、info、notice、warning、error等级       
 - [x] 支持自定义进程的redis，rabbitmq，kafka的订阅发布，消息队列等
+- [x] **Go Sidecar，已全面支持 RocketMQ**（`Swoolefy\Core\Sidecar`、`Swoolefy\Support\Rocketmq`，详见 [二十四](#nav-24-sidecar)）：本机 Go 进程经 Unix socket 提供发送、拉取、确认。二进制见 [src/Core/Sidecar/Bin/README.md](src/Core/Sidecar/Bin/README.md)
 - [x] **Job 轻量异步任务**（`Swoolefy\Support\Job`，详见 [docs/Job.md](docs/Job.md)、[src/Support/Job/README.md](src/Support/Job/README.md)、[二十三](#nav-23-job)）：统一信封 / Handler / Registry / Runner（重试退避）/ Redis 死信重放，零建表，不替换 ProcessManager  
 - [x] 支持热更新reload worker 监控以及更新                 
 - [x] 支持定时的系统信息采集，并以订阅发布，udp等方式收集至存贮端    

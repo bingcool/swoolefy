@@ -7,7 +7,7 @@ declare(strict_types=1);
  *
  * sidecar_max_frame_bytes、sidecar_default_timeout_ms、sidecar_max_timeout_ms、
  * sidecar_max_inflight、sidecar_shutdown_grace_ms 不写在每一项里。缺省时用 .env 的公共配置。
- * rocketmq 是否拉起由 SIDECAR_ROCKETMQ_ENABLE 决定，缺省为启用。
+ * rocketmq 是否拉起由 SIDECAR_ROCKETMQ_ENABLE 决定，缺省为关闭。
  */
 
 return [
@@ -15,7 +15,7 @@ return [
     'sidecars' => [
         [
             'sidecar_name' => 'rocketmq',
-            'sidecar_enable' => env('SIDECAR_ROCKETMQ_ENABLE', true),
+            'sidecar_enable' => env('SIDECAR_ROCKETMQ_ENABLE', false),
             'sidecar_exec_binary' => dirname(__DIR__) . '/Bin/go-sidecar-' . (PHP_OS_FAMILY === 'Darwin' ? 'mac' : 'linux'),
             'sidecar_args' => [],
             'sidecar_socket_path' => '',

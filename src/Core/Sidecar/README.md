@@ -149,7 +149,7 @@ PHP 日志按 code 分级：`OK` 为 info；`INVALID_ARGUMENT`、`METHOD_NOT_FOU
 
 - `sidecar_runtime_dir` 为 `APP_PATH`。
 - 名称 `rocketmq`。
-- `sidecar_enable` 来自 `SIDECAR_ROCKETMQ_ENABLE`，缺省启用。`false`、`0`、`off`、`no` 跳过该项，并且不检查二进制是否存在。无法识别的值（例如整数 `2`）启动失败。
+- `sidecar_enable` 来自 `SIDECAR_ROCKETMQ_ENABLE`，缺省关闭。未设置、`false`、`0`、`off`、`no` 都跳过该项，并且不检查二进制是否存在。设为 `true` 才拉起。无法识别的值（例如整数 `2`）启动失败。
 - 二进制按 `PHP_OS_FAMILY` 选择：`Darwin` 用 `Bin/go-sidecar-mac`，其他用 `Bin/go-sidecar-linux`。
 - `sidecar_socket_path` 为空，走下面的默认路径。
 - `sidecar_plugins` 为 `rocketmq`。
@@ -159,7 +159,7 @@ PHP 日志按 code 分级：`OK` 为 info；`INVALID_ARGUMENT`、`METHOD_NOT_FOU
 `.env`：
 
 ```env
-SIDECAR_ROCKETMQ_ENABLE=true
+SIDECAR_ROCKETMQ_ENABLE=false
 SIDECAR_ROCKETMQ_PROXY_ENDPOINT=127.0.0.1:8081
 SIDECAR_ROCKETMQ_ACCESS_KEY=
 SIDECAR_ROCKETMQ_SECRET_KEY=
