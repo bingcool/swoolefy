@@ -84,9 +84,6 @@ class EventCtrl implements EventCtrlInterface
             $this->boostrapWorkerInit();
         }
         \Swoolefy\Core\Sidecar\SidecarSupervisor::attach();
-        \Swoolefy\Support\Rocketmq\RocketmqConsumerRegistrar::register(
-            \Swoolefy\Core\Sidecar\SidecarRegistry::all()
-        );
         static::printStartInfo();
     }
 

@@ -21,6 +21,7 @@ final class SidecarClient
             throw new SidecarException('sidecar call must run inside a coroutine');
         }
 
+        // 读取声明配置
         $spec = SidecarRegistry::get($name);
         if ($timeoutMs <= 0) {
             $timeoutMs = $spec->defaultTimeoutMs;

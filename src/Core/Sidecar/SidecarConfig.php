@@ -27,7 +27,7 @@ final class SidecarConfig
     }
 
     /**
-     * @return array{sidecar_runtime_dir: string, sidecars: array<mixed>, rocketmq_consumers: array<mixed>}
+     * @return array{sidecar_runtime_dir: string, sidecars: array<mixed>}
      */
     public static function fromApp(): array
     {
@@ -44,7 +44,6 @@ final class SidecarConfig
     {
         if (
             array_key_exists('sidecars', $conf)
-            || array_key_exists('rocketmq_consumers', $conf)
             || array_key_exists('sidecar_runtime_dir', $conf)
         ) {
             return $conf;
@@ -56,7 +55,7 @@ final class SidecarConfig
     /**
      * @param array<string, mixed> $system
      * @param array<string, mixed> $app
-     * @return array{sidecar_runtime_dir: string, sidecars: list<array<string, mixed>>, rocketmq_consumers: list<mixed>}
+     * @return array{sidecar_runtime_dir: string, sidecars: list<array<string, mixed>>}
      */
     public static function merge(array $system, array $app): array
     {
@@ -83,10 +82,6 @@ final class SidecarConfig
         return [
             'sidecar_runtime_dir' => $runtimeDir,
             'sidecars' => $sidecars,
-            'rocketmq_consumers' => array_merge(
-                self::rows($system['rocketmq_consumers'] ?? [], 'system consumers'),
-                self::rows($app['rocketmq_consumers'] ?? [], 'app consumers')
-            ),
         ];
     }
 
@@ -103,7 +98,7 @@ final class SidecarConfig
             return ['sidecars' => $app];
         }
         foreach (array_keys($app) as $key) {
-            if (!is_string($key) || !in_array($key, ['sidecar_runtime_dir', 'sidecars', 'rocketmq_consumers'], true)) {
+            if (!is_string($key) || !in_array($key, ['sidecar_runtime_dir', 'sidecars'], true)) {
                 throw new SidecarException('unknown sidecar config key');
             }
         }

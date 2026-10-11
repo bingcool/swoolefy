@@ -26,5 +26,4 @@ return [
             'sidecar_rocketmq_allowed_topics' => '*',
         ],
     ],
-    'rocketmq_consumers' => [],
 ];

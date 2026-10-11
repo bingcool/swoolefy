@@ -209,7 +209,6 @@ final class SidecarSupervisorTest extends TestCase
                 'sidecar_socket_path' => $socket,
                 'sidecar_plugins' => 'demo',
             ]],
-            'rocketmq_consumers' => [],
         ]);
     }
 

@@ -16,7 +16,6 @@ use Swoolefy\Core\Sidecar\SidecarLog;
 use Swoolefy\Core\Sidecar\SidecarSpec;
 use Swoolefy\Support\Rocketmq\Dto\HealthCheckResponseDto;
 use Swoolefy\Support\Rocketmq\Dto\SendMessageRequestDto;
-use Swoolefy\Support\Rocketmq\RocketmqConsumerRegistrar;
 
 final class SidecarSpecTest extends TestCase
 {
@@ -161,21 +160,6 @@ final class SidecarSpecTest extends TestCase
         $dto->getProducerReady();
     }
 
-    public function testConsumersRequireRocketmqSidecar(): void
-    {
-        $config = new ReflectionProperty(BaseServer::class, 'config');
-        $config->setAccessible(true);
-        $config->setValue(null, [
-            'port' => 9501,
-            'rocketmq_consumers' => [[
-                'sidecar_rocketmq_consume_topics' => 'order',
-                'sidecar_rocketmq_consumer_group' => 'order-consumer',
-            ]],
-        ]);
-        $this->expectException(SidecarException::class);
-        RocketmqConsumerRegistrar::rows([]);
-    }
-
     public function testSidecarLogKeepsOnlyCallFields(): void
     {
         $captured = [];
@@ -195,6 +179,9 @@ final class SidecarSpecTest extends TestCase
 
     public function testSidecarConfigFileIsTheOnlyCopy(): void
     {
+        if (!defined('APP_PATH')) {
+            define('APP_PATH', sys_get_temp_dir() . '/swoolefy-sidecar-no-app');
+        }
         $app = include dirname(__DIR__, 4) . '/src/Stubs/sidecar.conf.stub.php';
         $this->assertSame([], $app);
         $system = include dirname(__DIR__, 4) . '/src/Core/Sidecar/Config/SystemSidecar.php';
@@ -207,7 +194,7 @@ final class SidecarSpecTest extends TestCase
         $this->assertSame($public['sidecar_max_timeout_ms'], $loaded['sidecars'][0]['sidecar_max_timeout_ms']);
         $this->assertSame($public['sidecar_max_inflight'], $loaded['sidecars'][0]['sidecar_max_inflight']);
         $this->assertSame($public['sidecar_shutdown_grace_ms'], $loaded['sidecars'][0]['sidecar_shutdown_grace_ms']);
-        $this->assertSame([], $loaded['rocketmq_consumers']);
+        $this->assertArrayNotHasKey('rocketmq_consumers', $loaded);
     }
 
     public function testAppSidecarMergesOntoSystem(): void
@@ -218,7 +205,6 @@ final class SidecarSpecTest extends TestCase
                 'sidecar_name' => 'rocketmq',
                 'sidecar_enable' => true,
             ]],
-            'rocketmq_consumers' => [],
         ], [
             'sidecar_runtime_dir' => '/tmp/app-runtime',
             'sidecars' => [[
@@ -226,16 +212,12 @@ final class SidecarSpecTest extends TestCase
                 'sidecar_enable' => false,
                 'sidecar_max_inflight' => 4,
             ]],
-            'rocketmq_consumers' => [[
-                'sidecar_rocketmq_consume_topics' => 'order',
-            ]],
         ]);
         $this->assertSame('/tmp/app-runtime', $merged['sidecar_runtime_dir']);
         $this->assertSame(['rocketmq', 'billing'], array_column($merged['sidecars'], 'sidecar_name'));
         $this->assertSame(128, $merged['sidecars'][0]['sidecar_max_inflight']);
         $this->assertSame(4, $merged['sidecars'][1]['sidecar_max_inflight']);
         $this->assertSame(3000, $merged['sidecars'][1]['sidecar_default_timeout_ms']);
-        $this->assertCount(1, $merged['rocketmq_consumers']);
     }
 
     public function testNestedDtoStaysObjectUntilToArray(): void

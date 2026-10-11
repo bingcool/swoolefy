@@ -42,14 +42,13 @@ Go 进程宕了或代理暂时不可达时，进程保持运行，对该次调�
 
 ## 启动流程
 
-协议 `conf.stub.php` 不展开 sidecar。`SidecarSupervisor::attach()` 和消费注册在 Server 配置里没有 `sidecars`、`rocketmq_consumers`、`sidecar_runtime_dir` 时，直接读 `SidecarConfig::fromApp()`。应用自己的 `Protocol/conf.php` 如果已经展开了这三项，就用配置里的那一份。
+协议 `conf.stub.php` 不展开 sidecar。`SidecarSupervisor::attach()` 在 Server 配置里没有 `sidecars`、`sidecar_runtime_dir` 时，直接读 `SidecarConfig::fromApp()`。应用自己的 `Protocol/conf.php` 如果已经展开了这两项，就用配置里的那一份。
 
 `EventCtrl::init()` 的顺序是：
 
-1. `static::onInit()`。应用在这里用 `ProcessManager` 注册自己的进程。
+1. `static::onInit()`。应用在这里用 `ProcessManager` 注册自己的进程，包括 RocketMQ 消费进程。
 2. `SidecarSupervisor::attach()`。读取 `sidecars`，跳过 `sidecar_enable` 为假的项，校验启用项，`SocketEndpoint::prepare()`，然后 `addProcess`。
-3. `RocketmqConsumerRegistrar::register()`。`rocketmq_consumers` 非空时，为每个消费组 + Topic 再注册一个 PHP 消费进程。
-4. `printStartInfo()`。此时 Go 进程尚未 `listen`。
+3. `printStartInfo()`。此时 Go 进程尚未 `listen`。
 
 `addProcess()` 的返回值 `0` 是成功，只有 `false` 是失败。Worker id 为 0 不能当成注册失败。
 
@@ -127,8 +126,8 @@ PHP 日志按 code 分级：`OK` 为 info；`INVALID_ARGUMENT`、`METHOD_NOT_FOU
 
 - 应用文件不存在，或返回 `[]`：只用框架声明。
 - 应用返回列表：整份列表当作额外的 `sidecars`。
-- 应用返回关联数组：只允许 `sidecar_runtime_dir`、`sidecars`、`rocketmq_consumers`。其他键抛 `unknown sidecar config key`。
-- 两边的 `sidecars`、`rocketmq_consumers` 按框架在前、应用在后拼接。
+- 应用返回关联数组：只允许 `sidecar_runtime_dir`、`sidecars`。其他键抛 `unknown sidecar config key`。
+- 两边的 `sidecars` 按框架在前、应用在后拼接。
 - 应用的 `sidecar_runtime_dir` 非空时覆盖框架的值。空字符串不覆盖。
 - 单项没写的五个公共数值，用 `.env` 填上。
 
@@ -155,7 +154,7 @@ PHP 日志按 code 分级：`OK` 为 info；`INVALID_ARGUMENT`、`METHOD_NOT_FOU
 - `sidecar_socket_path` 为空，走下面的默认路径。
 - `sidecar_plugins` 为 `rocketmq`。
 - 代理地址、AccessKey、SecretKey 来自 `.env`。允许的 Topic 为 `*`。
-- `rocketmq_consumers` 为空。消费进程由应用配置追加。
+- 消费进程不在这里登记。应用在 `onInit()` 里 `addProcess` 自己的进程类。
 
 `.env`：
 
@@ -292,79 +291,9 @@ $messageId = $response->getMessageId();
 - `SidecarException`：还没写出字节，或对端明确返回了非 OK。可以按业务决定是否重试。
 - `OutcomeUnknownException`：字节已经写出。先按消息 key 做幂等查询，再决定要不要另发一条。
 
-### 框架消费进程
+### 消费进程
 
-在 `Config/sidecar.php` 追加。同一个消费组 + Topic 只能有一行。Topic 和消费组匹配 `^[A-Za-z0-9_-]{1,64}$`。
-
-```php
-return [
-    'rocketmq_consumers' => [
-        [
-            'sidecar_rocketmq_consume_topics' => 'test-demo',
-            'sidecar_rocketmq_consumer_group' => 'test-demo-group',
-            'sidecar_rocketmq_consumer_tag' => 'demo',
-            'sidecar_rocketmq_consumer_concurrency' => 1,
-        ],
-    ],
-];
-```
-
-`sidecar_rocketmq_consumer_tag` 缺省为 `*`。`*` 和空字符串都表示订阅全部 Tag。并发缺省为 1，范围 1–32。这是同一批消息交给业务处理时的协程上限，不是 Go 里的消费线程数。
-
-进程名是 `swoolefy_rocketmq_consumer_{group}_{topic}`。没有启用 `rocketmq` 插件却写了消费配置，启动失败。
-
-启动前注册处理函数。没注册时，默认实现抛 `rocketmq message handler is not registered`，该条不会被确认，不可见时间结束后由 RocketMQ 再次投递。
-
-```php
-\Swoolefy\Support\Rocketmq\RocketmqMessageHandler::register(new class implements \Swoolefy\Support\Rocketmq\RocketmqMessageHandlerInterface {
-    public function handle(\Swoolefy\Support\Rocketmq\Dto\ReceivedMessageDto $message): void
-    {
-        $body = base64_decode($message->getBodyBase64(), true);
-        // 按 $message->getMessageId() 做幂等。
-    }
-});
-```
-
-处理函数正常返回后，框架进程才发 `rocketmq.consumer.ack`。处理函数抛异常，或 ack 失败，都不确认。
-
-框架进程的拉取参数是固定的：`maxNum` 2，`invisibleMs` 20000，本次调用超时 25000ms，ack 超时 3000ms。拉到空列表就立刻再拉。`receive` 失败则睡 1 秒。
-
-Go 不做拉取循环，也不保存消息对象。一次 `receive` 在返回前把消息抄成 `messageId`、`topic`、`bodyBase64`、`tag`、`key`、`receiptHandle`、`deliveryAttempt`。确认只带 `consumerGroup`、`receiptHandle`、`messageId`、`topic`。
-
-同一个消费组 + Topic 上，前一次 `receive` 还没返回时再拉，立即 `OVERLOADED`。所以同一个组 + Topic 只保留一个拉取进程。业务上的并行用 `sidecar_rocketmq_consumer_concurrency`，或者自己在处理函数里派发。
-
-`maxNum` 允许 1–32。`invisibleMs` 允许 1–300000。安静队列在长轮询超时后返回 OK 和空 `messages`，而不是 `UNAVAILABLE`。
-
-### 自己写消费进程
-
-不写 `rocketmq_consumers`，在 `Event::onInit()` 里 `addProcess` 一个 `AbstractProcess`，循环调用下面三个方法。Test 里的 `Test\Process\Rocketmq\ProducerRocketmq` 和 `ConsumerRocketmq` 就是这条路径。
-
-```php
-$client = new \Swoolefy\Core\Sidecar\SidecarClient();
-
-$request = new \Swoolefy\Support\Rocketmq\Dto\ReceiveMessageRequestDto();
-$request->setTopic('test-demo');
-$request->setConsumerGroup('test-demo-group');
-$request->setConsumerTag('demo');
-$request->setMaxNum(8);
-$request->setInvisibleMs(20000);
-
-$response = $client->call('rocketmq', 'rocketmq.consumer.receive', $request, 25000);
-$client->assertOk($response);
-$messages = \Swoolefy\Support\Rocketmq\Dto\ReceiveMessageResponseDto::fromArray($response->getPayload())->getMessages();
-
-foreach ($messages as $item) {
-    $message = \Swoolefy\Support\Rocketmq\Dto\ReceivedMessageDto::fromArray($item);
-    $ack = new \Swoolefy\Support\Rocketmq\Dto\AckMessageRequestDto();
-    $ack->setConsumerGroup('test-demo-group');
-    $ack->setReceiptHandle($message->getReceiptHandle());
-    $ack->setMessageId($message->getMessageId());
-    $ack->setTopic($message->getTopic());
-    $client->assertOk($client->call('rocketmq', 'rocketmq.consumer.ack', $ack, 3000));
-}
-```
-
-这条进程和框架消费进程不要订阅同一个消费组 + Topic，否则后启动的 `receive` 会 `OVERLOADED`。
+业务只实现 `onMessage()`。跟协议服务一起启停时继承 `RocketmqConsumerProcessHandler`，独立常驻时继承 `RocketmqConsumerWorkerProcessHandler`。注册方式、字段和确认规则见 `src/Support/Rocketmq/README.md`。
 
 ## 日志
 
