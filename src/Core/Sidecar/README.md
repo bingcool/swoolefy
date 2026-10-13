@@ -198,8 +198,8 @@ SIDECAR_ROCKETMQ_SECRET_KEY=
 | `sidecar_exec_binary` | 绝对路径，且是可执行文件 |
 | `sidecar_args` | 字符串列表，元素不能含 NUL |
 | `sidecar_socket_path` | 空字符串或绝对路径 |
-| `sidecar_plugins` | 逗号分隔的插件名，`^[a-z0-9]+(,[a-z0-9]+)*$`，不能重复 |
-| `sidecar_rocketmq_proxy_endpoint` | 插件含 `rocketmq` 时必须是 `host:port` |
+| `sidecar_plugins` | 一个插件名，`^[a-z0-9]+$`。必须已在 `SidecarPluginRegistry` 登记 |
+| `sidecar_rocketmq_proxy_endpoint` | 仅 `rocketmq` 项。必须是 `host:port` |
 | `sidecar_rocketmq_access_key` | 字符串 |
 | `sidecar_rocketmq_secret_key` | 字符串 |
 | `sidecar_rocketmq_allowed_topics` | `*`、空字符串，或逗号分隔的 Topic。不能在列表里再写 `*` |
@@ -229,7 +229,7 @@ return [
 ];
 ```
 
-当前 Go 程序只注册了 `rocketmq`。`sidecar_plugins` 写成别的名字时，Go 进程会因 `unknown plugin` 退出。新插件要加在 `swoolefy-go-sidecar` 里。
+一项配置只能写一个插件名。插件字段类在 `SidecarPluginRegistry` 登记后，PHP 才接受这个名字。当前登记的是 `rocketmq`，字段在 `SidecarRocketMqSpec`。未登记的名字启动失败，信息是 `unknown sidecar plugin`。Go 进程里也要有同名插件，否则 `exec` 之后以 `unknown plugin` 退出。
 
 应用要改 socket 根目录时，加上非空的 `sidecar_runtime_dir`。它会覆盖框架的 `APP_PATH`。
 

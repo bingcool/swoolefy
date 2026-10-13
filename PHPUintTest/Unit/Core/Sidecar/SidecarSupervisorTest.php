@@ -207,7 +207,9 @@ final class SidecarSupervisorTest extends TestCase
                 'sidecar_exec_binary' => $this->binary,
                 'sidecar_args' => [],
                 'sidecar_socket_path' => $socket,
-                'sidecar_plugins' => 'demo',
+                'sidecar_plugins' => 'rocketmq',
+                'sidecar_rocketmq_proxy_endpoint' => '127.0.0.1:8081',
+                'sidecar_rocketmq_allowed_topics' => '*',
             ]],
         ]);
     }

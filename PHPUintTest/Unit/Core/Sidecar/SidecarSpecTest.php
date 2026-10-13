@@ -108,6 +108,44 @@ final class SidecarSpecTest extends TestCase
         $this->assertArrayNotHasKey('SIDECAR_ROCKETMQ_SECRET_KEY', $env);
     }
 
+    public function testForeignPluginKeyFailsOnRocketmqRow(): void
+    {
+        $this->expectException(SidecarException::class);
+        $this->expectExceptionMessage('unknown sidecar config key: sidecar_mqtt5_broker');
+        SidecarSpec::fromRow([
+            'sidecar_name' => 'rocketmq',
+            'sidecar_enable' => true,
+            'sidecar_exec_binary' => $this->binary,
+            'sidecar_plugins' => 'rocketmq',
+            'sidecar_rocketmq_proxy_endpoint' => '127.0.0.1:8081',
+            'sidecar_mqtt5_broker' => '127.0.0.1:1883',
+        ], '/tmp/runtime');
+    }
+
+    public function testCommaSeparatedPluginsFail(): void
+    {
+        $this->expectException(SidecarException::class);
+        $this->expectExceptionMessage('sidecar_plugins is invalid');
+        SidecarSpec::fromRow([
+            'sidecar_name' => 'rocketmq',
+            'sidecar_enable' => true,
+            'sidecar_exec_binary' => $this->binary,
+            'sidecar_plugins' => 'rocketmq,mqtt5',
+        ], '/tmp/runtime');
+    }
+
+    public function testDisabledRowSkipsPluginFieldCheck(): void
+    {
+        $spec = SidecarSpec::fromRow([
+            'sidecar_name' => 'rocketmq',
+            'sidecar_enable' => false,
+            'sidecar_exec_binary' => '/missing/binary',
+            'sidecar_rocketmq_proxy_endpoint' => 'http://not-a-host',
+        ], '/tmp/runtime');
+
+        $this->assertNull($spec);
+    }
+
     public function testEndpointMustBeHostPortWhenRocketmqIsEnabled(): void
     {
         $this->expectException(SidecarException::class);

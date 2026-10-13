@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace Swoolefy\Core\Sidecar;
 
+use Swoolefy\Core\Sidecar\Plugin\SidecarPluginRegistry;
+use Swoolefy\Core\Sidecar\Plugin\SidecarPluginSpec;
+
 /**
  * 一份外部进程声明。fromRow() 返回时路径和数值都已经校验过。
+ * 插件字段由 SidecarPluginRegistry 找到的字段类校验，不写在这里。
  */
 final class SidecarSpec
 {
     /** @var list<string> */
-    private const KEYS = [
+    private const COMMON_KEYS = [
         'sidecar_name',
         'sidecar_enable',
         'sidecar_exec_binary',
@@ -22,10 +26,6 @@ final class SidecarSpec
         'sidecar_max_inflight',
         'sidecar_shutdown_grace_ms',
         'sidecar_plugins',
-        'sidecar_rocketmq_proxy_endpoint',
-        'sidecar_rocketmq_access_key',
-        'sidecar_rocketmq_secret_key',
-        'sidecar_rocketmq_allowed_topics',
     ];
 
     /** @var list<string> */
@@ -63,7 +63,7 @@ final class SidecarSpec
      */
     public static function fromRow(array $row, string $runtimeDir): ?self
     {
-        self::assertKeys($row);
+        self::assertKeyPrefix($row);
         $row = self::applyDefaults($row);
         $enabled = self::parseEnable($row['sidecar_enable'], (string) ($row['sidecar_name'] ?? ''));
         if (!$enabled) {
@@ -71,6 +71,15 @@ final class SidecarSpec
         }
 
         $name = self::requireName($row);
+        $plugins = self::requirePlugin($row, $name);
+        /** @var class-string<SidecarPluginSpec> $pluginClass */
+        $pluginClass = SidecarPluginRegistry::get($plugins);
+        self::assertKnownKeys($row, $pluginClass::keys());
+        foreach ($pluginClass::fields($row) as $key => $value) {
+            $row[$key] = $value;
+        }
+        $row['sidecar_plugins'] = $plugins;
+
         $binary = self::requireBinary($row, $name);
         $args = self::requireArgs($row, $name);
         $socketConfigured = self::requireSocket($row, $name);
@@ -79,14 +88,6 @@ final class SidecarSpec
         $maxFrameBytes = self::requireInt($row, 'sidecar_max_frame_bytes', 1024, 16777216, $name);
         $maxInflight = self::requireInt($row, 'sidecar_max_inflight', 1, 1024, $name);
         $shutdownGraceMs = self::requireInt($row, 'sidecar_shutdown_grace_ms', 0, 30000, $name);
-        $plugins = self::requirePlugins($row, $name);
-        $endpoint = self::requireString($row, 'sidecar_rocketmq_proxy_endpoint', $name);
-        $accessKey = self::requireString($row, 'sidecar_rocketmq_access_key', $name);
-        $secretKey = self::requireString($row, 'sidecar_rocketmq_secret_key', $name);
-        $allowedTopics = self::requireTopics($row, $name);
-        if (in_array('rocketmq', explode(',', $plugins), true)) {
-            self::assertEndpoint($endpoint, $name);
-        }
 
         $dir = $runtimeDir;
         if ($socketConfigured === '' && $dir === '') {
@@ -96,7 +97,6 @@ final class SidecarSpec
         $row['sidecar_socket_path'] = $socketPath;
         $row['sidecar_enable'] = true;
         $row['sidecar_args'] = $args;
-        $row['sidecar_rocketmq_allowed_topics'] = $allowedTopics;
 
         return new self(
             name: $name,
@@ -158,13 +158,26 @@ final class SidecarSpec
     /**
      * @param array<string, mixed> $row
      */
-    private static function assertKeys(array $row): void
+    private static function assertKeyPrefix(array $row): void
     {
         foreach ($row as $key => $_) {
             if (!is_string($key) || !str_starts_with($key, 'sidecar_')) {
                 throw new SidecarException('sidecar config key must start with sidecar_');
             }
-            if (!in_array($key, self::KEYS, true)) {
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @param list<string> $pluginKeys
+     */
+    private static function assertKnownKeys(array $row, array $pluginKeys): void
+    {
+        foreach ($row as $key => $_) {
+            if (!is_string($key)) {
+                throw new SidecarException('sidecar config key must start with sidecar_');
+            }
+            if (!in_array($key, self::COMMON_KEYS, true) && !in_array($key, $pluginKeys, true)) {
                 throw new SidecarException('unknown sidecar config key: ' . $key);
             }
         }
@@ -182,10 +195,6 @@ final class SidecarSpec
             'sidecar_args' => [],
             'sidecar_socket_path' => '',
             'sidecar_plugins' => 'rocketmq',
-            'sidecar_rocketmq_proxy_endpoint' => '',
-            'sidecar_rocketmq_access_key' => '',
-            'sidecar_rocketmq_secret_key' => '',
-            'sidecar_rocketmq_allowed_topics' => '',
         ];
         foreach (SidecarConfig::publicSettings() as $key => $value) {
             $defaults[$key] = $value;
@@ -286,69 +295,14 @@ final class SidecarSpec
     /**
      * @param array<string, mixed> $row
      */
-    private static function requirePlugins(array $row, string $name): string
+    private static function requirePlugin(array $row, string $name): string
     {
         $plugins = $row['sidecar_plugins'] ?? null;
-        if (!is_string($plugins) || !preg_match('/^[a-z0-9]+(,[a-z0-9]+)*$/', $plugins)) {
+        if (!is_string($plugins) || !preg_match('/^[a-z0-9]+$/', $plugins)) {
             throw new SidecarException(self::label($name, 'sidecar_plugins') . ' is invalid');
-        }
-        $parts = explode(',', $plugins);
-        if (count($parts) !== count(array_unique($parts))) {
-            throw new SidecarException(self::label($name, 'sidecar_plugins') . ' has duplicates');
         }
 
         return $plugins;
-    }
-
-    /**
-     * @param array<string, mixed> $row
-     */
-    private static function requireString(array $row, string $key, string $name): string
-    {
-        $value = $row[$key] ?? null;
-        if (!is_string($value) || str_contains($value, "\0")) {
-            throw new SidecarException(self::label($name, $key) . ' must be a string');
-        }
-
-        return $value;
-    }
-
-    /**
-     * @param array<string, mixed> $row
-     */
-    private static function requireTopics(array $row, string $name): string
-    {
-        $raw = self::requireString($row, 'sidecar_rocketmq_allowed_topics', $name);
-        $trimmed = trim($raw);
-        if ($trimmed === '' || $trimmed === '*') {
-            return $trimmed;
-        }
-        $parts = explode(',', $trimmed);
-        $clean = [];
-        foreach ($parts as $part) {
-            $part = trim($part);
-            if ($part === '' || str_contains($part, '*')) {
-                throw new SidecarException(self::label($name, 'sidecar_rocketmq_allowed_topics') . ' is invalid');
-            }
-            $clean[] = $part;
-        }
-
-        return implode(',', $clean);
-    }
-
-    private static function assertEndpoint(string $endpoint, string $name): void
-    {
-        if ($endpoint === '' || str_contains($endpoint, '://') || str_contains($endpoint, '/')) {
-            throw new SidecarException(self::label($name, 'sidecar_rocketmq_proxy_endpoint') . ' must be host:port');
-        }
-        $parts = explode(':', $endpoint);
-        if (count($parts) !== 2 || $parts[0] === '' || !ctype_digit($parts[1])) {
-            throw new SidecarException(self::label($name, 'sidecar_rocketmq_proxy_endpoint') . ' must be host:port');
-        }
-        $port = (int) $parts[1];
-        if ($port < 1 || $port > 65535) {
-            throw new SidecarException(self::label($name, 'sidecar_rocketmq_proxy_endpoint') . ' must be host:port');
-        }
     }
 
     private static function label(string $name, string $key): string
