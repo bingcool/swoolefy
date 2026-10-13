@@ -45,6 +45,9 @@ class AsyncTask implements AsyncTaskInterface
             throw new TaskException("TaskMessageDto->taskData Type Error");
         }
 
+        // task 进程以 allowed_classes=false 反序列化，对象会变成 __PHP_Incomplete_Class，投递前直接拒绝
+        Context::assertPropagatable($taskMessageDto->taskData);
+
         $taskMessageDto->taskClass = str_replace('/', '\\', trim($taskMessageDto->taskClass, '/'));
 
         $fd = null;
@@ -58,7 +61,7 @@ class AsyncTask implements AsyncTaskInterface
             $fd = is_object(Application::getApp()) ? Application::getApp()->getFd() : null;
         }
 
-        // 透传协程上下文快照(标量和数组)；对象/资源/Closure 拒绝投递，避免反序列化注入与连接串用
+        // 透传协程上下文快照：只保留标量和数组，对象/资源/Closure 被过滤，避免反序列化注入与连接串用
         $contextData = Context::snapshot();
         $taskId = Swfy::getServer()->task(serialize(
             [

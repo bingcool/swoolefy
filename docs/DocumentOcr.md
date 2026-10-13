@@ -84,6 +84,10 @@ src/Stubs/document_parser.component.stub.php
 
 完整键见 [`Test/Config/document_ocr.php`](../Test/Config/document_ocr.php) / stub。摘要：
 
+#### `allowed_dirs`
+
+`parseFile()` 只读取 realpath 落在这些目录内的文件（`..`、符号链接按解析后的真实路径判断），其它路径抛 `DocumentException`。默认 `[]`，即只允许 `sys_get_temp_dir()` 与 `/tmp`。上传文件 `store()` 到业务目录后再解析，需要把该目录加进来；填了非空列表就不再包含默认临时目录。
+
 #### `pandoc`
 
 | 键 | 默认 | Env |

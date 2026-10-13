@@ -272,7 +272,7 @@ class Session
      * @param string|null $cookie_key
      * @return $this
      */
-    public function setCookieKey(string $cookie_key = null)
+    public function setCookieKey(?string $cookie_key = null)
     {
         if ($cookie_key) {
             $this->cookie_key = $cookie_key;
@@ -318,7 +318,7 @@ class Session
      * @param string|null $path
      * @return $this
      */
-    public function setCookiePath(string $path = null)
+    public function setCookiePath(?string $path = null)
     {
         if ($path) {
             $this->cookie_path = $path;
@@ -326,7 +326,7 @@ class Session
         return $this;
     }
 
-    public function setCookieDomain(string $domain = null)
+    public function setCookieDomain(?string $domain = null)
     {
         if ($domain) {
             $this->cookie_domain = $domain;
@@ -363,7 +363,7 @@ class Session
      * @param string $key
      * @return mixed
      */
-    public function get(string $key = null)
+    public function get(?string $key = null)
     {
         if (is_null($key)) {
             return $this->_SESSION;

@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Worker\Cron;
 
+use Swoolefy\Core\CommandRunner;
+
 /**
  * Shell 执行器（exec_type=1）。
  *
@@ -147,16 +149,9 @@ final class ShellExecutor implements CronExecutorInterface
     {
         if ($definition->execBinFile !== '') {
             $script = $definition->execScript !== '' ? $definition->execScript : $definition->command;
-            $argv = '';
-            foreach ($definition->argv as $name => $value) {
-                if (is_string($name)) {
-                    $argv .= ' --' . $name . '=' . escapeshellarg((string) $value);
-                } else {
-                    $argv .= ' ' . escapeshellarg((string) $value);
-                }
-            }
+            $argv = CommandRunner::buildShellArgs($definition->argv);
 
-            return trim($definition->execBinFile . ' ' . $script . $argv);
+            return trim($definition->execBinFile . ' ' . $script . ' ' . $argv);
         }
 
         return trim($definition->command !== '' ? $definition->command : $definition->execScript);

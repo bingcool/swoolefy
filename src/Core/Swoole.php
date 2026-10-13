@@ -60,6 +60,12 @@ class Swoole extends BaseObject
     protected $isDefer = false;
 
     /**
+     * end() 已执行，防止重复归还组件到连接池
+     * @var bool
+     */
+    private bool $ended = false;
+
+    /**
      * @var string
      */
     protected $serviceHandle = '';
@@ -367,6 +373,18 @@ class Swoole extends BaseObject
      */
     public function end()
     {
+        if ($this->ended) {
+            return;
+        }
+        $this->ended = true;
+
+        // 未进入 ServiceDispatch（如解析失败）时注册的 after Hook 也在这里执行并清理
+        try {
+            Hook::callHook(Hook::HOOK_AFTER_REQUEST, $this->coroutineId);
+        } catch (\Throwable $exception) {
+            BaseServer::catchException($exception);
+        }
+
         // handle log
         try {
             $this->handleLog();

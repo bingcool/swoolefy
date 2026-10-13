@@ -65,6 +65,8 @@ $dlq = JobComponentFactory::redisDeadLetter(App::getRedis());
 $dlq->replay(fn (array $d) => App::getQueue()->push($d), 'default', 10);
 ```
 
+重放时每条先 `RPOPLPUSH` 到 `{key}:replaying`，`$publish` 成功后才删除。`$publish` 抛异常时这条放回死信 List，异常继续抛出。结构损坏的条目移到 `{key}:corrupt`。进程在重放中途退出时，下次 `replay()` 会先把暂存的条目移回再重放，可能重放两次，消费端按 `jobId` 幂等。同一个 queue 不要并发运行多个 replay。
+
 CLI（需 Application 上下文）：
 
 ```bash

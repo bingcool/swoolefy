@@ -63,6 +63,8 @@ use Swoolefy\Support\Workflow\WorkflowConfig;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
 use Swoolefy\Support\Workflow\WorkflowRunStoreName;
 use PHPUintTest\TestCase;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use Throwable;
 
 final class PhaseBProductionTest extends TestCase
@@ -402,6 +404,8 @@ final class PhaseBProductionTest extends TestCase
      * 生产环境（SWOOLEFY_ENV=prd）下 default_run_store=memory 必须被标记，
      * 避免 HITL / 多 Worker 下状态丢失。
      */
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function testProductionHealthCheckRejectsMemoryRunStoreInProduction(): void
     {
         $this->withProductionEnv(function (): void {
@@ -439,6 +443,8 @@ final class PhaseBProductionTest extends TestCase
      * 生产环境要求 HITL 鉴权开启且配置 api_key；缺任一项各报一条错误。
      * ENV 与 conf 同步置空，避免 HealthCheck 从 ENV 读到旧值。
      */
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function testProductionHealthCheckRequiresHitlAuthAndApiKey(): void
     {
         $this->withProductionEnv(function (): void {
@@ -479,6 +485,8 @@ final class PhaseBProductionTest extends TestCase
      * Redis RunStore TTL 过短（如 1 天）在生产会被标记：长时 HITL 等待可能丢 run。
      * 本用例把 HITL 配齐，只断言 TTL 相关错误。
      */
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function testProductionHealthCheckRejectsShortRedisRunStoreTtl(): void
     {
         $this->withProductionEnv(function (): void {

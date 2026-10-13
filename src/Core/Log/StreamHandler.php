@@ -208,14 +208,15 @@ class StreamHandler extends AbstractProcessingHandler
             }
         }
 
-        // Missing/rotated files must not call stat(): with a throwing error handler
-        // (SwoolefyException::handleError) even @stat emits ErrorException.
+        // is_file() reads the stat cache: clear it first, otherwise a deleted/rotated
+        // file still looks present and the following stat() fails.
+        clearstatcache(true, $filePath);
         if (!is_file($filePath)) {
             return true;
         }
 
-        clearstatcache(true, $filePath);
-        $pathStat = stat($filePath);
+        // The file can still disappear between is_file() and stat().
+        $pathStat = @stat($filePath);
         if (!is_array($pathStat) || !isset($pathStat['ino'], $pathStat['dev'])) {
             return true;
         }

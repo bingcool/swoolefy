@@ -22,8 +22,7 @@ class KafkaConfig
     private const DEFAULT_PRODUCER_TOPIC_PROPERTY = [];
 
     private const DEFAULT_CONSUMER_GLOBAL_PROPERTY = [
-        'enable.auto.commit' => 1,
-        'auto.commit.interval.ms' => 200,
+        'enable.auto.commit' => 0,
         'auto.offset.reset' => 'earliest',
         'session.timeout.ms' => 45 * 1000,
         'max.poll.interval.ms' => 600 * 1000,

@@ -18,10 +18,10 @@ abstract class AbstractCronController extends ProcessController
 {
 
     /**
-     * $cronNextDatetime 定时任务下一次执行时间
+     * $cronLastRunSlot 每个任务最近一次已执行的触发时刻（分钟起点的时间戳）
      * @var array
      */
-    protected static $cronNextDatetime = [];
+    protected static $cronLastRunSlot = [];
 
     /**
      * $offsetSecond 偏差时间1s
@@ -36,6 +36,17 @@ abstract class AbstractCronController extends ProcessController
     protected static $expression = [];
 
     /**
+     * 当前进程开始调度的分钟起点，按 pid 记录，fork 出的子进程会重新取值
+     * @var array{pid:int, minute:int}|null
+     */
+    private static ?array $schedulerBoot = null;
+
+    /**
+     * 由 CrontabManager 每 2 秒调用一次。同一触发时刻（分钟）只执行一次。
+     *
+     * 进程启动所在的那一分钟不执行：进程按 life_time 重启时，新进程可能落在旧进程刚执行过的同一分钟里，
+     * 跳过这一分钟才不会重复执行。之后的每个触发时刻都会执行，包括启动后的第一个。
+     *
      * @param string $cronName
      * @param string $expression
      * @param callable|null $func
@@ -51,36 +62,48 @@ abstract class AbstractCronController extends ProcessController
             $cron = new CronExpression($expression);
         }
 
-        $nowTime = time();
-        $cronNextDatetime = strtotime($cron->getNextRunDate()->format('Y-m-d H:i:s'));
-        if ($cron->isDue()) {
-            if (!isset(static::$cronNextDatetime[$cronName][$expressionKey])) {
-                static::$expression[$cronName][$expressionKey] = $expression;
-                static::$cronNextDatetime[$cronName][$expressionKey] = $cronNextDatetime;
-            }
-
-            $runOnceCron = getenv('run-once-cron');
-            if (($nowTime >= static::$cronNextDatetime[$cronName][$expressionKey] && $nowTime < ($cronNextDatetime - static::$offsetSecond))
-                || ($runOnceCron == 1)
-            ) {
-                putenv('run-once-cron=0');
-                static::$cronNextDatetime[$cronName][$expressionKey] = $cronNextDatetime;
-                if ($func instanceof \Closure) {
-                    call_user_func($func, $cronName, $expression);
-                } else {
-                    $this->doCronTask($cron, $cronName);
-                    $this->afterHandle();
-                }
-
-                if (!$this->isDefer()) {
-                    $this->end();
-                }
-            }
-
-            if ($nowTime > static::$cronNextDatetime[$cronName][$expressionKey] || $nowTime >= $cronNextDatetime) {
-                static::$cronNextDatetime[$cronName][$expressionKey] = $cronNextDatetime;
-            }
+        $now = new \DateTime('now');
+        $bootMinute = self::schedulerBootMinute($now->getTimestamp());
+        if (!$cron->isDue($now)) {
+            return;
         }
+
+        static::$expression[$cronName][$expressionKey] = $expression;
+        $slot = $cron->getPreviousRunDate($now, 0, true)->getTimestamp();
+        $lastSlot = static::$cronLastRunSlot[$cronName][$expressionKey] ?? null;
+
+        $runOnceCron = getenv('run-once-cron');
+        $shouldRun = ($runOnceCron == 1) || ($slot !== $lastSlot && $slot > $bootMinute);
+        if (!$shouldRun) {
+            return;
+        }
+
+        putenv('run-once-cron=0');
+        // 执行前先记下触发时刻，任务耗时超过 2 秒时下一次 tick 不会再进来
+        static::$cronLastRunSlot[$cronName][$expressionKey] = $slot;
+        if ($func instanceof \Closure) {
+            call_user_func($func, $cronName, $expression);
+        } else {
+            $this->doCronTask($cron, $cronName);
+            $this->afterHandle();
+        }
+
+        if (!$this->isDefer()) {
+            $this->end();
+        }
+    }
+
+    /**
+     * @param int $nowTime
+     * @return int
+     */
+    private static function schedulerBootMinute(int $nowTime): int
+    {
+        $pid = getmypid();
+        if (self::$schedulerBoot === null || self::$schedulerBoot['pid'] !== $pid) {
+            self::$schedulerBoot = ['pid' => $pid, 'minute' => $nowTime - ($nowTime % 60)];
+        }
+        return self::$schedulerBoot['minute'];
     }
 
     /**

@@ -24,9 +24,13 @@
 | `$consumerGroup` | 空，必填 | 消费组 |
 | `$consumerTag` | `*` | Tag。空字符串也表示订阅全部 |
 | `$maxNum` | 8 | 一次最多拉取条数，范围 1–32 |
-| `$invisibleMs` | 20000 | 未确认前的不可见时间，范围 1–300000 毫秒 |
+| `$invisibleMs` | 30000 | 未确认前的不可见时间，范围 10000–300000 毫秒。RocketMQ proxy 拒绝小于 10 秒的值（`ILLEGAL_INVISIBLE_TIME`），小于 10000 按 10000 发送，大于 300000 按 300000 |
+| `$ackSafetyMarginMs` | 2000 | 本批不可见时间到期前预留的毫秒数 |
+| `$sidecarStartupWaitSeconds` | 2.0 | 进程启动后第一次 receive 前等待 go-sidecar 开始监听的秒数，范围 0–5，超过 5 按 5，0 表示不等 |
 
-拉取超时 25000 毫秒，确认超时 3000 毫秒。安静队列返回空列表，基类等待后再拉。
+一批消息按顺序处理。每条开始前检查本批的不可见时间，离到期不足 `$ackSafetyMarginMs` 时，剩下的消息不处理也不确认，等 RocketMQ 再投；否则它可能已经投给了别的消费者，这里再处理就会重复。单条处理慢时调大 `$invisibleMs` 或调小 `$maxNum`，保证 `$maxNum × 单条耗时 < $invisibleMs - $ackSafetyMarginMs`。
+
+拉取超时 25000 毫秒，确认超时 5000 毫秒。确认失败只记日志（带 `messageId`，`outcomeUnknown` 表示请求已发出但没拿到结果），不退出进程。安静队列返回空列表，基类等待后再拉。
 
 ## 跟协议服务一起跑
 

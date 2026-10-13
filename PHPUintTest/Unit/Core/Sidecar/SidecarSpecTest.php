@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace PHPUintTest\Unit\Core\Sidecar;
 
 use PHPUintTest\TestCase;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use ReflectionProperty;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Dto\AbstractDto;
@@ -97,7 +99,11 @@ final class SidecarSpecTest extends TestCase
         ], '/tmp/sidecar-runtime');
 
         $this->assertInstanceOf(SidecarSpec::class, $spec);
-        $this->assertSame('/tmp/sidecar-runtime/sidecars_sock/SidecarSpec-9501-rocketmq.sock', $spec->socketPath);
+        // APP_NAME 是常量，可能已被先跑的用例定义，这里按实际值拼期望路径
+        $this->assertSame(
+            '/tmp/sidecar-runtime/sidecars_sock/' . BaseServer::getAppName() . '-9501-rocketmq.sock',
+            $spec->socketPath,
+        );
         $this->assertSame(['--flag'], $spec->args);
         $env = $spec->environment();
         $this->assertSame('1', $env['SIDECAR_ENABLE']);
@@ -215,6 +221,8 @@ final class SidecarSpecTest extends TestCase
         $this->assertStringNotContainsString('body', $captured['message']);
     }
 
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function testSidecarConfigFileIsTheOnlyCopy(): void
     {
         if (!defined('APP_PATH')) {

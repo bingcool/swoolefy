@@ -62,6 +62,34 @@ final class ExecutorAndWindowTest extends TestCase
     }
 
     /**
+     * 22:00-02:00 跨日窗：23:30 与 01:30 命中，12:00 不命中。
+     */
+    public function testOvernightTimeWindow(): void
+    {
+        $filter = new TimeWindowFilter();
+        $between = TaskDefinition::fromArray([
+            'id' => 1,
+            'name' => 'w',
+            'expression' => '15',
+            'command' => 'x',
+            'cron_between' => [['22:00', '02:00']],
+        ]);
+        $this->assertTrue($filter->evaluate($between, strtotime('2026-08-15 23:30:00'))['allowed']);
+        $this->assertTrue($filter->evaluate($between, strtotime('2026-08-15 01:30:00'))['allowed']);
+        $this->assertFalse($filter->evaluate($between, strtotime('2026-08-15 12:00:00'))['allowed']);
+
+        $skip = TaskDefinition::fromArray([
+            'id' => 1,
+            'name' => 'w',
+            'expression' => '15',
+            'command' => 'x',
+            'cron_skip' => [['22:00', '02:00']],
+        ]);
+        $this->assertSame('cron_skip', $filter->evaluate($skip, strtotime('2026-08-15 00:10:00'))['reason']);
+        $this->assertTrue($filter->evaluate($skip, strtotime('2026-08-15 03:00:00'))['allowed']);
+    }
+
+    /**
      * HTTP 任务的 cron_skip 需兼容新旧格式，并在命中窗口时返回 SKIP。
      */
     public function testHttpSkipWindowSupportsObjectArrayAndStringFormats(): void

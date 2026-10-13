@@ -15,6 +15,9 @@ declare(strict_types=1);
  * @see docs/DocumentOcr.md
  */
 return [
+    // parseFile() 允许读取的根目录（按 realpath 判断）；为空时只允许系统临时目录
+    // 上传文件 store 到其它目录后再解析，需要把该目录加进来，例如 APP_PATH . '/Storage/Upload'
+    'allowed_dirs' => [],
     // Pandoc：DOCX / DOC / HTML / MD / TXT → Markdown（本机 pandoc 可执行文件）
     'pandoc' => [
         // 是否启用；false 时 AutoParser 不会注册 PandocDriver

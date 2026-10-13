@@ -29,8 +29,8 @@ final class KubernetesExecutorTest extends TestCase
 {
     public function testJobNameCarriesBatchAndAttempt(): void
     {
-        $this->assertSame('sj-3f9a1c8e2b7d0456-a1', KubernetesExecutor::jobName('3f9a1c8e2b7d0456', 1));
-        $this->assertSame('sj-3f9a1c8e2b7d0456-a3', KubernetesExecutor::jobName('3f9a1c8e2b7d0456', 3));
+        $this->assertSame('cron-job-3f9a1c8e2b7d0456-a1', KubernetesExecutor::jobName('3f9a1c8e2b7d0456', 1));
+        $this->assertSame('cron-job-3f9a1c8e2b7d0456-a3', KubernetesExecutor::jobName('3f9a1c8e2b7d0456', 3));
         $this->assertLessThanOrEqual(63, strlen(KubernetesExecutor::jobName('3f9a1c8e2b7d0456', 3)));
     }
 
@@ -39,7 +39,7 @@ final class KubernetesExecutorTest extends TestCase
         $client = $this->client();
         $client->jobStates = [['status' => ['succeeded' => 1]]];
         $client->pods = [[
-            'metadata' => ['name' => 'sj-abc123-a1-x9f2'],
+            'metadata' => ['name' => 'cron-job-abc123-a1-x9f2'],
             'status' => ['containerStatuses' => [
                 ['name' => 'order-service', 'state' => ['terminated' => ['exitCode' => 0]]],
             ]],
@@ -62,7 +62,7 @@ final class KubernetesExecutorTest extends TestCase
             ]],
         ]];
         $client->pods = [[
-            'metadata' => ['name' => 'sj-abc123-a1-x9f2'],
+            'metadata' => ['name' => 'cron-job-abc123-a1-x9f2'],
             'status' => ['containerStatuses' => [
                 ['name' => 'order-service', 'state' => ['terminated' => ['exitCode' => 137]]],
             ]],
@@ -96,7 +96,7 @@ final class KubernetesExecutorTest extends TestCase
         $this->execute($client, hook: $hook);
 
         $this->assertSame(
-            ['planned:sj-abc123-a1', 'created:sj-abc123-a1', 'finished'],
+            ['planned:cron-job-abc123-a1', 'created:cron-job-abc123-a1', 'finished'],
             $hook->events,
             'Create 成功后立刻崩溃时，只有事先落库的 Job 名能救回句柄',
         );
@@ -116,7 +116,7 @@ final class KubernetesExecutorTest extends TestCase
         $result = $this->execute($client, hook: $hook);
 
         $this->assertSame(ExecutionResult::CANCELLED, $result->status);
-        $this->assertSame(['sj-abc123-a1'], $client->deleted);
+        $this->assertSame(['cron-job-abc123-a1'], $client->deleted);
     }
 
     public function testCancelBeforeCreateSkipsClusterEntirely(): void
@@ -229,7 +229,7 @@ final class KubernetesExecutorTest extends TestCase
 
         $this->execute($client, attempt: 2);
 
-        $this->assertSame('sj-abc123-a2', $client->createCalls[0]['metadata']['name']);
+        $this->assertSame('cron-job-abc123-a2', $client->createCalls[0]['metadata']['name']);
     }
 
     /**

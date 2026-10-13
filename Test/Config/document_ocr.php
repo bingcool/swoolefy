@@ -16,6 +16,8 @@ declare(strict_types=1);
  * @see src/Support/DocumentOcr/
  */
 return [
+    // parseFile() 允许读取的根目录（按 realpath 判断）；为空时只允许系统临时目录
+    'allowed_dirs' => [sys_get_temp_dir(), APP_PATH . '/Storage/Upload'],
     // Pandoc：DOCX / DOC / HTML / MD / TXT → Markdown（本机 pandoc 可执行文件）
     'pandoc' => [
         // 是否启用；false 时 AutoParser 不会注册 PandocDriver

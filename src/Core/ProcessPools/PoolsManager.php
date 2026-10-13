@@ -200,13 +200,14 @@ class PoolsManager
     /**
      * reboot 重启进程
      * @param string $processName
-     * @param bool $isRestartFullProcess
+     * @param bool $isRestartFullProcess true 时重启所有进程池（所有名称、所有 worker 绑定的进程），忽略 $processName
      * @return bool
      */
     public function rebootPools(string $processName, bool $isRestartFullProcess = false)
     {
         if ($isRestartFullProcess) {
-            foreach ($this->workerNum as $workerProcesses) {
+            // processList 结构: [md5(processName)][workerId][index] => AbstractProcessPools
+            foreach ($this->processList as $workerProcesses) {
                 foreach ($workerProcesses as $processList) {
                     /**@var AbstractProcessPools $process */
                     foreach ($processList as $process) {
@@ -237,19 +238,22 @@ class PoolsManager
      * @param \Closure $callback
      * @param float $timeOut
      * @return Process
+     * @throws SystemException 当前 worker 没有绑定该名称的进程
      */
-    public function writeByProcessPoolsName(string $processName, $data, \Closure $callback = null, float $timeOut = 3.0 )
+    public function writeByProcessPoolsName(string $processName, $data, ?\Closure $callback = null, float $timeOut = 3.0 )
     {
         $process = $this->getProcessPoolsByName($processName);
-        if ($process) {
-            if (is_array($data)) {
-                $data = json_encode($data, JSON_UNESCAPED_UNICODE);
-            }
-            $result = (bool)$process->getProcess()->write($data);
-            if ($result && $callback instanceof \Closure) {
-                $msg = $this->read($process->getProcess(), $timeOut);
-                call_user_func($callback, $msg ?? null);
-            }
+        if (!$process instanceof AbstractProcessPools) {
+            throw new SystemException("PoolsManager Error : process pools not found : {$processName}");
+        }
+
+        if (is_array($data)) {
+            $data = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        }
+        $result = (bool)$process->getProcess()->write($data);
+        if ($result && $callback instanceof \Closure) {
+            $msg = $this->read($process->getProcess(), $timeOut);
+            call_user_func($callback, $msg ?? null);
         }
 
         return $process->getProcess();

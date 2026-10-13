@@ -816,7 +816,7 @@ RocketMQ 5.x Proxy
 Go 不写死拉取条数，也不写死 `20 * time.Second`。PHP 每次 `rocketmq.consumer.receive` 带上这两个数，Go 原样用于这一次调用：
 
 ```go
-// maxNum、invisible 来自本次请求，例如 PHP 传入 2 和 20000 毫秒
+// maxNum、invisible 来自本次请求，例如 PHP 传入 2 和 30000 毫秒
 mvs, err := client.Receive(ctx, maxNum, invisible)
 ```
 
@@ -900,8 +900,8 @@ final class RocketmqConsumerProcess extends \Swoolefy\Core\Process\AbstractProce
             $req->setTopic($topic);
             $req->setConsumerGroup($group);
             $req->setConsumerTag($tag);
-            $req->setMaxNum(2);
-            $req->setInvisibleMs(20000);
+            $req->setMaxNum(8);
+            $req->setInvisibleMs(30000);
             try {
                 $response = $client->call('rocketmq', 'rocketmq.consumer.receive', $req, 25000);
                 $client->assertOk($response);
@@ -934,7 +934,7 @@ final class RocketmqConsumerProcess extends \Swoolefy\Core\Process\AbstractProce
                         $ack->setReceiptHandle($message->getReceiptHandle());
                         $ack->setMessageId($message->getMessageId());
                         $ack->setTopic($message->getTopic());
-                        $client->assertOk($client->call('rocketmq', 'rocketmq.consumer.ack', $ack, 3000));
+                        $client->assertOk($client->call('rocketmq', 'rocketmq.consumer.ack', $ack, 5000));
                     } catch (\Throwable) {
                         // 业务失败或 ack 失败都不确认。不可见时间结束后由 RocketMQ 再投
                     } finally {
@@ -951,7 +951,7 @@ final class RocketmqConsumerProcess extends \Swoolefy\Core\Process\AbstractProce
 
 `RocketmqMessageHandler::handle(ReceivedMessageDto $message): void` 由应用注册。框架只提供空接口，默认实现抛 `SidecarException`，避免启用了消费却没有处理函数时把消息直接 ack 掉。处理函数自己按 `messageId` 做幂等。
 
-`maxNum=2`、`invisibleMs=20000`、receive 的 `timeoutMs=25000`、ack 的 `timeoutMs=3000` 是这一版的默认值。消息量大时把 `maxNum` 提高到不超过 32，并把 `sidecar_rocketmq_consumer_concurrency` 提高到不超过 32。同一批里的消息并发处理，这一批的耗时接近最慢的那条，而不是每条相加。`invisibleMs` 要盖住最慢的那条处理时间。处理完这一批才进入下一次 `receive`，不把没处理完的消息放进队列。
+`maxNum=8`、`invisibleMs=30000`、receive 的 `timeoutMs=25000`、ack 的 `timeoutMs=5000` 是这一版的默认值。消息量大时把 `maxNum` 提高到不超过 32，并把 `sidecar_rocketmq_consumer_concurrency` 提高到不超过 32。同一批里的消息并发处理，这一批的耗时接近最慢的那条，而不是每条相加。`invisibleMs` 要盖住最慢的那条处理时间。处理完这一批才进入下一次 `receive`，不把没处理完的消息放进队列。
 
 单个实例把 `maxNum` 和并发都顶满后仍然积压：再加 Swoole 实例，使用同一个 `sidecar_rocketmq_consumer_group`。不要在本实例为同一消费组和 Topic 注册第二个 PHP 进程。
 
@@ -1013,7 +1013,7 @@ final class ReceiveMessageRequestDto extends AbstractDto
 
     protected int $maxNum = 2;
 
-    protected int $invisibleMs = 20000;
+    protected int $invisibleMs = 30000;
 
     // setTopic/getTopic、setConsumerGroup/getConsumerGroup、setConsumerTag/getConsumerTag
     // setMaxNum/getMaxNum、setInvisibleMs/getInvisibleMs
@@ -1109,7 +1109,7 @@ Go 测试：
 - 同一批消息按 `sidecar_rocketmq_consumer_concurrency` 并发处理，这一批结束前不会发起下一次 `receive`。
 - 请求里的 `topic`、`consumerGroup`、`consumerTag` 与该 PHP 消费进程的配置一致。Go 不读取 `SIDECAR_ROCKETMQ_CONSUME_TOPICS` 或 `SIDECAR_ROCKETMQ_CONSUMER_GROUP`。
 - PHP 未 `ack`、或结果因断开被丢弃时，Go 不向 RocketMQ 确认。不可见时间结束后可以再次拉取。
-- PHP 传入 `maxNum=2`、`invisibleMs=20000` 时，Go 侧对应 `Receive(ctx, 2, 20*time.Second)`，不能改成别的条数或时长。JSON 键是驼峰。
+- PHP 传入 `maxNum=2`、`invisibleMs=30000` 时，Go 侧对应 `Receive(ctx, 2, 30*time.Second)`，不能改成别的条数或时长。JSON 键是驼峰。
 - `SIGTERM` 后在关闭预算内退出，不留下仍可连接的旧 socket。
 
 集成：

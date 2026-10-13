@@ -91,7 +91,11 @@ final class DocumentOcrFactory
             );
         }
 
-        return new self(new AutoParser($parsers));
+        $allowedDirs = is_array($config['allowed_dirs'] ?? null)
+            ? array_values(array_filter($config['allowed_dirs'], static fn ($dir): bool => is_string($dir) && $dir !== ''))
+            : [];
+
+        return new self(new AutoParser($parsers), new LocalFileLoader($allowedDirs));
     }
 
     /**

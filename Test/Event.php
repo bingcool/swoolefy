@@ -19,6 +19,11 @@ use Swoolefy\Core\SystemEnv;
 class Event extends EventHandler
 {
     /**
+     * 是否注册 Test\Process\MqVerify 下的消息中间件验证进程。验证完改回 false。
+     */
+    private const MQ_VERIFY = false;
+
+    /**
      * onInit
      */
     public function onInit()
@@ -105,6 +110,11 @@ class Event extends EventHandler
             // ProcessManager::getInstance()->addProcess('rocketmq-consumer-test-demo', \Test\Process\Rocketmq\ConsumerRocketmq::class);
 
 
+            // Kafka / AMQP / RocketMQ 真实环境验证：每个场景一个进程，结果看 [MQ-VERIFY] 开头的输出，约 1~3 分钟出结论
+            if (self::MQ_VERIFY) {
+                $this->registerMqVerifyProcesses();
+            }
+
             // worker进程绑定进程池
             //PoolsManager::getInstance()->addProcessPools('worker-follower-task', \Test\Pools\TestBindWorker::class, 1,true, []);
 
@@ -133,6 +143,25 @@ class Event extends EventHandler
             // 这里为什么获取不到pid,那是应为process需要server执行start后才会创建，而在这里只是创建实例，server还没正式启动
             //$pid = ProcessManager::getInstance()->getProcessByName('redis_list_test')->getPid();
         }
+    }
+
+    /**
+     * 每次启动生成一个 run，所有场景用它隔离 topic / 队列 / 消费组。进程被 kill 重启时 args 不变，run 也不变。
+     */
+    private function registerMqVerifyProcesses(): void
+    {
+        $run = date('His') . bin2hex(random_bytes(2));
+        foreach (\Test\Process\MqVerify\VerifyScenarios::all() as $scenario) {
+            ProcessManager::getInstance()->addProcess('mqv-' . $scenario['name'], $scenario['class'], true, [
+                'run' => $run,
+                'name' => $scenario['name'],
+                'behaviour' => $scenario['behaviour'],
+                'mode' => $scenario['mode'],
+            ]);
+        }
+        ProcessManager::getInstance()->addProcess('mqv-reporter', \Test\Process\MqVerify\VerifyReporter::class, true, [
+            'run' => $run,
+        ]);
     }
 
     /**

@@ -49,7 +49,7 @@ final class CronExecutionDetailConsistencyTest extends TestCase
         );
 
         $this->assertStringContainsString('$query->getLogId()', $src);
-        $this->assertStringContainsString("->where('id', \$logId)->find()", $src);
+        $this->assertStringContainsString("->where('id', \$logId)->first()", $src);
         $this->assertStringContainsString("'cron_id' => \$taskId", $src);
         $this->assertStringContainsString("'exec_batch_id' => \$execBatchId", $src);
     }

@@ -102,6 +102,10 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
             $this->useLoopHandle = true;
             while (true) {
                 if (!$this->isDue()) {
+                    // EXIT 指令同时置 isExit 和 waitToExit，isDue() 之后一直为 false，必须在这里退出
+                    if ($this->waitToExit) {
+                        $this->exitNow($this->getPid(), 5);
+                    }
                     $this->fmtWriteInfo("【{$this->getProcessName()}】守护进程退出|重启中，不再处理任务");
                     continue;
                 }

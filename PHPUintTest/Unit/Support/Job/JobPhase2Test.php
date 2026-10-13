@@ -168,13 +168,62 @@ final class JobPhase2Test extends TestCase
         $this->assertTrue($dlq->length() === 0, 'empty after');
         $this->assertTrue(($published[0]['attempt'] ?? null) === 1, 'attempt reset');
         $this->assertTrue(($published[0]['payload']['orderId'] ?? null) === 42, 'payload');
+        $this->assertSame(0, $redis->lLen($dlq->replayingKey()));
+    }
+
+    /**
+     * publish 抛异常时死信放回原 List，暂存 List 清空；损坏条目移到 :corrupt，不计入重放条数。
+     */
+    public function testRedisDeadLetterReplayKeepsEntryWhenPublishFails(): void
+    {
+        $redis = new FakeRedisList();
+        $dlq = new RedisDeadLetter($redis, 'job:dead:');
+        $dlq->push(JobEnvelope::make('order.export', ['orderId' => 7]), 'exhausted');
+
+        try {
+            $dlq->replay(static function (): void {
+                throw new \RuntimeException('broker down');
+            }, 'default', 1);
+            $this->fail('expected publish exception');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('broker down', $e->getMessage());
+        }
+        $this->assertSame(1, $dlq->length());
+        $this->assertSame(0, $redis->lLen($dlq->replayingKey()));
+
+        $redis->lPush($dlq->key(), 'not-json');
+        $n = $dlq->replay(static function (): void {
+        }, 'default', 5);
+        $this->assertSame(1, $n);
+        $this->assertSame(0, $dlq->length());
+        $this->assertSame(1, $redis->lLen($dlq->corruptKey()));
+    }
+
+    /**
+     * 上一次 replay 中途退出留在 :replaying 的条目，下一次 replay 会先移回并重放。
+     */
+    public function testRedisDeadLetterReplayRecoversStaging(): void
+    {
+        $redis = new FakeRedisList();
+        $dlq = new RedisDeadLetter($redis, 'job:dead:');
+        $dlq->push(JobEnvelope::make('order.export', ['orderId' => 9]), 'exhausted');
+        $redis->rPopLPush($dlq->key(), $dlq->replayingKey());
+        $this->assertSame(0, $dlq->length());
+
+        $published = [];
+        $n = $dlq->replay(static function (array $data) use (&$published): void {
+            $published[] = $data;
+        }, 'default', 5);
+        $this->assertSame(1, $n);
+        $this->assertSame(9, $published[0]['payload']['orderId'] ?? null);
+        $this->assertSame(0, $redis->lLen($dlq->replayingKey()));
     }
 }
 
 /**
  * 死信单测用的最小 Redis List 假实现。
  *
- * 仅实现 lPush / rPop / lLen，语义与 Redis 列表 FIFO（rPop 消费）一致。
+ * 实现 lPush / rPush / rPop / rPopLPush / lRem / lLen，lRem 按 phpredis 的参数顺序 (key, value, count)。
  */
 final class FakeRedisList
 {
@@ -188,6 +237,44 @@ final class FakeRedisList
         array_unshift($this->lists[$key], $value);
 
         return count($this->lists[$key]);
+    }
+
+    /** 从列表尾部入队 */
+    public function rPush(string $key, string $value): int
+    {
+        $this->lists[$key] ??= [];
+        $this->lists[$key][] = $value;
+
+        return count($this->lists[$key]);
+    }
+
+    /** 原子地从 $source 尾部弹出并压入 $destination 头部 */
+    public function rPopLPush(string $source, string $destination): string|false
+    {
+        $value = $this->rPop($source);
+        if ($value === false) {
+            return false;
+        }
+        $this->lPush($destination, $value);
+
+        return $value;
+    }
+
+    /** 从头部起删除最多 $count 个等于 $value 的元素 */
+    public function lRem(string $key, string $value, int $count): int
+    {
+        $removed = 0;
+        $kept = [];
+        foreach ($this->lists[$key] ?? [] as $item) {
+            if ($item === $value && $removed < $count) {
+                ++$removed;
+                continue;
+            }
+            $kept[] = $item;
+        }
+        $this->lists[$key] = $kept;
+
+        return $removed;
     }
 
     /** 从列表尾部出队；空列表返回 false */

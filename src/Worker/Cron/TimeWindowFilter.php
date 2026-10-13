@@ -95,18 +95,25 @@ final class TimeWindowFilter
         if (!is_array($window) || count($window) < 2) {
             return false;
         }
-        $range = $this->resolveRange((string) $window[0], (string) $window[1], $now);
+        $range = $this->resolveRange(trim((string) $window[0]), trim((string) $window[1]), $now);
         if ($range === null) {
             return false;
         }
 
-        return $range[0] <= $now && $now <= $range[1];
+        [$startTs, $endTs, $crossesMidnight] = $range;
+        if ($crossesMidnight) {
+            // 22:00-02:00：当天 22:00 之后，或当天 02:00 之前
+            return $now >= $startTs || $now <= $endTs;
+        }
+
+        return $startTs <= $now && $now <= $endTs;
     }
 
     /**
-     * 时刻窗锚定到 $now 的 Y-m-d；跨日窗（如 22:00-02:00）按字面时间戳比较，不自动拆日。
+     * 时刻窗锚定到 $now 的 Y-m-d。开始时刻晚于结束时刻（如 22:00-02:00）视为跨日窗。
+     * 完整日期时间窗按字面时间戳比较，开始晚于结束时不命中。
      *
-     * @return array{0:int,1:int}|null
+     * @return array{0:int,1:int,2:bool}|null
      */
     private function resolveRange(string $start, string $end, int $now): ?array
     {
@@ -114,15 +121,20 @@ final class TimeWindowFilter
             $date = date('Y-m-d', $now);
             $startTs = strtotime($date . ' ' . $start);
             $endTs = strtotime($date . ' ' . $end);
-        } else {
-            $startTs = strtotime($start);
-            $endTs = strtotime($end);
+            if ($startTs === false || $endTs === false) {
+                return null;
+            }
+
+            return [$startTs, $endTs, $startTs > $endTs];
         }
+
+        $startTs = strtotime($start);
+        $endTs = strtotime($end);
         if ($startTs === false || $endTs === false) {
             return null;
         }
 
-        return [$startTs, $endTs];
+        return [$startTs, $endTs, false];
     }
 
     /**

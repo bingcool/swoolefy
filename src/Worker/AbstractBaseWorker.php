@@ -113,6 +113,12 @@ abstract class AbstractBaseWorker
     private bool $isForceExit = false;
 
     /**
+     * exitNow 只执行一次，避免 loopHandle 与退出定时器重复调用 onShutDown
+     * @var bool
+     */
+    private bool $exitNowStarted = false;
+
+    /**
      * @var int
      */
     private int $processType = 1;// 1-静态进程，2-动态进程
@@ -1222,7 +1228,11 @@ abstract class AbstractBaseWorker
     public function isDue(): bool
     {
         if($this->isRebooting() || $this->isForceExit() || $this->isExiting() || $this->waitToExit) {
-            sleep(1);
+            if (\Swoole\Coroutine::getCid() > 0) {
+                \Swoole\Coroutine\System::sleep(1);
+            } else {
+                sleep(1);
+            }
             $this->fmtWriteInfo("【{$this->getProcessName()}】Process Wait to Exit or Reboot，Do not something");
             return false;
         }
@@ -1502,6 +1512,10 @@ abstract class AbstractBaseWorker
      */
     protected function exitNow(int $pid, int $maxWaitTimeOfExit)
     {
+        if ($this->exitNowStarted) {
+            return;
+        }
+        $this->exitNowStarted = true;
         $this->isExit = true;
         try {
             $this->runtimeCoroutineWait($maxWaitTimeOfExit);

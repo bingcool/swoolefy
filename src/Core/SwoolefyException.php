@@ -91,10 +91,15 @@ class SwoolefyException
      * @param string $errorMessage
      * @param string $errorFile
      * @param int $errorLine
-     * @return void
+     * @return bool|null false 表示交回 PHP 默认处理
+     * @throws \ErrorException
      */
     public static function handleError(int $errorNo, string $errorMessage, string $errorFile, int $errorLine)
     {
+        // @ 压制的调用（@fopen / @mkdir 等）此时 error_reporting() 不含该级别，交回 PHP 默认处理，不转异常
+        if (!(error_reporting() & $errorNo)) {
+            return false;
+        }
         if ((\PHP_VERSION_ID >= 80400 && in_array($errorNo, [E_NOTICE, E_DEPRECATED])) ||
             (\PHP_VERSION_ID < 80400 && in_array($errorNo, [E_NOTICE, E_DEPRECATED, E_STRICT]))
         ) {

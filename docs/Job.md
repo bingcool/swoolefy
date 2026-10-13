@@ -329,7 +329,7 @@ Kafka 无原生 delay 时可忽略 `$delayMs` 立即 republish（仍会 bump att
 | `key($queue='default')` | `{prefix}{queue}`，默认 `job:dead:default` |
 | `push($job, $error, $queue)` | LPUSH JSON `{job,error,at}` |
 | `pop($queue)` | RPOP FIFO |
-| `replay($publish, $queue, $limit)` | 弹出后 `withAttempt(1)` 再 `$publish` |
+| `replay($publish, $queue, $limit)` | RPOPLPUSH 到 `{key}:replaying`，`withAttempt(1)` 后 `$publish`，成功才从暂存删除；`$publish` 抛异常时放回死信 List 并抛出；损坏条目移到 `{key}:corrupt`；开始时先把上次中途退出留下的暂存条目移回。同一 queue 不要并发 replay |
 | `length($queue)` | List 长度 |
 
 ```php

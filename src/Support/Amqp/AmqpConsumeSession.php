@@ -10,7 +10,10 @@ use PhpAmqpLib\Message\AMQPMessage;
 use Swoolefy\Support\Amqp\Dto\ReceivedMessageDto;
 
 /**
- * 一个队列上的一次拉取。onMessage() 成功后才 ack。prefetch 来自 AmqpConfig。
+ * 一个队列上的一次拉取。onMessage() 成功后才 ack。
+ *
+ * prefetch_count 固定为 1：这里只跟踪一条未确认消息，大于 1 时后到的投递会覆盖前一条，前一条永远不会被 ack。
+ * ack 失败时关闭连接，未确认的消息由 Broker 重新投递（redelivered=true），业务需按业务键幂等。
  */
 final class AmqpConsumeSession
 {
@@ -78,13 +81,9 @@ final class AmqpConsumeSession
             return;
         }
         $consume = AmqpSettings::consume();
-        $prefetch = (int) ($consume['prefetch_count'] ?? 1);
-        if ($prefetch < 1) {
-            $prefetch = 1;
-        }
         $channel->basic_qos(
             (int) ($consume['prefetch_size'] ?? 0),
-            $prefetch,
+            1,
             (bool) ($consume['global'] ?? false),
         );
         $tag = $this->topology->consumerTag !== ''
@@ -99,6 +98,11 @@ final class AmqpConsumeSession
             (bool) ($consume['exclusive'] ?? false),
             false,
             function (AMQPMessage $message): void {
+                if ($this->pending !== null) {
+                    // prefetch=1 下不应出现；出现时退回 Broker，不覆盖还没 ack 的那一条
+                    $message->nack(true);
+                    return;
+                }
                 $this->pending = $message;
             },
         );

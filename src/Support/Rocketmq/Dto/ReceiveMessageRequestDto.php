@@ -16,7 +16,7 @@ final class ReceiveMessageRequestDto extends AbstractDto
 
     protected int $maxNum = 2;
 
-    protected int $invisibleMs = 20000;
+    protected int $invisibleMs = 30000;
 
     public function setTopic(string $topic): void
     {

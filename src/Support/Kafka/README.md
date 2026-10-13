@@ -17,7 +17,29 @@ $producer->produce('kafka-producer:' . date('Y-m-d H:i:s'));
 
 ## 消费
 
-两条路径都只实现 `onMessage()`。是否自动提交 offset 由 `KafkaConfig` 的 `enable.auto.commit` 决定。`onMessage()` 正常返回后还会再提交一次当前消息；它抛异常时不主动提交，同一条会再次交给 `onMessage()`。
+两条路径都只实现 `onMessage()`。offset 何时提交由 handler 的 `$commitMode` 决定（`KafkaCommitMode`）：
+
+| `$commitMode` | 何时提交 | 语义 | `onMessage()` 抛异常 |
+| --- | --- | --- | --- |
+| `KafkaCommitMode::AFTER_HANDLED`（默认） | 成功后同步 `commit()` | 至少一次 | 不提交，原地重试同一条 |
+| `KafkaCommitMode::AFTER_HANDLED_ASYNC` | 成功后 `commitAsync()` | 至少一次，吞吐更高 | 不提交，原地重试同一条 |
+| `KafkaCommitMode::BEFORE_HANDLE` | `onMessage()` 前同步 `commit()` | 至多一次 | 不重试，记错误日志后丢弃 |
+
+```php
+class NotifyConsumer extends KafkaConsumerWorkerProcessHandler
+{
+    protected string $topic = 'notify';
+    protected string $consumerGroup = 'notify-sender';
+    // 宁可漏发也不能重复发
+    protected string $commitMode = KafkaCommitMode::BEFORE_HANDLE;
+}
+```
+
+- `AFTER_HANDLED`：提交失败只重试提交（最多 3 次），不会再跑一次 `onMessage()`；仍失败就放弃这次提交，下一条提交成功时 offset 一并前进。在那之前发生重平衡或重启，这条会再投递一次，业务需要按 topic + partition + offset 幂等。
+- `AFTER_HANDLED_ASYNC`：不等 broker 应答，省掉每条一次的往返。提交失败由 offset_commit_cb 记 warning（`kafka async commit failed`）。崩溃 / 重平衡时，已处理但异步提交还没落地的几条会再投递，重复比默认模式多，同样需要幂等。
+- `BEFORE_HANDLE`：提交成功才调用 `onMessage()`；提交失败不处理，0.5 秒后重试提交，所以不会出现“没提交却已处理”。`onMessage()` 抛异常或进程崩溃时这条不会再投递，日志 `kafka message dropped after onMessage failed in before_handle mode` 带 topic / partition / offset / key，需要时据此补偿。
+
+librdkafka 的 `enable.auto.commit` 始终强制关闭：它在 `consume()` 返回时就记下 offset 并定时提交，不看 `onMessage()` 的结果，崩溃时既可能丢也可能重复。`KafkaConfig` 里配成 1 时启动会打 warning（`kafka enable.auto.commit is ignored`），请改用 `$commitMode`。
 
 同一个消费组 + Topic 只保留一个消费进程。
 

@@ -230,6 +230,7 @@ class CronForkProcess extends CronProcess
                 $statusProperty['exec_batch_id'] ?? '',
                 "【{$scheduleTask->cron_name}】PROC_OPEN 拉起脚本的进程PID={$statusProperty['pid']}",
                 (int) $statusProperty['pid'],
+                ['status' => ExecutionStatus::RUNNING],
             );
         }
         // fork Process success callback handing
@@ -275,19 +276,20 @@ class CronForkProcess extends CronProcess
             );
         }
 
-        if ($exitCode === 0) {
-            return ExecutionResult::success(
-                "cron_fork proc_open 执行成功(pid={$pid}, exitCode=0)",
-                $pid,
-                0,
-            );
-        }
-
+        // 被信号终止时 exit_code 可能仍是 0，必须先于 exitCode===0 判断
         if ($signaled || $termSignal > 0) {
             return ExecutionResult::failed(
                 "cron_fork proc_open 结束(signal={$termSignal}, pid={$pid}, exitCode={$exitCode}{$tailMessage})",
                 $pid,
                 $exitCode,
+            );
+        }
+
+        if ($exitCode === 0) {
+            return ExecutionResult::success(
+                "cron_fork proc_open 执行成功(pid={$pid}, exitCode=0)",
+                $pid,
+                0,
             );
         }
 

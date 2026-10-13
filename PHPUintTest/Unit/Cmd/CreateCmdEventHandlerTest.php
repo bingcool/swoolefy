@@ -8,6 +8,8 @@ require_once __DIR__ . '/create_cmd_test_helpers.php';
 require_once __DIR__ . '/CreateCmdTestFilesystemTrait.php';
 
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 use Swoolefy\Cmd\CreateCmd;
 use Swoolefy\Core\EventHandler;
@@ -18,7 +20,11 @@ use Symfony\Component\Console\Output\BufferedOutput;
 /**
  * CreateCmd 脚手架 event_handler 接线）。
  * 覆盖：HTTP/WebSocket/MQTT/RPC 生成 conf 后加载配置，event_handler 为应用 Event::class 且可实例化。
+ *
+ * 本类 define 了 APP_NAME / SWOOLEFY_ENV 等常量，必须隔离进程，否则会污染后续用例（如 SidecarSpec socket 名、生产环境判断）。
  */
+#[RunTestsInSeparateProcesses]
+#[PreserveGlobalState(false)]
 final class CreateCmdEventHandlerTest extends TestCase
 {
     use CreateCmdTestFilesystemTrait;
@@ -34,7 +40,8 @@ final class CreateCmdEventHandlerTest extends TestCase
 
     private const TEST_APP_NAME_PREFIX = 'CreateCmdEventHandlerApp';
 
-    public static function setUpBeforeClass(): void
+    /** 在 setUp 中调用：隔离进程下 setUpBeforeClass 仍会在父进程执行，define 会泄漏到后续用例。 */
+    private static function defineTestConstants(): void
     {
         $projectRoot = dirname(__DIR__, 3);
         if (!defined('SRC_DIR_ROOT')) {
@@ -74,6 +81,7 @@ final class CreateCmdEventHandlerTest extends TestCase
 
     protected function setUp(): void
     {
+        self::defineTestConstants();
         $this->tmpRoot = sys_get_temp_dir() . '/swoolefy_create_cmd_event_' . getmypid() . '_' . bin2hex(random_bytes(3));
         $this->startDir = $this->tmpRoot . '/start';
         $this->appName = self::TEST_APP_NAME_PREFIX . '_' . bin2hex(random_bytes(2));

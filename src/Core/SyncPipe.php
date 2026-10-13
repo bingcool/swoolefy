@@ -92,8 +92,7 @@ class SyncPipe
                     $result = call_user_func($callBack, $param);
                     $goWait->done($key, $result ?? null, 3.0);
                 } catch (\Throwable $throwable) {
-                    $goWait->add(-1);
-                    $goWait->done($key, $throwable ?? null, 3.0);
+                    $goWait->done($key, $throwable, 3.0);
                 }
             });
         }

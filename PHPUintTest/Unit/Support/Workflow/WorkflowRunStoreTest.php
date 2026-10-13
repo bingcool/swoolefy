@@ -38,6 +38,8 @@ use Swoolefy\Support\Workflow\WorkflowConfig;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
 use Swoolefy\Support\Workflow\WorkflowRunStoreName;
 use PHPUintTest\TestCase;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 
 /**
  * RunStore 配置解析与 memory / redis / db 驱动行为测试。
@@ -413,12 +415,16 @@ final class WorkflowRunStoreTest extends TestCase
     /**
      * 验证：生产环境 memory 驱动触发 E_USER_WARNING（高可见）；开发环境不警告。
      */
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function testProductionMemoryRunStoreEmitsWarning(): void
     {
         WorkflowComponentFactory::resetRunStores();
         $config = WorkflowConfig::fromArray($this->sampleRunStoresConfig(WorkflowRunStoreName::MEMORY));
 
         $warned = false;
+        // 子进程里 error_log() 默认写 stderr，PHPUnit 会把子进程 stderr 当成异常
+        ini_set('error_log', '/dev/null');
         $this->withSwoolefyEnv('prd', function () use ($config, &$warned): void {
             set_error_handler(static function (int $severity, string $message) use (&$warned): bool {
                 if ($severity === E_USER_WARNING && str_contains($message, 'CRITICAL') && str_contains($message, 'memory')) {

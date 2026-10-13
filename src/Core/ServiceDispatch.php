@@ -164,8 +164,6 @@ class ServiceDispatch extends AppDispatch
             $serviceInstance->_afterAction($action);
             // call after route handle middle
             $this->handleAfterRouteMiddles();
-            // call hook callable
-            Hook::callHook(Hook::HOOK_AFTER_REQUEST);
 
         } catch (\Throwable $throwable) {
             $exceptionMsg = $throwable->getMessage();
@@ -184,6 +182,9 @@ class ServiceDispatch extends AppDispatch
             $exceptionClass = Application::getApp()->getExceptionClass();
             $exceptionClass::shutHalt($errorMsg, SwoolefyException::EXCEPTION_ERR, $throwable);
             return false;
+        } finally {
+            // 成功与失败都执行并清掉当前协程的 after Hook；否则 cid 复用时下一个请求会执行到上一个请求的回调
+            Hook::callHook(Hook::HOOK_AFTER_REQUEST);
         }
     }
 

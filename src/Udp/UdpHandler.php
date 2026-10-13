@@ -66,8 +66,10 @@ class UdpHandler extends Swoole implements HandlerInterface
      */
     public function run(?int $fd, $payload, array $extendData = [], array $contextData = [])
     {
+        // parent::run() 会登记 Application 并注册 defer(end)，每次请求只能调用一次，
+        // 否则 end() 执行两次，组件对象会被重复归还到连接池
+        $started = false;
         try {
-            parent::run(null, $payload);
             if ($this->isWorkerProcess()) {
                 $isTaskProcess = false;
                 try {
@@ -81,11 +83,14 @@ class UdpHandler extends Swoole implements HandlerInterface
                 $this->setMixedParams($packet->getParams());
                 $this->setServiceHandle($packet->getEndpoint());
 
+                $started = true;
                 parent::run(null, $payload);
 
                 $endPoint = $packet->getEndpoint();
                 $params = $packet->getParams();
             } else {
+                $started = true;
+                parent::run(null, $payload);
                 $isTaskProcess = true;
                 foreach ($contextData as $key => $value) {
                     SwooleContent::set($key, $value);
@@ -122,7 +127,7 @@ class UdpHandler extends Swoole implements HandlerInterface
             ServiceDispatch::getErrorHandle()->errorMsg($throwable->getMessage(), -1);
             throw $throwable;
         } finally {
-            if (!$this->isDefer) {
+            if ($started && !$this->isDefer) {
                 parent::end();
             }
         }

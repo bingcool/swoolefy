@@ -129,7 +129,7 @@ class SystemEnv
     {
         $scheduleModelOptionField = AbstractKernel::getScheduleModelOptionField();
         $model = SystemEnv::getOption($scheduleModelOptionField);
-        if (str_contains(strtolower($model), 'cron')) {
+        if (str_contains(strtolower((string) $model), 'cron')) {
             return true;
         }else {
             return false;
@@ -173,7 +173,7 @@ class SystemEnv
             if (str_starts_with($item, '--') || str_starts_with($item, '-')) {
                 $item = trim($item,'-');
                 $values = explode('=', $item, 2);
-                $options[trim($values[0])] = trim($values[1]);
+                $options[trim($values[0])] = trim($values[1] ?? '');
             }
         }
         return $options;

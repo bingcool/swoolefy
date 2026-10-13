@@ -58,7 +58,7 @@ class AmqpConfig
     }
 
     /**
-     * 消费参数。prefetch_count=1：一次只投递一条未确认消息。
+     * 消费参数。prefetch_count 固定为 1：一次只投递一条未确认消息，Support\Amqp 消费端写别的值也不生效。
      * consumer_tag 是前缀，进程里会再拼上 pid。
      *
      * @param array<string, mixed> $override

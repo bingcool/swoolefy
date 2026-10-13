@@ -56,7 +56,7 @@ use Swoolefy\Support\Kubernetes\JobTemplateException;
  */
 class KubernetesExecutor implements CronExecutorInterface
 {
-    /** Job 名前缀。`cron-job-{execBatchId}-a{attempt}` 共 22 字符，远低于 63 上限。 */
+    /** Job 名前缀。`cron-job-{execBatchId}-a{attempt}` 约 28 字符，远低于 63 上限。 */
     public const JOB_NAME_PREFIX = 'cron-job-';
 
     private readonly JobTemplateBuilder $builder;
@@ -363,7 +363,7 @@ class KubernetesExecutor implements CronExecutorInterface
     /**
      * 用 label 定位本次 attempt 的 Pod，并把 Pod 名写进 meta。
      *
-     * Job 生成的 Pod 名带随机后缀，且 `sj-x-a1` 是 `sj-x-a10` 的前缀，按名字匹配会误命中，
+     * Job 生成的 Pod 名带随机后缀，且 `cron-job-x-a1` 是 `cron-job-x-a10` 的前缀，按名字匹配会误命中，
      * 因此一律走 `exec-batch-id + attempt` 的 label 选择器（方案 §12）。
      *
      * @param array<string, mixed> $meta

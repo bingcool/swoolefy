@@ -418,6 +418,42 @@ final class DocumentOcrTest extends TestCase
     }
 
     /**
+     * 验证 LocalFileLoader 只读允许目录：目录外文件、.. 穿越、符号链接指向目录外都拒绝。
+     */
+    public function testLocalFileLoaderRejectsPathsOutsideAllowedRoots(): void
+    {
+        $tmp = sys_get_temp_dir() . '/swoolefy_ocr_roots_' . bin2hex(random_bytes(3));
+        $allowed = $tmp . '/allowed';
+        $outside = $tmp . '/outside';
+        mkdir($allowed, 0755, true);
+        mkdir($outside, 0755, true);
+        file_put_contents($allowed . '/in.md', '# in');
+        file_put_contents($outside . '/out.md', '# out');
+        symlink($outside . '/out.md', $allowed . '/link.md');
+
+        $loader = new LocalFileLoader([$allowed]);
+        try {
+            $this->assertSame('md', $loader->load($allowed . '/in.md')->extension);
+
+            foreach ([$outside . '/out.md', $allowed . '/../outside/out.md', $allowed . '/link.md', '/etc/hosts'] as $path) {
+                try {
+                    $loader->load($path);
+                    $this->fail('should reject ' . $path);
+                } catch (DocumentException $e) {
+                    $this->assertStringContainsString('outside allowed', $e->getMessage(), $path);
+                }
+            }
+        } finally {
+            @unlink($allowed . '/link.md');
+            @unlink($allowed . '/in.md');
+            @unlink($outside . '/out.md');
+            @rmdir($allowed);
+            @rmdir($outside);
+            @rmdir($tmp);
+        }
+    }
+
+    /**
      * 验证 WorkDirectory::removeDir 仅删除自身 job 目录，不越界删除外部路径。
      */
     public function testWorkDirectoryPathSafety(): void

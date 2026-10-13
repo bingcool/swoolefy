@@ -36,15 +36,15 @@ class KafkaConfig
 
     /**
      * Consumer 全局属性。
-     * enable.auto.commit=1：定时自动提交 offset。
+     * enable.auto.commit=0：Support\Kafka 由框架显式提交 offset，KafkaConsumeSession 强制关闭自动提交，配成 1 只会打 warning。
+     *   提交时机在消费 handler 的 $commitMode 里选：AFTER_HANDLED（默认）/ AFTER_HANDLED_ASYNC / BEFORE_HANDLE，见 KafkaCommitMode。
      * auto.offset.reset=earliest：无已提交 offset 时从最早消息开始。
      * session.timeout.ms / max.poll.interval.ms：心跳与两次 poll 的最大间隔，超时会被踢出组。
      *
      * @var array<string, mixed>
      */
     private const DEFAULT_CONSUMER_GLOBAL_PROPERTY = [
-        'enable.auto.commit' => 1,
-        'auto.commit.interval.ms' => 200,
+        'enable.auto.commit' => 0,
         'auto.offset.reset' => 'earliest',
         'session.timeout.ms' => 45 * 1000,
         'max.poll.interval.ms' => 600 * 1000,

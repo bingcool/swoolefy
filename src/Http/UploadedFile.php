@@ -140,17 +140,20 @@ final class UploadedFile
     /**
      * 将 Swoole 临时文件移动到目标目录。
      *
+     * $filename 只取最后一段文件名（../a.php、sub/a.php 都会变成 a.php），文件始终落在 $directory 内。
+     *
      * @return string 保存后的绝对路径
      */
     public function moveTo(string $directory, ?string $filename = null): string
     {
         $this->assertValid();
 
+        $filename = $filename !== null ? self::safeFilename($filename) : $this->generateStoredFilename();
+
         if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
             throw new UploadException('Cannot create upload directory: ' . $directory);
         }
 
-        $filename = $filename ?? $this->generateStoredFilename();
         $target = rtrim($directory, '/\\') . DIRECTORY_SEPARATOR . $filename;
 
         if (is_file($target)) {
@@ -257,6 +260,20 @@ final class UploadedFile
         }
 
         throw new UploadException($this->getErrorMessage());
+    }
+
+    private static function safeFilename(string $filename): string
+    {
+        if (str_contains($filename, "\0")) {
+            throw new UploadException('Invalid upload filename');
+        }
+
+        $name = trim(basename(str_replace('\\', '/', $filename)));
+        if ($name === '' || $name === '.' || $name === '..') {
+            throw new UploadException('Invalid upload filename: ' . $filename);
+        }
+
+        return $name;
     }
 
     private function generateStoredFilename(): string

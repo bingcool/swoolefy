@@ -123,6 +123,7 @@ class SysvmsgManager
 
         $msgKey = ftok($path_name, $project);
         if ($msgKey < 0) {
+            unset($this->msgProject[$pathNameKey][$project]);
             throw new SystemException(sprintf("【Warning】%s::%s create msg_key failed",
                 __CLASS__,
                 __FUNCTION__
@@ -130,14 +131,31 @@ class SysvmsgManager
         }
 
         $msgQueue = msg_get_queue($msgKey, 0666);
-        $this->msgNameMapQueue[$msgQueueNameKey] = $msg_queue_name;
-
-        if (is_resource($msgQueue) && msg_queue_exists($msgKey)) {
-            $this->msgQueues[$msgQueueNameKey] = $msgQueue;
-            defined('ENABLE_WORKERFY_SYSVMSG_MSG') or define('ENABLE_WORKERFY_SYSVMSG_MSG', 1);
+        if (!self::isQueue($msgQueue) || !msg_queue_exists($msgKey)) {
+            unset($this->msgProject[$pathNameKey][$project]);
+            throw new SystemException(sprintf("【Warning】%s::%s msg_get_queue failed, queue=%s",
+                __CLASS__,
+                __FUNCTION__,
+                $msg_queue_name
+            ));
         }
 
+        $this->msgNameMapQueue[$msgQueueNameKey] = $msg_queue_name;
+        $this->msgQueues[$msgQueueNameKey] = $msgQueue;
+        defined('ENABLE_WORKERFY_SYSVMSG_MSG') or define('ENABLE_WORKERFY_SYSVMSG_MSG', 1);
+
         return true;
+    }
+
+    /**
+     * PHP 8 起 msg_get_queue() 返回 SysvMessageQueue 对象，不再是 resource
+     *
+     * @param mixed $msgQueue
+     * @return bool
+     */
+    private static function isQueue($msgQueue): bool
+    {
+        return $msgQueue instanceof \SysvMessageQueue || is_resource($msgQueue);
     }
 
     /**
@@ -193,16 +211,16 @@ class SysvmsgManager
             ));
         }
 
-        if (isset($this->msgTypes[$msgQueueNameKey])) {
-            $registerMsgTypes = array_values($this->msgTypes[$msgQueueNameKey]);
-            if (!in_array($msg_type, $registerMsgTypes)) {
-                $this->msgTypes[$msgQueueNameKey][$msgTypeNameKey] = $msg_type;
-                return true;
-            }
-        } else {
-            $this->msgTypes[$msgQueueNameKey][$msgTypeNameKey] = $msg_type;
-            return true;
+        if (isset($this->msgTypes[$msgQueueNameKey]) && in_array($msg_type, $this->msgTypes[$msgQueueNameKey], true)) {
+            throw new SystemException(sprintf("【Warning】%s::%s msg_type=%d had registered by other msg_type_name",
+                __CLASS__,
+                __FUNCTION__,
+                $msg_type
+            ));
         }
+
+        $this->msgTypes[$msgQueueNameKey][$msgTypeNameKey] = $msg_type;
+        return true;
     }
 
     /**
@@ -342,10 +360,10 @@ class SysvmsgManager
             if (isset($this->msgTypes[$msgQueueNameKey][$msgTypeNameKey])) {
                 $msgType = $this->msgTypes[$msgQueueNameKey][$msgTypeNameKey];
             } else {
-                throw new SystemException(sprintf("【Warning】s%::s% msg type=s% is not exist",
+                throw new SystemException(sprintf("【Warning】%s::%s msg type=%s is not exist",
                     __CLASS__,
                     __FUNCTION__,
-                    $msg_queue_name
+                    $msg_type_name
                 ));
             }
         }
@@ -400,20 +418,22 @@ class SysvmsgManager
     {
         if ($msg_queue_name) {
             $msgQueue = $this->getMsgQueue($msg_queue_name);
-            is_resource($msgQueue) && msg_remove_queue($msgQueue);
+            if (self::isQueue($msgQueue) && msg_remove_queue($msgQueue)) {
+                unset($this->msgQueues[md5($msg_queue_name)]);
+            }
             return true;
         }
-        // remove all
-        if (!empty($this->msgQueues)) {
-            foreach ($this->msgQueues as $msgQueue) {
-                if (is_resource($msgQueue)) {
-                    $status = msg_stat_queue($msgQueue);
-                    if ($status['msg_qnum'] == 0) {
-                        msg_remove_queue($msgQueue);
-                    }
-                }
+        // remove all，仍有未读消息的队列保留，避免丢消息
+        foreach ($this->msgQueues as $key => $msgQueue) {
+            if (!self::isQueue($msgQueue)) {
+                continue;
+            }
+            $status = msg_stat_queue($msgQueue);
+            if (is_array($status) && (int)$status['msg_qnum'] === 0 && msg_remove_queue($msgQueue)) {
+                unset($this->msgQueues[$key]);
             }
         }
+        return true;
     }
 
     /**
@@ -424,12 +444,16 @@ class SysvmsgManager
     {
         $result = [];
         foreach ($this->msgQueues as $key => $msgQueue) {
-            if (is_resource($msgQueue)) {
-                $status = msg_stat_queue($msgQueue);
-                $waitToReadNum = $status['msg_qnum'];
-                if ($msgQueueName = $this->msgNameMapQueue[$key]) {
-                    $result[] = [$msgQueueName, $waitToReadNum];
-                }
+            if (!self::isQueue($msgQueue)) {
+                continue;
+            }
+            $status = msg_stat_queue($msgQueue);
+            if (!is_array($status)) {
+                continue;
+            }
+            $msgQueueName = $this->msgNameMapQueue[$key] ?? null;
+            if ($msgQueueName !== null) {
+                $result[] = [$msgQueueName, $status['msg_qnum']];
             }
         }
         return $result;

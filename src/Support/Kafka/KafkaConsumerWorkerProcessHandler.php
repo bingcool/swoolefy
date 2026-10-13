@@ -10,7 +10,8 @@ use Swoolefy\Worker\AbstractWorkerProcess;
 /**
  * Daemon / Cron 常驻进程里的 Kafka 消费。循环和退出沿用 AbstractWorkerProcess。
  * 同一个消费组 + Topic 的 worker_num 保持 1。
- * onMessage() 抛异常时不提交 offset，同一条会再交给 onMessage()。
+ * offset 何时提交由 $commitMode 决定，见 KafkaCommitMode。默认 onMessage() 成功后同步提交，
+ * 抛异常时不提交，同一条会再交给 onMessage()。
  */
 abstract class KafkaConsumerWorkerProcessHandler extends AbstractWorkerProcess
 {
@@ -31,6 +32,15 @@ abstract class KafkaConsumerWorkerProcessHandler extends AbstractWorkerProcess
     protected string $brokers = '';
 
     /**
+     * offset 提交方式，KafkaCommitMode::*：
+     * - AFTER_HANDLED（默认）：成功后同步提交，至少一次
+     * - AFTER_HANDLED_ASYNC：成功后异步提交，至少一次，吞吐高、崩溃时重复更多
+     * - BEFORE_HANDLE：处理前同步提交，至多一次，onMessage() 失败不重试只记日志
+     * @var string
+     */
+    protected string $commitMode = KafkaCommitMode::AFTER_HANDLED;
+
+    /**
      * @var KafkaConsumeSession
      */
     private KafkaConsumeSession $session;
@@ -39,6 +49,11 @@ abstract class KafkaConsumerWorkerProcessHandler extends AbstractWorkerProcess
      * @var ReceivedMessageDto
      */
     private ?ReceivedMessageDto $pending = null;
+
+    /**
+     * BEFORE_HANDLE 模式下 pending 的 offset 是否已提交。
+     */
+    private bool $committed = false;
 
     /**
      * @param ReceivedMessageDto $message
@@ -51,7 +66,7 @@ abstract class KafkaConsumerWorkerProcessHandler extends AbstractWorkerProcess
     protected function onInit()
     {
         parent::onInit();
-        $this->session = new KafkaConsumeSession($this->topic, $this->consumerGroup, $this->brokers);
+        $this->session = new KafkaConsumeSession($this->topic, $this->consumerGroup, $this->brokers, $this->commitMode);
     }
 
     /**
@@ -74,17 +89,38 @@ abstract class KafkaConsumerWorkerProcessHandler extends AbstractWorkerProcess
                 \Swoole\Coroutine::sleep(0.2);
                 return;
             }
+            $this->committed = false;
         }
         if ($this->waitToExit) {
             return;
         }
+        $onCommitError = function (\Throwable $exception): void {
+            $this->onHandleException($exception);
+        };
+        $atMostOnce = $this->commitMode === KafkaCommitMode::BEFORE_HANDLE;
+        // 至多一次：提交成功之前不能交给业务，否则提交失败后重投会重复处理
+        if ($atMostOnce && !$this->committed) {
+            if (!$this->session->commitBeforeHandle($onCommitError)) {
+                \Swoole\Coroutine::sleep(0.5);
+                return;
+            }
+            $this->committed = true;
+        }
         try {
             $this->onMessage($this->pending);
-            $this->session->commit();
-            $this->pending = null;
         } catch (\Throwable $exception) {
             $this->onHandleException($exception);
+            if ($atMostOnce) {
+                // offset 已提交，这条不会再投递
+                $this->session->logDropped($this->pending, $exception);
+                $this->pending = null;
+                return;
+            }
             \Swoole\Coroutine::sleep(0.5);
+            return;
         }
+        // 业务已成功：之后无论 commit 成败都不再重跑 onMessage()
+        $this->pending = null;
+        $this->session->commitAfterHandled($onCommitError);
     }
 }

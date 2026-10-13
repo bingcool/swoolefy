@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace PHPUintTest\Unit\Core;
 
 use PHPUintTest\TestCase;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use ReflectionProperty;
 use Swoole\Http\Request as SwooleRequest;
 use Swoole\Http\Response as SwooleResponse;
@@ -16,7 +18,11 @@ use Swoolefy\Support\Auth\AuthException;
 
 /**
  * 异常响应：withStatus 必须收到 int，SQLSTATE 等字符串 code 不得再掩盖原始错误。
+ *
+ * defineEnvConstants() 会 define SWOOLEFY_ENV=dev，隔离进程避免污染后续生产环境判断用例。
  */
+#[RunTestsInSeparateProcesses]
+#[PreserveGlobalState(false)]
 final class SwoolefyExceptionResponseTest extends TestCase
 {
     public function testNormalizeExceptionCodeCastsNumericStringAndSqlstate(): void

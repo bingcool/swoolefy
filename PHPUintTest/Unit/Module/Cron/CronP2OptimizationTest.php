@@ -21,8 +21,9 @@ final class CronP2OptimizationTest extends TestCase
         );
 
         $this->assertStringContainsString('while (microtime(true) < $deadline)', $src);
-        $this->assertStringContainsString('System::sleep(0.1);', $src);
-        $this->assertStringContainsString('usleep(100000);', $src);
+        $this->assertStringContainsString('$this->sleepInterval(0.1);', $src);
+        $this->assertStringContainsString('System::sleep($seconds);', $src);
+        $this->assertStringContainsString('usleep((int) round($seconds * 1000000));', $src);
         $this->assertStringNotContainsString('sleep(1);', $src);
     }
 

@@ -183,7 +183,7 @@ final class CronManager
 
 
     /**
-     * 进程启动时，从 fetcher 拉取并启用的 Diff Apply。
+     * 进程启动时，从 fetcher 全量 Diff Apply（停用任务入 Registry，不武装 Timer）。
      *
      * fetcher 抛异常 = DB 故障：保留 Last Known Good Runtime，绝不 clear all。
      * fetcher 成功返回空数组 = 配置侧确实没有任务，按 DELETE 收敛。
@@ -195,17 +195,11 @@ final class CronManager
             if (!is_array($rows)) {
                 throw new CronException('Cron fetcher 必须返回 array');
             }
-            // 服务启动时拉取，过滤取得启用的任务
-            $enableRows = [];
-            foreach ($rows as $row) {
-                if ((!isset($row['status'])) || (isset($row['status']) && $row['status'] == 1)) {
-                    $enableRows[] = $row;
-                }
-            }
+            // 启动也全量 apply：停用任务入 Registry 不武装 Timer，便于 runOnceNow 返回「已停用」而不是「不存在」
             $this->lastConfigSyncError = null;
             $this->lastConfigSyncAt = $this->clock->now();
-            $this->applyRows($enableRows);
-            $this->consumeRunOnceRequests($enableRows);
+            $this->applyRows($rows);
+            $this->consumeRunOnceRequests($rows);
 
             return true;
         } catch (\Throwable $e) {

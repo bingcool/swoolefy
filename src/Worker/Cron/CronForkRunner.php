@@ -13,6 +13,7 @@ namespace Swoolefy\Worker\Cron;
 
 use Swoole\Coroutine\Channel;
 use Swoole\Coroutine\System;
+use Swoolefy\Core\CommandRunner;
 use Swoolefy\Core\Exec;
 use Swoolefy\Worker\Dto\RunProcessMetaDtoWorker;
 use Swoolefy\Worker\Dto\CronForkTaskMetaDtoWorker;
@@ -230,6 +231,7 @@ class CronForkRunner
         $path = $execBinFile . ' ' . $execScript . ' ' . $argvOption;
         $path = trim($path,' ');
         if ($output) {
+            $output = escapeshellarg($output);
             $command = "{$path} >> {$output} 2>&1; echo $$";
         }else {
             $command = "{$path} 2>&1; echo $$";
@@ -590,29 +592,11 @@ class CronForkRunner
     /**
      * @param array $args
      * @return string
+     * @throws SystemException
      */
     protected function parseEscapeShellArg(array $args)
     {
-        if (empty($args)) {
-            return "";
-        }
-        // 关联数组
-        foreach ($args as $argvName=>$argvValue) {
-            if (is_string($argvName)) {
-                if (str_contains($argvValue, ' ')) {
-                    $argvOptions[] = "--{$argvName}='{$argvValue}'";
-                } else {
-                    $argvOptions[] = "--{$argvName}={$argvValue}";
-                }
-            } else if (is_numeric($argvName)) {
-                $argvOptions[] = $argvValue;
-            }
-        }
-
-        if (!empty($argvOptions)) {
-            $args = $argvOptions;
-        }
-        return implode(' ', $args);
+        return CommandRunner::buildShellArgs($args);
     }
 
     /**

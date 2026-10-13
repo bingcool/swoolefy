@@ -171,7 +171,7 @@ final class KubernetesJobTemplateBuilderTest extends TestCase
         ], $specOverrides));
 
         return (new JobTemplateBuilder())->build($deployment ?? $this->deployment(), $spec->toBuilderArray(), [
-            'job_name' => 'sj-abc123-a2',
+            'job_name' => 'cron-job-abc123-a2',
             'cron_id' => 100,
             'exec_batch_id' => 'abc123',
             'attempt' => 2,

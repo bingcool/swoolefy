@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Queue\DelayQueue;
 
+use Swoolefy\Core\EventApp;
 use Swoolefy\Core\Process\AbstractProcess;
 use Swoolefy\Support\Queue\Dto\ReceivedMessageDto;
-use Swoolefy\Support\Queue\QueueComponent;
+use Swoolefy\Support\Queue\QueueDeadLetter;
 
 /**
  * 协议服务里的延迟消费进程。业务只实现 onMessage()，并写上 $queue_component。
@@ -18,8 +19,14 @@ use Swoolefy\Support\Queue\QueueComponent;
  * - pop() 只取 score 已经到期的 1 条。取出时 ZSET 里这条已经删除。
  * - 还没到延迟秒数的消息不会出现在 onMessage()。
  * - onMessage() 正常返回：消费完成。
- * - onMessage() 抛异常：retry() 把原数组成员放回同一个 ZSET，1 秒后再次可见。
- *   __retry_num 加 1。这里把上限改成 32，超过后 Library 不再放回。
+ * - onMessage() 抛异常：retry() 把原数组成员放回同一个 ZSET，$retry_delay_seconds 秒后再次可见，__retry_num 加 1。
+ * - 已重试 $max_retry_times 次仍失败，或消息体不是数组无法 retry：写入 {延迟键}:dead_letter，见 QueueDeadLetter。
+ * - retry() / 写死信时 Redis 出错：消息留在内存里，稍后只重做这一步，不会再次调用 onMessage()。
+ *
+ * 退出：SIGTERM 时 gracefulShutdownDrain() 最多等 $shutdown_wait_seconds 秒让当前这一轮跑完，
+ * 再把还没交给 onMessage() 的消息放回 ZSET（立即可见）、把待重试的消息补做 retry()。
+ * 进程被 kill -9 或 OOM 时，正在 onMessage() 里的那一条会丢失。
+ *
  * 业务要按自己的延迟再投一条新消息时，在 onMessage() 里 DelayQueueProducer::push() 并正常返回。
  */
 abstract class DelayQueueConsumerProcessHandler extends AbstractProcess
@@ -29,81 +36,168 @@ abstract class DelayQueueConsumerProcessHandler extends AbstractProcess
      */
     protected string $queue_component = 'delayQueue';
 
+    /**
+     * 最多重试次数，用完写死信。避免 Job 的多次退避被组件默认的 3 次截断。
+     */
+    protected int $max_retry_times = 32;
+
+    /**
+     * 每次重试的延迟秒数。
+     */
+    protected int $retry_delay_seconds = 1;
+
+    /**
+     * 死信列表最多保留的条数。<= 0 时按 QueueDeadLetter::DEFAULT_MAX_LENGTH 处理，不存在不截断的配置。
+     */
+    protected int $dead_letter_max_length = QueueDeadLetter::DEFAULT_MAX_LENGTH;
+
+    /**
+     * 死信 key 的过期秒数，每次写入死信时刷新。<= 0 时按 QueueDeadLetter::DEFAULT_TTL_SECONDS 处理。
+     */
+    protected int $dead_letter_ttl_seconds = QueueDeadLetter::DEFAULT_TTL_SECONDS;
+
+    /**
+     * 收到 SIGTERM 后等待当前这一轮结束的最长秒数。
+     */
+    protected float $shutdown_wait_seconds = 5.0;
+
     private bool $running = true;
+
+    /**
+     * 主循环正在执行一轮（pop / onMessage / retry / sleep）。drain 只在它为 false 时接手 pending 和 failed。
+     */
+    private bool $busy = false;
+
+    private ?ReceivedMessageDto $pending = null;
+
+    /**
+     * @var array{0: ReceivedMessageDto, 1: \Throwable}|null
+     */
+    private ?array $failed = null;
+
+    private ?DelayQueueOperator $operator = null;
 
     abstract public function onMessage(ReceivedMessageDto $message): void;
 
     public function gracefulShutdownDrain(): void
     {
         $this->running = false;
+        if ($this->busy && \Swoole\Coroutine::getCid() > 0) {
+            $deadline = microtime(true) + max(0.0, $this->shutdown_wait_seconds);
+            while ($this->busy && microtime(true) < $deadline) {
+                \Swoole\Coroutine::sleep(0.05);
+            }
+        }
+        if ($this->busy) {
+            // 主循环还没让出，不能同时操作同一条消息
+            if ($this->pending !== null) {
+                $this->logLost($this->pending, new \RuntimeException('consumer still busy on shutdown'));
+            }
+            return;
+        }
+
+        EventApp::run(function () {
+            if ($this->failed !== null) {
+                [$message, $error] = $this->failed;
+                $this->failed = null;
+                try {
+                    $this->operator()->fail($message, $error);
+                } catch (\Throwable $e) {
+                    $this->onHandleException($e);
+                    $this->logLost($message, $e);
+                }
+            }
+            if ($this->pending !== null) {
+                $message = $this->pending;
+                $this->pending = null;
+                try {
+                    $this->operator()->requeue($message);
+                } catch (\Throwable $e) {
+                    $this->onHandleException($e);
+                    $this->logLost($message, $e);
+                }
+            }
+        });
     }
 
     public function run()
     {
-        $pending = null;
         while ($this->running) {
-            if ($pending === null) {
-                try {
-                    $pending = $this->pop();
-                } catch (\Throwable $e) {
-                    $this->onHandleException($e);
-                    \Swoole\Coroutine::sleep(0.5);
-                    continue;
-                }
-                if ($pending === null) {
-                    \Swoole\Coroutine::sleep(0.2);
-                    continue;
-                }
-            }
-            if (!$this->running) {
-                break;
-            }
+            $this->busy = true;
             try {
-                $this->onMessage($pending);
-                $pending = null;
+                $this->tick();
+            } finally {
+                $this->busy = false;
+            }
+        }
+    }
+
+    private function tick(): void
+    {
+        // 上一次 retry / 写死信没成功：只重做这一步，不再调用 onMessage()
+        if ($this->failed !== null) {
+            try {
+                $this->operator()->fail($this->failed[0], $this->failed[1]);
+                $this->failed = null;
             } catch (\Throwable $e) {
-                $this->retry($pending);
-                $pending = null;
                 $this->onHandleException($e);
+                \Swoole\Coroutine::sleep(1);
+                return;
+            }
+        }
+
+        if ($this->pending === null) {
+            try {
+                $this->pending = $this->operator()->pop();
+            } catch (\Throwable $e) {
+                $this->onHandleException($e);
+                \Swoole\Coroutine::sleep(0.5);
+                return;
+            }
+            if ($this->pending === null) {
+                \Swoole\Coroutine::sleep(0.2);
+                return;
+            }
+        }
+
+        // 退出中：pending 留给 gracefulShutdownDrain() 放回
+        if (!$this->running) {
+            return;
+        }
+
+        $message = $this->pending;
+        $this->pending = null;
+        try {
+            $this->onMessage($message);
+        } catch (\Throwable $e) {
+            $this->onHandleException($e);
+            $this->failed = [$message, $e];
+            if ($this->running) {
                 \Swoole\Coroutine::sleep(0.5);
             }
         }
     }
 
-    /**
-     * pop(['limit' => [0, 1]]) 只取一条已到期消息。返回值是消息数组的列表，不是 [key, value]。
-     * __timestamp 是入队时间，写入 DTO 的 readyAt。
-     */
-    private function pop(): ?ReceivedMessageDto
+    private function operator(): DelayQueueOperator
     {
-        $result = QueueComponent::get($this->queue_component)->pop(['limit' => [0, 1]]);
-        if (!is_array($result) || !isset($result[0]) || !is_array($result[0])) {
-            return null;
-        }
-        $data = $result[0];
-        $payload = json_encode($data, JSON_UNESCAPED_UNICODE);
-
-        return new ReceivedMessageDto(
-            payload: is_string($payload) ? $payload : '',
-            queue: $this->queue_component,
-            data: $data,
-            readyAt: isset($data['__timestamp']) ? (int) $data['__timestamp'] : null,
+        return $this->operator ??= new DelayQueueOperator(
+            $this->queue_component,
+            $this->max_retry_times,
+            $this->retry_delay_seconds,
+            $this->dead_letter_max_length,
+            $this->dead_letter_ttl_seconds,
         );
     }
 
     /**
-     * 失败后 1 秒再可见。上限 32 次，避免 Job 的多次退避被组件默认的 3 次截断。
+     * Redis 不可用又要退出时，把整条消息写进异常日志，便于人工补发。
      */
-    private function retry(ReceivedMessageDto $message): void
+    private function logLost(ReceivedMessageDto $message, \Throwable $e): void
     {
-        $data = $message->getData();
-        if ($data === []) {
-            return;
-        }
-        $queue = QueueComponent::get($this->queue_component);
-        if (method_exists($queue, 'setRetryTimes')) {
-            $queue->setRetryTimes(32);
-        }
-        $queue->retry($data, 1);
+        $this->onHandleException(new \RuntimeException(
+            'delay queue message not requeued, queue=' . $message->getQueue() . ', payload=' . $message->getPayload(),
+            0,
+            $e
+        ));
     }
 }

@@ -67,11 +67,13 @@ class CommandRunner
     /**
      * 执行外部系统程序，包括php,shell so on
      * 禁止swoole提供的process->exec，因为swoole的process->exec调用的程序会替换当前子进程
+     * $execBinFile、$execScript 按 shell 片段原样拼接（允许管道、重定向），只能来自代码或受信配置；
+     * 外部输入一律放进 $args，由 buildShellArgs() 转义。
      * @param string $execBinFile
      * @param string $execScript
      * @param array $args
      * @param bool $async 脚本设置nohup异步模式时，最好要设置output,如果不需要输出到文件，可以设置成/dev/null
-     * @param string $output
+     * @param string $output 输出文件路径，会经 escapeshellarg
      * @param bool $isExec
      * @param array $extend
      * @return array
@@ -96,6 +98,7 @@ class CommandRunner
         $path = $execBinFile . ' ' . $execScript . ' ' . $argvOption;
         $path = trim($path,' ');
         if ($output) {
+            $output = escapeshellarg($output);
             $command = "{$path} >> {$output} 2>&1; echo $$";
         }else {
             $command = "{$path} 2>&1; echo $$";
@@ -137,6 +140,7 @@ class CommandRunner
     }
 
     /**
+     * $execBinFile、$execScript 同 exec()：原样拼接，只能来自受信来源；外部输入放进 $args。
      * @param string $execBinFile
      * @param string $execScript
      * @param array $args
@@ -392,29 +396,40 @@ class CommandRunner
     /**
      * @param array $args
      * @return string
+     * @throws SystemException
      */
     protected function parseEscapeShellArg(array $args)
     {
-        if (empty($args)) {
-            return "";
-        }
-        // 关联数组
-        foreach ($args as $argvName=>$argvValue) {
+        return static::buildShellArgs($args);
+    }
+
+    /**
+     * 字符串键生成 --name=value，数字键生成位置参数；所有值都经 escapeshellarg，调用方传原始值即可，不要预先转义。
+     * 选项名只允许 [A-Za-z0-9_.-]，值只允许标量或 null。
+     *
+     * @param array $args
+     * @return string
+     * @throws SystemException
+     */
+    public static function buildShellArgs(array $args): string
+    {
+        $argvOptions = [];
+        foreach ($args as $argvName => $argvValue) {
+            if (!is_scalar($argvValue) && $argvValue !== null) {
+                throw new SystemException('CommandRunner argv value must be scalar, key=' . $argvName);
+            }
+            $value = escapeshellarg(is_bool($argvValue) ? (string)(int)$argvValue : (string)$argvValue);
             if (is_string($argvName)) {
-                if (str_contains($argvValue, ' ')) {
-                    $argvOptions[] = "--{$argvName}='{$argvValue}'";
-                }else {
-                    $argvOptions[] = "--{$argvName}={$argvValue}";
+                if (!preg_match('/^[A-Za-z0-9][A-Za-z0-9_.\-]*$/', $argvName)) {
+                    throw new SystemException('CommandRunner invalid argv option name: ' . $argvName);
                 }
-            }else if (is_numeric($argvName)) {
-                $argvOptions[] = $argvValue;
+                $argvOptions[] = "--{$argvName}={$value}";
+            } else {
+                $argvOptions[] = $value;
             }
         }
 
-        if (!empty($argvOptions)) {
-            $args = $argvOptions;
-        }
-        return implode(' ', $args);
+        return implode(' ', $argvOptions);
     }
 
     /**

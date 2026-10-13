@@ -9,7 +9,8 @@ use Swoolefy\Support\Kafka\Dto\ReceivedMessageDto;
 
 /**
  * 协议服务里的 Kafka 消费进程。业务实现 onMessage()，并写上 $topic、$consumerGroup。
- * onMessage() 抛异常时不提交 offset，同一条会再交给 onMessage()。
+ * offset 何时提交由 $commitMode 决定，见 KafkaCommitMode。默认 onMessage() 成功后同步提交，
+ * 抛异常时不提交，同一条会再交给 onMessage()。
  */
 abstract class KafkaConsumerProcessHandler extends AbstractProcess
 {
@@ -28,6 +29,15 @@ abstract class KafkaConsumerProcessHandler extends AbstractProcess
      * @var string
      */
     protected string $brokers = '';
+
+    /**
+     * offset 提交方式，KafkaCommitMode::*：
+     * - AFTER_HANDLED（默认）：成功后同步提交，至少一次
+     * - AFTER_HANDLED_ASYNC：成功后异步提交，至少一次，吞吐高、崩溃时重复更多
+     * - BEFORE_HANDLE：处理前同步提交，至多一次，onMessage() 失败不重试只记日志
+     * @var string
+     */
+    protected string $commitMode = KafkaCommitMode::AFTER_HANDLED;
 
     /**
      * @var bool
@@ -53,8 +63,13 @@ abstract class KafkaConsumerProcessHandler extends AbstractProcess
      */
     public function run()
     {
-        $session = new KafkaConsumeSession($this->topic, $this->consumerGroup, $this->brokers);
+        $session = new KafkaConsumeSession($this->topic, $this->consumerGroup, $this->brokers, $this->commitMode);
+        $onCommitError = function (\Throwable $exception): void {
+            $this->onHandleException($exception);
+        };
+        $atMostOnce = $this->commitMode === KafkaCommitMode::BEFORE_HANDLE;
         $pending = null;
+        $committed = false;
         while ($this->running) {
             if ($pending === null) {
                 try {
@@ -68,18 +83,35 @@ abstract class KafkaConsumerProcessHandler extends AbstractProcess
                     \Swoole\Coroutine::sleep(0.2);
                     continue;
                 }
+                $committed = false;
             }
             if (!$this->running) {
                 break;
             }
+            // 至多一次：提交成功之前不能交给业务，否则提交失败后重投会重复处理
+            if ($atMostOnce && !$committed) {
+                if (!$session->commitBeforeHandle($onCommitError)) {
+                    \Swoole\Coroutine::sleep(0.5);
+                    continue;
+                }
+                $committed = true;
+            }
             try {
                 $this->onMessage($pending);
-                $session->commit();
-                $pending = null;
             } catch (\Throwable $exception) {
                 $this->onHandleException($exception);
+                if ($atMostOnce) {
+                    // offset 已提交，这条不会再投递
+                    $session->logDropped($pending, $exception);
+                    $pending = null;
+                    continue;
+                }
                 \Swoole\Coroutine::sleep(0.5);
+                continue;
             }
+            // 业务已成功：之后无论 commit 成败都不再重跑 onMessage()
+            $pending = null;
+            $session->commitAfterHandled($onCommitError);
         }
     }
 }

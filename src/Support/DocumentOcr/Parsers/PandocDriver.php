@@ -149,7 +149,7 @@ final class PandocDriver implements DocumentParserInterface
             throw new ParserException('pandoc runner concurrent limit reached, try again later');
         }
 
-        // CommandRunner 数值键参数原样拼接，路径必须自行 escapeshellarg
+        // CommandRunner::buildShellArgs 统一转义，这里传原始值
         $input = (string) ($rawArgs[0] ?? '');
         $format = (string) ($rawArgs[2] ?? $this->outputFormat);
         $output = (string) ($rawArgs[4] ?? $outputFile);
@@ -159,12 +159,12 @@ final class PandocDriver implements DocumentParserInterface
         }
 
         $shellArgs = [
-            escapeshellarg($input),
+            $input,
             '-t',
-            escapeshellarg($format),
+            $format,
             '-o',
-            escapeshellarg($output),
-            '--extract-media=' . escapeshellarg($media),
+            $output,
+            '--extract-media=' . $media,
         ];
 
         try {

@@ -5,17 +5,20 @@ declare(strict_types=1);
 namespace Swoolefy\Support\Queue\ListQueue;
 
 use Swoolefy\Support\Queue\Dto\ReceivedMessageDto;
-use Swoolefy\Support\Queue\QueueComponent;
+use Swoolefy\Support\Queue\QueueDeadLetter;
 use Swoolefy\Worker\AbstractWorkerProcess;
 
 /**
  * Daemon / Cron 常驻进程里的 List 消费。退出和重启沿用 AbstractWorkerProcess 的 loopHandle()。
  *
  * $queue_component 是 queue.php 的组件名，默认 queue，不是 Redis 键。
- * 和 ListQueueConsumerProcessHandler 使用同一套 pop() / retry()：
+ * 和 ListQueueConsumerProcessHandler 使用同一套 ListQueueOperator：
  * - pop() 成功后消息已经离开 List。
  * - onMessage() 正常返回即消费完成。
- * - onMessage() 抛异常则 retry()，1 秒后回到 List，最多 5 次。
+ * - onMessage() 抛异常则 retry()，$retry_delay_seconds 秒后回到 List，最多 $max_retry_times 次，用完写死信。
+ * - retry() / 写死信时 Redis 出错：只重做这一步，不会再次调用 onMessage()。
+ * 每次 loopHandle() 只处理一条，并在返回前收尾，不把消息留到下一轮：
+ * 收到退出指令时，已取出、还没交给 onMessage() 的消息放回 List，然后 loopHandle() 返回，进程退出。
  * worker_num 保持 1。同一个 List 组件不要再挂第二个消费进程。
  */
 abstract class ListQueueConsumerWorkerProcessHandler extends AbstractWorkerProcess
@@ -25,7 +28,27 @@ abstract class ListQueueConsumerWorkerProcessHandler extends AbstractWorkerProce
      */
     protected string $queue_component = 'queue';
 
-    private ?ReceivedMessageDto $pending = null;
+    /**
+     * 最多重试次数，用完写死信。
+     */
+    protected int $max_retry_times = 5;
+
+    /**
+     * 每次重试的延迟秒数。
+     */
+    protected int $retry_delay_seconds = 1;
+
+    /**
+     * 死信列表最多保留的条数。<= 0 时按 QueueDeadLetter::DEFAULT_MAX_LENGTH 处理，不存在不截断的配置。
+     */
+    protected int $dead_letter_max_length = QueueDeadLetter::DEFAULT_MAX_LENGTH;
+
+    /**
+     * 死信 key 的过期秒数，每次写入死信时刷新。<= 0 时按 QueueDeadLetter::DEFAULT_TTL_SECONDS 处理。
+     */
+    protected int $dead_letter_ttl_seconds = QueueDeadLetter::DEFAULT_TTL_SECONDS;
+
+    private ?ListQueueOperator $operator = null;
 
     abstract public function onMessage(ReceivedMessageDto $message): void;
 
@@ -34,71 +57,79 @@ abstract class ListQueueConsumerWorkerProcessHandler extends AbstractWorkerProce
         if ($this->waitToExit) {
             return;
         }
-        if ($this->pending === null) {
-            try {
-                $this->pending = $this->pop();
-            } catch (\Throwable $e) {
-                $this->onHandleException($e);
-                \Swoole\Coroutine::sleep(0.5);
-
-                return;
-            }
-            if ($this->pending === null) {
-                \Swoole\Coroutine::sleep(0.2);
-
-                return;
-            }
+        try {
+            $message = $this->operator()->pop();
+        } catch (\Throwable $e) {
+            $this->onHandleException($e);
+            \Swoole\Coroutine::sleep(0.5);
+            return;
+        }
+        if ($message === null) {
+            \Swoole\Coroutine::sleep(0.2);
+            return;
         }
         if ($this->waitToExit) {
+            $this->requeueOrLog($message);
             return;
         }
         try {
-            $this->onMessage($this->pending);
-            $this->pending = null;
+            $this->onMessage($message);
         } catch (\Throwable $e) {
-            $this->retry($this->pending);
-            $this->pending = null;
             $this->onHandleException($e);
-            \Swoole\Coroutine::sleep(0.5);
+            $this->failUntilDone($message, $e);
+            if (!$this->waitToExit) {
+                \Swoole\Coroutine::sleep(0.5);
+            }
         }
     }
 
     /**
-     * Queue::pop() 返回 [redisKey, 消息数组]。第二个元素才是消息。
+     * retry / 写死信失败时每秒重试，直到成功或收到退出指令。退出时把整条消息写进异常日志。
      */
-    private function pop(): ?ReceivedMessageDto
+    private function failUntilDone(ReceivedMessageDto $message, \Throwable $error): void
     {
-        $result = QueueComponent::get($this->queue_component)->pop(1);
-        if (!is_array($result) || !isset($result[1])) {
-            return null;
+        while (true) {
+            try {
+                $this->operator()->fail($message, $error);
+                return;
+            } catch (\Throwable $e) {
+                $this->onHandleException($e);
+                if ($this->waitToExit) {
+                    $this->logLost($message, $e);
+                    return;
+                }
+                \Swoole\Coroutine::sleep(1);
+            }
         }
-        $data = $result[1];
-        if (is_array($data)) {
-            $payload = json_encode($data, JSON_UNESCAPED_UNICODE);
-
-            return new ReceivedMessageDto(
-                payload: is_string($payload) ? $payload : '',
-                queue: $this->queue_component,
-                data: $data,
-            );
-        }
-
-        return new ReceivedMessageDto((string) $data, $this->queue_component);
     }
 
-    /**
-     * 失败后 1 秒再投递。这里把组件的重试上限改成 5，超过后 Library 不再放回队列。
-     */
-    private function retry(ReceivedMessageDto $message): void
+    private function requeueOrLog(ReceivedMessageDto $message): void
     {
-        $data = $message->getData();
-        if ($data === []) {
-            return;
+        try {
+            $this->operator()->requeue($message);
+        } catch (\Throwable $e) {
+            $this->onHandleException($e);
+            $this->logLost($message, $e);
         }
-        $queue = QueueComponent::get($this->queue_component);
-        if (method_exists($queue, 'setRetryTimes')) {
-            $queue->setRetryTimes(5);
-        }
-        $queue->retry($data, 1);
+    }
+
+    private function operator(): ListQueueOperator
+    {
+        return $this->operator ??= new ListQueueOperator(
+            $this->queue_component,
+            $this->max_retry_times,
+            $this->retry_delay_seconds,
+            $this->dead_letter_max_length,
+            $this->dead_letter_ttl_seconds,
+        );
+    }
+
+    private function logLost(ReceivedMessageDto $message, \Throwable $e): void
+    {
+        $this->onHandleException(new \RuntimeException(
+            'list queue message not requeued, queue=' . $message->getQueue() . ', payload=' . $message->getPayload(),
+            0,
+            $e
+        ));
     }
 }

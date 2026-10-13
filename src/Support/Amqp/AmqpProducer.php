@@ -9,6 +9,9 @@ use PhpAmqpLib\Message\AMQPMessage;
 /**
  * 按交换机发送。连接缺省读 dc.php 的 amqp_connection。
  * 同一次进程里复用连接。publish() 会等到 Broker 确认或超时，超时后不再自动重发。
+ * - Broker 返回 nack：抛 AmqpException，消息没有入队，可以重发。
+ * - 已发出但确认超时或连接中断：抛 AmqpOutcomeUnknownException，Broker 可能已经收下，直接重发可能重复。
+ * - 发出之前就失败（连不上、声明失败）：抛 AmqpException，可以重发。
  *
  * bindingKey 和 routingKey 不是一回事：
  * - bindingKey：把 $queue 绑到 $exchange 上的规则，属于队列，不随某一条消息变化。
@@ -72,8 +75,17 @@ final class AmqpProducer
             $publish['priority'] = (int) $publish['priority'];
         }
         $key = $routingKey !== '' ? $routingKey : $this->routingKey;
+        $sent = false;
+        $nacked = false;
         try {
             $channel = $this->client->publisherChannel();
+            // 没有注册 nack 回调时 php-amqplib 会忽略 nack，Broker 拒收也会被当成成功
+            $channel->set_ack_handler(static function (): void {
+            });
+            $channel->set_nack_handler(static function () use (&$nacked): void {
+                $nacked = true;
+            });
+            $sent = true;
             $channel->basic_publish(new AMQPMessage($payload, $publish), $this->exchange, $key);
             $channel->wait_for_pending_acks($timeout);
         } catch (AmqpException $e) {
@@ -81,7 +93,13 @@ final class AmqpProducer
         } catch (\Throwable $e) {
             $this->client->close();
             $this->client = null;
+            if ($sent) {
+                throw new AmqpOutcomeUnknownException('amqp publish outcome unknown: ' . $e->getMessage(), 0, $e);
+            }
             throw new AmqpException('amqp publish failed: ' . $e->getMessage(), 0, $e);
+        }
+        if ($nacked) {
+            throw new AmqpException('amqp publish nacked by broker');
         }
     }
 }

@@ -7,6 +7,8 @@ namespace PHPUintTest\Unit\Cmd;
 require_once __DIR__ . '/create_cmd_test_helpers.php';
 require_once __DIR__ . '/CreateCmdTestFilesystemTrait.php';
 
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 use Swoolefy\Cmd\CreateCmd;
 use Swoolefy\Exception\IOException;
@@ -17,7 +19,11 @@ use Symfony\Component\Console\Output\BufferedOutput;
 /**
  * CreateCmd 退出码与文件 IO（审计 19、38 / 阶段四 6.3、6.4）。
  * 覆盖：目录已存在/协议缺失返回失败码、stub 缺失抛 IOException、目标冲突不留半成品、正常创建 SUCCESS。
+ *
+ * 本类 define 了 APP_PATH 等常量（指向临时目录），必须隔离进程，否则后续用例的 CONFIG_PATH 会指错目录。
  */
+#[RunTestsInSeparateProcesses]
+#[PreserveGlobalState(false)]
 final class CreateCmdExitAndIoTest extends TestCase
 {
     use CreateCmdTestFilesystemTrait;
@@ -31,7 +37,8 @@ final class CreateCmdExitAndIoTest extends TestCase
 
     public const TEST_APP_NAME = 'CreateCmdDemoApp';
 
-    public static function setUpBeforeClass(): void
+    /** 在 setUp 中调用：隔离进程下 setUpBeforeClass 仍会在父进程执行，define 会泄漏到后续用例。 */
+    private static function defineTestConstants(): void
     {
         $projectRoot = dirname(__DIR__, 3);
         if (!defined('SRC_DIR_ROOT')) {
@@ -66,6 +73,7 @@ final class CreateCmdExitAndIoTest extends TestCase
 
     protected function setUp(): void
     {
+        self::defineTestConstants();
         $this->tmpRoot = sys_get_temp_dir() . '/swoolefy_create_cmd_' . getmypid() . '_' . bin2hex(random_bytes(3));
         $this->startDir = $this->tmpRoot . '/start';
         $this->appPath = $this->tmpRoot . '/' . self::TEST_APP_NAME;

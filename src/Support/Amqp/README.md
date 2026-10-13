@@ -2,7 +2,11 @@
 
 连接来自 `Config/dc.php` 的 `amqp_connection`，对应 `.env` 的 `AMQP_HOST`、`AMQP_PORT`、`AMQP_USER`、`AMQP_PASSWORD`、`AMQP_VHOST`。`host_list` 可以写多个节点，按顺序尝试。
 
-交换机、队列和 routing key 写在业务类上。声明参数来自应用的 `Config\AmqpConfig`：队列默认持久化，消息 `delivery_mode` 为 2，消费 `prefetch_count` 为 1。不再使用 `Config/component/amqp`。
+交换机、队列和 routing key 写在业务类上。声明参数来自应用的 `Config\AmqpConfig`：队列默认持久化，消息 `delivery_mode` 为 2，消费 `prefetch_count` 固定为 1（配置写别的值也不生效，消费会话只跟踪一条未确认消息）。不再使用 `Config/component/amqp`。
+
+发送结果：`publish()` 等 Broker 确认。Broker 返回 nack 时抛 `AmqpException`，消息没有入队，可以重发；已经发出但确认超时或连接中断时抛 `AmqpOutcomeUnknownException`（`AmqpException` 的子类），Broker 可能已经收下，直接重发可能重复。
+
+消费端 `onMessage()` 成功后 ack。ack 失败时关闭连接，这条由 Broker 重新投递，`isRedelivered()` 为 true，业务需要按业务键幂等。
 
 需要 Composer 包 `php-amqplib/php-amqplib`。
 

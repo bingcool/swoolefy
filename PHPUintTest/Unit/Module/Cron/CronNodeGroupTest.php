@@ -185,7 +185,7 @@ final class CronNodeGroupTest extends TestCase
         $this->assertStringContainsString("->group('group_id')", $svcSrc);
         $this->assertStringContainsString("->field(['id', 'group_name'])", $svcSrc);
         $this->assertDoesNotMatchRegularExpression(
-            '/CronAgentNodeGroupEntity::query\(\)[\s\S]{0,400}[\'"]group_id[\'"]/',
+            '/CronAgentNodeGroupEntity::query\(\)[^;]*[\'"]group_id[\'"]/',
             $svcSrc,
         );
     }
