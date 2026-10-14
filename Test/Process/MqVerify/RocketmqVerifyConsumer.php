@@ -32,7 +32,7 @@ class RocketmqVerifyConsumer extends RocketmqConsumerProcessHandler
         $this->behaviour = (string) $args['behaviour'];
         $this->topic = VerifyScenarios::ROCKETMQ_TOPIC;
         $this->consumerGroup = VerifyScenarios::rocketmqGroup($this->run, $this->scenario);
-        $this->consumerTag = VerifyScenarios::rocketmqTag($this->run, $this->scenario);
+        $this->consumerTag = [VerifyScenarios::rocketmqTag($this->run, $this->scenario)];
         if ($this->behaviour === 'deadline') {
             $this->maxNum = 3;
             $this->invisibleMs = 10000;
@@ -81,8 +81,8 @@ class RocketmqVerifyConsumer extends RocketmqConsumerProcessHandler
     {
         $request = new SendMessageRequestDto();
         $request->setTopic(VerifyScenarios::ROCKETMQ_TOPIC);
-        $request->setTag($this->consumerTag);
-        $request->setKey($this->scenario . '-' . $payload);
+        $request->setTag($this->consumerTag[0]);
+        $request->setKeys([$this->scenario . '-' . $payload]);
         $request->setBodyBase64(base64_encode($payload));
         $producer->send($request, 10000);
     }

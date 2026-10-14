@@ -13,6 +13,7 @@ use Swoolefy\Worker\AbstractWorkerProcess;
  * 业务进程继承后实现 onMessage()，并写上 $topic、$consumerGroup。
  * 同一个消费组 + Topic 的 worker_num 保持 1。
  * onMessage() 抛异常时不确认，不可见时间结束后由 RocketMQ 再投。
+ * 抛 RocketmqRetryLaterException 时不确认，按异常里的毫秒数重投；长任务里调用 extendInvisible() 续租。
  *
  * 一次最多拉 $maxNum 条，按顺序处理。每条开始前检查本批的不可见时间：
  * 距离到期不足 $ackSafetyMarginMs 时，本批剩下的消息不再处理、也不确认，等 RocketMQ 再投。
@@ -21,14 +22,40 @@ use Swoolefy\Worker\AbstractWorkerProcess;
  */
 abstract class RocketmqConsumerWorkerProcessHandler extends AbstractWorkerProcess
 {
+    /**
+     * 要消费的 Topic，必填。
+     */
     protected string $topic = '';
 
+    /**
+     * 消费组，必填。同一个消费组 + Topic 只能由一个进程拉取，worker_num 保持 1。
+     */
     protected string $consumerGroup = '';
 
-    protected string $consumerTag = '*';
+    /**
+     * 要订阅的 Tag，例如 ['paid', 'cancel']，收到其中任意一个 Tag 的消息。
+     * 包含 '*' 或为空数组时订阅全部。发给 sidecar 前转成 SDK 的表达式 "paid || cancel"。
+     *
+     * @var list<string>
+     */
+    protected array $consumerTag = ['*'];
 
+    /**
+     * SQL92 属性过滤，按生产端 properties 在 broker 上过滤，例如 eventType IN ('created','cancelled')。
+     * 空字符串表示不用。非空时 $consumerTag 保持 ['*']（Tag 条件写进 SQL：TAGS IN ('paid')）。
+     * 需要 broker 开启 enablePropertyFilter；消息上没有引用的属性时视为不匹配。
+     * 同一消费组的所有实例必须用同一条件，条件不同就换消费组；修改后要重启进程。
+     */
+    protected string $consumerSql = '';
+
+    /**
+     * 一次最多拉取条数，1–32。
+     */
     protected int $maxNum = 8;
 
+    /**
+     * 拉到后的不可见时间（毫秒），10000–300000。本批消息要在这段时间内处理完并 ack，否则会重投。
+     */
     protected int $invisibleMs = 30000;
 
     /**
@@ -42,12 +69,27 @@ abstract class RocketmqConsumerWorkerProcessHandler extends AbstractWorkerProces
      */
     protected float $sidecarStartupWaitSeconds = 2.0;
 
+    /**
+     * 本进程的消费会话，onInit() 里创建。
+     */
     private RocketmqConsumeSession $session;
 
+    /**
+     * 是否已经做过首次 receive 前的等待，只等一次。
+     */
     private bool $sidecarStartupWaited = false;
 
+    /**
+     * 处理一条消息。正常返回就 ack；抛 RocketmqRetryLaterException 按指定时间重投；抛其他异常不 ack，交给 onHandleException()。
+     */
     abstract public function onMessage(ReceivedMessageDto $message): void;
 
+    /**
+     * 按 Handler 字段创建消费会话。
+     *
+     * @throws SidecarException 没有填 $topic 或 $consumerGroup
+     * @throws \InvalidArgumentException Tag 不合法，或 Tag 与 SQL 同时设置
+     */
     protected function onInit()
     {
         parent::onInit();
@@ -60,9 +102,14 @@ abstract class RocketmqConsumerWorkerProcessHandler extends AbstractWorkerProces
             $this->consumerTag,
             $this->maxNum,
             $this->invisibleMs,
+            $this->consumerSql,
         );
     }
 
+    /**
+     * 每轮由 AbstractWorkerProcess 调用：拉一批并逐条 dispatch。收到退出信号后当前这批不再继续处理。
+     * receive 失败交给 onHandleException() 并退避 0.5 秒；没有消息时等 0.2 秒再拉。
+     */
     protected function loopHandle()
     {
         if ($this->waitToExit) {
@@ -95,13 +142,23 @@ abstract class RocketmqConsumerWorkerProcessHandler extends AbstractWorkerProces
             if (hrtime(true) >= $deadlineNs) {
                 return;
             }
-            try {
-                $this->onMessage($message);
-            } catch (\Throwable $exception) {
-                $this->onHandleException($exception);
-                continue;
-            }
-            $this->session->ack($message);
+            $this->session->dispatch(
+                $message,
+                fn (ReceivedMessageDto $item) => $this->onMessage($item),
+                fn (\Throwable $exception) => $this->onHandleException($exception),
+            );
         }
+    }
+
+    /**
+     * 在 onMessage() 里给当前消息续租：从现在起再隐藏 $invisibleMs 毫秒（10000–300000）。
+     * 只延长这一条，本批其余消息的截止时间不变；长任务建议 $maxNum = 1。
+     * RocketMQ 5.3.x 的 proxy 有缺陷（apache/rocketmq#9583）：续租后的 ack 可能不生效，见 RocketmqConsumeSession::extendCurrent()。
+     *
+     * @return bool 是否成功。失败已记日志，消息可能被重投
+     */
+    protected function extendInvisible(int $invisibleMs): bool
+    {
+        return isset($this->session) && $this->session->extendCurrent($invisibleMs);
     }
 }

@@ -963,6 +963,8 @@ final class RocketmqConsumerProcess extends \Swoolefy\Core\Process\AbstractProce
 
 Go 不在启动时订阅。`rocketmq.consumer.receive` 的 payload 带上 `topic`、`consumerGroup`、`consumerTag`。同一个 `consumerGroup` 共用一个 SimpleConsumer；这个客户端按 `topic` 和 `consumerTag` 做一次 `Subscribe`。同一个消费组的不同 Topic 可以并存。`consumerTag` 为 `*` 或空时使用 SDK 的订阅全部。已经用另一个 Tag 订阅过同一 Topic 时返回 `INVALID_ARGUMENT`，不在有在途拉取时改过滤条件。
 
+payload 可选带 `consumerSql`（SQL92 属性过滤），非空时按 `NewFilterExpressionWithType(expr, SQL92)` 订阅，`consumerTag` 只能是 `*` 或空。订阅条件按「类型 + 表达式」比较，变了返回 `INVALID_ARGUMENT` / `filter`。规则见 `docs/Swoolefy-RocketMQ-业务能力补齐技术方案.md` 3.5 节。
+
 多个 Swoole 实例使用同一个消费组时，队列由 RocketMQ 分给各个 Go 进程。同一个实例不为同一消费组和 Topic 再开一个 PHP 进程。
 
 `rocketmq.consumer.receive` 处理函数：
@@ -972,7 +974,7 @@ Go 不在启动时订阅。`rocketmq.consumer.receive` 的 payload 带上 `topic
 该键已有一个 Receive 还没返回 → 立刻 OVERLOADED，不排队
 其他 Topic 的 Receive 不受这把门锁影响
 按 consumerGroup 取得或创建 SimpleConsumer，必要时 Start
-按 topic、consumerTag 确保已订阅
+按 topic、consumerTag / consumerSql 确保已订阅
 maxNum = 请求里的 maxNum
 invisible = 请求里的 invisibleMs
 ctx 截止时间 = 请求里的 timeoutMs
@@ -1001,6 +1003,9 @@ mvs, err = client.Receive(ctx, maxNum, invisible)
 | --- | --- | --- |
 | `rocketmq.consumer.receive` | `ReceiveMessageRequestDto` | `ReceiveMessageResponseDto` |
 | `rocketmq.consumer.ack` | `AckMessageRequestDto` | `AckMessageResponseDto`（无字段） |
+| `rocketmq.consumer.changeInvisible` | `ChangeInvisibleRequestDto` | `ChangeInvisibleResponseDto`（新 `receiptHandle`） |
+
+发送端的 `keys` / `properties` / `deliverAtMs` / `messageGroup`、消费端返回的元数据字段，以及 `changeInvisible` 的语义，见 `docs/Swoolefy-RocketMQ-业务能力补齐技术方案.md`。原来的单个 `key` 字段已删除。
 
 ```php
 final class ReceiveMessageRequestDto extends AbstractDto
@@ -1011,11 +1016,13 @@ final class ReceiveMessageRequestDto extends AbstractDto
 
     protected string $consumerTag = '*';
 
+    protected string $consumerSql = ''; // 为空时不序列化
+
     protected int $maxNum = 2;
 
     protected int $invisibleMs = 30000;
 
-    // setTopic/getTopic、setConsumerGroup/getConsumerGroup、setConsumerTag/getConsumerTag
+    // setTopic/getTopic、setConsumerGroup/getConsumerGroup、setConsumerTag/getConsumerTag、setConsumerSql/getConsumerSql
     // setMaxNum/getMaxNum、setInvisibleMs/getInvisibleMs
 }
 

@@ -29,7 +29,8 @@ class ProducerRocketmq extends AbstractProcess
                 $request->setTopic('test-demo');
                 $request->setBodyBase64(base64_encode($body));
                 $request->setTag('demo');
-                $request->setKey('test-demo-' . bin2hex(random_bytes(4)));
+                $request->setKeys(['test-demo-' . bin2hex(random_bytes(4))]);
+                $request->setProperties(['source' => 'producer-rocketmq']);
                 $response = $producer->send($request, 10000);
                 var_dump('rocketmq send messageId=' . $response->getMessageId() . ' body=' . $body);
             } catch (\Throwable $e) {

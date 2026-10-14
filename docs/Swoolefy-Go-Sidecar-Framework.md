@@ -123,6 +123,7 @@ func (r *Router) Dispatch(method string) (Handler, bool) {
 | `rocketmq.producer.send` | rocketmq |
 | `rocketmq.consumer.receive` | rocketmq |
 | `rocketmq.consumer.ack` | rocketmq |
+| `rocketmq.consumer.changeInvisible` | rocketmq |
 
 以后的 AI 使用自己的前缀，例如 `ai.complete`。两个插件要进同一个进程时，方法名不能相同。更常见的部署是两个 PHP `SidecarSpec`、两个 Go 进程，各注册自己的插件。框架不为此改路由模型。
 
@@ -424,25 +425,31 @@ socket 路径是普通文件、目录、符号链接，或已经有进程在监�
 
 ### 8.1 发送
 
-`rocketmq.producer.send` 的 `payload`：
+`rocketmq.producer.send` 的 `payload`（`keys`、`properties`、`deliverAtMs`、`messageGroup` 可选，PHP 为空时不发；校验规则和取舍见 `docs/Swoolefy-RocketMQ-业务能力补齐技术方案.md`）：
 
 ```json
 {
   "topic": "order",
   "bodyBase64": "...",
   "tag": "",
-  "key": "",
-  "delayMs": 0
+  "keys": ["ORDER_1"],
+  "properties": {"traceId": "t-1"},
+  "delayMs": 0,
+  "deliverAtMs": 0,
+  "messageGroup": ""
 }
 ```
 
 ```go
 type sendRequest struct {
-    Topic      string `json:"topic"`
-    BodyBase64 string `json:"bodyBase64"`
-    Tag        string `json:"tag"`
-    Key        string `json:"key"`
-    DelayMs    int64  `json:"delayMs"`
+    Topic        string            `json:"topic"`
+    BodyBase64   string            `json:"bodyBase64"`
+    Tag          string            `json:"tag"`
+    Keys         []string          `json:"keys"`
+    Properties   map[string]string `json:"properties"`
+    DelayMs      int64             `json:"delayMs"`
+    DeliverAtMs  int64             `json:"deliverAtMs"`
+    MessageGroup string            `json:"messageGroup"`
 }
 
 func (p *Producer) Send(ctx context.Context, raw json.RawMessage) Result {
@@ -467,8 +474,8 @@ func (p *Producer) Send(ctx context.Context, raw json.RawMessage) Result {
     if req.Tag != "" {
         msg.SetTag(req.Tag)
     }
-    if req.Key != "" {
-        msg.SetKeys(req.Key)
+    if len(req.Keys) > 0 {
+        msg.SetKeys(req.Keys...)
     }
     if req.DelayMs > 0 {
         msg.SetDelayTimestamp(time.Now().Add(time.Duration(req.DelayMs) * time.Millisecond))
@@ -498,7 +505,7 @@ func (p *Producer) Send(ctx context.Context, raw json.RawMessage) Result {
 
 PHP 循环驱动。Go 没有消费 `for`，也不保存消息。进程启动时不订阅。`topic`、`consumerGroup`、`consumerTag` 来自本次 payload，与 PHP 消费进程的 `sidecar_rocketmq_consume_topics`、`sidecar_rocketmq_consumer_group`、`sidecar_rocketmq_consumer_tag` 对应。
 
-同一个 `consumerGroup` 只建一个 SimpleConsumer。第一次见到这个组时 `NewSimpleConsumer` 并 `Start`。`Subscribe(topic, filter)` 每个 Topic 只做一次。`consumerTag` 为 `*` 或空时用 `golang.SUB_ALL`，否则 `golang.NewFilterExpression(consumerTag)`。同一 Topic 再次带来不同的 Tag：返回 `INVALID_ARGUMENT`。
+同一个 `consumerGroup` 只建一个 SimpleConsumer。第一次见到这个组时 `NewSimpleConsumer` 并 `Start`。`Subscribe(topic, filter)` 每个 Topic 只做一次。`consumerTag` 为 `*` 或空时用 `golang.SUB_ALL`，否则 `golang.NewFilterExpression(consumerTag)`。payload 带了非空 `consumerSql` 时用 `golang.NewFilterExpressionWithType(consumerSql, golang.SQL92)`，此时 `consumerTag` 只能是 `*` 或空。同一 Topic 再次带来不同的过滤类型或表达式：返回 `INVALID_ARGUMENT` / `filter`。
 
 `rocketmq.consumer.receive`：
 
@@ -512,6 +519,7 @@ type receiveRequest struct {
     Topic         string `json:"topic"`
     ConsumerGroup string `json:"consumerGroup"`
     ConsumerTag   string `json:"consumerTag"`
+    ConsumerSQL   string `json:"consumerSql,omitempty"`
     MaxNum        int32  `json:"maxNum"`
     InvisibleMs   int64  `json:"invisibleMs"`
 }
@@ -557,7 +565,7 @@ func (c *Consumer) Receive(ctx context.Context, raw json.RawMessage) Result {
             Topic:           mv.GetTopic(),
             BodyBase64:      base64.StdEncoding.EncodeToString(mv.GetBody()),
             Tag:             mv.GetTag(),
-            Key:             strings.Join(mv.GetKeys(), ","),
+            Keys:            mv.GetKeys(),
             ReceiptHandle:   mv.GetReceiptHandle(),
             DeliveryAttempt: int(mv.GetDeliveryAttempt()),
         })
@@ -566,17 +574,21 @@ func (c *Consumer) Receive(ctx context.Context, raw json.RawMessage) Result {
 }
 
 type receivedMessage struct {
-    MessageID       string `json:"messageId"`
-    Topic           string `json:"topic"`
-    BodyBase64      string `json:"bodyBase64"`
-    Tag             string `json:"tag"`
-    Key             string `json:"key"`
-    ReceiptHandle   string `json:"receiptHandle"`
-    DeliveryAttempt int    `json:"deliveryAttempt"`
+    MessageID           string            `json:"messageId"`
+    Topic               string            `json:"topic"`
+    BodyBase64          string            `json:"bodyBase64"`
+    Tag                 string            `json:"tag"`
+    Keys                []string          `json:"keys"`
+    Properties          map[string]string `json:"properties"`
+    MessageGroup        string            `json:"messageGroup"`
+    BornTimestampMs     int64             `json:"bornTimestampMs"`
+    DeliveryTimestampMs int64             `json:"deliveryTimestampMs"`
+    ReceiptHandle       string            `json:"receiptHandle"`
+    DeliveryAttempt     int               `json:"deliveryAttempt"`
 }
 ```
 
-上面的 getter 名按锁定的 SDK 实际导出名来写。字段集合不能少。多个 key 用逗号拼成一个字符串，没有 key 时是空字符串。`deliveryAttempt` 在 JSON 里是数字。函数返回前不把 `MessageView` 放进 map 或包级变量。
+上面的 getter 名按锁定的 SDK 实际导出名来写。字段集合不能少。`keys` 原样返回数组，没有时是 `[]`；`properties` 去掉 `__` 开头的系统属性，没有时是 `{}`，都不输出 `null`。`deliveryAttempt` 在 JSON 里是数字。函数返回前不把 `MessageView` 放进 map 或包级变量。
 
 `ctx` 到期或取消，并且 SDK 因此返回错误：响应用 `OK` 加 `"messages": []`。PHP 把空列表当成这一轮没拉到，马上进入下一轮。其他 SDK 错误走 `classify`。连接已经写不回时，结果丢在 `writeFrame` 的错误里，不 `Ack`。
 

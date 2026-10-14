@@ -250,8 +250,9 @@ Linux 二进制是 `CGO_ENABLED=0` 的静态 ELF。不要用 Go 1.20 编译：�
 | `sidecar.version` | 读取发布版本。payload 为空，响应只有 `version` |
 | `health.check` | 读本进程状态。不向代理发探测 |
 | `rocketmq.producer.send` | 发送一条消息 |
-| `rocketmq.consumer.receive` | 按消费组 + Topic 拉一批 |
+| `rocketmq.consumer.receive` | 按消费组 + Topic 拉一批；按 `consumerTag` 或 `consumerSql`（SQL92）订阅过滤 |
 | `rocketmq.consumer.ack` | 用回执确认一条 |
+| `rocketmq.consumer.changeInvisible` | 改一条消息的不可见时间，返回新回执（旧回执失效） |
 
 `health.check` 的 payload 为空。固定字段：
 
@@ -262,7 +263,7 @@ Linux 二进制是 `CGO_ENABLED=0` 的静态 ELF。不要用 Go 1.20 编译：�
 | `listenerOk` | socket 是否仍在接入 |
 | `inflight` | 当前在途请求数 |
 
-RocketMQ 插件还会加上 `producerReady`、`consumerReady`、`sendOk`、`sendFail`、`sendTimeout`。这些键没出现时，`HealthCheckResponseDto` 的对应 getter 抛异常，不会把“字段缺失”读成 `false` 或 `0`。先用 `hasProducerReady()` 这类方法判断。
+RocketMQ 插件还会加上 `producerReady`、`consumerReady`、`sendOk`、`sendFail`、`sendTimeout`、`capabilities`（支持的能力列表）。这些键没出现时，`HealthCheckResponseDto` 的对应 getter 抛异常，不会把“字段缺失”读成 `false` 或 `0`。先用 `hasProducerReady()` 这类方法判断。
 
 ### 发送
 
@@ -280,13 +281,13 @@ $request = new \Swoolefy\Support\Rocketmq\Dto\SendMessageRequestDto();
 $request->setTopic('test-demo');
 $request->setBodyBase64(base64_encode('hello'));
 $request->setTag('demo');
-$request->setKey('test-demo-1');
+$request->setKeys(['test-demo-1']);
 $request->setDelayMs(0);
 $response = $producer->send($request, 10000);
 $messageId = $response->getMessageId();
 ```
 
-`delayMs` 为 0 表示立即投递，大于 0 是相对当前时间的延迟毫秒，不是 Unix 时间戳。Topic 必须落在 `sidecar_rocketmq_allowed_topics` 里；配置为 `*` 时不限制。
+`delayMs` 为 0 表示立即投递，大于 0 是相对当前时间的延迟毫秒，不是 Unix 时间戳。按绝对时间投递用 `setDeliverAtMs()`（Unix 毫秒）。`properties`、`messageGroup` 等字段见 `src/Support/Rocketmq/README.md`。Topic 必须落在 `sidecar_rocketmq_allowed_topics` 里；配置为 `*` 时不限制。
 
 `send()` 可能抛出：
 

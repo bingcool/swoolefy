@@ -10,7 +10,7 @@ class ConsumerRocketmq extends RocketmqConsumerProcessHandler
 
     protected string $consumerGroup = 'test-demo-group';
 
-    protected string $consumerTag = 'demo';
+    protected array $consumerTag = ['demo'];
 
     public function onMessage(ReceivedMessageDto $message): void
     {
@@ -19,7 +19,8 @@ class ConsumerRocketmq extends RocketmqConsumerProcessHandler
             'rocketmq consume messageId=' . $message->getMessageId()
             . ' topic=' . $message->getTopic()
             . ' tag=' . $message->getTag()
-            . ' key=' . $message->getKey()
+            . ' keys=' . implode('|', $message->getKeys())
+            . ' source=' . ($message->getProperty('source') ?? '')
             . ' attempt=' . $message->getDeliveryAttempt()
             . ' body=' . (is_string($payload) ? $payload : '')
         );
