@@ -137,6 +137,21 @@ class SystemEnv
     }
 
     /**
+     * 脚本由 Kubernetes Job 拉起：php script.php start {App} --c=... --fromk8s=1。
+     * 选项存在且不是 0/false/off/no 时，跳过启动横幅和进程表格，避免写进 Job 日志。
+     */
+    public static function isFromK8s(): bool
+    {
+        $value = self::getOption('fromk8s');
+        if ($value === null) {
+            return false;
+        }
+        $normalized = strtolower(trim((string) $value));
+
+        return !in_array($normalized, ['0', 'false', 'off', 'no'], true);
+    }
+
+    /**
      * @return string
      */
     public static function PhpBinFile(): string

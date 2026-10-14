@@ -1804,8 +1804,10 @@ abstract class AbstractBaseWorker
         }
         $pid = $this->getPid();
 
-        // table header：\Swoolefy\Core\EventCtl::printStartInfo()
-        EventCtrl::consoleTableReader([], [WORKER_SERVICE_NAME, SWOOLEFY_ENV, $processTypeName, $processName, $this->getMasterPid(), $pid, $workerId]);
+        // table header：\Swoolefy\Core\EventCtl::printStartInfo()。k8s 脚本不打这张表。
+        if (!(SystemEnv::isScriptService() && SystemEnv::isFromK8s())) {
+            EventCtrl::consoleTableReader([], [WORKER_SERVICE_NAME, SWOOLEFY_ENV, $processTypeName, $processName, $this->getMasterPid(), $pid, $workerId]);
+        }
 
         $logInfo = "start children_process【{$processTypeName}】:{$processName}@{$workerId} started, pid={$pid}, worker_master_pid={$this->getMasterPid()}";
         $this->writeLog($logInfo);

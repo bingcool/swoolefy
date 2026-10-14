@@ -484,6 +484,11 @@ class EventCtrl implements EventCtrlInterface
      */
     protected function printStartInfo()
     {
+        // k8s Job 采集整段 stdout，启动横幅和进程表会撑大执行记录
+        if (SystemEnv::isScriptService() && SystemEnv::isFromK8s()) {
+            return;
+        }
+
         $protocol = BaseServer::getServiceProtocol();
         switch ($protocol) {
             case SWOOLEFY_HTTP :

@@ -85,7 +85,9 @@ function showLogo()
                                                               __ / |
                                                              |_ _ /
 LOGO;
-    initConsoleStyleIo()->write("<info>$logo</info>", true);
+    if (!\Swoolefy\Core\SystemEnv::isFromK8s()) {
+        initConsoleStyleIo()->write("<info>$logo</info>", true);
+    }
 }
 
 (function () {
