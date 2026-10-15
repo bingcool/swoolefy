@@ -42,6 +42,9 @@ class Event extends EventHandler
      */
     public function onStartRegisterProcess()
     {
+
+        // ProcessManager::getInstance()->addProcess('rocketmq-publish-test-demo', \Test\Process\Rocketmq\ProducerRocketmq::class);
+
         if(!SystemEnv::isWorkerService()) {
             // 创建一个测试自定义进程
             // ProcessManager::getInstance()->addProcess('test', \Test\Process\TestProcess\MultiCall::class);
@@ -132,14 +135,14 @@ class Event extends EventHandler
             // nacos|SDK调用进程
 
             // Nacos 配置变更 → reload Worker / Task 进程
-//            ProcessManager::getInstance()->addProcess(
-//                'nacos-config-reload',
-//                \Test\Process\NacosProcess\NacosConfigReload::class,
-//                true,
-//                [],
-//                null,
-//                true,
-//            );
+            // ProcessManager::getInstance()->addProcess(
+            //    'nacos-config-reload',
+            //    \Test\Process\NacosProcess\NacosConfigReload::class,
+            //    true,
+            //    [],
+            //    null,
+            //    true,
+            //);
 
             // Udp服务测试
             // ProcessManager::getInstance()->addProcess('cdp-test', \Test\Process\UdpTestProcess\Udp::class);
