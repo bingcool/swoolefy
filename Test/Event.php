@@ -35,9 +35,13 @@ class Event extends EventHandler
 
         // 注册全局租户 SQL 拦截器（同时绑定 Model Scope Handler）
         TenantBootstrap::register(new TenantLineDemoHandler());
+    }
 
-        $waitGroup = new GoWaitGroup();
-
+    /**
+     * 协议服务启动前注册自定义进程。
+     */
+    public function onStartRegisterProcess()
+    {
         if(!SystemEnv::isWorkerService()) {
             // 创建一个测试自定义进程
             // ProcessManager::getInstance()->addProcess('test', \Test\Process\TestProcess\MultiCall::class);
@@ -106,7 +110,7 @@ class Event extends EventHandler
             //ProcessManager::getInstance()->addProcess('kafka-consumer-topic3', \Test\Process\Kafka\ConsumerKafka::class);
 
             // rocketmq test-demo：生产、消费都走 go-sidecar
-            // ProcessManager::getInstance()->addProcess('rocketmq-publish-test-demo', \Test\Process\Rocketmq\ProducerRocketmq::class);
+            ProcessManager::getInstance()->addProcess('rocketmq-publish-test-demo', \Test\Process\Rocketmq\ProducerRocketmq::class);
             // ProcessManager::getInstance()->addProcess('rocketmq-consumer-test-demo', \Test\Process\Rocketmq\ConsumerRocketmq::class);
 
 

@@ -36,7 +36,6 @@ class ProducerRocketmq extends AbstractProcess
             } catch (\Throwable $e) {
                 var_dump('rocketmq send failed: ' . $e->getMessage());
             }
-            \Swoole\Coroutine::sleep(1);
         }
     }
 }

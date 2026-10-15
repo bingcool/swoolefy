@@ -14,7 +14,7 @@ swag.php
 /vendor
 /*Service
 Test/.env
-Test/Storage/Logs/
+Storage/
 .DS_Store
 *.sock
 sidecars_sock/

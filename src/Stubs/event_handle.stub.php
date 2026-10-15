@@ -27,6 +27,14 @@ class Event extends EventHandler
     }
 
     /**
+     * onStartRegisterProcess
+     */
+    public function onStartRegisterProcess()
+    {
+        // todo
+    }
+
+    /**
      * onWorkerServiceInit
      */
     public function onWorkerServiceInit()

@@ -167,7 +167,7 @@ PHP 配置键与 Go 环境变量一一对应：键去掉前缀 `sidecar_`，其�
 | `sidecar_enable` | `SIDECAR_ENABLE` | 是否拉起。启用时 PHP 写成 `1` |
 | `sidecar_exec_binary` | `SIDECAR_EXEC_BINARY` | 外部二进制的绝对路径，由 PHP `exec` |
 | `sidecar_args` | `SIDECAR_ARGS` | `exec` 参数的 JSON 数组。`exec` 仍使用原来的字符串列表 |
-| `sidecar_socket_path` | `SIDECAR_SOCKET_PATH` | UDS 绝对路径。配置为空时由 PHP 解析后再写入 |
+| `sidecar_socket_path` | `SIDECAR_SOCKET_PATH` | 配置只填目录，不能填 `.sock` 文件。PHP 在目录下生成 `{APP_NAME}-{Ymd}-{His}-{port}-{name}.sock` 后再写入环境变量 |
 | `sidecar_max_frame_bytes` | `SIDECAR_MAX_FRAME_BYTES` | 单帧最大字节数，默认 `16777216` |
 | `sidecar_default_timeout_ms` | `SIDECAR_DEFAULT_TIMEOUT_MS` | 调用未传超时时间时使用的默认值，默认 `3000` |
 | `sidecar_max_timeout_ms` | `SIDECAR_MAX_TIMEOUT_MS` | 单次调用超时上限，默认 `30000`。Go 把信封里的 `timeoutMs` 截断到这个值 |
@@ -238,7 +238,7 @@ return [
 | `sidecar_name` | 正则 `^[a-z0-9][a-z0-9_-]{0,31}$`，注册表内唯一 |
 | `sidecar_exec_binary` | 绝对路径，`is_file` 且 `is_executable` |
 | `sidecar_args` | `list<string>`。空数组允许。元素不能含 `\0` |
-| `sidecar_socket_path` | 空字符串走默认路径；否则必须是绝对路径，不能含 `\0` |
+| `sidecar_socket_path` | 空字符串用 `{sidecar_runtime_dir}/sidecars_sock`；否则必须是绝对目录，不能含 `\0`，不能以 `.sock` 结尾。文件名固定为 `{APP_NAME}-{Ymd}-{His}-{port}-{name}.sock` |
 | `sidecar_max_frame_bytes` | 整数，`1024` 到 `16777216` |
 | `sidecar_default_timeout_ms` | 整数，`1` 到 `sidecar_max_timeout_ms` |
 | `sidecar_max_timeout_ms` | 整数，`1` 到 `300000` |
@@ -338,8 +338,10 @@ if ($id === false) {
 未配置 `sidecar_socket_path` 时：
 
 ```text
-{runtime_dir}/sidecars_sock/{app}-{port}-{name}.sock
+{runtime_dir}/sidecars_sock/{服务}/{app}-{Ymd}-{His}-{port}-{name}.sock
 ```
+
+`{服务}` 是 `cron`、`script`、`daemon`，都不是时为 `cli`。自定义 `sidecar_socket_path` 同样加这一层，例如 `/data/socks/cli`。`Ymd-His` 是本次进程启动时刻，一次启动只取一次。`sidecar_clean_sockets_on_start` 默认关闭，启动时不扫目录。打开后，start / restart 在拉起 sidecar 之前只删当前服务目录里没人监听的 `.sock`。目录不删，连得上的 sock 留下。其他服务目录不扫。服务目录是符号链接时拒绝清理。服务 shutdown 时删除本进程登记的 sock，删不掉就留着。
 
 `runtime_dir` 取配置 `sidecar_runtime_dir`，缺省为 `APP_PATH . '/runtime'`，不用所有实例共享的 `/tmp/*.sock`。目录 `0700`，socket 由外部进程创建后设为 `0600`。单机多实例靠 app 名和监听端口区分。
 
@@ -358,15 +360,15 @@ final class SocketEndpoint
 {
     public static function resolve(string $name, string $configuredPath, string $runtimeDir): string
     {
-        if ($configuredPath !== '') {
-            return $configuredPath;
-        }
         $app = BaseServer::getAppName();
         $port = (int) (BaseServer::getConf()['port'] ?? 0);
         if ($app === '' || $port <= 0) {
             throw new SidecarException('cannot build sidecar socket path without app name and port');
         }
-        return rtrim($runtimeDir, '/') . '/sidecars_sock/' . $app . '-' . $port . '-' . $name . '.sock';
+        // $configuredPath 是目录。为空时用默认的 sidecars_sock 目录。再加一层服务目录，文件名不接受指定。
+        $dir = $configuredPath !== '' ? rtrim($configuredPath, '/') : rtrim($runtimeDir, '/') . '/sidecars_sock';
+        $dir .= '/' . SocketEndpoint::serviceName();
+        return $dir . '/' . $app . '-' . date('Ymd-His') . '-' . $port . '-' . $name . '.sock';
     }
 
     public static function prepare(string $path): void

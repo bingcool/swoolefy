@@ -46,9 +46,34 @@ final class SidecarSupervisor
         if (!$server instanceof Server) {
             throw new SidecarException('sidecar requires Swoole\\Server');
         }
+        // 默认不扫目录。sidecar_clean_sockets_on_start 为 true 时，才删本服务目录里没人监听的 .sock。
+        if (self::cleanSocketsOnStart($conf)) {
+            $cleared = [];
+            foreach ($specs as $spec) {
+                $dir = dirname($spec->socketPath);
+                if (!isset($cleared[$dir])) {
+                    SocketEndpoint::clearUnusedSockets($dir);
+                    $cleared[$dir] = true;
+                }
+            }
+        }
         foreach ($specs as $spec) {
             SocketEndpoint::prepare($spec->socketPath);
             self::spawn($server, $spec);
+        }
+    }
+
+    /**
+     * 本进程退出时删除自己登记的 sock。删不掉就留着，不抛错。
+     */
+    public static function unlinkOwnSockets(): void
+    {
+        foreach (SidecarRegistry::all() as $spec) {
+            $path = $spec->socketPath;
+            if ($path === '' || str_contains($path, "\0")) {
+                continue;
+            }
+            SocketEndpoint::unlinkQuiet($path);
         }
     }
 
@@ -102,5 +127,33 @@ final class SidecarSupervisor
         }
 
         return $dir;
+    }
+
+    /**
+     * @param array<string, mixed> $conf
+     */
+    private static function cleanSocketsOnStart(array $conf): bool
+    {
+        if (!array_key_exists('sidecar_clean_sockets_on_start', $conf)) {
+            return false;
+        }
+        $parsed = filter_var($conf['sidecar_clean_sockets_on_start'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        if ($parsed === null) {
+            throw new SidecarException('sidecar_clean_sockets_on_start is invalid');
+        }
+
+        return $parsed;
+    }
+
+    /**
+     * Master 的 BeforeShutdown 里删自己的 sock。须在 Server::start() 之前调用。
+     * ManagerStop 再删一次。WebSocket、MQTT 若覆盖 BeforeShutdown，会先调用 unlinkOwnSockets()。
+     */
+    public static function bindShutdownHook(Server $server): void
+    {
+        $server->on('BeforeShutdown', static function (Server $server): void {
+            unset($server);
+            self::unlinkOwnSockets();
+        });
     }
 }

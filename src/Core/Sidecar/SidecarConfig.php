@@ -27,7 +27,7 @@ final class SidecarConfig
     }
 
     /**
-     * @return array{sidecar_runtime_dir: string, sidecars: array<mixed>}
+     * @return array{sidecar_runtime_dir: string, sidecar_clean_sockets_on_start: bool, sidecars: array<mixed>}
      */
     public static function fromApp(): array
     {
@@ -55,10 +55,12 @@ final class SidecarConfig
     /**
      * @param array<string, mixed> $system
      * @param array<string, mixed> $app
-     * @return array{sidecar_runtime_dir: string, sidecars: list<array<string, mixed>>}
+     * @return array{sidecar_runtime_dir: string, sidecar_clean_sockets_on_start: bool, sidecars: list<array<string, mixed>>}
      */
     public static function merge(array $system, array $app): array
     {
+        $appHasClean = array_key_exists('sidecar_clean_sockets_on_start', $app);
+        $system = self::normalizeApp($system);
         $app = self::normalizeApp($app);
         $runtimeDir = $system['sidecar_runtime_dir'] ?? '';
         if (!is_string($runtimeDir)) {
@@ -66,6 +68,12 @@ final class SidecarConfig
         }
         if (isset($app['sidecar_runtime_dir']) && is_string($app['sidecar_runtime_dir']) && $app['sidecar_runtime_dir'] !== '') {
             $runtimeDir = $app['sidecar_runtime_dir'];
+        }
+        $cleanOnStart = false;
+        if ($appHasClean) {
+            $cleanOnStart = (bool) $app['sidecar_clean_sockets_on_start'];
+        } elseif (array_key_exists('sidecar_clean_sockets_on_start', $system)) {
+            $cleanOnStart = (bool) $system['sidecar_clean_sockets_on_start'];
         }
 
         $sidecars = array_merge(self::rows($system['sidecars'] ?? [], 'system'), self::rows($app['sidecars'] ?? [], 'app'));
@@ -81,6 +89,7 @@ final class SidecarConfig
 
         return [
             'sidecar_runtime_dir' => $runtimeDir,
+            'sidecar_clean_sockets_on_start' => $cleanOnStart,
             'sidecars' => $sidecars,
         ];
     }
@@ -98,12 +107,25 @@ final class SidecarConfig
             return ['sidecars' => $app];
         }
         foreach (array_keys($app) as $key) {
-            if (!is_string($key) || !in_array($key, ['sidecar_runtime_dir', 'sidecars'], true)) {
+            if (!is_string($key) || !in_array($key, ['sidecar_runtime_dir', 'sidecars', 'sidecar_clean_sockets_on_start'], true)) {
                 throw new SidecarException('unknown sidecar config key');
             }
         }
+        if (array_key_exists('sidecar_clean_sockets_on_start', $app)) {
+            $app['sidecar_clean_sockets_on_start'] = self::parseBool($app['sidecar_clean_sockets_on_start']);
+        }
 
         return $app;
+    }
+
+    private static function parseBool(mixed $value): bool
+    {
+        $parsed = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        if ($parsed === null) {
+            throw new SidecarException('sidecar_clean_sockets_on_start is invalid');
+        }
+
+        return $parsed;
     }
 
     /**

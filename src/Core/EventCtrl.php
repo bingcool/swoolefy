@@ -83,8 +83,24 @@ class EventCtrl implements EventCtrlInterface
             static::onWorkerServiceInit();
             $this->boostrapWorkerInit();
         }
+
         \Swoolefy\Core\Sidecar\SidecarSupervisor::attach();
+        $server = BaseServer::getServer();
+        if ($server instanceof Server) {
+            \Swoolefy\Core\Sidecar\SidecarSupervisor::bindShutdownHook($server);
+        }
+
+        static::onStartRegisterProcess();
         static::printStartInfo();
+    }
+
+    /**
+     * 协议服务启动前注册自定义进程。业务在 Event 里覆盖。
+     *
+     * @return void
+     */
+    public function onStartRegisterProcess()
+    {
     }
 
     /**
@@ -356,6 +372,8 @@ class EventCtrl implements EventCtrlInterface
      */
     public function managerStop($server)
     {
+        // 本进程创建的 sidecar sock 在 shutdown 时删掉。删不掉就留着。
+        \Swoolefy\Core\Sidecar\SidecarSupervisor::unlinkOwnSockets();
         static::onManagerStop($server);
     }
 

@@ -97,6 +97,7 @@ final class MqttShutdownCoordinator
         }
 
         $server->on('BeforeShutdown', static function (\Swoole\Server $server): void {
+            \Swoolefy\Core\Sidecar\SidecarSupervisor::unlinkOwnSockets();
             self::onBeforeShutdown($server);
         });
     }

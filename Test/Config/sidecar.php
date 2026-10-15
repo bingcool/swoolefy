@@ -10,4 +10,6 @@ declare(strict_types=1);
  * 单项没写的帧大小、超时、inflight、停机等待，使用 .env 里的公共配置。
  */
 
-return [];
+return [
+    'sidecar_clean_sockets_on_start' => true,
+];

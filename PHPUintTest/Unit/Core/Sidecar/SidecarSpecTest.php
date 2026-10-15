@@ -16,6 +16,7 @@ use Swoolefy\Core\Sidecar\SidecarConfig;
 use Swoolefy\Core\Sidecar\SidecarException;
 use Swoolefy\Core\Sidecar\SidecarLog;
 use Swoolefy\Core\Sidecar\SidecarSpec;
+use Swoolefy\Core\Sidecar\SocketEndpoint;
 use Swoolefy\Support\Rocketmq\Dto\HealthCheckResponseDto;
 use Swoolefy\Support\Rocketmq\Dto\SendMessageRequestDto;
 
@@ -101,7 +102,7 @@ final class SidecarSpecTest extends TestCase
         $this->assertInstanceOf(SidecarSpec::class, $spec);
         // APP_NAME 是常量，可能已被先跑的用例定义，这里按实际值拼期望路径
         $this->assertSame(
-            '/tmp/sidecar-runtime/sidecars_sock/' . BaseServer::getAppName() . '-9501-rocketmq.sock',
+            '/tmp/sidecar-runtime/sidecars_sock/' . SocketEndpoint::serviceName() . '/' . BaseServer::getAppName() . '-' . SocketEndpoint::startedAt() . '-9501-rocketmq.sock',
             $spec->socketPath,
         );
         $this->assertSame(['--flag'], $spec->args);
@@ -112,6 +113,37 @@ final class SidecarSpecTest extends TestCase
         $this->assertSame('order,pay', $env['SIDECAR_ROCKETMQ_ALLOWED_TOPICS']);
         $this->assertArrayNotHasKey('SIDECAR_ROCKETMQ_ACCESS_KEY', $env);
         $this->assertArrayNotHasKey('SIDECAR_ROCKETMQ_SECRET_KEY', $env);
+    }
+
+    public function testSocketPathDirectoryGetsGeneratedFileName(): void
+    {
+        $spec = SidecarSpec::fromRow([
+            'sidecar_name' => 'rocketmq',
+            'sidecar_enable' => true,
+            'sidecar_exec_binary' => $this->binary,
+            'sidecar_socket_path' => '/tmp/custom-socks/',
+            'sidecar_plugins' => 'rocketmq',
+            'sidecar_rocketmq_proxy_endpoint' => '127.0.0.1:8081',
+        ], '/tmp/sidecar-runtime');
+
+        $this->assertSame(
+            '/tmp/custom-socks/' . SocketEndpoint::serviceName() . '/' . SocketEndpoint::fileName(BaseServer::getAppName(), 9501, 'rocketmq'),
+            $spec->socketPath,
+        );
+    }
+
+    public function testSocketFilePathIsRejected(): void
+    {
+        $this->expectException(SidecarException::class);
+        $this->expectExceptionMessage('must be a directory, not a socket file');
+        SidecarSpec::fromRow([
+            'sidecar_name' => 'rocketmq',
+            'sidecar_enable' => true,
+            'sidecar_exec_binary' => $this->binary,
+            'sidecar_socket_path' => '/tmp/custom-socks/rocketmq.sock',
+            'sidecar_plugins' => 'rocketmq',
+            'sidecar_rocketmq_proxy_endpoint' => '127.0.0.1:8081',
+        ], '/tmp/sidecar-runtime');
     }
 
     public function testForeignPluginKeyFailsOnRocketmqRow(): void
@@ -229,7 +261,7 @@ final class SidecarSpecTest extends TestCase
             define('APP_PATH', sys_get_temp_dir() . '/swoolefy-sidecar-no-app');
         }
         $app = include dirname(__DIR__, 4) . '/src/Stubs/sidecar.conf.stub.php';
-        $this->assertSame([], $app);
+        $this->assertSame(['sidecar_clean_sockets_on_start' => false], $app);
         $system = include dirname(__DIR__, 4) . '/src/Core/Sidecar/Config/SystemSidecar.php';
         $this->assertArrayNotHasKey('sidecar_max_frame_bytes', $system['sidecars'][0]);
         $loaded = SidecarConfig::fromApp();
@@ -259,11 +291,24 @@ final class SidecarSpecTest extends TestCase
                 'sidecar_max_inflight' => 4,
             ]],
         ]);
+        $this->assertFalse($merged['sidecar_clean_sockets_on_start']);
         $this->assertSame('/tmp/app-runtime', $merged['sidecar_runtime_dir']);
         $this->assertSame(['rocketmq', 'billing'], array_column($merged['sidecars'], 'sidecar_name'));
         $this->assertSame(128, $merged['sidecars'][0]['sidecar_max_inflight']);
         $this->assertSame(4, $merged['sidecars'][1]['sidecar_max_inflight']);
         $this->assertSame(3000, $merged['sidecars'][1]['sidecar_default_timeout_ms']);
+
+        $overridden = SidecarConfig::merge([
+            'sidecar_runtime_dir' => '/tmp/system',
+            'sidecar_clean_sockets_on_start' => false,
+            'sidecars' => [],
+        ], [
+            'sidecar_clean_sockets_on_start' => true,
+            'sidecars' => [],
+        ]);
+        $this->assertTrue($overridden['sidecar_clean_sockets_on_start']);
+        $this->expectExceptionMessage('sidecar_clean_sockets_on_start is invalid');
+        SidecarConfig::merge([], ['sidecar_clean_sockets_on_start' => 'maybe']);
     }
 
     public function testNestedDtoStaysObjectUntilToArray(): void

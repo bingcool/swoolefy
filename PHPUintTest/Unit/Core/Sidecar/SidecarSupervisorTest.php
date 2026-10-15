@@ -29,7 +29,8 @@ final class SidecarSupervisorTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->dir = sys_get_temp_dir() . '/sidecar-sup-' . uniqid('', true);
+        // macOS 的 socket 路径上限 103 字节，sys_get_temp_dir() 太长，用 /tmp。
+        $this->dir = '/tmp/sc-sup-' . bin2hex(random_bytes(4));
         mkdir($this->dir, 0700, true);
         $this->binary = $this->dir . '/bin';
         file_put_contents($this->binary, "#!/bin/sh\nexit 0\n");
@@ -89,8 +90,9 @@ final class SidecarSupervisorTest extends TestCase
     public function testAttachRegistersForEveryServiceKind(string $kind): void
     {
         $server = $this->installServer();
-        $sock = $this->dir . '/' . $kind . '.sock';
-        $this->installConf($sock);
+        $sockDir = $this->dir . '/' . $kind;
+        mkdir($sockDir, 0700, true);
+        $this->installConf($sockDir);
         SidecarSupervisor::attach();
         $this->assertCount(1, $server->added, $kind);
         $this->assertStringNotContainsString('isWorkerService', (string) file_get_contents(
@@ -106,31 +108,156 @@ final class SidecarSupervisorTest extends TestCase
         return [['http'], ['daemon'], ['cron'], ['script']];
     }
 
-    public function testRegularFileAndSymlinkAreNotDeleted(): void
+    public function testAttachClearsOnlyCurrentServiceDirectory(): void
     {
-        $file = $this->dir . '/plain.sock';
-        file_put_contents($file, 'not-a-socket');
+        $dir = $this->dir . '/plain-dir';
+        $service = SocketEndpoint::serviceName();
+        $other = $service === 'cron' ? 'cli' : 'cron';
+        mkdir($dir . '/' . $service, 0700, true);
+        mkdir($dir . '/' . $other, 0700, true);
+        $this->staleSocket($dir . '/' . $service . '/old.sock');
+        $this->staleSocket($dir . '/' . $other . '/old.sock');
         $this->installServer();
-        $this->installConf($file);
-        try {
-            SidecarSupervisor::attach();
-            $this->fail('expected sidecar exception');
-        } catch (SidecarException) {
-            $this->assertFileExists($file);
-        }
+        $this->installConf($dir, true);
+        SidecarSupervisor::attach();
+
+        $this->assertFileDoesNotExist($dir . '/' . $service . '/old.sock');
+        $this->assertDirectoryExists($dir . '/' . $service);
+        $this->assertFileExists($dir . '/' . $other . '/old.sock');
 
         SidecarRegistry::reset();
+        $dir = $this->dir . '/link-dir';
+        mkdir($dir, 0700, true);
         $target = $this->dir . '/target';
-        file_put_contents($target, 'x');
-        $link = $this->dir . '/link.sock';
+        mkdir($target, 0700, true);
+        file_put_contents($target . '/keep.txt', 'x');
+        $link = $dir . '/' . $service;
         symlink($target, $link);
-        $this->installConf($link);
+        $this->installConf($dir, true);
         try {
             SidecarSupervisor::attach();
-            $this->fail('expected sidecar exception');
+            $this->fail('symlink service directory must be refused');
         } catch (SidecarException) {
+            $this->assertFileExists($target . '/keep.txt');
             $this->assertTrue(is_link($link));
         }
+    }
+
+    public function testAttachKeepsStaleSocketsUnlessCleanOnStart(): void
+    {
+        $dir = $this->dir . '/keep';
+        $service = SocketEndpoint::serviceName();
+        mkdir($dir . '/' . $service, 0700, true);
+        $this->staleSocket($dir . '/' . $service . '/old.sock');
+        $this->installServer();
+        $this->installConf($dir);
+        SidecarSupervisor::attach();
+
+        $this->assertFileExists($dir . '/' . $service . '/old.sock');
+        $this->assertDirectoryExists($dir . '/' . $service);
+    }
+
+    public function testUnlinkOwnSocketsRemovesRegisteredFilesAndIgnoresFailure(): void
+    {
+        $dir = $this->dir . '/own';
+        mkdir($dir, 0700, true);
+        $own = $dir . '/own.sock';
+        $other = $dir . '/other.sock';
+        $this->staleSocket($own);
+        $this->staleSocket($other);
+        SidecarRegistry::add($this->spec($own));
+        SidecarSupervisor::unlinkOwnSockets();
+        $this->assertFileDoesNotExist($own);
+        $this->assertFileExists($other);
+
+        SidecarSupervisor::unlinkOwnSockets();
+        $this->assertFileExists($other);
+
+        $locked = $dir . '/locked';
+        mkdir($locked, 0700, true);
+        $stuck = $locked . '/stuck.sock';
+        $this->staleSocket($stuck);
+        chmod($locked, 0555);
+        SidecarRegistry::reset();
+        SidecarRegistry::add($this->spec($stuck));
+        set_error_handler(static function (int $severity, string $message): bool {
+            throw new \ErrorException($message, 0, $severity);
+        });
+        try {
+            SidecarSupervisor::unlinkOwnSockets();
+            $this->assertFileExists($stuck);
+        } finally {
+            restore_error_handler();
+            chmod($locked, 0700);
+        }
+    }
+
+    public function testClearUnusedSocketsKeepsLiveOnesAndTheDirectory(): void
+    {
+        $runtime = $this->dir . '/app';
+        $parent = $runtime . '/sidecars_sock';
+        $cli = $parent . '/cli';
+        $cron = $parent . '/cron';
+        mkdir($cli, 0700, true);
+        mkdir($cron, 0700, true);
+        $this->staleSocket($cli . '/stale.sock');
+        $live = stream_socket_server('unix://' . $cli . '/live.sock', $errno, $errstr);
+        $this->assertIsResource($live);
+        file_put_contents($cli . '/note.txt', 'x');
+        $this->staleSocket($cron . '/old.sock');
+
+        try {
+            SocketEndpoint::clearUnusedSockets($cli);
+        } finally {
+            fclose($live);
+        }
+
+        $this->assertFileDoesNotExist($cli . '/stale.sock');
+        $this->assertFileExists($cli . '/live.sock');
+        $this->assertFileExists($cli . '/note.txt');
+        $this->assertDirectoryExists($cli);
+        $this->assertFileExists($cron . '/old.sock');
+
+        $script = $parent . '/script';
+        mkdir($script, 0700, true);
+        $this->staleSocket($script . '/stale.sock');
+        $running = stream_socket_server('unix://' . $script . '/running.sock', $errno, $errstr);
+        $this->assertIsResource($running);
+        try {
+            SocketEndpoint::clearUnusedSockets($script);
+        } finally {
+            fclose($running);
+        }
+        $this->assertFileDoesNotExist($script . '/stale.sock');
+        $this->assertFileExists($script . '/running.sock');
+        $this->assertDirectoryExists($script);
+
+        $target = $this->dir . '/elsewhere';
+        mkdir($target, 0700, true);
+        file_put_contents($target . '/keep.txt', 'x');
+        symlink($target, $cli . '-link');
+        try {
+            SocketEndpoint::clearUnusedSockets($cli . '-link');
+            $this->fail('symlink directory must be refused');
+        } catch (SidecarException) {
+            $this->assertFileExists($target . '/keep.txt');
+            $this->assertTrue(is_link($cli . '-link'));
+        }
+
+        try {
+            SocketEndpoint::clearUnusedSockets($parent);
+            $this->fail('parent directory must be refused');
+        } catch (SidecarException) {
+            $this->assertDirectoryExists($parent);
+        }
+    }
+
+    private function staleSocket(string $path): void
+    {
+        $socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
+        $this->assertNotFalse($socket);
+        $this->assertTrue(@socket_bind($socket, $path));
+        socket_close($socket);
     }
 
     public function testMissingSocketIgnoresWarningFromErrorHandler(): void
@@ -194,11 +321,11 @@ final class SidecarSupervisorTest extends TestCase
         return $server;
     }
 
-    private function installConf(string $socket): void
+    private function installConf(string $socket, bool $cleanOnStart = false): void
     {
         $prop = new ReflectionProperty(BaseServer::class, 'config');
         $prop->setAccessible(true);
-        $prop->setValue(null, [
+        $conf = [
             'port' => 9501,
             'sidecar_runtime_dir' => $this->dir,
             'sidecars' => [[
@@ -211,7 +338,11 @@ final class SidecarSupervisorTest extends TestCase
                 'sidecar_rocketmq_proxy_endpoint' => '127.0.0.1:8081',
                 'sidecar_rocketmq_allowed_topics' => '*',
             ]],
-        ]);
+        ];
+        if ($cleanOnStart) {
+            $conf['sidecar_clean_sockets_on_start'] = true;
+        }
+        $prop->setValue(null, $conf);
     }
 
     private function spec(string $socket): SidecarSpec

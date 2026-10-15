@@ -118,7 +118,7 @@ final class RocketmqConsumeSession
     }
 
     /**
-     * 拉一批消息，阻塞到有消息或长轮询结束（最多约 25 秒）。没有消息时返回空数组。
+     * 拉一批消息。选中的队列已有消息时马上返回；空队列长轮询大约 5 秒。没有消息时返回空数组。
      *
      * @return list<ReceivedMessageDto>
      * @throws \Throwable sidecar 不可用、同组 + Topic 已有 receive 在途（OVERLOADED）、过滤条件不合法等

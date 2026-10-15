@@ -16,10 +16,10 @@
 socket 路径已经带进程名：
 
 ```text
-{APP_PATH}/sidecars_sock/{APP_NAME}-{port}-{sidecar_name}.sock
+{APP_PATH}/sidecars_sock/{服务}/{APP_NAME}-{Ymd}-{His}-{port}-{sidecar_name}.sock
 ```
 
-`sidecar_runtime_dir` 当前是 `APP_PATH`。RocketMQ 的文件是 `{APP_PATH}/sidecars_sock/{APP_NAME}-{port}-rocketmq.sock`。第二个进程只要 `sidecar_name` 不同，路径自然分开。
+`sidecar_runtime_dir` 当前是 `APP_PATH`。RocketMQ 的文件是 `{APP_PATH}/sidecars_sock/cli/{APP_NAME}-{Ymd}-{His}-{port}-rocketmq.sock`（cron / script / daemon 各自换对应目录）。第二个进程只要 `sidecar_name` 不同，路径自然分开。
 
 PHP 调用按名字选进程。`SidecarClient::call($name, $method, $payload, $timeoutMs)` 用 `SidecarRegistry::get($name)` 取对应 socket，每次新建一条 Unix 连接，写一帧、读一帧、关闭。名字 `rocketmq` 不会连到名字 `mqtt5` 的 socket。
 

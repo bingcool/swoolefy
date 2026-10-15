@@ -9,7 +9,7 @@ namespace Swoolefy\Support\Rocketmq;
  *
  * 基类捕获后不 ack，把这条消息的不可见时间改成 $retryAfterMs，不再等满 $invisibleMs。
  * 不会传给 onHandleException()。改不可见时间失败只记日志，消息仍按原不可见时间重投。
- * 实际重投会比 $retryAfterMs 晚一些：消息重新可见后，要等消费端下一次长轮询拉取（最多约 15 秒）。
+ * 实际重投会比 $retryAfterMs 晚一些：消息重新可见后，要等消费端下一次长轮询拉取（大约 5 秒）。
  *
  * ```php
  * if (!$this->stockReady($orderNo)) {

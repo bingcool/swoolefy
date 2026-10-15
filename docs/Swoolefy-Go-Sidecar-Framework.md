@@ -292,7 +292,7 @@ func (s *Server) serveConn(conn net.Conn) {
 | `SIDECAR_ENABLE` | 是否拉起。启用时 PHP 写成 `1` | `sidecar_enable` | PHP 决定是否拉起；Go 进程存在时值为启用 |
 | `SIDECAR_EXEC_BINARY` | 外部二进制的绝对路径，由 PHP `exec` | `sidecar_exec_binary` | PHP 用来 `exec` |
 | `SIDECAR_ARGS` | `exec` 参数的 JSON 数组。`exec` 仍使用原来的字符串列表 | `sidecar_args` | PHP 用来 `exec` |
-| `SIDECAR_SOCKET_PATH` | UDS 绝对路径。配置为空时由 PHP 解析后再写入 | `sidecar_socket_path` | 框架监听 |
+| `SIDECAR_SOCKET_PATH` | 生成后的 sock 文件绝对路径。配置 `sidecar_socket_path` 只填目录，文件名是 `{APP_NAME}-{Ymd}-{His}-{port}-{name}.sock` | `sidecar_socket_path` | 框架监听 |
 | `SIDECAR_MAX_FRAME_BYTES` | 单帧最大字节数，默认 `16777216` | `sidecar_max_frame_bytes` | 框架 |
 | `SIDECAR_DEFAULT_TIMEOUT_MS` | 调用未传超时时间时使用的默认值，默认 `3000` | `sidecar_default_timeout_ms` | 框架 |
 | `SIDECAR_MAX_TIMEOUT_MS` | 单次调用超时上限，默认 `30000`。信封里的 `timeoutMs` 截断到这个值 | `sidecar_max_timeout_ms` | 框架 |

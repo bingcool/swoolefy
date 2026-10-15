@@ -264,6 +264,11 @@ final class SidecarSpec
     }
 
     /**
+     * sidecar_socket_path 只接受目录，不接受 sock 文件。
+     * 空字符串用 {sidecar_runtime_dir}/sidecars_sock。
+     * 框架会再加一层服务目录（cli / cron / script / daemon），文件名一律生成：
+     * {APP_NAME}-{Ymd}-{His}-{port}-{name}.sock。
+     *
      * @param array<string, mixed> $row
      */
     private static function requireSocket(array $row, string $name): string
@@ -272,8 +277,12 @@ final class SidecarSpec
         if (!is_string($path) || str_contains($path, "\0")) {
             throw new SidecarException(self::label($name, 'sidecar_socket_path') . ' is invalid');
         }
+        $path = rtrim($path, '/');
         if ($path !== '' && !str_starts_with($path, '/')) {
             throw new SidecarException(self::label($name, 'sidecar_socket_path') . ' must be an absolute path');
+        }
+        if ($path !== '' && str_ends_with(strtolower($path), '.sock')) {
+            throw new SidecarException(self::label($name, 'sidecar_socket_path') . ' must be a directory, not a socket file; the file name is {APP_NAME}-{Ymd}-{His}-{port}-{name}.sock');
         }
 
         return $path;

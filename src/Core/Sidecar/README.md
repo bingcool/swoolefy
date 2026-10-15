@@ -21,7 +21,7 @@ Go 工程是独立模块 `swoolefy-go-sidecar`。编译产物放在本目录的 
 | `SidecarLog.php` | 调用日志，只记元数据 |
 | `src/Support/Rocketmq/` | 生产、消费和 DTO。Core 不解析这些业务方法 |
 
-应用追加的进程写在 `APP_PATH/Config/sidecar.php`。`create` 时从 `src/Stubs/sidecar.conf.stub.php` 复制。返回 `[]` 表示不追加。
+应用追加的进程写在 `APP_PATH/Config/sidecar.php`。`create` 时从 `src/Stubs/sidecar.conf.stub.php` 复制，里面有 `'sidecar_clean_sockets_on_start' => false`。不写 `sidecars` 表示不追加进程。
 
 ## 原理
 
@@ -126,7 +126,8 @@ PHP 日志按 code 分级：`OK` 为 info；`INVALID_ARGUMENT`、`METHOD_NOT_FOU
 
 - 应用文件不存在，或返回 `[]`：只用框架声明。
 - 应用返回列表：整份列表当作额外的 `sidecars`。
-- 应用返回关联数组：只允许 `sidecar_runtime_dir`、`sidecars`。其他键抛 `unknown sidecar config key`。
+- 应用返回关联数组：只允许 `sidecar_runtime_dir`、`sidecar_clean_sockets_on_start`、`sidecars`。其他键抛 `unknown sidecar config key`。
+- `sidecar_clean_sockets_on_start` 默认 `false`。应用写了才覆盖框架的值，没写就沿用框架的。
 - 两边的 `sidecars` 按框架在前、应用在后拼接。
 - 应用的 `sidecar_runtime_dir` 非空时覆盖框架的值。空字符串不覆盖。
 - 单项没写的五个公共数值，用 `.env` 填上。
@@ -151,7 +152,7 @@ PHP 日志按 code 分级：`OK` 为 info；`INVALID_ARGUMENT`、`METHOD_NOT_FOU
 - 名称 `rocketmq`。
 - `sidecar_enable` 来自 `SIDECAR_ROCKETMQ_ENABLE`，缺省关闭。未设置、`false`、`0`、`off`、`no` 都跳过该项，并且不检查二进制是否存在。设为 `true` 才拉起。无法识别的值（例如整数 `2`）启动失败。
 - 二进制按 `PHP_OS_FAMILY` 选择：`Darwin` 用 `Bin/go-sidecar-mac`，其他用 `Bin/go-sidecar-linux`。
-- `sidecar_socket_path` 为空，走下面的默认路径。
+- `sidecar_socket_path` 为空，目录用 `{sidecar_runtime_dir}/sidecars_sock`。这个键只能写目录，不能写 `.sock` 文件。
 - `sidecar_plugins` 为 `rocketmq`。
 - 代理地址、AccessKey、SecretKey 来自 `.env`。允许的 Topic 为 `*`。
 - 消费进程不在这里登记。应用在 `onInit()` 里 `addProcess` 自己的进程类。
@@ -169,19 +170,34 @@ SIDECAR_ROCKETMQ_SECRET_KEY=
 
 ### 默认 socket 路径
 
-`sidecar_socket_path` 为空时：
+`sidecar_socket_path` 只填目录。空字符串时目录是 `{sidecar_runtime_dir}/sidecars_sock`，写了绝对路径就用那个目录。两种情况都会再加一层服务目录，避免同一份代码同时跑多个服务时，重启清理删掉别人的 sock：
+
+| 当前进程 | 子目录 |
+| --- | --- |
+| `isCronService()` | `cron` |
+| `isScriptService()` | `script` |
+| `isDaemonService()` | `daemon` |
+| 都不是（HTTP、WebSocket 等） | `cli` |
+
+例如 `sidecar_socket_path` 为 `/data/socks`、当前是协议服务时，目录是 `/data/socks/cli`。文件名一律生成，不接受指定：
 
 ```text
-{sidecar_runtime_dir}/sidecars_sock/{APP_NAME}-{port}-{sidecar_name}.sock
+{目录}/{服务}/{APP_NAME}-{Ymd}-{His}-{port}-{sidecar_name}.sock
 ```
 
-`APP_NAME` 是常量 `APP_NAME`。`port` 是当前协议配置里的 `port`。应用名缺失或端口不大于 0，抛 `cannot build sidecar socket path without app name and port`。
+例如 `Test-20261015-120412-32885-rocketmq.sock`。`Ymd-His` 是本次进程启动时刻，一次启动只取一次，多个 sidecar 共用。`APP_NAME` 是常量 `APP_NAME`。`port` 是当前协议配置里的 `port`。应用名缺失或端口不大于 0，抛 `cannot build sidecar socket path without app name and port`。
 
 框架把 `sidecar_runtime_dir` 设成了 `APP_PATH`，所以默认文件是：
 
 ```text
-{APP_PATH}/sidecars_sock/{APP_NAME}-{port}-rocketmq.sock
+{APP_PATH}/sidecars_sock/cli/{APP_NAME}-{Ymd}-{His}-{port}-rocketmq.sock
 ```
+
+`sidecar_clean_sockets_on_start` 默认 `false`：启动时不扫目录，旧的 `.sock` 留着。设为 `true` 时，每次 `start` / `restart` 进入 `attach()`、拉起 sidecar 之前，只删当前服务目录里没人监听的 `.sock` 文件，例如 `sidecars_sock/cli` 里连不上的残留。目录本身不删。200 毫秒内能连上的 sock 视为正在使用，留下，所以 `script` 目录里其他正在跑的脚本不受影响。普通文件、子目录、符号链接不动。其他服务目录不扫。服务目录本身如果是符号链接，或者目录名不是 `cli`、`cron`、`script`、`daemon`，直接拒绝。写成 `.sock` 文件的配置直接启动失败。
+
+服务 shutdown 时删除本进程登记过的 sock。`BeforeShutdown` 和 `ManagerStop` 都会做这一次；WebSocket、MQTT 自己的关机回调也会先删。`unlink` 失败不抛错，文件留在目录里。
+
+路径超过系统上限（macOS 103 字节、Linux 107 字节，都不含结尾的 NUL）时启动失败，信息是 `sidecar socket path exceeds N bytes`。
 
 如果运行目录也是空字符串，`SidecarSpec` 再用 `APP_PATH/runtime` 作为目录。显式写了绝对路径时，用该路径，不再拼接。
 
@@ -197,7 +213,7 @@ SIDECAR_ROCKETMQ_SECRET_KEY=
 | `sidecar_enable` | 布尔语义。未写时 `applyDefaults()` 视为关闭 |
 | `sidecar_exec_binary` | 绝对路径，且是可执行文件 |
 | `sidecar_args` | 字符串列表，元素不能含 NUL |
-| `sidecar_socket_path` | 空字符串或绝对路径 |
+| `sidecar_socket_path` | 空字符串或绝对目录。不能是 `.sock` 文件，文件名由框架生成 |
 | `sidecar_plugins` | 一个插件名，`^[a-z0-9]+$`。必须已在 `SidecarPluginRegistry` 登记 |
 | `sidecar_rocketmq_proxy_endpoint` | 仅 `rocketmq` 项。必须是 `host:port` |
 | `sidecar_rocketmq_access_key` | 字符串 |
@@ -216,6 +232,7 @@ SIDECAR_ROCKETMQ_SECRET_KEY=
 declare(strict_types=1);
 
 return [
+    'sidecar_clean_sockets_on_start' => false,
     'sidecars' => [
         [
             'sidecar_name' => 'billing',
