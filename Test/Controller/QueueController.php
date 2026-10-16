@@ -9,7 +9,7 @@ class QueueController extends BController
 {
     /**
      * 向组件 queue 推一条 List 消息。ListQueueProducer 默认的 queue_component 就是 queue。
-     * 数组由组件编码并写入 Redis 键 queue:order:list。消费进程是 RedisList。
+     * 数组由组件编码并写入 Redis 键 queue:order:list。消费进程是 RedisListConsumer。
      *
      * Route: GET /api/queue/push (POST 亦可)
      *

@@ -32,7 +32,7 @@ final class JobRedisMultiConsumer extends ListQueueConsumerProcessHandler
     /**
      * queue.php 的 List 组件。立即重试也写回这个组件。
      */
-    protected string $queue_component = 'queue';
+    protected string $queueComponent = 'queue';
 
     public function onMessage(ReceivedMessageDto $message): void
     {
@@ -48,7 +48,7 @@ final class JobRedisMultiConsumer extends ListQueueConsumerProcessHandler
         $runner = JobComponentFactory::runner();
         // 死信走组件自带的 Redis，不再单独 connect。
         $dlq = JobComponentFactory::redisDeadLetter(
-            QueueComponent::get($this->queue_component)->getRedis(),
+            QueueComponent::get($this->queueComponent)->getRedis(),
         );
         $runner->runRegistered(
             $registry,

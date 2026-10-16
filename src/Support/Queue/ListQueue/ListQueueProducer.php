@@ -9,7 +9,7 @@ use Swoolefy\Support\Queue\QueueComponent;
 /**
  * List 生产者。
  *
- * $queue_component 是 Config/component/queue.php 的组件名，默认 queue。
+ * $queueComponent 是 Config/component/queue.php 的组件名，默认 queue。
  * 它不是 Redis 键。键名在 queue.php 里传给 Swoolefy\Library\Queues\Queue。
  * 要写到别的 List 组件时，子类覆盖这个属性，消费者使用同一个名字。
  *
@@ -22,16 +22,16 @@ use Swoolefy\Support\Queue\QueueComponent;
 class ListQueueProducer
 {
     /**
-     * queue.php 里的 List 组件名。和消费者的 $queue_component 必须相同，两边才是同一条队列。
+     * queue.php 里的 List 组件名。和消费者的 $queueComponent 必须相同，两边才是同一条队列。
      */
-    protected string $queue_component = 'queue';
+    protected string $queueComponent = 'queue';
 
     /**
      * @param string $queueComponent
      */
     public function __construct(string $queueComponent)
     {
-        $this->queue_component = $queueComponent;
+        $this->queueComponent = $queueComponent;
     }
 
     /**
@@ -39,6 +39,6 @@ class ListQueueProducer
      */
     public function push(array $item): void
     {
-        QueueComponent::get($this->queue_component)->push($item);
+        QueueComponent::get($this->queueComponent)->push($item);
     }
 }

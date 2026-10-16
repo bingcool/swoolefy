@@ -151,7 +151,7 @@ class EventApp
      */
     public function __call(string $action, array $args = [])
     {
-        if ($this->isCall && \Swoole\Coroutine::getCid() > 0) {
+        if ($this->isCall && \Swoole\Coroutine::getCid() >= 0) {
             $className = get_class($this->eventApp);
             throw new SystemException(sprintf("%s Single Coroutine Instance only be called one method, you had called", $className));
         }

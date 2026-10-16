@@ -11,11 +11,11 @@ use Swoolefy\Worker\AbstractWorkerProcess;
 /**
  * Daemon / Cron 常驻进程里的 List 消费。退出和重启沿用 AbstractWorkerProcess 的 loopHandle()。
  *
- * $queue_component 是 queue.php 的组件名，默认 queue，不是 Redis 键。
+ * $queueComponent 是 queue.php 的组件名，默认 queue，不是 Redis 键。
  * 和 ListQueueConsumerProcessHandler 使用同一套 ListQueueOperator：
  * - pop() 成功后消息已经离开 List。
  * - onMessage() 正常返回即消费完成。
- * - onMessage() 抛异常则 retry()，$retry_delay_seconds 秒后回到 List，最多 $max_retry_times 次，用完写死信。
+ * - onMessage() 抛异常则 retry()，$retryDelaySeconds 秒后回到 List，最多 $maxRetryTimes 次，用完写死信。
  * - retry() / 写死信时 Redis 出错：只重做这一步，不会再次调用 onMessage()。
  * 每次 loopHandle() 只处理一条，并在返回前收尾，不把消息留到下一轮：
  * 收到退出指令时，已取出、还没交给 onMessage() 的消息放回 List，然后 loopHandle() 返回，进程退出。
@@ -26,27 +26,27 @@ abstract class ListQueueConsumerWorkerProcessHandler extends AbstractWorkerProce
     /**
      * queue.php 中的 List 组件名。子类覆盖它来消费别的 List 组件。
      */
-    protected string $queue_component = 'queue';
+    protected string $queueComponent = 'queue';
 
     /**
      * 最多重试次数，用完写死信。
      */
-    protected int $max_retry_times = 5;
+    protected int $maxRetryTimes = 5;
 
     /**
      * 每次重试的延迟秒数。
      */
-    protected int $retry_delay_seconds = 1;
+    protected int $retryDelaySeconds = 1;
 
     /**
      * 死信列表最多保留的条数。<= 0 时按 QueueDeadLetter::DEFAULT_MAX_LENGTH 处理，不存在不截断的配置。
      */
-    protected int $dead_letter_max_length = QueueDeadLetter::DEFAULT_MAX_LENGTH;
+    protected int $deadLetterMaxLength = QueueDeadLetter::DEFAULT_MAX_LENGTH;
 
     /**
      * 死信 key 的过期秒数，每次写入死信时刷新。<= 0 时按 QueueDeadLetter::DEFAULT_TTL_SECONDS 处理。
      */
-    protected int $dead_letter_ttl_seconds = QueueDeadLetter::DEFAULT_TTL_SECONDS;
+    protected int $deadLetterTtlSeconds = QueueDeadLetter::DEFAULT_TTL_SECONDS;
 
     private ?ListQueueOperator $operator = null;
 
@@ -116,11 +116,11 @@ abstract class ListQueueConsumerWorkerProcessHandler extends AbstractWorkerProce
     private function operator(): ListQueueOperator
     {
         return $this->operator ??= new ListQueueOperator(
-            $this->queue_component,
-            $this->max_retry_times,
-            $this->retry_delay_seconds,
-            $this->dead_letter_max_length,
-            $this->dead_letter_ttl_seconds,
+            $this->queueComponent,
+            $this->maxRetryTimes,
+            $this->retryDelaySeconds,
+            $this->deadLetterMaxLength,
+            $this->deadLetterTtlSeconds,
         );
     }
 

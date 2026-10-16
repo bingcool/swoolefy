@@ -10,20 +10,20 @@ use Swoolefy\Support\Queue\Dto\ReceivedMessageDto;
 use Swoolefy\Support\Queue\QueueDeadLetter;
 
 /**
- * 协议服务里的延迟消费进程。业务只实现 onMessage()，并写上 $queue_component。
+ * 协议服务里的延迟消费进程。业务只实现 onMessage()，并写上 $queueComponent。
  *
- * $queue_component 是 queue.php 的组件名，默认 delayQueue。它不是 Redis 键。
+ * $queueComponent 是 queue.php 的组件名，默认 delayQueue。它不是 Redis 键。
  * 生产者要写同一个组件。组件必须是 phpredis 上的 RedisDelayQueue。
  *
  * 取出和确认：
  * - pop() 只取 score 已经到期的 1 条。取出时 ZSET 里这条已经删除。
  * - 还没到延迟秒数的消息不会出现在 onMessage()。
  * - onMessage() 正常返回：消费完成。
- * - onMessage() 抛异常：retry() 把原数组成员放回同一个 ZSET，$retry_delay_seconds 秒后再次可见，__retry_num 加 1。
- * - 已重试 $max_retry_times 次仍失败，或消息体不是数组无法 retry：写入 {延迟键}:dead_letter，见 QueueDeadLetter。
+ * - onMessage() 抛异常：retry() 把原数组成员放回同一个 ZSET，$retryDelaySeconds 秒后再次可见，__retry_num 加 1。
+ * - 已重试 $maxRetryTimes 次仍失败，或消息体不是数组无法 retry：写入 {延迟键}:dead_letter，见 QueueDeadLetter。
  * - retry() / 写死信时 Redis 出错：消息留在内存里，稍后只重做这一步，不会再次调用 onMessage()。
  *
- * 退出：SIGTERM 时 gracefulShutdownDrain() 最多等 $shutdown_wait_seconds 秒让当前这一轮跑完，
+ * 退出：SIGTERM 时 gracefulShutdownDrain() 最多等 $shutdownWaitSeconds 秒让当前这一轮跑完，
  * 再把还没交给 onMessage() 的消息放回 ZSET（立即可见）、把待重试的消息补做 retry()。
  * 进程被 kill -9 或 OOM 时，正在 onMessage() 里的那一条会丢失。
  *
@@ -34,32 +34,32 @@ abstract class DelayQueueConsumerProcessHandler extends AbstractProcess
     /**
      * queue.php 中的延迟组件名。子类覆盖它来消费别的延迟组件。
      */
-    protected string $queue_component = 'delayQueue';
+    protected string $queueComponent = 'delayQueue';
 
     /**
      * 最多重试次数，用完写死信。避免 Job 的多次退避被组件默认的 3 次截断。
      */
-    protected int $max_retry_times = 32;
+    protected int $maxRetryTimes = 32;
 
     /**
      * 每次重试的延迟秒数。
      */
-    protected int $retry_delay_seconds = 1;
+    protected int $retryDelaySeconds = 1;
 
     /**
      * 死信列表最多保留的条数。<= 0 时按 QueueDeadLetter::DEFAULT_MAX_LENGTH 处理，不存在不截断的配置。
      */
-    protected int $dead_letter_max_length = QueueDeadLetter::DEFAULT_MAX_LENGTH;
+    protected int $deadLetterMaxLength = QueueDeadLetter::DEFAULT_MAX_LENGTH;
 
     /**
      * 死信 key 的过期秒数，每次写入死信时刷新。<= 0 时按 QueueDeadLetter::DEFAULT_TTL_SECONDS 处理。
      */
-    protected int $dead_letter_ttl_seconds = QueueDeadLetter::DEFAULT_TTL_SECONDS;
+    protected int $deadLetterTtlSeconds = QueueDeadLetter::DEFAULT_TTL_SECONDS;
 
     /**
      * 收到 SIGTERM 后等待当前这一轮结束的最长秒数。
      */
-    protected float $shutdown_wait_seconds = 5.0;
+    protected float $shutdownWaitSeconds = 5.0;
 
     private bool $running = true;
 
@@ -83,7 +83,7 @@ abstract class DelayQueueConsumerProcessHandler extends AbstractProcess
     {
         $this->running = false;
         if ($this->busy && \Swoole\Coroutine::getCid() > 0) {
-            $deadline = microtime(true) + max(0.0, $this->shutdown_wait_seconds);
+            $deadline = microtime(true) + max(0.0, $this->shutdownWaitSeconds);
             while ($this->busy && microtime(true) < $deadline) {
                 \Swoole\Coroutine::sleep(0.05);
             }
@@ -181,11 +181,11 @@ abstract class DelayQueueConsumerProcessHandler extends AbstractProcess
     private function operator(): DelayQueueOperator
     {
         return $this->operator ??= new DelayQueueOperator(
-            $this->queue_component,
-            $this->max_retry_times,
-            $this->retry_delay_seconds,
-            $this->dead_letter_max_length,
-            $this->dead_letter_ttl_seconds,
+            $this->queueComponent,
+            $this->maxRetryTimes,
+            $this->retryDelaySeconds,
+            $this->deadLetterMaxLength,
+            $this->deadLetterTtlSeconds,
         );
     }
 

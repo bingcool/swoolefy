@@ -30,7 +30,7 @@ final class OrderNotifyConsumer extends DelayQueueConsumerProcessHandler
     /**
      * queue.php 的延迟组件。和 JobRedisMultiConsumer 的延迟重试是同一个组件。
      */
-    protected string $queue_component = 'delayQueue';
+    protected string $queueComponent = 'delayQueue';
 
     public function onMessage(ReceivedMessageDto $message): void
     {
@@ -50,7 +50,7 @@ final class OrderNotifyConsumer extends DelayQueueConsumerProcessHandler
         $handler = new OrderPaidNotifyHandler();
         $runner = JobComponentFactory::runner();
         $dlq = JobComponentFactory::redisDeadLetter(
-            QueueComponent::get($this->queue_component)->getRedis(),
+            QueueComponent::get($this->queueComponent)->getRedis(),
         );
         $runner->run(
             $handler,

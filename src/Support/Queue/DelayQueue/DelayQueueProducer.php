@@ -23,7 +23,7 @@ class DelayQueueProducer
 {
 
     /**
-     * queue.php 里的延迟组件名。和消费者的 $queue_component 必须相同。
+     * queue.php 里的延迟组件名。和消费者的 $queueComponent 必须相同。
      */
     protected string $queue_component = 'delayQueue';
 

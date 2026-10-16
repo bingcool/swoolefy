@@ -11,7 +11,7 @@ use Swoolefy\Support\Queue\Dto\ReceivedMessageDto;
  *
  * 键：{队列键}:dead_letter，是一个 Redis List，LPUSH 进去，最新的在左边。
  * 每个元素是 JSON：
- * - queue：组件名（$queue_component）
+ * - queue：组件名（$queueComponent）
  * - reason：retry_exhausted | not_retryable
  * - payload：原消息 JSON，含 __id / __retry_num / __timestamp
  * - error_class / error_message：最后一次 onMessage() 抛出的异常

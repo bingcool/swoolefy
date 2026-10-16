@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\Process\ListProcess;
+namespace Test\Process\ListQueueProcess;
 
 use Swoolefy\Core\Process\AbstractProcess;
 use Swoolefy\Support\Queue\ListQueue\ListQueueProducer;
@@ -8,20 +8,20 @@ use Swoolefy\Support\Queue\ListQueue\ListQueueProducer;
 /**
  * Redis List 生产。
  *
- * ListQueueProducer 的 $queue_component 默认是 queue，对应 queue.php 里的 List 组件。
+ * ListQueueProducer 的 $queueComponent 默认是 queue，对应 queue.php 里的 List 组件。
  * push() 传业务数组，不要 json_encode。组件会补 __id、__retry_num、__timestamp 再 LPUSH。
- * 消费端是 RedisList，它的 queue_component 也是 queue。
+ * 消费端是 RedisListConsumer，它的 $queueComponent 也是 queue。
  */
 class RedisListPublish extends AbstractProcess
 {
     /**
      * 队列组件名。
      */
-    protected string $queue_component = 'delayQueue';
+    protected string $queueComponent = RedisListConsumer::queue_component;
 
     public function run()
     {
-        $producer = new ListQueueProducer($this->queue_component);
+        $producer = new ListQueueProducer($this->queueComponent);
         while (true) {
             // name、num 是业务字段。Redis 键由组件决定，这里不传。
             $producer->push([
