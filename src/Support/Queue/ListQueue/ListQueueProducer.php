@@ -27,6 +27,14 @@ class ListQueueProducer
     protected string $queue_component = 'queue';
 
     /**
+     * @param string $queueComponent
+     */
+    public function __construct(string $queueComponent)
+    {
+        $this->queue_component = $queueComponent;
+    }
+
+    /**
      * @param array<string, mixed> $item 业务字段。不要带 __id，组件会生成。
      */
     public function push(array $item): void

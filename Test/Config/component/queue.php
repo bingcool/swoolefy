@@ -34,10 +34,10 @@ return [
     // RedisDelayQueue 只能用 phpredis，不能传入 Predis。
     'delayQueue' => function() {
         $redis = Application::getApp()->get('redis')->getObject();
-        return new \Swoolefy\Library\Queues\RedisDelayQueue($redis,\Test\Process\QueueProcess\Queue::queue_order_list);
+        return new \Swoolefy\Library\Queues\RedisDelayQueue($redis,\Test\Process\DelayQueueProcess\DelayConsumerQueue::queue_order_list);
 
 //        $predis = Application::getApp()->get('predis')->getObject();
-//        return new \Swoolefy\Library\Queues\PredisDelayQueue($predis,\Test\Process\QueueProcess\Queue::queue_order_list);
+//        return new \Swoolefy\Library\Queues\PredisDelayQueue($predis,\Test\Process\DelayQueueProcess\Queue::queue_order_list);
     }
 
 ];

@@ -14,9 +14,14 @@ use Swoolefy\Support\Queue\ListQueue\ListQueueProducer;
  */
 class RedisListPublish extends AbstractProcess
 {
+    /**
+     * 队列组件名。
+     */
+    protected string $queue_component = 'delayQueue';
+
     public function run()
     {
-        $producer = new ListQueueProducer();
+        $producer = new ListQueueProducer($this->queue_component);
         while (true) {
             // name、num 是业务字段。Redis 键由组件决定，这里不传。
             $producer->push([

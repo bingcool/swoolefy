@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Swoolefy\Worker\Runtime;
 
+use Swoole\Coroutine\Channel;
 use Swoolefy\Core\Memory\SysvmsgManager;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\SystemEnv;
@@ -34,7 +35,7 @@ final class StatusReporter
      * tick timer id。Swoole Timer::tick 失败可能返回 false，必须用 ?int 且校验 is_int。
      * 关机时必须 clear，否则 EventLoop 仍有 watcher，Master 退不出去。
      */
-    private ?int $reportStatusTimerId = null;
+    private Channel|int|bool|null $reportStatusTimerId = null;
 
     public function __construct(private MainManager $manager)
     {
@@ -57,7 +58,7 @@ final class StatusReporter
             $tickTime = $defaultTickTime;
         }
 
-        $timerId = \Swoole\Timer::tick($tickTime * 1000, function () {
+        $this->reportStatusTimerId = goTick($tickTime * 1000, function () {
             try {
                 $status = $this->getProcessStatus();
                 // Script 服务不落 status 文件
@@ -72,11 +73,16 @@ final class StatusReporter
             }
         });
 
-        $this->reportStatusTimerId = is_int($timerId) ? $timerId : null;
+        if ($this->reportStatusTimerId === false) {
+            // todo 创建定时器失败
+            fmtPrintError('Swoolefy\Worker\Runtime::install(), create report status timer failed');
+        }
 
-        if ($this->reportStatusTimerId !== null) {
+        if ($this->reportStatusTimerId !== null && $this->reportStatusTimerId !== false) {
             register_shutdown_function(function () {
-                $this->clearTimer();
+                if ($this->reportStatusTimerId instanceof Channel || is_int($this->reportStatusTimerId)) {
+                    \Swoolefy\Core\Coroutine\Timer::cancel($this->reportStatusTimerId);
+                }
             });
         }
     }

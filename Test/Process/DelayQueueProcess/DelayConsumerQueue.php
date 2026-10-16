@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\Process\QueueProcess;
+namespace Test\Process\DelayQueueProcess;
 
 use Swoolefy\Support\Queue\DelayQueue\DelayQueueConsumerProcessHandler;
 use Swoolefy\Support\Queue\Dto\ReceivedMessageDto;
@@ -15,17 +15,18 @@ use Swoolefy\Support\Queue\Dto\ReceivedMessageDto;
  * 到期时间是入队时间加上生产时的延迟秒数。
  * 正常返回即消费完成。抛异常会 retry()，1 秒后再次可见，最多 32 次。
  */
-class Queue extends DelayQueueConsumerProcessHandler
+class DelayConsumerQueue extends DelayQueueConsumerProcessHandler
 {
     /**
      * Redis ZSET 键。由 queue.php 的 delayQueue 组件使用。
      */
     public const queue_order_list = 'queue:order:delay';
 
+    public const queue_component = 'delayQueue';
     /**
      * queue.php 里的延迟组件名。
      */
-    protected string $queue_component = 'delayQueue';
+    protected string $queue_component = self::queue_component;
 
     public function onMessage(ReceivedMessageDto $message): void
     {

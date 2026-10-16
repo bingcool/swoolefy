@@ -18,7 +18,7 @@ namespace Test\Router;
  *   - Validate.php       ValidateController
  *   - Websocket.php      WsController
  *   - Process.php        ProcessController
- *   - Queue.php          QueueController
+ *   - DelayConsumerQueue.php          QueueController
  *   - Captcha.php        CaptchaController
  *   - Redis.php          RedisController
  *   - Transaction.php    TransactionController

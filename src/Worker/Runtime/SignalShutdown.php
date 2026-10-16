@@ -242,7 +242,7 @@ final class SignalShutdown
     }
 
     /**
-     * 等待子进程退出；超时 SIGKILL，并用 wait/pcntl_waitpid(WNOHANG) 收尸，避免僵尸。
+     * 等待子进程退出；超时 SIGKILL，并用 wait/pcntl_waitpid(WNOHANG) 回收退出进程，避免成为僵尸进程。
      */
     public function waitWorkersExitOrKill(float $timeoutSeconds): void
     {

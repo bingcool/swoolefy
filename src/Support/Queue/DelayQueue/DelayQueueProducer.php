@@ -21,10 +21,19 @@ use Swoolefy\Support\Queue\QueueComponent;
  */
 class DelayQueueProducer
 {
+
     /**
      * queue.php 里的延迟组件名。和消费者的 $queue_component 必须相同。
      */
     protected string $queue_component = 'delayQueue';
+
+    /**
+     * @param string $queueComponent
+     */
+    public function __construct(string $queueComponent)
+    {
+        $this->queue_component = $queueComponent;
+    }
 
     /**
      * @param array<string, mixed> $item 业务字段。不要自己 json_encode。

@@ -72,8 +72,8 @@ class Event extends EventHandler
             // ProcessManager::getInstance()->addProcess('job-kafka-consumer', \Test\Process\JobProcess\JobKafkaConsumer::class, true, [], null, true);
 
             // redis 延迟队列：组件名 delayQueue，Redis 键 queue:order:delay。生产时延迟 2 秒，同一个组件只开一个消费进程
-            //ProcessManager::getInstance()->addProcess('redis-delay-publish', \Test\Process\QueueProcess\QueuePublish::class);
-            //ProcessManager::getInstance()->addProcess('redis_delay_list_test', \Test\Process\QueueProcess\Queue::class,true, [], null, true);
+            ProcessManager::getInstance()->addProcess('redis-delay-publish', \Test\Process\DelayQueueProcess\DelayQueuePublish::class);
+            ProcessManager::getInstance()->addProcess('redis_delay_list_test', \Test\Process\DelayQueueProcess\DelayConsumerQueue::class,true, [], null, true);
 
 
             // amqp-direct 生产队
