@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Queue\DelayQueue;
 
+use Swoolefy\Library\Queues\RedisDelayQueue;
 use Swoolefy\Support\Queue\QueueComponent;
+use Swoolefy\Support\Queue\QueueException;
 
 /**
  * 延迟队列生产者。
  *
- * $queue_component 是 Config/component/queue.php 的组件名，默认 delayQueue。
- * 它不是 Redis 键。键名在 queue.php 里传给 Swoolefy\Library\Queues\RedisDelayQueue。
- * 这个组件必须是 phpredis 上的 RedisDelayQueue，不能换成 Predis。
+ * $queueComponent 是 Config/component/queue.php 的组件名，默认 delayQueue。它只提供 phpredis 连接。
+ * $queueKey 是 ZSET 键。和对应消费者的 $queueKey 必须相同。
  *
  * push() 的两个参数：
  * - $item：业务数组。组件补 __id、__retry_num、__timestamp 后写入 ZSET 的 member。
@@ -21,18 +22,19 @@ use Swoolefy\Support\Queue\QueueComponent;
  */
 class DelayQueueProducer
 {
+    private ?RedisDelayQueue $queue = null;
 
     /**
-     * queue.php 里的延迟组件名。和消费者的 $queueComponent 必须相同。
+     * @param string $queueKey Redis ZSET 键。和消费者的 $queueKey 相同。
+     * @param string $queueComponent queue.php 里的连接名，默认 delayQueue。必须是 phpredis。
      */
-    protected string $queue_component = 'delayQueue';
-
-    /**
-     * @param string $queueComponent
-     */
-    public function __construct(string $queueComponent)
-    {
-        $this->queue_component = $queueComponent;
+    public function __construct(
+        private readonly string $queueKey,
+        private readonly string $queueComponent = 'delayQueue',
+    ) {
+        if ($queueKey === '') {
+            throw new QueueException('queueKey is required');
+        }
     }
 
     /**
@@ -41,6 +43,11 @@ class DelayQueueProducer
      */
     public function push(array $item, int $delaySeconds = 0): void
     {
-        QueueComponent::get($this->queue_component)->addItem($item, $delaySeconds)->push();
+        $this->queue()->addItem($item, $delaySeconds)->push();
+    }
+
+    private function queue(): RedisDelayQueue
+    {
+        return $this->queue ??= new RedisDelayQueue(QueueComponent::get($this->queueComponent), $this->queueKey);
     }
 }

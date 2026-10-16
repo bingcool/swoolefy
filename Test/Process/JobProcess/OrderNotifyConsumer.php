@@ -28,9 +28,16 @@ use Test\Module\Job\OrderPaidNotifyHandler;
 final class OrderNotifyConsumer extends DelayQueueConsumerProcessHandler
 {
     /**
-     * queue.php 的延迟组件。和 JobRedisMultiConsumer 的延迟重试是同一个组件。
+     * 本进程自己的 ZSET 键。JobRedisMultiConsumer 延迟重试写到这个键。
+     */
+    public const queue_key = 'job:order:notify';
+
+    /**
+     * queue.php 的延迟连接。必须是 phpredis。
      */
     protected string $queueComponent = 'delayQueue';
+
+    protected string $queueKey = self::queue_key;
 
     public function onMessage(ReceivedMessageDto $message): void
     {
@@ -42,7 +49,7 @@ final class OrderNotifyConsumer extends DelayQueueConsumerProcessHandler
         $job = JobEnvelope::wrapLegacy($data, 'order.paid.notify');
         if ($job->jobType !== 'order.paid.notify') {
             // 不是本进程要处理的类型，放回 List 组件 queue。
-            (new ListQueueProducer())->push($job->toArray());
+            (new ListQueueProducer(JobRedisMultiConsumer::queue_key))->push($job->toArray());
 
             return;
         }
@@ -50,7 +57,7 @@ final class OrderNotifyConsumer extends DelayQueueConsumerProcessHandler
         $handler = new OrderPaidNotifyHandler();
         $runner = JobComponentFactory::runner();
         $dlq = JobComponentFactory::redisDeadLetter(
-            QueueComponent::get($this->queueComponent)->getRedis(),
+            QueueComponent::get($this->queueComponent),
         );
         $runner->run(
             $handler,
@@ -58,7 +65,7 @@ final class OrderNotifyConsumer extends DelayQueueConsumerProcessHandler
             requeue: static function (JobEnvelope $next, int $delayMs): void {
                 // 继续延迟。第二个参数是秒，不是毫秒。
                 $seconds = max(1, (int) ceil($delayMs / 1000));
-                (new DelayQueueProducer())->push($next->toArray(), $seconds);
+                (new DelayQueueProducer(self::queue_key))->push($next->toArray(), $seconds);
             },
             dead: static function (JobEnvelope $failed, string $error) use ($dlq): void {
                 $dlq->push($failed, $error, 'default');

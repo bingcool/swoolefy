@@ -73,7 +73,9 @@ class App
     }
 
     /**
-     * @return \Swoolefy\Library\Queues\Queue|ContainerObjectDto
+     * queue 组件里的 Redis 连接。业务用这个连接和自己的键创建 Queue。
+     *
+     * @return Redis|ContainerObjectDto
      */
     public static function getQueue()
     {
@@ -81,7 +83,9 @@ class App
     }
 
     /**
-     * @return \Swoolefy\Library\Queues\RedisDelayQueue|ContainerObjectDto
+     * delayQueue 组件里的 phpredis 连接。业务用这个连接和自己的键创建 RedisDelayQueue。
+     *
+     * @return Redis|ContainerObjectDto
      */
     public static function getDelayQueue()
     {

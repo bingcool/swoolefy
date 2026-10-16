@@ -241,7 +241,7 @@ use Swoolefy\Support\Job\JobComponentFactory;
 use Test\App;
 
 $publisher = JobComponentFactory::publisher(
-    static fn (array $data) => App::getQueue()->push($data),
+    static fn (array $data) => (new \Swoolefy\Support\Queue\ListQueue\ListQueueProducer('job:order:list'))->push($data),
 );
 
 $envelope = $publisher->dispatch('order.paid.notify', [
@@ -273,7 +273,7 @@ $registry = JobComponentFactory::registry(
 );
 $runner = JobComponentFactory::runner();
 $dlq = JobComponentFactory::redisDeadLetter(
-    \Swoolefy\Support\Queue\QueueComponent::get('queue')->getRedis(),
+    \Swoolefy\Support\Queue\QueueComponent::get('queue'),
 );
 
 $job = JobEnvelope::fromArray($raw);
@@ -283,10 +283,10 @@ $runner->runRegistered(
     requeue: static function (JobEnvelope $next, int $delayMs): void {
         if ($delayMs > 0) {
             $seconds = max(1, (int) ceil($delayMs / 1000));
-            (new DelayQueueProducer())->push($next->toArray(), $seconds);
+            (new DelayQueueProducer('job:order:notify'))->push($next->toArray(), $seconds);
             return;
         }
-        (new ListQueueProducer())->push($next->toArray());
+        (new ListQueueProducer('job:order:list'))->push($next->toArray());
     },
     dead: static function (JobEnvelope $failed, string $error) use ($dlq): void {
         $dlq->push($failed, $error, 'default');
@@ -334,13 +334,13 @@ Kafka 无原生 delay 时可忽略 `$delayMs` 立即 republish（仍会 bump att
 
 ```php
 $dlq = JobComponentFactory::redisDeadLetter(App::getRedis()->getObject());
-$dlq->replay(fn (array $d) => App::getQueue()->push($d), 'default', 10);
+$dlq->replay(fn (array $d) => (new \Swoolefy\Support\Queue\ListQueue\ListQueueProducer('job:order:list'))->push($d), 'default', 10);
 ```
 
 CLI（需 Application / redis 上下文；无 App 时打印用法）：
 
 ```bash
-php src/Support/Job/Console/replay_dead_letter.php --queue=default --limit=10
+php src/Support/Job/Console/replay_dead_letter.php --queue=default --limit=10 --list-key=job:order:list
 # JOB_REPLAY_MODE=queue|stdout
 ```
 

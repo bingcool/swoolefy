@@ -60,8 +60,8 @@ class Event extends EventHandler
             //var_dump('pid='.$pid);
 
             // redis list：组件名 queue，Redis 键 queue:order:list。生产、消费分开，同一个组件只开一个消费进程
-            ProcessManager::getInstance()->addProcess('redis-list-publish', \Test\Process\ListQueueProcess\RedisListPublish::class);
-            ProcessManager::getInstance()->addProcess('redis_list_test', \Test\Process\ListQueueProcess\RedisListConsumer::class,true, [], null, true);
+            //ProcessManager::getInstance()->addProcess('redis-list-publish', \Test\Process\ListQueueProcess\RedisListPublish::class);
+            //ProcessManager::getInstance()->addProcess('redis_list_test', \Test\Process\ListQueueProcess\RedisListConsumer::class,true, [], null, true);
 
             // Job 轻量封装 demo：统一信封 + JobRunner 重试/死信（见 docs/Job.md）
             // ProcessManager::getInstance()->addProcess('job-order-notify', \Test\Process\JobProcess\OrderNotifyConsumer::class, true, [], null, true);
@@ -72,7 +72,7 @@ class Event extends EventHandler
             // ProcessManager::getInstance()->addProcess('job-kafka-consumer', \Test\Process\JobProcess\JobKafkaConsumer::class, true, [], null, true);
 
             // redis 延迟队列：组件名 delayQueue，Redis 键 queue:order:delay。生产时延迟 2 秒，同一个组件只开一个消费进程
-            //ProcessManager::getInstance()->addProcess('redis-delay-publish', \Test\Process\DelayQueueProcess\DelayQueuePublish::class);
+            // ProcessManager::getInstance()->addProcess('redis-delay-publish', \Test\Process\DelayQueueProcess\DelayQueuePublish::class);
             //ProcessManager::getInstance()->addProcess('redis_delay_list_test', \Test\Process\DelayQueueProcess\DelayQueueConsumer::class,true, [], null, true);
 
 

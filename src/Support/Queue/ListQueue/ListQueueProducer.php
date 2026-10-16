@@ -4,34 +4,37 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Queue\ListQueue;
 
+use Swoolefy\Library\Queues\Queue;
 use Swoolefy\Support\Queue\QueueComponent;
+use Swoolefy\Support\Queue\QueueException;
 
 /**
  * List 生产者。
  *
- * $queueComponent 是 Config/component/queue.php 的组件名，默认 queue。
- * 它不是 Redis 键。键名在 queue.php 里传给 Swoolefy\Library\Queues\Queue。
- * 要写到别的 List 组件时，子类覆盖这个属性，消费者使用同一个名字。
+ * $queueComponent 是 Config/component/queue.php 的组件名，默认 queue。它只提供 Redis 连接。
+ * $queueKey 是这条 List 的 Redis 键。和对应消费者的 $queueKey 必须相同。
  *
  * push() 传入业务数组。Library 会补上：
  * - __id：消息 id
  * - __retry_num：已重试次数，新消息是 0
  * - __timestamp：入队 unix 时间
- * 然后 LPUSH 到该组件的 List。不要自己 json_encode，组件会编码。
+ * 然后 LPUSH 到 $queueKey。不要自己 json_encode，组件会编码。
  */
 class ListQueueProducer
 {
-    /**
-     * queue.php 里的 List 组件名。和消费者的 $queueComponent 必须相同，两边才是同一条队列。
-     */
-    protected string $queueComponent = 'queue';
+    private ?Queue $queue = null;
 
     /**
-     * @param string $queueComponent
+     * @param string $queueKey Redis List 键。和消费者的 $queueKey 相同。
+     * @param string $queueComponent queue.php 里的连接名，默认 queue。
      */
-    public function __construct(string $queueComponent)
-    {
-        $this->queueComponent = $queueComponent;
+    public function __construct(
+        private readonly string $queueKey,
+        private readonly string $queueComponent = 'queue',
+    ) {
+        if ($queueKey === '') {
+            throw new QueueException('queueKey is required');
+        }
     }
 
     /**
@@ -39,6 +42,11 @@ class ListQueueProducer
      */
     public function push(array $item): void
     {
-        QueueComponent::get($this->queueComponent)->push($item);
+        $this->queue()->push($item);
+    }
+
+    private function queue(): Queue
+    {
+        return $this->queue ??= new Queue(QueueComponent::get($this->queueComponent), $this->queueKey);
     }
 }

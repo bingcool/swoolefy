@@ -8,8 +8,8 @@ use Swoolefy\Support\Queue\ListQueue\ListQueueConsumerProcessHandler;
 /**
  * Redis List 消费。
  *
- * queue_order_list 是 Redis 键，只在 Config/component/queue.php 构造 Queue 时使用。
- * $queueComponent 是组件名 queue。生产和消费都写这个名字，才会读写同一个 List。
+ * $queueKey 是 Redis List 键 queue:order:list。生产者要写同一个键。
+ * $queueComponent 是组件名 queue，只取 Redis 连接。
  * 不要把 $queueComponent 写成 queue:order:list。
  *
  * onMessage() 里：
@@ -21,16 +21,18 @@ use Swoolefy\Support\Queue\ListQueue\ListQueueConsumerProcessHandler;
 class RedisListConsumer extends ListQueueConsumerProcessHandler
 {
     /**
-     * Redis List 键。由 queue.php 的 queue 组件使用，消费者不要拿它去连接 Redis。
+     * Redis List 键。生产者、本消费者都用这个键创建 Queue。
      */
-    public const queue_order_list = 'queue:order:list';
+    public const QUEUE_ORDER_LIST_KEY = 'queue:order:list';
 
-    public const queue_component = 'queue';
+    public const QUEUE_COMPONENT = 'queue';
 
     /**
-     * queue.php 里的 List 组件名。
+     * queue.php 里的 List 连接名。
      */
-    protected string $queueComponent = self::queue_component;
+    protected string $queueComponent = self::QUEUE_COMPONENT;
+
+    protected string $queueKey = self::QUEUE_ORDER_LIST_KEY;
 
     public function onMessage(ReceivedMessageDto $message): void
     {

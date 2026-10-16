@@ -11,7 +11,8 @@ use Swoolefy\Worker\AbstractWorkerProcess;
 /**
  * Daemon / Cron 常驻进程里的延迟消费。退出和重启沿用 AbstractWorkerProcess 的 loopHandle()。
  *
- * $queueComponent 是 queue.php 的组件名，默认 delayQueue，不是 Redis 键。
+ * $queueComponent 是 queue.php 的组件名，默认 delayQueue，只提供 phpredis 连接。
+ * $queueKey 是这个消费者自己的 ZSET 键。
  * 和 DelayQueueConsumerProcessHandler 使用同一套 DelayQueueOperator：只 pop 已到期的 1 条；
  * onMessage() 正常返回即完成；抛异常则 $retryDelaySeconds 秒后 retry()，最多 $maxRetryTimes 次，用完写死信。
  * 每次 loopHandle() 只处理一条，并在返回前收尾：收到退出指令时，已取出、还没交给 onMessage() 的消息放回 ZSET。
@@ -23,6 +24,11 @@ abstract class DelayQueueConsumerWorkerProcessHandler extends AbstractWorkerProc
      * queue.php 中的延迟组件名。子类覆盖它来消费别的延迟组件。
      */
     protected string $queueComponent = 'delayQueue';
+
+    /**
+     * 这个消费者自己的 Redis ZSET 键。子类必须覆盖。
+     */
+    protected string $queueKey = '';
 
     /**
      * 最多重试次数，用完写死信。
@@ -113,6 +119,7 @@ abstract class DelayQueueConsumerWorkerProcessHandler extends AbstractWorkerProc
     {
         return $this->operator ??= new DelayQueueOperator(
             $this->queueComponent,
+            $this->queueKey,
             $this->maxRetryTimes,
             $this->retryDelaySeconds,
             $this->deadLetterMaxLength,

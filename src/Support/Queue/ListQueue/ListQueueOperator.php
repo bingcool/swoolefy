@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Queue\ListQueue;
 
+use Swoolefy\Library\Queues\Queue;
 use Swoolefy\Support\Queue\Dto\ReceivedMessageDto;
 use Swoolefy\Support\Queue\QueueComponent;
 use Swoolefy\Support\Queue\QueueDeadLetter;
+use Swoolefy\Support\Queue\QueueException;
 
 /**
  * ListQueueConsumerProcessHandler 和 ListQueueConsumerWorkerProcessHandler 共用的取出、重试、放回和死信。
@@ -14,13 +16,27 @@ use Swoolefy\Support\Queue\QueueDeadLetter;
  */
 final class ListQueueOperator
 {
+    private ?Queue $queue = null;
+
     public function __construct(
         private readonly string $component,
+        private readonly string $queueKey,
         private readonly int $maxRetryTimes,
         private readonly int $retryDelaySeconds,
         private readonly int $deadLetterMaxLength,
         private readonly int $deadLetterTtlSeconds,
     ) {
+        if ($queueKey === '') {
+            throw new QueueException('queueKey is required');
+        }
+    }
+
+    /**
+     * 本消费者自己的 List。连接来自 queue.php，键由子类的 $queueKey 决定。
+     */
+    private function queue(): Queue
+    {
+        return $this->queue ??= new Queue(QueueComponent::get($this->component), $this->queueKey);
     }
 
     /**
@@ -28,7 +44,7 @@ final class ListQueueOperator
      */
     public function pop(): ?ReceivedMessageDto
     {
-        $result = QueueComponent::get($this->component)->pop(1);
+        $result = $this->queue()->pop(1);
         if (!is_array($result) || !isset($result[1])) {
             return null;
         }
@@ -52,7 +68,7 @@ final class ListQueueOperator
      */
     public function fail(ReceivedMessageDto $message, \Throwable $error): void
     {
-        $queue = QueueComponent::get($this->component);
+        $queue = $this->queue();
         $data = $message->getData();
         if ($data === []) {
             QueueDeadLetter::push($queue->getRedis(), $queue->getQueueKey(), $message, QueueDeadLetter::REASON_NOT_RETRYABLE, $error, $this->deadLetterMaxLength, $this->deadLetterTtlSeconds);
@@ -74,7 +90,7 @@ final class ListQueueOperator
      */
     public function requeue(ReceivedMessageDto $message): void
     {
-        $queue = QueueComponent::get($this->component);
+        $queue = $this->queue();
         $queue->getRedis()->rPush($queue->getQueueKey(), $message->getPayload());
     }
 }

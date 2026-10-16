@@ -30,9 +30,16 @@ use Test\Module\Job\OrderPaidNotifyHandler;
 final class JobRedisMultiConsumer extends ListQueueConsumerProcessHandler
 {
     /**
-     * queue.php 的 List 组件。立即重试也写回这个组件。
+     * 本进程自己的 List 键。和演示用的 queue:order:list 分开。
+     */
+    public const queue_key = 'job:order:list';
+
+    /**
+     * queue.php 的 List 连接。立即重试也写回这个键。
      */
     protected string $queueComponent = 'queue';
+
+    protected string $queueKey = self::queue_key;
 
     public function onMessage(ReceivedMessageDto $message): void
     {
@@ -48,7 +55,7 @@ final class JobRedisMultiConsumer extends ListQueueConsumerProcessHandler
         $runner = JobComponentFactory::runner();
         // 死信走组件自带的 Redis，不再单独 connect。
         $dlq = JobComponentFactory::redisDeadLetter(
-            QueueComponent::get($this->queueComponent)->getRedis(),
+            QueueComponent::get($this->queueComponent),
         );
         $runner->runRegistered(
             $registry,
@@ -57,12 +64,12 @@ final class JobRedisMultiConsumer extends ListQueueConsumerProcessHandler
                 if ($delayMs > 0) {
                     // 延迟重试进 delayQueue。delayMs 是毫秒，push 的第二个参数是秒。
                     $seconds = max(1, (int) ceil($delayMs / 1000));
-                    (new DelayQueueProducer())->push($next->toArray(), $seconds);
+                    (new DelayQueueProducer(OrderNotifyConsumer::queue_key))->push($next->toArray(), $seconds);
 
                     return;
                 }
                 // 立即重试进 queue。新消息会有新的 __id。
-                (new ListQueueProducer())->push($next->toArray());
+                (new ListQueueProducer(self::queue_key))->push($next->toArray());
             },
             dead: static function (JobEnvelope $failed, string $error) use ($dlq): void {
                 $dlq->push($failed, $error, 'default');

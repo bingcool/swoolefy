@@ -1,8 +1,6 @@
 # Queue
 
-队列实例定义在 `Config/component/queue.php`。底层是 `Swoolefy\Library\Queues\Queue` 和 `Swoolefy\Library\Queues\RedisDelayQueue`。
-
-`$queueComponent` 是组件名，不是 Redis 键。默认 List 组件名是 `queue`，延迟组件名是 `delayQueue`。Redis 客户端和键名写在 `queue.php` 的闭包里。生产者和消费者写同一个组件名，才会读写同一条队列。
+`Config/component/queue.php` 只提供 Redis 连接。默认 List 连接名是 `queue`，延迟连接名是 `delayQueue`。`Queue` 和 `RedisDelayQueue` 由生产者、消费者按自己的 `$queueKey` 创建。同一个键的生产者和消费者读写同一条队列。不同消费者写不同的键，就使用不同的队列实例。
 
 `push()` 传入业务数组，不要自己 `json_encode`。组件会补上 `__id`、`__retry_num`、`__timestamp`。
 
@@ -28,7 +26,7 @@
 ## ListQueue
 
 ```php
-(new \Swoolefy\Support\Queue\ListQueue\ListQueueProducer())->push(['id' => 1]);
+(new \Swoolefy\Support\Queue\ListQueue\ListQueueProducer('queue:order:list'))->push(['id' => 1]);
 ```
 
 ```php
@@ -36,6 +34,8 @@ class RedisList extends \Swoolefy\Support\Queue\ListQueue\ListQueueConsumerProce
 {
     protected string $queueComponent = 'queue';
 
+    protected string $queueKey = 'queue:order:list';
+
     public function onMessage(\Swoolefy\Support\Queue\Dto\ReceivedMessageDto $message): void
     {
         $data = $message->getData();
@@ -43,14 +43,14 @@ class RedisList extends \Swoolefy\Support\Queue\ListQueue\ListQueueConsumerProce
 }
 ```
 
-换一个组件时，子类覆盖 `$queueComponent`。常驻 worker 换成继承 `ListQueueConsumerWorkerProcessHandler`。
+换一条 List 时，子类覆盖 `$queueKey`。换一个 Redis 连接时，覆盖 `$queueComponent`。常驻 worker 换成继承 `ListQueueConsumerWorkerProcessHandler`。
 
 ## DelayQueue
 
 `push()` 的第二个参数是延迟秒数。
 
 ```php
-(new \Swoolefy\Support\Queue\DelayQueue\DelayQueueProducer())->push(['order_id' => 1111], 2);
+(new \Swoolefy\Support\Queue\DelayQueue\DelayQueueProducer('queue:order:delay'))->push(['order_id' => 1111], 2);
 ```
 
 ```php
@@ -58,6 +58,8 @@ class Queue extends \Swoolefy\Support\Queue\DelayQueue\DelayQueueConsumerProcess
 {
     protected string $queueComponent = 'delayQueue';
 
+    protected string $queueKey = 'queue:order:delay';
+
     public function onMessage(\Swoolefy\Support\Queue\Dto\ReceivedMessageDto $message): void
     {
         $data = $message->getData();
@@ -65,4 +67,4 @@ class Queue extends \Swoolefy\Support\Queue\DelayQueue\DelayQueueConsumerProcess
 }
 ```
 
-未到期的消息不会交给 `onMessage()`。子类覆盖 `$queueComponent` 来换组件。常驻 worker 换成继承 `DelayQueueConsumerWorkerProcessHandler`，属性名相同。
+未到期的消息不会交给 `onMessage()`。子类覆盖 `$queueKey` 来换一条延迟队列。常驻 worker 换成继承 `DelayQueueConsumerWorkerProcessHandler`，属性名相同。

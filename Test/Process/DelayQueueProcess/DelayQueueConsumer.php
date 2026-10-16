@@ -8,8 +8,8 @@ use Swoolefy\Support\Queue\Dto\ReceivedMessageDto;
 /**
  * Redis 延迟队列消费。
  *
- * queue_order_list 是 Redis ZSET 键 queue:order:delay，只在 queue.php 构造 RedisDelayQueue 时使用。
- * $queueComponent 是组件名 delayQueue。它和 List 的 queue 不是同一个组件，键也不能相同。
+ * $queueKey 是 Redis ZSET 键 queue:order:delay。生产者要写同一个键。
+ * $queueComponent 是组件名 delayQueue，只取 phpredis 连接。它和 List 的 queue 不是同一个组件。
  *
  * pop() 只交出已经到期的消息。getReadyAt() 是入队时的 __timestamp，不是到期时间。
  * 到期时间是入队时间加上生产时的延迟秒数。
@@ -18,15 +18,25 @@ use Swoolefy\Support\Queue\Dto\ReceivedMessageDto;
 class DelayQueueConsumer extends DelayQueueConsumerProcessHandler
 {
     /**
-     * Redis ZSET 键。由 queue.php 的 delayQueue 组件使用。
+     * Redis ZSET 键。生产者、本消费者都用这个键创建 RedisDelayQueue。
      */
-    public const queue_order_list = 'queue:order:delay';
+    public const QUEUE_ORDER_DELAY_KEY = 'queue:order:delay';
 
-    public const queue_component = 'delayQueue';
     /**
-     * queue.php 里的延迟组件名。
+     * queue.php 里的延迟连接名。
      */
-    protected string $queueComponent = self::queue_component;
+    public const QUEUE_COMPONENT = 'delayQueue';
+
+    /**
+     * Redis ZSET 键。生产者、本消费者都用这个键创建 RedisDelayQueue。
+     */
+    protected string $queueKey = self::QUEUE_ORDER_DELAY_KEY;
+
+    /**
+     * queue.php 里的延迟连接名。
+     */
+    protected string $queueComponent = self::QUEUE_COMPONENT;
+
 
     public function onMessage(ReceivedMessageDto $message): void
     {

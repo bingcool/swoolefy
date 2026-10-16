@@ -10,10 +10,10 @@ use Swoolefy\Support\Queue\Dto\ReceivedMessageDto;
 use Swoolefy\Support\Queue\QueueDeadLetter;
 
 /**
- * 协议服务里的延迟消费进程。业务只实现 onMessage()，并写上 $queueComponent。
+ * 协议服务里的延迟消费进程。业务实现 onMessage()，并写上 $queueComponent 和 $queueKey。
  *
- * $queueComponent 是 queue.php 的组件名，默认 delayQueue。它不是 Redis 键。
- * 生产者要写同一个组件。组件必须是 phpredis 上的 RedisDelayQueue。
+ * $queueComponent 是 queue.php 的组件名，默认 delayQueue。它只提供 phpredis 连接。
+ * $queueKey 是这个消费者自己的 ZSET 键。生产者要写同一个键。
  *
  * 取出和确认：
  * - pop() 只取 score 已经到期的 1 条。取出时 ZSET 里这条已经删除。
@@ -35,6 +35,11 @@ abstract class DelayQueueConsumerProcessHandler extends AbstractProcess
      * queue.php 中的延迟组件名。子类覆盖它来消费别的延迟组件。
      */
     protected string $queueComponent = 'delayQueue';
+
+    /**
+     * 这个消费者自己的 Redis ZSET 键。子类必须覆盖。同一个键的生产者、消费者读写同一条延迟队列。
+     */
+    protected string $queueKey = '';
 
     /**
      * 最多重试次数，用完写死信。避免 Job 的多次退避被组件默认的 3 次截断。
@@ -182,6 +187,7 @@ abstract class DelayQueueConsumerProcessHandler extends AbstractProcess
     {
         return $this->operator ??= new DelayQueueOperator(
             $this->queueComponent,
+            $this->queueKey,
             $this->maxRetryTimes,
             $this->retryDelaySeconds,
             $this->deadLetterMaxLength,

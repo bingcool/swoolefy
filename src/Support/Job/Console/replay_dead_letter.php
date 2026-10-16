@@ -15,7 +15,7 @@ declare(strict_types=1);
  * 将 Redis 死信 List 中的任务重放到发布目标。
  *
  * 用法：
- *   php src/Support/Job/Console/replay_dead_letter.php --queue=default --limit=10
+ *   php src/Support/Job/Console/replay_dead_letter.php --queue=default --limit=10 --list-key=job:order:list
  *
  * 需要 APP_PATH + redis 组件（建议在应用 bootstrap 后运行）。
  * 单测请优先用 RedisDeadLetter::replay() + 内存假 Redis。
@@ -27,12 +27,13 @@ declare(strict_types=1);
 
 use Swoolefy\Support\Job\JobConfig;
 use Swoolefy\Support\Job\RedisDeadLetter;
+use Swoolefy\Support\Queue\ListQueue\ListQueueProducer;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
 function parseReplayArgs(array $argv): array
 {
-    $opts = ['queue' => 'default', 'limit' => 1, 'mode' => null];
+    $opts = ['queue' => 'default', 'limit' => 1, 'mode' => null, 'list_key' => ''];
     foreach (array_slice($argv, 1) as $arg) {
         if (str_starts_with($arg, '--queue=')) {
             $opts['queue'] = substr($arg, 8);
@@ -40,6 +41,8 @@ function parseReplayArgs(array $argv): array
             $opts['limit'] = max(1, (int) substr($arg, 8));
         } elseif (str_starts_with($arg, '--mode=')) {
             $opts['mode'] = substr($arg, 7);
+        } elseif (str_starts_with($arg, '--list-key=')) {
+            $opts['list_key'] = substr($arg, 11);
         }
     }
 
@@ -59,7 +62,7 @@ if ($app === null || $mode === 'stdout') {
     fwrite(STDERR, "replay_dead_letter: no Application context — use RedisDeadLetter::replay() in app code, or bootstrap APP_PATH.\n");
     fwrite(STDERR, "Example in HTTP/process:\n");
     fwrite(STDERR, "  \$dlq = JobComponentFactory::redisDeadLetter(App::getRedis());\n");
-    fwrite(STDERR, "  \$dlq->replay(fn (\$d) => App::getQueue()->push(\$d), 'default', 10);\n");
+    fwrite(STDERR, "  \$dlq->replay(fn (\$d) => (new ListQueueProducer('job:order:list'))->push(\$d), 'default', 10);\n");
     exit(1);
 }
 
@@ -69,12 +72,17 @@ try {
     $redisObj = is_object($redis) && method_exists($redis, 'getObject') ? $redis->getObject() : $redis;
     $config = JobConfig::load();
     $dlq = RedisDeadLetter::fromConfig($redisObj, $config);
-    $queue = $app->get('queue');
+    $listKey = $opts['list_key'];
+    if ($listKey === '') {
+        fwrite(STDERR, "replay_dead_letter: --list-key is required. It is the consumer Redis list key, for example job:order:list.\n");
+        exit(1);
+    }
+    $producer = new ListQueueProducer($listKey);
 
     // 从死信 List 弹出并重新 push 到业务队列
     $n = $dlq->replay(
-        static function (array $data) use ($queue): void {
-            $queue->push($data);
+        static function (array $data) use ($producer): void {
+            $producer->push($data);
         },
         $opts['queue'],
         $opts['limit'],
