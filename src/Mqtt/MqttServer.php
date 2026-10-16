@@ -75,6 +75,7 @@ abstract class MqttServer extends BaseServer
         self::$server = $this->mqttServer = new \Swoole\Server(self::$config['host'], self::$config['port'], self::$swooleProcessModel, self::$swooleSocketType);
         $this->mqttServer->set(self::$setting);
         parent::__construct();
+        self::bindOpcacheResetOnReload($this->mqttServer);
     }
 
     public function start()

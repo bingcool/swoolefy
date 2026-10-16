@@ -99,7 +99,7 @@ class BaseServer
      * @var array
      */
     protected static $_table_tasks = [
-        // 循环定时器内存表
+        // 循环定时器内存表。createTables() 会按进程数抬高 size，这里的 4 只是结构占位。
         'table_ticker' => [
             // 每个内存表建立的行数
             'size' => 4,
@@ -150,8 +150,8 @@ class BaseServer
         self::checkVersion();
         // check is run on cli
         self::checkSapiEnv();
-        // create table
-        self::createTables();
+        // create table。用 static 才能读到协议服务子类上的 $setting。
+        static::createTables();
         // check pack type
         self::checkPackType();
         // check coroutine
@@ -182,8 +182,8 @@ class BaseServer
             self::runtimeEnableCoroutine();
             // registerShutdown
             self::registerShutdownFunction();
-            // 重启worker时，刷新字节cache
-            self::clearCache();
+            // OPcache 是进程共享的。WorkerStart 和 max_request 回收不再 reset，
+            // 显式 reload 由 Manager 的 BeforeReload 清一次。
             // 重新设置进程名称
             self::setWorkerProcessName(self::$config['worker_process_name'], $workerId, static::$setting['worker_num']);
             // 设置worker工作的进程组
@@ -219,18 +219,25 @@ class BaseServer
     }
 
     /**
-     * checkVersion
-     * @return void
+     * 校验 PHP、Swoole 与必需扩展。版本下限来自 Constants，和 CLI initCheck 共用。
+     * 传入版本号只用于测试门槛，扩展是否安装仍看当前进程。
+     *
      * @throws \Exception
      */
-    public static function checkVersion()
+    public static function checkVersion(?string $phpVersion = null, ?string $swooleVersion = null)
     {
-        if (version_compare(phpversion(), '8.4.0', '<')) {
-            throw new \Exception("php version must be >= 8.4.0, we suggest use php8.4+ version", 1);
+        $phpVersion ??= phpversion();
+        if (version_compare($phpVersion, \Swoolefy\Constants::MIN_PHP_VERSION, '<')) {
+            throw new \Exception('php version must be >= ' . \Swoolefy\Constants::MIN_PHP_VERSION . ', current: ' . $phpVersion, 1);
         }
 
         if (!extension_loaded('swoole')) {
-            throw new \Exception("Missing install swoole extentions,please install swoole(suggest 4.5.0+) from https://github.com/swoole/swoole-src", 1);
+            throw new \Exception('Missing install swoole extension, please install swoole >= ' . \Swoolefy\Constants::MIN_SWOOLE_VERSION, 1);
+        }
+
+        $swooleVersion ??= swoole_version();
+        if (version_compare($swooleVersion, \Swoolefy\Constants::MIN_SWOOLE_VERSION, '<')) {
+            throw new \Exception('Swoole version must >= ' . \Swoolefy\Constants::MIN_SWOOLE_VERSION . ', current: ' . $swooleVersion, 1);
         }
 
         if (!extension_loaded('pcntl')) {
@@ -574,7 +581,9 @@ class BaseServer
     }
 
     /**
-     * clearCache
+     * 清除 APC 与 OPcache。只在 Master 构造和 Manager 的 BeforeReload 调用。
+     * WorkerStart、max_request 回收不要调用，否则每个 worker 都会把整机共享缓存冲掉。
+     *
      * @return void
      */
     public static function clearCache()
@@ -585,6 +594,35 @@ class BaseServer
         if (function_exists('opcache_reset')) {
             opcache_reset();
         }
+    }
+
+    /**
+     * 显式 reload 时由 Manager 清一次字节码缓存，随后重启的 worker 再加载新代码。
+     * 协议服务在 start() 之前调用一次。后注册的 BeforeReload 会覆盖这次清理，协议服务不要再注册第二个。
+     *
+     * @param object $server Swoole Server，须支持 on()
+     * @return void
+     */
+    public static function bindOpcacheResetOnReload(object $server): void
+    {
+        $server->on('BeforeReload', static function (): void {
+            self::clearCache();
+        });
+    }
+
+    /**
+     * 定时器表一行对应一个进程。worker_num 与 task_worker_num 之外再留自定义进程的余量。
+     * Swoole 会把 size 向上取整到 2 的幂。
+     *
+     * @return int
+     */
+    protected static function timerTaskTableRows(): int
+    {
+        $setting = property_exists(static::class, 'setting') ? static::$setting : [];
+        $workerNum = max(1, (int)($setting['worker_num'] ?? 1));
+        $taskNum = max(0, (int)($setting['task_worker_num'] ?? 0));
+
+        return max(64, $workerNum + $taskNum + 32);
     }
 
     /**
@@ -635,7 +673,11 @@ class BaseServer
         if (isset(static::$config['enable_table_tick_task'])) {
             $is_enable_table_tick_task = filter_var(static::$config['enable_table_tick_task'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
             if ($is_enable_table_tick_task) {
-                $table_task = array_merge(self::$_table_tasks, static::$_table_worker_pid_map, static::$config['table']);
+                $timerTables = self::$_table_tasks;
+                $rows = static::timerTaskTableRows();
+                $timerTables['table_ticker']['size'] = $rows;
+                $timerTables['table_after']['size'] = $rows;
+                $table_task = array_merge($timerTables, static::$_table_worker_pid_map, static::$config['table']);
             }
         }
         //create table

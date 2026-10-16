@@ -181,19 +181,16 @@ class BaseCmd extends Command
     /**
      * 版本和环境检查。
      *
-     * 要求：PHP >= 8.1.0（使用 #[AsCommand] Attribute 和 enum），
-     * Swoole >= 5.1.0（使用 Swoole 5.x 特性）。
+     * 要求与 BaseServer::checkVersion()、composer.json 相同：PHP >= 8.4.0，Swoole >= 6.1.0。
      *
      * @throws CmdInitException 版本不满足时抛出
      */
     protected function initCheck(InputInterface $input, OutputInterface $output)
     {
-        if (version_compare(phpversion(), '8.1.0', '<')) {
-            throw new CmdInitException("PHP version must >= 8.1.0, current: " . phpversion());
-        }
-
-        if (version_compare(swoole_version(), '5.1.0', '<')) {
-            throw new CmdInitException("Swoole version must >= 5.1.0, current: " . swoole_version());
+        try {
+            \Swoolefy\Core\BaseServer::checkVersion();
+        } catch (\Exception $e) {
+            throw new CmdInitException($e->getMessage(), (int) $e->getCode(), $e);
         }
 
         // 清除 OPcache 缓存，确保加载最新代码

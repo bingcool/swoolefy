@@ -149,11 +149,8 @@ class Tick
                 'start_time'    => date('Y-m-d H:i:s', strtotime('now'))
             ];
 
-            $conf = Swfy::getConf();
-
-            if (isset($conf['enable_table_tick_task']) && !empty($conf['enable_table_tick_task'])) {
-                TableManager::set('table_ticker', 'tick_timer_task', ['tick_tasks' => json_encode(self::$_tick_tasks)]);
-            }
+            // 内存表只存本进程的可序列化快照，闭包仍留在 $_tick_tasks
+            self::publishTickTasks();
 
         }
 
@@ -180,11 +177,8 @@ class Tick
                 }
             }
 
-            $config = Swfy::getConf();
-
-            if (isset($config['enable_table_tick_task']) && !empty($config['enable_table_tick_task'])) {
-                TableManager::set('table_ticker', 'tick_timer_task', ['tick_tasks' => json_encode(self::$_tick_tasks)]);
-            }
+            // 删除后重写本进程这一行，避免表里还留着已清掉的定时器
+            self::publishTickTasks();
             return true;
         }
 
@@ -262,10 +256,8 @@ class Tick
                 'start_time'    => date('Y-m-d H:i:s', strtotime('now'))
             ];
 
-            $conf = Swfy::getConf();
-            if (isset($conf['enable_table_tick_task']) && !empty($conf['enable_table_tick_task'])) {
-                TableManager::set('table_after', 'after_timer_task', ['after_tasks' => json_encode(self::$_after_tasks)]);
-            }
+            // 内存表只存本进程的可序列化快照，闭包仍留在 $_after_tasks
+            self::publishAfterTasks();
         }
 
         return $timerId;
@@ -287,11 +279,256 @@ class Tick
                 }
             }
 
-            $conf = Swfy::getConf();
-            if (isset($conf['enable_table_tick_task']) && !empty($conf['enable_table_tick_task'])) {
-                TableManager::set('table_after', 'after_timer_task', ['after_tasks' => json_encode(self::$_after_tasks)]);
+            // 到期项从本进程列表去掉后，同步删掉内存表里的对应快照
+            self::publishAfterTasks();
+        }
+    }
+
+    /**
+     * table_ticker / table_after 的字符串列宽是 8096 字节。
+     * 快照停在 8000，给 Swoole 的结尾 NUL 留出余量，避免 set 时被截成非法 JSON。
+     */
+    private const TASK_TABLE_JSON_LIMIT = 8000;
+
+    /**
+     * 本进程写内存表失败后只记一次日志。
+     * 定时器注册本身不中断，避免每次 tick / after 都刷同一条错误。
+     */
+    private static bool $taskTableWriteFailed = false;
+
+    /**
+     * 把本进程的循环定时器快照写入 table_ticker。
+     * 行键是 pid，Worker 之间不会互相覆盖。真正的闭包仍在 $_tick_tasks。
+     *
+     * @return void
+     */
+    private static function publishTickTasks(): void
+    {
+        self::publishTaskTable('table_ticker', 'tick_tasks', self::$_tick_tasks);
+    }
+
+    /**
+     * 把本进程的一次性定时器快照写入 table_after。
+     * 行键是 pid。真正的闭包仍在 $_after_tasks。
+     *
+     * @return void
+     */
+    private static function publishAfterTasks(): void
+    {
+        self::publishTaskTable('table_after', 'after_tasks', self::$_after_tasks);
+    }
+
+    /**
+     * 按 pid 写入一行定时器快照。enable_table_tick_task 未打开时直接返回。
+     *
+     * 写入内容不含闭包。单行超过 TASK_TABLE_JSON_LIMIT 时截断任务并带 truncated。
+     * 列宽不够、读回与写入不一致时，改写一条空的截断快照；仍失败则删除该行。
+     * 失败只 error_log 一次，不把异常抛回定时器注册。
+     *
+     * @param string $table table_ticker 或 table_after
+     * @param string $field 列名，tick_tasks 或 after_tasks
+     * @param array<int|string, mixed> $tasks 进程内的原始任务，含 callback
+     * @return void
+     */
+    private static function publishTaskTable(string $table, string $field, array $tasks): void
+    {
+        if (!self::taskTableEnabled()) {
+            return;
+        }
+
+        $key = (string) getmypid();
+        $json = self::encodeTaskSnapshot($tasks);
+        if (self::writeTaskRow($table, $key, $field, $json)) {
+            return;
+        }
+
+        // 当前 Swoole 在超长时仍返回 true，并把字符串截成非法 JSON。读回不一致就改写短快照。
+        $fallback = self::packSnapshot([], true);
+        if ($fallback !== $json && self::writeTaskRow($table, $key, $field, $fallback)) {
+            return;
+        }
+
+        TableManager::del($table, $key);
+        if (self::$taskTableWriteFailed) {
+            return;
+        }
+
+        self::$taskTableWriteFailed = true;
+        error_log(sprintf('timer table %s set failed, pid=%d, bytes=%d', $table, getmypid(), strlen($json)));
+    }
+
+    /**
+     * 写入一行并读回校验。
+     * Swoole\Table::set 在字符串超过列宽时可能返回 true，同时把值截断，所以不能只看返回值。
+     *
+     * @param string $table 内存表名
+     * @param string $key 行键，当前进程 pid
+     * @param string $field 字符串列名
+     * @param string $json 准备写入的快照，单位字节，须能完整放进列宽
+     * @return bool 读回内容与 $json 完全一致时为 true
+     */
+    private static function writeTaskRow(string $table, string $key, string $field, string $json): bool
+    {
+        if (!TableManager::set($table, $key, [$field => $json])) {
+            return false;
+        }
+
+        return TableManager::get($table, $key, $field) === $json;
+    }
+
+    /**
+     * 是否把定时器快照同步到内存表。
+     * 只认 enable_table_tick_task 的布尔真值；未配置或 "false" 都不写。
+     *
+     * @return bool
+     */
+    private static function taskTableEnabled(): bool
+    {
+        $conf = Swfy::getConf();
+        if (!isset($conf['enable_table_tick_task'])) {
+            return false;
+        }
+
+        return filter_var($conf['enable_table_tick_task'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) === true;
+    }
+
+    /**
+     * 把进程内任务编成一行 JSON。
+     * 按注册顺序逐个加入，下一条会让整行超过 TASK_TABLE_JSON_LIMIT 时停止，并标记 truncated。
+     * 连第一条都放不下时，退成空任务列表，避免写出超长字符串。
+     *
+     * @param array<int|string, mixed> $tasks 进程内原始任务
+     * @return string 不超过 TASK_TABLE_JSON_LIMIT 字节的 JSON
+     */
+    private static function encodeTaskSnapshot(array $tasks): string
+    {
+        $rows = [];
+        $truncated = false;
+        foreach ($tasks as $id => $task) {
+            if (!is_array($task)) {
+                continue;
+            }
+            $next = $rows;
+            $next[(string) $id] = self::timerTaskRow($task);
+            if (strlen(self::packSnapshot($next, false)) > self::TASK_TABLE_JSON_LIMIT) {
+                $truncated = true;
+                break;
+            }
+            $rows = $next;
+        }
+
+        $json = self::packSnapshot($rows, $truncated);
+        if (strlen($json) > self::TASK_TABLE_JSON_LIMIT) {
+            $json = self::packSnapshot([], true);
+        }
+
+        return $json;
+    }
+
+    /**
+     * 组装跨进程可读的快照。tasks 用对象而不是空数组，避免 json 被编成 [] 后和「有任务」的对象形态混在一起。
+     *
+     * 字段：pid、worker_id、truncated、tasks。单位：pid / worker_id 为整数，truncated 表示本行是否被截断。
+     *
+     * @param array<string, array<string, mixed>> $rows 已去掉闭包的任务行，键是 timer_id
+     * @param bool $truncated 为 true 时表示还有任务没写进这一行
+     * @return string JSON。编码失败时返回一条空的截断快照，避免 json_encode 警告被转成异常
+     */
+    private static function packSnapshot(array $rows, bool $truncated): string
+    {
+        $json = json_encode([
+            'pid' => getmypid(),
+            'worker_id' => self::processWorkerId(),
+            'truncated' => $truncated,
+            'tasks' => $rows === [] ? new \stdClass() : $rows,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        return is_string($json) ? $json : '{"pid":0,"worker_id":-1,"truncated":true,"tasks":{}}';
+    }
+
+    /**
+     * 从进程内任务抽出可放进内存表的字段。
+     * callback 只保留名字。params 含对象或闭包时整段省掉，避免 json_encode 发出警告。
+     *
+     * @param array<string, mixed> $task $_tick_tasks / $_after_tasks 的一项
+     * @return array<string, mixed> timer_id、time_interval（毫秒）、start_time、callback 名称、pid，以及可选的 params
+     */
+    private static function timerTaskRow(array $task): array
+    {
+        $row = [
+            'timer_id' => $task['timer_id'] ?? null,
+            'time_interval' => $task['time_interval'] ?? null,
+            'start_time' => $task['start_time'] ?? null,
+            'callback' => self::callbackName($task['callback'] ?? null),
+            'pid' => getmypid(),
+        ];
+        if (isset($task['params']) && self::isJsonScalarTree($task['params'])) {
+            $row['params'] = $task['params'];
+        }
+
+        return $row;
+    }
+
+    /**
+     * 把回调记成跨进程可读的字符串。闭包没有稳定名字，统一记为 Closure。
+     *
+     * @param mixed $callback 进程内保存的 Closure、[class, method] 或函数名
+     * @return string Closure、Class::method、函数名，或无法识别时的 callable
+     */
+    private static function callbackName(mixed $callback): string
+    {
+        if ($callback instanceof \Closure) {
+            return 'Closure';
+        }
+        if (is_array($callback) && isset($callback[0], $callback[1]) && is_string($callback[1])) {
+            $class = is_object($callback[0]) ? $callback[0]::class : (is_string($callback[0]) ? $callback[0] : 'callable');
+
+            return $class . '::' . $callback[1];
+        }
+        if (is_string($callback)) {
+            return $callback;
+        }
+
+        return 'callable';
+    }
+
+    /**
+     * 判断值能否原样放进 json，且不会触发 json_encode 警告。
+     * 只接受 null、标量和由它们组成的数组。对象、闭包、资源都视为不能写入。
+     *
+     * @param mixed $value 任务的 params
+     * @return bool
+     */
+    private static function isJsonScalarTree(mixed $value): bool
+    {
+        if ($value === null || is_scalar($value)) {
+            return true;
+        }
+        if (!is_array($value)) {
+            return false;
+        }
+        foreach ($value as $item) {
+            if (!self::isJsonScalarTree($item)) {
+                return false;
             }
         }
+
+        return true;
+    }
+
+    /**
+     * 当前进程在 Swoole 里的 worker_id。自定义进程或 Server 尚未就绪时为 -1。
+     *
+     * @return int
+     */
+    private static function processWorkerId(): int
+    {
+        $server = Swfy::getServer();
+        if (!is_object($server) || !isset($server->worker_id)) {
+            return -1;
+        }
+
+        return (int) $server->worker_id;
     }
 
 }

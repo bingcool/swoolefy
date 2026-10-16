@@ -16,6 +16,7 @@ use Swoolefy\Library\Db\PDOConnection;
 use Swoole\Coroutine\Channel;
 use Swoolefy\Core\Dto\ContainerObjectDto;
 use Swoolefy\Core\Log\LogManager;
+use Swoolefy\Core\Runtime\RuntimeRegistry;
 use Swoolefy\Exception\SystemException;
 
 /**
@@ -355,7 +356,16 @@ class PoolsHandler
             return;
         }
 
-        if (!$this->isChannelOpen() || $obj->__coroutineId !== Coroutine::getCid()) {
+        if (!$this->isChannelOpen()) {
+            unset($obj);
+            return;
+        }
+        if ($obj->__coroutineId !== Coroutine::getCid()) {
+            // 别人的租约不能在这里结算。owner 仍是某个协程时，真正的借用方还可能归还。
+            // owner 已是 -1 的重复归还保持安静，避免正常防重路径刷日志。
+            if (is_int($obj->__coroutineId) && $obj->__coroutineId >= 0) {
+                $this->reportForeignReturn($obj);
+            }
             unset($obj);
             return;
         }
@@ -430,33 +440,81 @@ class PoolsHandler
      */
     public function fetchObj()
     {
+        $borrowed = null;
         try {
             $obj = $this->getObj();
-            if (is_object($obj)) {
-                // 仅在真正取到对象时记为借出，避免 null 污染 callCount
-                $this->callCount++;
-                $targetObj = $obj->getObject();
+            if (!is_object($obj)) {
+                // 返回 null 表示池内策略已走完（含 popTimeout + 短重试），上层只允许
+                // 按 fallback 配额建连或立即 503，不能再调一次 fetchObj。
+                return null;
             }
-            // 动态设置是否动态调试输出sql
-            if (isset($targetObj) && $targetObj instanceof PDOConnection) {
+            // 仅在真正取到对象时记为借出，避免 null 污染 callCount。
+            // 之后到 return 之前若失败，对象还没交给业务，必须放弃这次借出。
+            $this->callCount++;
+            $borrowed = $obj;
+            $targetObj = $obj->getObject();
+            if ($targetObj instanceof PDOConnection) {
                 $targetObj->enableDynamicDebug();
             }
             // 出 channel 对象绑定到当前协程；pushObj 用它拒绝重复、错误和陈旧归还。
-            // 返回 null 表示池内策略已走完（含 popTimeout + 短重试），上层只允许
-            // 按 fallback 配额建连或立即 503，不能再调一次 fetchObj。
-            if (!is_object($obj)) {
-                return null;
-            }
             $obj->__coroutineId = Coroutine::getCid();
+            $borrowed = null;
+
             return $obj;
         } catch (\Throwable $exception) {
+            if ($borrowed instanceof ContainerObjectDto) {
+                $this->abandonUnissuedBorrow($borrowed);
+            }
             $msg = sprintf("fetchObj from pool=[%s] failed, error:%s", $this->poolName, $exception->getMessage());
-            $systemLogger = LogManager::getInstance()->getLogger('system_error_log');
-            if (is_object($systemLogger)) {
-                $systemLogger->addError($msg);
+            try {
+                $systemLogger = LogManager::getInstance()->getLogger('system_error_log');
+                if (is_object($systemLogger)) {
+                    $systemLogger->addError($msg);
+                }
+            } catch (\Throwable) {
             }
             fmtPrintError($msg);
             throw $exception;
+        }
+    }
+
+    /**
+     * 对象已计入 callCount，但还没返回给业务。丢弃这条连接并补一个空闲槽。
+     */
+    private function abandonUnissuedBorrow(ContainerObjectDto $obj): void
+    {
+        $this->discardObject($obj);
+        $this->decreaseCallCount();
+        try {
+            $this->refillOneIfNeeded();
+        } catch (\Throwable) {
+            // 补槽失败不能盖住原来的借出异常。
+        }
+    }
+
+    /**
+     * 非借用协程的归还不结算账本，只留下可检索的告警。
+     */
+    private function reportForeignReturn(ContainerObjectDto $obj): void
+    {
+        $poolName = is_string($this->poolName) && $this->poolName !== '' ? $this->poolName : 'unknown';
+        $msg = sprintf(
+            'pool [%s] rejected return from cid=%d, owner cid=%s',
+            $poolName,
+            Coroutine::getCid(),
+            (string) $obj->__coroutineId,
+        );
+        try {
+            $systemLogger = LogManager::getInstance()->getLogger('system_error_log');
+            if (is_object($systemLogger)) {
+                $systemLogger->addWarning($msg);
+            }
+        } catch (\Throwable) {
+        }
+        fmtPrintError($msg);
+        try {
+            RuntimeRegistry::metrics()?->poolReturnRejected($poolName);
+        } catch (\Throwable) {
         }
     }
 
@@ -653,7 +711,8 @@ class PoolsHandler
     /**
      * 从 channel 弹出对象；可指定等待秒数（null 则用 popTimeout）。
      *
-     * 弹出后若已过期：先释放旧对象容量，再经 make() 统一重建，避免把失效连接交给业务。
+     * 过期对象会连续丢弃并各补建 1 个，直到弹出未过期对象，或 channel 里没有可立即取出的对象。
+     * 新建对象进 channel 尾部，所以不能只检查一次：头部可能还排着同时到期的连接。
      *
      * @param float|null $timeout
      * @return ContainerObjectDto|null
@@ -665,15 +724,23 @@ class PoolsHandler
         }
 
         $timeout ??= (float) $this->popTimeout;
-        $containerObject = $this->channel->pop($timeout);
-        if (is_object($containerObject) && !is_null($containerObject->__objExpireTime) && time() > $containerObject->__objExpireTime) {
-            // 过期对象已经离开 channel，必须先从统一容量账本扣除。
+        while ($this->isChannelOpen()) {
+            $containerObject = $this->channel->pop($timeout);
+            if (!is_object($containerObject)) {
+                return null;
+            }
+            $expired = !is_null($containerObject->__objExpireTime) && time() > $containerObject->__objExpireTime;
+            if (!$expired) {
+                return $containerObject;
+            }
+            // 过期对象已经离开 channel，必须先从统一容量账本扣除，再补一个新的到尾部。
             $this->discardObject($containerObject);
             $this->make(1);
-            $containerObject = $this->channel->pop($timeout);
+            // 后面只排空已经在 channel 里的过期对象，不再按 popTimeout 空等。
+            $timeout = 0.0;
         }
 
-        return is_object($containerObject) ? $containerObject : null;
+        return null;
     }
 
     public function clearPool()

@@ -274,7 +274,6 @@ class App extends \Swoolefy\Core\Component
      */
     public function afterRequest($callback, bool $prepend = false): bool
     {
-        $callback = \Closure::fromCallable($callback);
         return Hook::addHook(Hook::HOOK_AFTER_REQUEST, $callback, $prepend);
     }
 

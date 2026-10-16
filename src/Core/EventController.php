@@ -92,24 +92,19 @@ class EventController extends BaseObject
      * @param bool $prepend
      * @return bool
      */
-    public function afterRequest(callable $callback, bool $prepend = false)
+    public function afterRequest(callable $callback, bool $prepend = false): bool
     {
-        if (is_callable($callback, true, $callableName)) {
-            $key = md5($callableName);
-            if ($prepend) {
-                if (!isset($this->eventHooks[self::HOOK_AFTER_REQUEST])) {
-                    $this->eventHooks[self::HOOK_AFTER_REQUEST] = [];
-                }
-                if (!isset($this->eventHooks[self::HOOK_AFTER_REQUEST][$key])) {
-                    $this->eventHooks[self::HOOK_AFTER_REQUEST][$key] = array_merge([$key => $callback], $this->eventHooks[self::HOOK_AFTER_REQUEST]);
-                }
-            } else {
-                if (!isset($this->eventHooks[self::HOOK_AFTER_REQUEST][$key])) {
-                    $this->eventHooks[self::HOOK_AFTER_REQUEST][$key] = $callback;
-                }
-            }
-            return true;
+        if (!is_callable($callback)) {
+            return false;
         }
+        $key = Hook::callableKey($callback);
+        $bucket = $this->eventHooks[self::HOOK_AFTER_REQUEST] ?? [];
+        if (!isset($bucket[$key])) {
+            $bucket = $prepend ? [$key => $callback] + $bucket : $bucket + [$key => $callback];
+        }
+        $this->eventHooks[self::HOOK_AFTER_REQUEST] = $bucket;
+
+        return true;
     }
 
     /**
@@ -121,7 +116,7 @@ class EventController extends BaseObject
         if (isset($this->eventHooks[self::HOOK_AFTER_REQUEST]) && !empty($this->eventHooks[self::HOOK_AFTER_REQUEST])) {
             foreach ($this->eventHooks[self::HOOK_AFTER_REQUEST] as $func) {
                 try {
-                    $func();
+                    call_user_func($func);
                 }catch (\Throwable $exception) {
 
                 }

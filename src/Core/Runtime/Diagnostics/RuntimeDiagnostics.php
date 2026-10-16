@@ -207,6 +207,7 @@ final class RuntimeDiagnostics
                         RuntimeMetrics::POOL_FETCH_TOTAL,
                         RuntimeMetrics::POOL_RELEASE_TOTAL,
                         RuntimeMetrics::POOL_FETCH_ERROR_TOTAL,
+                        RuntimeMetrics::POOL_RETURN_REJECTED_TOTAL,
                         RuntimeMetrics::POOL_UNATTRIBUTED_TOTAL,
                     ]),
                 ],
@@ -220,7 +221,7 @@ final class RuntimeDiagnostics
      * fallback_total / fallback_reject_total 与 fetch 分列：前者是池外降级成功，
      * 后者是额度用尽立即 503。未知别名仍只进 unattributed，不动态开键。
      *
-     * @return array<string, array{fetch_total:int,release_total:int,fetch_error_total:int,fallback_total:int,fallback_reject_total:int,balance:int}>
+     * @return array<string, array{fetch_total:int,release_total:int,fetch_error_total:int,fallback_total:int,fallback_reject_total:int,return_rejected_total:int,balance:int}>
      */
     public function pool(): array
     {

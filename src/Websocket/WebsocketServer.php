@@ -85,6 +85,7 @@ abstract class WebsocketServer extends BaseServer
         self::$server = $this->webServer = new \Swoole\WebSocket\Server(self::$config['host'], self::$config['port'], self::$swooleProcessModel, self::$swooleSocketType);
         $this->webServer->set(self::$setting);
         parent::__construct();
+        self::bindOpcacheResetOnReload($this->webServer);
     }
 
     /**

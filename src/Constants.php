@@ -44,7 +44,7 @@ defined('ROUTE_MODEL_QUERY_PARAMS') or define('ROUTE_MODEL_QUERY_PARAMS', 2);
 defined('MQTT_PROTOCOL_LEVEL3') or define('MQTT_PROTOCOL_LEVEL3', 4);
 defined('MQTT_PROTOCOL_LEVEL5') or define('MQTT_PROTOCOL_LEVEL5', 5);
 
-defined('SWOOLEFY_VERSION') or define('SWOOLEFY_VERSION', '6.3.10');
+defined('SWOOLEFY_VERSION') or define('SWOOLEFY_VERSION', '6.3.11');
 defined('SWOOLEFY_EOF_FLAG') or define('SWOOLEFY_EOF_FLAG', '::');
 
 defined('WORKER_CLI_START') or define('WORKER_CLI_START', 'start');
@@ -65,5 +65,15 @@ class Constants
      * swoolefy env
      */
     const SWOOLEFY_ENV = SWOOLEFY_ENV;
+
+    /**
+     * 运行时最低 PHP。CLI 启动检查和 Worker 构造必须用同一个值。
+     */
+    public const MIN_PHP_VERSION = '8.4.0';
+
+    /**
+     * 运行时最低 Swoole。与 composer.json 的 ext-swoole 一致。
+     */
+    public const MIN_SWOOLE_VERSION = '6.1.0';
 
 }

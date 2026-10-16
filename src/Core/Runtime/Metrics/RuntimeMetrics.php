@@ -30,6 +30,8 @@ final class RuntimeMetrics
     public const POOL_FALLBACK_TOTAL = 'swoolefy_pool_fallback_total';
     /** fallback 配额拒绝次数；对应立即 503，不再次等待。 */
     public const POOL_FALLBACK_REJECT_TOTAL = 'swoolefy_pool_fallback_reject_total';
+    /** 非借用协程归还池对象被拒绝的次数。 */
+    public const POOL_RETURN_REJECTED_TOTAL = 'swoolefy_pool_return_rejected_total';
     public const POOL_UNATTRIBUTED_TOTAL = 'swoolefy_pool_unattributed_total';
     /** Cron Registry 内 Job 总数（含 Disabled）。固定名，无任务标签。 */
     public const CRON_JOBS_TOTAL = 'swoolefy_cron_jobs_total';
@@ -48,7 +50,7 @@ final class RuntimeMetrics
     public const CRON_SCHEDULER_ERRORS = 'swoolefy_cron_scheduler_errors_total';
 
     /**
-     * @var array<string, array{fetch_total:int,release_total:int,fetch_error_total:int,fallback_total:int,fallback_reject_total:int}>
+     * @var array<string, array{fetch_total:int,release_total:int,fetch_error_total:int,fallback_total:int,fallback_reject_total:int,return_rejected_total:int}>
      */
     private array $poolMetrics = [];
 
@@ -65,6 +67,7 @@ final class RuntimeMetrics
                     'fetch_error_total' => 0,
                     'fallback_total' => 0,
                     'fallback_reject_total' => 0,
+                    'return_rejected_total' => 0,
                 ];
             }
         }
@@ -138,6 +141,17 @@ final class RuntimeMetrics
     {
         $this->registry->counter(self::POOL_FALLBACK_REJECT_TOTAL)->increment();
         $this->incrementPoolMetric($name, 'fallback_reject_total');
+    }
+
+    /**
+     * 记录一次非借用协程的归还被拒绝。
+     *
+     * 不减少 callCount。借用协程仍可能稍后归还；这里只暴露跨协程误用。
+     */
+    public function poolReturnRejected(string $name): void
+    {
+        $this->registry->counter(self::POOL_RETURN_REJECTED_TOTAL)->increment();
+        $this->incrementPoolMetric($name, 'return_rejected_total');
     }
 
     /**
@@ -218,7 +232,7 @@ final class RuntimeMetrics
      *
      * fallback 字段与 balance 无关：降级连接不进池，balance 仍是 fetch - release。
      *
-     * @return array<string, array{fetch_total:int,release_total:int,fetch_error_total:int,fallback_total:int,fallback_reject_total:int,balance:int}>
+     * @return array<string, array{fetch_total:int,release_total:int,fetch_error_total:int,fallback_total:int,fallback_reject_total:int,return_rejected_total:int,balance:int}>
      */
     public function poolSnapshot(): array
     {
@@ -230,6 +244,7 @@ final class RuntimeMetrics
                 'fetch_error_total' => $metrics['fetch_error_total'],
                 'fallback_total' => $metrics['fallback_total'],
                 'fallback_reject_total' => $metrics['fallback_reject_total'],
+                'return_rejected_total' => $metrics['return_rejected_total'],
                 'balance' => $metrics['fetch_total'] - $metrics['release_total'],
             ];
         }
@@ -240,7 +255,7 @@ final class RuntimeMetrics
     /**
      * 增加已知别名的指标；未知输入只计入一个固定计数器，绝不动态创建别名键。
      *
-     * @param 'fetch_total'|'release_total'|'fetch_error_total'|'fallback_total'|'fallback_reject_total' $metric
+     * @param 'fetch_total'|'release_total'|'fetch_error_total'|'fallback_total'|'fallback_reject_total'|'return_rejected_total' $metric
      */
     private function incrementPoolMetric(string $name, string $metric): void
     {

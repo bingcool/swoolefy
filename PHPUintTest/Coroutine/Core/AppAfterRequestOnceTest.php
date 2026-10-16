@@ -22,9 +22,11 @@ final class AppAfterRequestOnceTest extends CoroutineTestCase
     {
         parent::setUp();
         BaseServer::setAppConf(['components' => []]);
-        $hooks = new ReflectionProperty(Hook::class, 'hooks');
-        $hooks->setAccessible(true);
-        $hooks->setValue(null, []);
+        foreach (['hooks', 'hookContext', 'hookSealed'] as $property) {
+            $hooks = new ReflectionProperty(Hook::class, $property);
+            $hooks->setAccessible(true);
+            $hooks->setValue(null, []);
+        }
     }
 
     protected function tearDown(): void
@@ -86,6 +88,55 @@ final class AppAfterRequestOnceTest extends CoroutineTestCase
             $method->invoke($app);
 
             $this->assertSame(1, $count);
+        });
+    }
+
+    /**
+     * 同一次请求里的多个 afterRequest 都要执行。同一个实例方法重复注册只执行一次。
+     */
+    public function testDistinctAfterRequestHooksAllRun(): void
+    {
+        $this->runInCoroutine(function (): void {
+            $app = new App();
+            $first = 0;
+            $second = 0;
+            $saver = new class {
+                public int $n = 0;
+
+                public function save(): void
+                {
+                    $this->n++;
+                }
+            };
+            $other = new class {
+                public int $n = 0;
+
+                public function save(): void
+                {
+                    $this->n++;
+                }
+            };
+            $app->afterRequest(static function () use (&$first): void {
+                $first++;
+            });
+            $app->afterRequest(static function () use (&$second): void {
+                $second++;
+            });
+            $app->afterRequest([$saver, 'save']);
+            $app->afterRequest([$saver, 'save']);
+            $app->afterRequest([$other, 'save']);
+
+            $processing = new ReflectionProperty(App::class, 'requestProcessing');
+            $processing->setAccessible(true);
+            $processing->setValue($app, true);
+            $method = new ReflectionMethod(App::class, 'onAfterRequest');
+            $method->setAccessible(true);
+            $method->invoke($app);
+
+            $this->assertSame(1, $first);
+            $this->assertSame(1, $second);
+            $this->assertSame(1, $saver->n);
+            $this->assertSame(1, $other->n);
         });
     }
 }

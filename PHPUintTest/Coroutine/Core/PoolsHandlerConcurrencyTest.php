@@ -9,6 +9,7 @@ use RuntimeException;
 use Swoole\Coroutine;
 use Swoole\Coroutine\Channel;
 use Swoolefy\Core\Coroutine\PoolsHandler;
+use Swoolefy\Library\Db\PDOConnection;
 use Throwable;
 
 /**
@@ -337,6 +338,112 @@ final class PoolsHandlerConcurrencyTest extends CoroutineTestCase
             $pool->pushObj($rebuilt);
             unset($rebuilt);
             $this->waitForPoolRecovery($pool, 1);
+        });
+    }
+
+    public function testPopDrainsEveryExpiredIdleObject(): void
+    {
+        $this->runInCoroutine(function (): void {
+            TestPoolResource::reset(2);
+            $pool = $this->createPool(2, static function (): TestPoolResource {
+                return new TestPoolResource();
+            });
+            $first = $pool->fetchObj();
+            $second = $pool->fetchObj();
+            self::assertIsObject($first);
+            self::assertIsObject($second);
+            $pool->pushObj($first);
+            $pool->pushObj($second);
+
+            $channel = $pool->getChannel();
+            $idle = [];
+            while ($channel->length() > 0) {
+                $item = $channel->pop(0.0);
+                if (!is_object($item)) {
+                    break;
+                }
+                $item->__objExpireTime = time() - 5;
+                $idle[] = $item;
+            }
+            self::assertCount(2, $idle);
+            foreach ($idle as $item) {
+                self::assertTrue($channel->push($item, 0.0));
+            }
+
+            $fresh = $pool->fetchObj();
+            self::assertIsObject($fresh);
+            self::assertGreaterThan(time(), $fresh->__objExpireTime);
+            self::assertSame(1, $this->readCounter($pool, 'callCount'));
+            self::assertSame(2, $this->readCounter($pool, 'objectCount'));
+            $pool->pushObj($fresh);
+            $this->waitForPoolRecovery($pool, 2);
+        });
+    }
+
+    public function testForeignCoroutineReturnDoesNotSettleBorrow(): void
+    {
+        $this->runInCoroutine(function (): void {
+            TestPoolResource::reset(1);
+            $pool = $this->createPool(1, static function (): TestPoolResource {
+                return new TestPoolResource();
+            });
+            $object = $pool->fetchObj();
+            self::assertIsObject($object);
+            $done = new Channel(1);
+            go(function () use ($pool, $object, $done): void {
+                $pool->pushObj($object);
+                $done->push(true);
+            });
+            self::assertTrue($done->pop(2));
+            self::assertSame(1, $this->readCounter($pool, 'callCount'));
+            self::assertSame(0, $pool->getCurrentNum());
+
+            $pool->pushObj($object);
+            $this->waitForPoolRecovery($pool, 1);
+        });
+    }
+
+    public function testFetchFailureBeforeIssueReleasesTheSlot(): void
+    {
+        $this->runInCoroutine(function (): void {
+            $pool = $this->createPool(1, static function (): PDOConnection {
+                return new class extends PDOConnection {
+                    public function __construct()
+                    {
+                    }
+
+                    public function enableDynamicDebug()
+                    {
+                        throw new RuntimeException('debug failed');
+                    }
+
+                    protected function parseDsn()
+                    {
+                        return '';
+                    }
+
+                    public function getFields(string $tableName)
+                    {
+                        return [];
+                    }
+
+                    public function getTables(string $dbName)
+                    {
+                        return [];
+                    }
+                };
+            });
+
+            try {
+                $pool->fetchObj();
+                self::fail('借出准备失败时应抛出原异常');
+            } catch (RuntimeException $exception) {
+                self::assertSame('debug failed', $exception->getMessage());
+            }
+
+            self::assertSame(0, $this->readCounter($pool, 'callCount'));
+            self::assertSame(1, $this->readCounter($pool, 'objectCount'));
+            self::assertSame(1, $pool->getCurrentNum());
         });
     }
 

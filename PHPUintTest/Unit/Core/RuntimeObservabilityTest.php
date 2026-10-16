@@ -90,6 +90,7 @@ final class RuntimeObservabilityTest extends TestCase
                 'fetch_error_total' => 1,
                 'fallback_total' => 1,
                 'fallback_reject_total' => 0,
+                'return_rejected_total' => 0,
                 'balance' => 1,
             ],
             'mysql' => [
@@ -98,6 +99,7 @@ final class RuntimeObservabilityTest extends TestCase
                 'fetch_error_total' => 0,
                 'fallback_total' => 0,
                 'fallback_reject_total' => 1,
+                'return_rejected_total' => 0,
                 'balance' => 0,
             ],
         ], $metrics->poolSnapshot());
@@ -175,6 +177,7 @@ final class RuntimeObservabilityTest extends TestCase
                 'fetch_error_total' => 0,
                 'fallback_total' => 0,
                 'fallback_reject_total' => 0,
+                'return_rejected_total' => 0,
                 'balance' => 1,
             ],
             'db' => [
@@ -183,6 +186,7 @@ final class RuntimeObservabilityTest extends TestCase
                 'fetch_error_total' => 1,
                 'fallback_total' => 0,
                 'fallback_reject_total' => 0,
+                'return_rejected_total' => 0,
                 'balance' => 0,
             ],
         ], $pool);

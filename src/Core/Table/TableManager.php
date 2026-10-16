@@ -68,13 +68,15 @@ class TableManager
      * @param string $table
      * @param string $key
      * @param array $fieldValue
-     * @return void
+     * @return bool 表不存在或字段超长时为 false
      */
-    public static function set(string $table, string $key, array $fieldValue = [])
+    public static function set(string $table, string $key, array $fieldValue = []): bool
     {
-        if (!empty($fieldValue)) {
-            self::getTable($table)->set($key, $fieldValue);
+        if ($fieldValue === []) {
+            return false;
         }
+
+        return self::getTable($table)->set($key, $fieldValue);
     }
 
     /**
