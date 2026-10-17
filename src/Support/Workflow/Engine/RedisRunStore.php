@@ -16,6 +16,7 @@ namespace Swoolefy\Support\Workflow\Engine;
 use Swoolefy\Library\Redis\Predis;
 use Swoolefy\Library\Redis\Redis;
 use Swoolefy\Library\Redis\RedisConnection;
+use Swoolefy\Support\SupportLog;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\Exception\WorkflowRuntimeException;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
@@ -244,7 +245,18 @@ LUA;
     {
         $waiting = [];
         foreach ($this->scanKeys() as $runId) {
-            $run = $this->find($runId);
+            // 单个 run 的 payload 损坏或定义已下线（hydrate 抛 WorkflowRuntimeException）
+            // 不应拖垮整个 HITL 等待列表：逐项捕获，跳过坏项并记 warning，其余等待项照常返回，接口可降级。
+            try {
+                $run = $this->find($runId);
+            } catch (Throwable $e) {
+                SupportLog::warning('workflow', 'Skip unreadable workflow run in listWaiting', [
+                    'runId' => $runId,
+                    'reason' => $e->getMessage(),
+                ]);
+                continue;
+            }
+
             if ($run === null || $run->status !== RunStatus::WAITING) {
                 continue;
             }
