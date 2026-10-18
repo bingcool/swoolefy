@@ -26,6 +26,8 @@ namespace Test\Router;
  *   - Chunked.php        ChunkedController
  *   - Download.php       DownloadController
  *   - Upload.php         UploadController
+ *   - Image.php          ImageController（library Image 联调）
+ *   - Qrcode.php         QrcodeController（library Qrcode 联调）
  *   - FileStorage.php    FileStorageController（本地 FileStorageSystem）
  *   - Object.php         ObjectController
  *   - Pg.php             PgController
