@@ -79,4 +79,16 @@ final class HookSealTest extends CoroutineTestCase
             $this->assertFalse($staleRan);
         });
     }
+
+    public function testHookSealedReleasedAfterCoroutineEnds(): void
+    {
+        $sealed = new ReflectionProperty(Hook::class, 'hookSealed');
+        $sealed->setAccessible(true);
+
+        $this->runInCoroutine(static function (): void {
+            Hook::callHook(Hook::HOOK_AFTER_REQUEST);
+        });
+
+        $this->assertSame([], $sealed->getValue());
+    }
 }

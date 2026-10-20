@@ -5,7 +5,7 @@ declare(strict_types=1);
 /**
  * 不依赖 HTTP：直接加载 Test 配置验证 Image / Qrcode 组件。
  *
- *   php Test/scripts/image-qrcode-smoke.php
+ *   php Test/Scripts/image-qrcode-smoke.php
  */
 
 $root = dirname(__DIR__, 2);

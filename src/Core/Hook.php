@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class Hook
@@ -110,6 +111,7 @@ class Hook
             $contextId = self::coroutineContextId();
             if ($contextId !== 0) {
                 self::$hookSealed[$cid] = $contextId;
+                self::registerCoroutineCleanup($cid, $contextId);
             } else {
                 unset(self::$hookSealed[$cid]);
             }
@@ -145,14 +147,18 @@ class Hook
     private static function acceptBucket(int $cid): bool
     {
         $contextId = self::coroutineContextId();
-        if ($contextId !== 0 && isset(self::$hookSealed[$cid]) && self::$hookSealed[$cid] === $contextId) {
-            return false;
+        if ($contextId !== 0 && isset(self::$hookSealed[$cid])) {
+            if (self::$hookSealed[$cid] === $contextId) {
+                return false;
+            }
+            unset(self::$hookSealed[$cid]);
         }
         if (self::isStale($cid)) {
             unset(self::$hooks[$cid], self::$hookContext[$cid], self::$hookSealed[$cid]);
         }
         if ($contextId !== 0) {
             self::$hookContext[$cid] = $contextId;
+            self::registerCoroutineCleanup($cid, $contextId);
         }
 
         return true;
@@ -202,6 +208,51 @@ class Hook
             return 0;
         }
 
-        return spl_object_id(\Swoole\Coroutine::getContext());
+        $context = Context::getContext();
+        if ($context === null) {
+            return 0;
+        }
+
+        return spl_object_id($context);
+    }
+
+    /** 协程 Context 上标记：本协程已注册过 Hook 清理 defer。 */
+    private const CTX_HOOK_CLEANUP = '__swoolefy_hook_cleanup_ctx';
+
+    /**
+     * 协程结束时释放 hooks / hookContext / hookSealed，避免 cid 单调递增时静态数组只增不减。
+     * 同一协程内 AFTER_REQUEST 已 seal 后仍拒绝迟到注册，defer 在协程退出时才清 sealed。
+     */
+    private static function registerCoroutineCleanup(int $cid, int $contextId): void
+    {
+        if ($contextId === 0 || !class_exists(\Swoole\Coroutine::class)) {
+            return;
+        }
+
+        $ctx = Context::getContext();
+        if ($ctx === null) {
+            return;
+        }
+        if (($ctx[self::CTX_HOOK_CLEANUP] ?? null) === $contextId) {
+            return;
+        }
+        $ctx[self::CTX_HOOK_CLEANUP] = $contextId;
+
+        \Swoole\Coroutine::defer(static function () use ($cid, $contextId): void {
+            self::releaseCoroutineState($cid, $contextId);
+        });
+    }
+
+    /**
+     * 只清理仍属于该 contextId 的条目，避免误删已复用 cid 上的新协程状态。
+     */
+    private static function releaseCoroutineState(int $cid, int $contextId): void
+    {
+        if (isset(self::$hookSealed[$cid]) && self::$hookSealed[$cid] === $contextId) {
+            unset(self::$hookSealed[$cid]);
+        }
+        if (isset(self::$hookContext[$cid]) && self::$hookContext[$cid] === $contextId) {
+            unset(self::$hookContext[$cid], self::$hooks[$cid]);
+        }
     }
 }

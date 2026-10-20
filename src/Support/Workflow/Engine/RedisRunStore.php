@@ -19,6 +19,7 @@ use Swoolefy\Library\Redis\RedisConnection;
 use Swoolefy\Support\SupportLog;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\Exception\WorkflowRuntimeException;
+use ValueError;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
 use Throwable;
 
@@ -245,11 +246,12 @@ LUA;
     {
         $waiting = [];
         foreach ($this->scanKeys() as $runId) {
-            // 单个 run 的 payload 损坏或定义已下线（hydrate 抛 WorkflowRuntimeException）
-            // 不应拖垮整个 HITL 等待列表：逐项捕获，跳过坏项并记 warning，其余等待项照常返回，接口可降级。
             try {
                 $run = $this->find($runId);
             } catch (Throwable $e) {
+                if (!$this->isSkippableWaitingListError($e)) {
+                    throw $e;
+                }
                 SupportLog::warning('workflow', 'Skip unreadable workflow run in listWaiting', [
                     'runId' => $runId,
                     'reason' => $e->getMessage(),
@@ -273,6 +275,24 @@ LUA;
         }
 
         return $waiting;
+    }
+
+    /**
+     * 仅跳过单条 run 的数据/定义问题。Redis GET、连接超时等基础设施错误必须向上抛，避免返回不完整列表。
+     */
+    private function isSkippableWaitingListError(Throwable $e): bool
+    {
+        if ($e instanceof WorkflowRuntimeException) {
+            return str_starts_with($e->getMessage(), 'Corrupt workflow run payload');
+        }
+        if ($e instanceof WorkflowException) {
+            return true;
+        }
+        if ($e instanceof ValueError) {
+            return true;
+        }
+
+        return false;
     }
 
     /** @return list<string> runId 列表 */

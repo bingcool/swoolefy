@@ -79,10 +79,8 @@ final class StatusReporter
         }
 
         if ($this->reportStatusTimerId !== null && $this->reportStatusTimerId !== false) {
-            register_shutdown_function(function () {
-                if ($this->reportStatusTimerId instanceof Channel || is_int($this->reportStatusTimerId)) {
-                    \Swoolefy\Core\Coroutine\Timer::cancel($this->reportStatusTimerId);
-                }
+            register_shutdown_function(function (): void {
+                $this->cancelReportStatusTimer();
             });
         }
     }
@@ -92,9 +90,21 @@ final class StatusReporter
      */
     public function clearTimer(): void
     {
-        if ($this->reportStatusTimerId !== null) {
-            \Swoole\Timer::clear($this->reportStatusTimerId);
-            $this->reportStatusTimerId = null;
+        $this->cancelReportStatusTimer();
+    }
+
+    /**
+     * goTick 可能返回原生 timer id 或协程 Channel；创建失败为 false。
+     */
+    private function cancelReportStatusTimer(): void
+    {
+        $timerId = $this->reportStatusTimerId;
+        $this->reportStatusTimerId = null;
+        if ($timerId === null || $timerId === false) {
+            return;
+        }
+        if ($timerId instanceof Channel || is_int($timerId)) {
+            \Swoolefy\Core\Coroutine\Timer::cancel($timerId);
         }
     }
 

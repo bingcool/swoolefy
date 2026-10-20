@@ -128,6 +128,7 @@ RUN set -eux; \
     php${MY_PHP_VERSION}-ctype \
     php${MY_PHP_VERSION}-dom \
     php${MY_PHP_VERSION}-fileinfo \
+    php${MY_PHP_VERSION}-exif \
     php${MY_PHP_VERSION}-simplexml \
     php${MY_PHP_VERSION}-xmlreader \
     php${MY_PHP_VERSION}-xmlwriter \
