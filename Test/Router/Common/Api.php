@@ -28,6 +28,7 @@ namespace Test\Router;
  *   - Upload.php         UploadController
  *   - Image.php          ImageController（library Image 联调）
  *   - Qrcode.php         QrcodeController（library Qrcode 联调）
+ *   - Mail.php           MailController（library Mail 联调，log transport）
  *   - FileStorage.php    FileStorageController（本地 FileStorageSystem）
  *   - Object.php         ObjectController
  *   - Pg.php             PgController

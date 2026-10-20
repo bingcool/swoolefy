@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>{{ app_name }}</title>
+</head>
+<body>
+    <h1>你好，{{ name }}</h1>
+    <p>这封邮件由 <strong>{{ app_name }}</strong> 渲染并通过 log transport 处理。</p>
+    <div class="raw">{{{ raw }}}</div>
+    <p>发送时间：{{ sent_at }}</p>
+</body>
+</html>
