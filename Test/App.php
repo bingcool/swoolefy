@@ -100,13 +100,14 @@ class App
     }
 
     /**
-     * 每次调用返回全新的锁实例，避免同一协程内嵌套/并发使用时 token 互相覆盖。
+     * 组件容器按协程隔离，同一协程复用同一个 mutex；mutex 持有 token/租期状态，
+     * 只能顺序使用，禁止传给其他协程。
      *
      * @return RedisMutex|ContainerObjectDto
      */
     public static function getRedisLock()
     {
-        return \Swoolefy\Core\Application::getApp()->makeNewObject('redis-order-lock');
+        return \Swoolefy\Core\Application::getApp()->get('redis-order-lock');
     }
 
     /**

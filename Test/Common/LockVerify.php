@@ -53,7 +53,7 @@ final class LockVerify
             'exception_release' => 'caseExceptionRelease',
             // synchronized 在 goApp 子协程执行回调，并建立独立的 EventController 上下文
             'synchronized_context' => 'caseSynchronizedContext',
-            // 组件门面每次返回不同 mutex 实例，避免 token/租期状态互相覆盖
+            // 同一协程复用组件单例，子协程通过独立 EventController 获得新实例
             'component_instances' => 'caseComponentInstances',
             // swoolefy Redis 包装器自动解包：NX/PX 与释放脚本均走 phpredis 分支
             'wrapper_unwrap' => 'caseWrapperUnwrap',
@@ -366,15 +366,28 @@ final class LockVerify
         $this->assertTrue($firstMutex instanceof RedisMutex, '组件未返回 RedisMutex：' . get_debug_type($firstMutex));
         $this->assertTrue($secondMutex instanceof RedisMutex, '组件未返回 RedisMutex：' . get_debug_type($secondMutex));
         $this->assertTrue(
-            spl_object_id($firstMutex) !== spl_object_id($secondMutex),
-            '两次 getRedisLock() 返回了同一个 mutex 实例'
+            spl_object_id($firstMutex) === spl_object_id($secondMutex),
+            '同一协程两次 getRedisLock() 未复用同一个 mutex 实例'
         );
 
+        // token/acquireTs 在每次 release 后清空，同一实例顺序获取两次应各自成功
         $firstMutex->synchronized(static fn() => null);
         $secondMutex->synchronized(static fn() => null);
 
+        $childChannel = new Channel(1);
+        goApp(function ($event) use ($childChannel): void {
+            $childChannel->push(spl_object_id($this->unwrapDto(App::getRedisLock())));
+        });
+        $childMutexId = $childChannel->pop(1);
+
+        $this->assertTrue(is_int($childMutexId), '子协程未返回 mutex 实例 id');
+        $this->assertTrue(
+            $childMutexId !== spl_object_id($firstMutex),
+            '子协程与父协程共用了同一个 mutex 实例'
+        );
+
         $this->cleanup('order_lock');
-        return ['instances' => 2, 'distinct' => true];
+        return ['parent_reused' => true, 'child_distinct' => true];
     }
 
     private function caseWrapperUnwrap(): array
