@@ -31,16 +31,15 @@ return [
         return $rateLimit;
     },
 
+    // 锁实例持有 token/租期等可变状态，必须按使用方（协程）新建，不能跨协程复用
     'redis-order-lock' => function() {
         $redis = Application::getApp()->get('redis')->getObject();
-        $lock = new \Swoolefy\Library\Lock\PHPRedisMutex([$redis],'order_lock', 5);
-        return $lock;
+        return new \Swoolefy\Library\Lock\RedisMutex($redis, 'order_lock', 5.0, 30.0);
     },
 
     'predis-order-lock' => function() {
         $redis = Application::getApp()->get('predis')->getObject();
-        $lock = new \Swoolefy\Library\Lock\PredisMutex([$redis],'order_lock-1', 5);
-        return $lock;
+        return new \Swoolefy\Library\Lock\RedisMutex($redis, 'order_lock-1', 5.0, 30.0);
     },
 
     'session' => function() {

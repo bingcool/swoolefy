@@ -15,8 +15,7 @@ use Swoolefy\Library\Db\Pgsql;
 use Swoolefy\Library\RateLimit\DurationLimiter;
 use Swoolefy\Library\Redis\Redis;
 use Swoolefy\Library\Db\Mysql;
-use Swoolefy\Library\Lock\PHPRedisMutex;
-use Swoolefy\Library\PubSub\RedisPubSub;
+use Swoolefy\Library\Lock\RedisMutex;
 use Swoolefy\Library\Uuid\UuidManager;
 use Swoolefy\Core\Dto\ContainerObjectDto;
 use Swoolefy\Support\Auth\JwtAuthGuard;
@@ -93,14 +92,6 @@ class App
     }
 
     /**
-     * @return RedisPubSub|ContainerObjectDto
-     */
-    public static function getRedisSubscribe()
-    {
-        return \Swoolefy\Core\Application::getApp()->get('redis-subscribe');
-    }
-
-    /**
      * @return DurationLimiter|ContainerObjectDto
      */
     public static function getRateLimit()
@@ -109,11 +100,13 @@ class App
     }
 
     /**
-     * @return PHPRedisMutex|ContainerObjectDto
+     * 每次调用返回全新的锁实例，避免同一协程内嵌套/并发使用时 token 互相覆盖。
+     *
+     * @return RedisMutex|ContainerObjectDto
      */
     public static function getRedisLock()
     {
-        return \Swoolefy\Core\Application::getApp()->get('redis-order-lock');
+        return \Swoolefy\Core\Application::getApp()->makeNewObject('redis-order-lock');
     }
 
     /**

@@ -24,6 +24,11 @@ class Event extends EventHandler
     private const MQ_VERIFY = false;
 
     /**
+     * 是否注册 PubSub 端到端验证进程。启动 Test 服务后看 [PUBSUB-VERIFY] 输出。
+     */
+    private const PUBSUB_VERIFY = true;
+
+    /**
      * onInit
      */
     public function onInit()
@@ -125,9 +130,22 @@ class Event extends EventHandler
             // worker进程绑定进程池
             //PoolsManager::getInstance()->addProcessPools('worker-follower-task', \Test\Pools\TestBindWorker::class, 1,true, []);
 
-
             // redis的订阅进程
             // ProcessManager::getInstance()->addProcess('redis_subscribe_test', \Test\Process\SubscribeProcess\Subscribe::class);
+            // PubSub 端到端验证：一个场景一个独立进程，避免单个场景阻塞拖垮其余用例
+            // 结果：容器内 /tmp/pubsub-verify/verify.log 与 results.jsonl，stdout 带 [PUBSUB-VERIFY] 前缀
+            if (self::PUBSUB_VERIFY) {
+                foreach (\Test\Process\SubscribeProcess\PubSubVerify::scenarios() as $scenario) {
+                    ProcessManager::getInstance()->addProcess(
+                        'pubsubv-' . $scenario,
+                        \Test\Process\SubscribeProcess\PubSubVerify::class,
+                        true,
+                        ['scenario' => $scenario],
+                        null,
+                        true
+                    );
+                }
+            }
 
             // multi call 并发调用进程
             // ProcessManager::getInstance()->addProcess('multi-call', \Test\Process\TestProcess\MultiCall::class);

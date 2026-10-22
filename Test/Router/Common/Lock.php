@@ -27,4 +27,14 @@ Route::group([
         'dispatch_route' => [\Test\Controller\LockController::class, 'locktest2'],
     ]);
 
+    // GET /api/lock/hold 跨请求并发验证用持锁接口
+    Route::get('/lock/hold', [
+        'dispatch_route' => [\Test\Controller\LockController::class, 'lockhold'],
+    ]);
+
+    // GET /api/lock/verify Lock 模块端到端验证
+    Route::get('/lock/verify', [
+        'dispatch_route' => [\Test\Controller\LockController::class, 'lockverify'],
+    ]);
+
 });
