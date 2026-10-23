@@ -16,6 +16,7 @@ use Swoolefy\Library\RateLimit\DurationLimiter;
 use Swoolefy\Library\Redis\Redis;
 use Swoolefy\Library\Db\Mysql;
 use Swoolefy\Library\Lock\RedisMutex;
+use Swoolefy\Library\Mongodb\MongodbModel;
 use Swoolefy\Library\Uuid\UuidManager;
 use Swoolefy\Core\Dto\ContainerObjectDto;
 use Swoolefy\Support\Auth\JwtAuthGuard;
@@ -124,5 +125,15 @@ class App
     public static function getAuthGuard()
     {
         return \Swoolefy\Core\Application::getApp()->get('auth.guard');
+    }
+
+    /**
+     * mongodb 组件按协程缓存；模型持有 Client 与 collection 缓存，不能跨协程共享。
+     *
+     * @return MongodbModel|ContainerObjectDto
+     */
+    public static function getMongodb()
+    {
+        return \Swoolefy\Core\Application::getApp()->get('mongodb');
     }
 }
