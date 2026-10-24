@@ -18,6 +18,7 @@ use Swoolefy\Support\Auth\JwtAuthGuard;
 use Swoolefy\Support\Auth\RoleResolverInterface;
 
 $authcConfig = include APP_PATH . '/Config/auth.php';
+
 return [
     'auth.guard' => static function () use($authcConfig) {
         return new JwtAuthGuard($authcConfig['jwt'] ?? []);

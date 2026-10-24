@@ -9,11 +9,12 @@ use Swoolefy\Library\FileStorageSystem\FileStorageManager;
  *
  * @see Config/file_storage_system.php
  */
-return [
-    'file_storage' => static function (): FileStorageManager {
-        $configFile = APP_PATH . '/Config/file_storage_system.php';
-        $config = is_file($configFile) ? include $configFile : [];
 
+$configFile = APP_PATH . '/Config/file_storage_system.php';
+$config = is_file($configFile) ? include $configFile : [];
+
+return [
+    'file_storage' => static function() use($config) : FileStorageManager {
         return new FileStorageManager(is_array($config) ? $config : []);
     },
 ];

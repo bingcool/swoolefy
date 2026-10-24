@@ -7,10 +7,10 @@ use Swoolefy\Core\Dto\ContainerObjectDto;
 use Swoolefy\Library\Image\ImageManager;
 use Swoolefy\Library\Qrcode\QrcodeManager;
 
+$configFile = APP_PATH . '/Config/qrcode.php';
+$config = is_file($configFile) ? include $configFile : [];
 return [
-    'qrcode' => static function (): QrcodeManager {
-        $configFile = APP_PATH . '/Config/qrcode.php';
-        $config = is_file($configFile) ? include $configFile : [];
+    'qrcode' => static function () use($config) : QrcodeManager {
         $app = Application::getApp();
         $image = null;
         try {
