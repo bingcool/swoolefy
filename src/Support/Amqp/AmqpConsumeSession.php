@@ -8,6 +8,7 @@ use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Message\AMQPMessage;
 use Swoolefy\Support\Amqp\Dto\ReceivedMessageDto;
+use Swoolefy\Support\SupportLog;
 
 /**
  * 一个队列上的一次拉取。onMessage() 成功后才 ack。
@@ -65,6 +66,41 @@ final class AmqpConsumeSession
             $this->reset();
             throw new AmqpException('amqp ack failed: ' . $e->getMessage(), 0, $e);
         }
+    }
+
+    /**
+     * 拒绝当前消息。requeue=false 时由 Broker 按队列的 x-dead-letter-exchange 转投死信或直接丢弃；
+     * 不能 requeue=true 重投毒消息，否则会形成投递死循环。
+     */
+    public function nack(bool $requeue = false): void
+    {
+        if ($this->pending === null) {
+            return;
+        }
+        try {
+            $this->client->consumerChannel()->basic_nack($this->pending->getDeliveryTag(), false, $requeue);
+            $this->pending = null;
+        } catch (\Throwable $e) {
+            $this->reset();
+            throw new AmqpException('amqp nack failed: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    /**
+     * 重试耗尽后记录被丢弃的消息，供后续按业务键补偿。
+     */
+    public function logDropped(ReceivedMessageDto $message, \Throwable $exception, int $attempts): void
+    {
+        SupportLog::error('amqp', 'amqp message dropped after retry attempts exhausted', [
+            'queue' => $message->getQueue(),
+            'exchange' => $message->getExchange(),
+            'routing_key' => $message->getRoutingKey(),
+            'delivery_tag' => $message->getDeliveryTag(),
+            'redelivered' => $message->isRedelivered(),
+            'attempts' => $attempts,
+            'error_class' => $exception::class,
+            'error_message' => $exception->getMessage(),
+        ]);
     }
 
     public function close(): void

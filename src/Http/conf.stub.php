@@ -28,6 +28,9 @@ return [
     'swoole_process_mode'      => SWOOLE_PROCESS,
     'include_files'            => [],
     'runtime_enable_coroutine' => true,
+    // 只有来自这些 IP/CIDR 的连接才采信 x-user-id / x-tenant-id 等身份传播头。
+    // 公网入口保持空数组；反向代理必须覆盖而不是追加客户端传入的同名头。
+    'trusted_proxies'          => [],
 
     // Worker 本地可观测性：固定指标、按需诊断及有界内存趋势采样。
     // /api/runtime data 顶层严格且仅有 global、worker；global.server 是 Swoole 服务级 stats，

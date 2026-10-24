@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Swoolefy\Support\Kafka;
 
 use Swoolefy\Support\Kafka\Dto\ReceivedMessageDto;
+use Swoolefy\Support\ConsumeRetryLimit;
 use Swoolefy\Worker\AbstractWorkerProcess;
 
 /**
@@ -12,9 +13,13 @@ use Swoolefy\Worker\AbstractWorkerProcess;
  * 同一个消费组 + Topic 的 worker_num 保持 1。
  * offset 何时提交由 $commitMode 决定，见 KafkaCommitMode。默认 onMessage() 成功后同步提交，
  * 抛异常时不提交，同一条会再交给 onMessage()。
+ * 同一条连续失败达到 $maxRetryAttempts（默认 5，重试之间指数退避）后记录并提交 offset 丢弃，
+ * 避免毒消息卡住整个分区；设为 0 或负数保持无限重试。退避参数见 \Swoolefy\Support\ConsumeRetryLimit。
  */
 abstract class KafkaConsumerWorkerProcessHandler extends AbstractWorkerProcess
 {
+    use ConsumeRetryLimit;
+
     /**
      * @var string
      */
@@ -90,6 +95,7 @@ abstract class KafkaConsumerWorkerProcessHandler extends AbstractWorkerProcess
                 return;
             }
             $this->committed = false;
+            $this->resetConsumeFailures();
         }
         if ($this->waitToExit) {
             return;
@@ -116,11 +122,20 @@ abstract class KafkaConsumerWorkerProcessHandler extends AbstractWorkerProcess
                 $this->pending = null;
                 return;
             }
-            \Swoole\Coroutine::sleep(0.5);
+            if ($this->markConsumeFailure()) {
+                // 重试耗尽：记录后提交这一条的 offset，避免毒消息永久卡住分区
+                $this->session->logRetryExhausted($this->pending, $exception, $this->consumeFailedAttempts());
+                $this->session->commitAfterHandled($onCommitError);
+                $this->pending = null;
+                $this->resetConsumeFailures();
+                return;
+            }
+            $this->waitConsumeRetry(fn (): bool => $this->waitToExit);
             return;
         }
         // 业务已成功：之后无论 commit 成败都不再重跑 onMessage()
         $this->pending = null;
+        $this->resetConsumeFailures();
         $this->session->commitAfterHandled($onCommitError);
     }
 }

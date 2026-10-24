@@ -47,7 +47,8 @@ final class JobRunner
      * 本方法**不**直接操作 Redis/AMQP/Kafka；传输层 ACK、延迟投递、死信落盘
      * 全部由调用方（自定义进程）通过 $requeue / $dead 注入，保证自由度在进程侧。
      *
-     * Handler 经 {@see TimeoutGuard} 包裹：`handler_timeout_seconds` 在协程内生效。
+     * Handler 经 {@see TimeoutGuard::runWithContext()} 包裹：`handler_timeout_seconds` 在协程内生效，
+     * 子协程继承父协程的 Context 快照、StreamBridge sink 与协程应用（父协程有 Application 时）。
      * 注意：超时只能中断可协作的协程 IO；阻塞扩展须自行配置网络超时。
      *
      * @param JobHandlerInterface $handler 业务处理器
@@ -91,7 +92,8 @@ final class JobRunner
 
         try {
             // TimeoutGuard：协程内按 timeoutSeconds 超时；非协程环境不强制超时
-            $result = TimeoutGuard::run(
+            // 用 runWithContext 而不是 run，保证 handler 子协程能拿到 Context、Application 与流式 sink
+            $result = TimeoutGuard::runWithContext(
                 fn (): JobResult => $handler->handle($job),
                 $this->timeoutSeconds,
             );

@@ -33,7 +33,7 @@
 | 统一信封与 Handler 返回值 | 新建 Job 专用 SQL / Outbox（Phase 3 可选） |
 | Runner 映射 SUCCESS / RETRY / FAIL / DISCARD | 内置传输 Driver（Redis/AMQP 仍在进程里） |
 | Registry 多 jobType 共进程 | 中间件链 / Laravel 式 Job 基类 |
-| Redis List 死信 + replay | 强制 TimeoutGuard（`handler_timeout_seconds` 已预留，尚未强制执行） |
+| Redis List 死信 + replay | 超时外的传输层保证（Handler 阻塞扩展须自配网络超时） |
 
 语义：**at-least-once**。Exactly-once 靠 Handler 对 `meta.idempotencyKey` 等做幂等。
 
@@ -200,7 +200,7 @@ public function delayMsForAttempt(int $attempt): int; // 指数退避 + jitter�
 ```php
 public function __construct(
     private readonly JobRetryPolicy $policy = new JobRetryPolicy(),
-    private readonly float $timeoutSeconds = 120, // 已存；TimeoutGuard 尚未强制执行
+    private readonly float $timeoutSeconds = 120, // Handler 超时秒数，经 TimeoutGuard::runWithContext() 强制执行
 );
 
 public function run(
@@ -360,7 +360,7 @@ Test：[`Test/Config/job.php`](../Test/Config/job.php)
 | `base_delay_ms` | `1000` | `JOB_BASE_DELAY_MS` | 首次退避基数（ms） |
 | `backoff_multiplier` | `2.0` | `JOB_BACKOFF_MULTIPLIER` | 指数倍率 |
 | `max_delay_ms` | `300000` | `JOB_MAX_DELAY_MS` | 延迟上限 |
-| `handler_timeout_seconds` | `120` | `JOB_HANDLER_TIMEOUT_SECONDS` | **预留**；Runner 存值但尚未强制超时 |
+| `handler_timeout_seconds` | `120` | `JOB_HANDLER_TIMEOUT_SECONDS` | Handler 超时秒数；`<= 0` 或非协程环境不强制超时 |
 | `dead_letter.driver` | `redis_list` | `JOB_DLQ` | 约定；进程侧选用 |
 | `dead_letter.redis_key_prefix` | `job:dead:` | `JOB_DLQ_REDIS_PREFIX` | `RedisDeadLetter` 前缀 |
 
@@ -409,7 +409,7 @@ composer test:job
 |------|------|------|
 | **1** | Envelope / Result / Policy / Runner / Publisher / 单 Handler Demo | ✅ |
 | **2** | Registry / JobConfig / Factory / RedisDeadLetter / AMQP·Kafka Demo / 测试 | ✅ |
-| **3** | TimeoutGuard 强制执行、Outbox / SQL 死信（按需） | 未做 |
+| **3** | Outbox / SQL 死信（按需） | 未做；TimeoutGuard 强制执行已完成 |
 
 ### 决策摘要
 
@@ -417,7 +417,7 @@ composer test:job
 2. ACK/NACK 永远在进程侧。
 3. 零建表默认死信：Redis List。
 4. at-least-once + Handler 幂等。
-5. `handler_timeout_seconds` 已配置贯通，强制超时属后续增强。
+5. `handler_timeout_seconds` 已配置贯通并强制执行；超时子协程经 `TimeoutGuard::runWithContext()` 继承 `Context` 快照、`StreamBridge` sink 与协程应用。
 
 ### 何时才上 Outbox / SQL
 

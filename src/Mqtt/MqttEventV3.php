@@ -135,7 +135,7 @@ abstract class MqttEventV3
     {
         $this->server->send(
             $this->fd,
-            (new ConnAck())->setCode(0)->setSessionPresent((bool) $sessionPresent),
+            (string) (new ConnAck())->setCode(0)->setSessionPresent((int) (bool) $sessionPresent),
         );
     }
 
@@ -145,7 +145,7 @@ abstract class MqttEventV3
         if ($this->server->exists($this->fd)) {
             $this->server->send(
                 $this->fd,
-                (new ConnAck())->setCode($code)->setSessionPresent($sessionPresent),
+                (string) (new ConnAck())->setCode($code)->setSessionPresent((int) $sessionPresent),
             );
         }
     }
@@ -161,7 +161,7 @@ abstract class MqttEventV3
     {
         $this->server->send(
             $this->fd,
-            (new PubAck())->setMessageId($message_id ?? ''),
+            (string) (new PubAck())->setMessageId((int) ($message_id ?? 0)),
         );
     }
 
@@ -190,13 +190,13 @@ abstract class MqttEventV3
     }
 
     /**
-     * @param array<int|string> $payload
+     * @param array<int> $payload granted QoS / reason code 列表
      */
     final public function subscribeAck($message_id, $payload): void
     {
         $this->server->send(
             $this->fd,
-            (new SubAck())->setMessageId($message_id ?? '')->setCodes($payload),
+            (string) (new SubAck())->setMessageId((int) ($message_id ?? 0))->setCodes($payload),
         );
     }
 
@@ -204,7 +204,7 @@ abstract class MqttEventV3
     {
         $this->server->send(
             $this->fd,
-            (new UnSubAck())->setMessageId($message_id ?? ''),
+            (string) (new UnSubAck())->setMessageId((int) ($message_id ?? 0)),
         );
     }
 

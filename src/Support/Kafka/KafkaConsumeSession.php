@@ -180,6 +180,24 @@ final class KafkaConsumeSession
     }
 
     /**
+     * AFTER_HANDLED / AFTER_HANDLED_ASYNC 下重试耗尽后丢弃消息。调用方随后提交这条的 offset，
+     * 让分区继续前进；重平衡或重启前提交未落地时仍可能再投递一次。
+     */
+    public function logRetryExhausted(ReceivedMessageDto $message, \Throwable $exception, int $attempts): void
+    {
+        SupportLog::error('kafka', 'kafka message dropped after retry attempts exhausted', [
+            'topic' => $message->getTopic(),
+            'consumer_group' => $this->consumerGroup,
+            'partition' => $message->getPartition(),
+            'offset' => $message->getOffset(),
+            'key' => $message->getKey(),
+            'attempts' => $attempts,
+            'error_class' => $exception::class,
+            'error_message' => $exception->getMessage(),
+        ]);
+    }
+
+    /**
      * @param callable(\Throwable): void $onError
      */
     private function commitSyncWithRetry(callable $onError): bool

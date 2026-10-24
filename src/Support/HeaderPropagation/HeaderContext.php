@@ -67,6 +67,18 @@ final class HeaderContext
         self::set($headers);
     }
 
+    public static function remove(string $name): void
+    {
+        $headers = self::all();
+        $key = strtolower($name);
+        if (!array_key_exists($key, $headers)) {
+            return;
+        }
+
+        unset($headers[$key]);
+        self::set($headers);
+    }
+
     public static function clear(): void
     {
         $context = self::context();

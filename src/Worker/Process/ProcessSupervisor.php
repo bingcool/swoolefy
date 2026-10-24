@@ -205,9 +205,11 @@ final class ProcessSupervisor
     /**
      * 回收子进程（非阻塞 Process::wait(false)）。
      *
-     * 退出码 0 / SIGTERM / SIGKILL：视为正常退出，从表删除；
+     * wait 返回的 signal > 0 表示被信号终止，与子进程主动 exit($code) 的 code 字段互斥：
+     * - Master 关机中、动态进程确认缩容中：预期信号退出，从表删除；
+     * - 其余信号退出：异常退出，拉起同 workerId 的新进程，避免进程数悄悄减少。
+     * 主动退出时 code 0 / SIGTERM / SIGKILL 视为正常退出；SIGUSR1 及其它视为 reboot。
      * 动态进程确认退出后再减计数，避免扩缩容窗口把「正在停」当成「已停」再扩出来。
-     * SIGUSR1 及其它：视为 reboot，拉起同 workerId 的新进程并保留 process_type。
      * 未知 pid 幂等跳过（可能已被 waitWorkersExitOrKill 收过）。
      */
     public function rebootOrExitHandle(): void
@@ -219,30 +221,26 @@ final class ProcessSupervisor
             }
             $pid = $ret['pid'];
             $code = $ret['code'];
+            $signal = (int) ($ret['signal'] ?? 0);
 
             try {
+                if ($signal > 0) {
+                    $expectedExit = $this->manager->getSignalShutdown()->isExiting()
+                        || $this->registry()->isStoppingDynamicPid($pid);
+                    if ($expectedExit) {
+                        $this->removeExitedWorker($pid);
+                    } else {
+                        $this->manager->logError("Process pid={$pid} killed by signal={$signal}, rebooting");
+                        $this->manager->rebootWorker($pid);
+                    }
+                    continue;
+                }
+
                 switch ($code) {
                     case 0:
                     case SIGTERM:
                     case SIGKILL:
-                        /** @var AbstractBaseWorker $process */
-                        $process = $this->manager->getProcessByPid($pid);
-                        if (!is_object($process)) {
-                            continue 2;
-                        }
-                        $processName = $process->getProcessName();
-                        $processWorkerId = $process->getProcessWorkerId();
-                        $isDynamicProcess = $process->isDynamicProcess();
-                        $this->registry()->removeWorker($processName, $processWorkerId);
-                        if ($isDynamicProcess) {
-                            $this->registry()->unmarkStoppingDynamic($pid);
-                            $this->storageDynamicProcessNum($processName);
-                            $list = $this->registry()->getList($processName);
-                            $list['dynamic_process_destroying'] = $this->registry()->hasStoppingDynamicProcess($processName);
-                            $this->registry()->setList($processName, $list);
-                        }
-                        @\Swoole\Event::del($process->getSwooleProcess()->pipe);
-                        $this->manager->checkMasterToExit();
+                        $this->removeExitedWorker($pid);
                         break;
 
                     case SIGUSR1:
@@ -254,6 +252,31 @@ final class ProcessSupervisor
                 $this->manager->handleWorkerException($throwable);
             }
         }
+    }
+
+    /**
+     * 从注册表移除已退出进程；动态进程同步重算计数与 destroying 标记。
+     */
+    private function removeExitedWorker(int $pid): void
+    {
+        /** @var AbstractBaseWorker $process */
+        $process = $this->manager->getProcessByPid($pid);
+        if (!is_object($process)) {
+            return;
+        }
+        $processName = $process->getProcessName();
+        $processWorkerId = $process->getProcessWorkerId();
+        $isDynamicProcess = $process->isDynamicProcess();
+        $this->registry()->removeWorker($processName, $processWorkerId);
+        if ($isDynamicProcess) {
+            $this->registry()->unmarkStoppingDynamic($pid);
+            $this->storageDynamicProcessNum($processName);
+            $list = $this->registry()->getList($processName);
+            $list['dynamic_process_destroying'] = $this->registry()->hasStoppingDynamicProcess($processName);
+            $this->registry()->setList($processName, $list);
+        }
+        @\Swoole\Event::del($process->getSwooleProcess()->pipe);
+        $this->manager->checkMasterToExit();
     }
 
     /**

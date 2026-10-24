@@ -30,16 +30,17 @@ use Swoolefy\Support\HeaderPropagation\HeaderPropagator;
  * ## 两类数据
  * | 类型 | 存储 | 可信度 |
  * |------|------|--------|
- * | 透传头 x-user-id / x-tenant-id / trace… | {@see HeaderContext} | 半可信（网关已验时可直接用） |
+ * | 透传头 x-user-id / x-tenant-id / trace… | {@see HeaderContext} | 仅 trusted_proxies 来源采信身份头，另有 setUser 回写 |
  * | 本地 AuthUser | 协程 Context 键 {@see AUTH_USER_KEY}（**array 快照**） | 可信（本进程 Guard 验过） |
  *
  * ## getUserId / getTenantId 优先级
  * ```text
  * 1. FrameworkContext::user()     ← setUser 之后（Auth 优先）
- * 2. HeaderContext 白名单头       ← 未 setUser 时与改造前行为一致
+ * 2. HeaderContext 身份头         ← 仅可信代理透传或 setUser 回写，公网直连不写入
  * 3. $default
  * ```
- * 因此：入口服务必须挂 AuthenticateMiddleware；内部服务可只透传头。
+ * 因此：公网入口必须挂 AuthenticateMiddleware；内部服务只透传头时，
+ * 调用方地址必须配置在 Protocol/conf.php 的 trusted_proxies 中。
  *
  * ## 协程安全
  * setUser 只写 array；goApp 会透传该 array，子协程 user() 可还原。
@@ -72,7 +73,7 @@ final class FrameworkContext
      * 写入本地登录态，并回写白名单透传头，使出站 HeaderPropagator 与身份对齐。
      *
      * - Context：array 快照（goApp 可拷贝）
-     * - Header：x-user-id；有 tenant 时再写 x-tenant-id
+     * - Header：写 x-user-id；tenant 为空时删除 x-tenant-id，避免切换身份后残留上一租户
      * - 不写 Authorization（透传层刻意不传播凭证头）
      */
     public static function setUser(AuthUser $user): void
@@ -83,6 +84,8 @@ final class FrameworkContext
         HeaderContext::put(HeaderPropagator::HEADER_USER_ID, $user->userId);
         if ($user->tenantId !== null && $user->tenantId !== '') {
             HeaderContext::put(HeaderPropagator::HEADER_TENANT_ID, $user->tenantId);
+        } else {
+            HeaderContext::remove(HeaderPropagator::HEADER_TENANT_ID);
         }
     }
 
@@ -158,12 +161,13 @@ final class FrameworkContext
     }
 
     /**
-     * 清除本地 Auth 快照。
-     * 注意：不自动清掉 HeaderContext 中已回写的 x-user-id（请求结束由 HttpServer defer clear）。
+     * 清除本地 Auth 快照，并删除 setUser 回写的 x-user-id / x-tenant-id。
      */
     public static function clearUser(): void
     {
         SwooleContext::delete(self::AUTH_USER_KEY);
+        HeaderContext::remove(HeaderPropagator::HEADER_USER_ID);
+        HeaderContext::remove(HeaderPropagator::HEADER_TENANT_ID);
     }
 
     /**
@@ -183,7 +187,8 @@ final class FrameworkContext
     }
 
     /**
-     * 语义化用户 id：Auth 优先，透传头兜底。
+     * 语义化用户 id：Auth 优先，可信透传头兜底。
+     * HeaderContext 中的身份头只会来自 trusted_proxies 入口或 setUser，公网直连的身份头已在入口丢弃。
      * Body/Query 的 userId/uid **不是**身份来源，业务勿混用。
      */
     public static function getUserId(?string $default = null): ?string
@@ -192,7 +197,7 @@ final class FrameworkContext
             ?? self::get(HeaderPropagator::HEADER_USER_ID, $default);
     }
 
-    /** 语义化租户 id：Auth 优先，透传头兜底。 */
+    /** 语义化租户 id：Auth 优先，可信透传头兜底。 */
     public static function getTenantId(?string $default = null): ?string
     {
         return self::user()?->tenantId

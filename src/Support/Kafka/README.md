@@ -21,8 +21,8 @@ $producer->produce('kafka-producer:' . date('Y-m-d H:i:s'));
 
 | `$commitMode` | 何时提交 | 语义 | `onMessage()` 抛异常 |
 | --- | --- | --- | --- |
-| `KafkaCommitMode::AFTER_HANDLED`（默认） | 成功后同步 `commit()` | 至少一次 | 不提交，原地重试同一条 |
-| `KafkaCommitMode::AFTER_HANDLED_ASYNC` | 成功后 `commitAsync()` | 至少一次，吞吐更高 | 不提交，原地重试同一条 |
+| `KafkaCommitMode::AFTER_HANDLED`（默认） | 成功后同步 `commit()` | 至少一次 | 不提交，指数退避重试至多 `$maxRetryAttempts` 次（默认 5），耗尽后记录并提交 offset 丢弃 |
+| `KafkaCommitMode::AFTER_HANDLED_ASYNC` | 成功后 `commitAsync()` | 至少一次，吞吐更高 | 不提交，指数退避重试至多 `$maxRetryAttempts` 次（默认 5），耗尽后记录并提交 offset 丢弃 |
 | `KafkaCommitMode::BEFORE_HANDLE` | `onMessage()` 前同步 `commit()` | 至多一次 | 不重试，记错误日志后丢弃 |
 
 ```php
@@ -38,6 +38,8 @@ class NotifyConsumer extends KafkaConsumerWorkerProcessHandler
 - `AFTER_HANDLED`：提交失败只重试提交（最多 3 次），不会再跑一次 `onMessage()`；仍失败就放弃这次提交，下一条提交成功时 offset 一并前进。在那之前发生重平衡或重启，这条会再投递一次，业务需要按 topic + partition + offset 幂等。
 - `AFTER_HANDLED_ASYNC`：不等 broker 应答，省掉每条一次的往返。提交失败由 offset_commit_cb 记 warning（`kafka async commit failed`）。崩溃 / 重平衡时，已处理但异步提交还没落地的几条会再投递，重复比默认模式多，同样需要幂等。
 - `BEFORE_HANDLE`：提交成功才调用 `onMessage()`；提交失败不处理，0.5 秒后重试提交，所以不会出现“没提交却已处理”。`onMessage()` 抛异常或进程崩溃时这条不会再投递，日志 `kafka message dropped after onMessage failed in before_handle mode` 带 topic / partition / offset / key，需要时据此补偿。
+- `$maxRetryAttempts`（默认 5）只作用于 AFTER_HANDLED / AFTER_HANDLED_ASYNC：同一条消息连续失败达到上限后，记录 `kafka message dropped after retry attempts exhausted`（带 attempts）并提交这条的 offset，让分区继续前进；提交未落地时重平衡或重启仍可能再投递一次。设为 0 或负数恢复无限重试。
+- 两次重试之间指数退避：`$retryBackoffBaseSeconds`（默认 1 秒）起，每次翻倍，单次封顶 `$retryBackoffMaxSeconds`（默认 15 秒）。默认参数下 5 次尝试之间的等待是 1+2+4+8 秒，即给下游约 15 秒的抖动恢复窗口——丢弃是不可逆动作，数据库重启、依赖发布这类几十秒的故障不应该把消息判成毒消息。停机标志出现时等待按 0.2 秒分片立即结束，这条消息不提交，重启后由 broker 重投。下游恢复更慢就加大 `$maxRetryAttempts`/`$retryBackoffMaxSeconds`，或设为 0 无限重试并自行做告警。
 
 librdkafka 的 `enable.auto.commit` 始终强制关闭：它在 `consume()` 返回时就记下 offset 并定时提交，不看 `onMessage()` 的结果，崩溃时既可能丢也可能重复。`KafkaConfig` 里配成 1 时启动会打 warning（`kafka enable.auto.commit is ignored`），请改用 `$commitMode`。
 

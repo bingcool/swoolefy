@@ -15,6 +15,7 @@ namespace Swoolefy\Support\HeaderPropagation;
 
 use Swoolefy\Core\Coroutine\Context as SwooleContext;
 use Swoolefy\Library\CurlProxy\OpentelemetryMiddleware;
+use Swoolefy\Util\IpUtils;
 
 /**
  * 上游请求头透传白名单。
@@ -44,18 +45,48 @@ final class HeaderPropagator
     ];
 
     /**
+     * 只允许可信代理写入的身份头。公网直连请求携带的同名头一律丢弃，
+     * 避免客户端用 x-tenant-id 冒充其他租户。
+     */
+    private const FORWARDED_IDENTITY_HEADERS = [
+        self::HEADER_USER_ID,
+        self::HEADER_USER_CODE,
+        self::HEADER_TENANT_ID,
+        self::HEADER_USER_NAME,
+    ];
+
+    /**
      * 从入口请求 Header 中提取白名单，并兼容已有协程 trace id。
      *
+     * 身份头只在 $remoteAddr 命中 $trustedProxies 时采信；否则视为不可信直连，
+     * 丢弃 x-user-id / x-user-code / x-tenant-id / x-user-name，并用直连地址覆盖 x-client-ip。
+     * 可信代理必须覆盖而不是追加客户端传入的身份头，否则伪造值仍会被下游采信。
+     *
      * @param array<string, mixed> $headers
+     * @param list<string> $trustedProxies IP 或 CIDR；空数组表示不信任任何来源
      * @return array<string, string>
      */
-    public static function captureIncoming(array $headers, ?string $traceId = null): array
-    {
+    public static function captureIncoming(
+        array $headers,
+        ?string $traceId = null,
+        array $trustedProxies = [],
+        string $remoteAddr = '',
+    ): array {
         $normalized = self::normalize($headers);
         $captured = [];
         foreach (self::PROPAGATE_HEADERS as $name) {
             if (isset($normalized[$name]) && '' !== $normalized[$name]) {
                 $captured[$name] = $normalized[$name];
+            }
+        }
+
+        if (!self::isTrustedForwardedIdentitySource($trustedProxies, $remoteAddr)) {
+            foreach (self::FORWARDED_IDENTITY_HEADERS as $name) {
+                unset($captured[$name]);
+            }
+            $remoteAddr = trim($remoteAddr);
+            if ('' !== $remoteAddr) {
+                $captured[self::HEADER_CLIENT_IP] = $remoteAddr;
             }
         }
 
@@ -65,6 +96,16 @@ final class HeaderPropagator
         }
 
         return $captured;
+    }
+
+    /**
+     * 连接来源是否在可信代理列表中。
+     *
+     * @param list<string> $trustedProxies
+     */
+    public static function isTrustedForwardedIdentitySource(array $trustedProxies, string $remoteAddr): bool
+    {
+        return IpUtils::isTrustedProxyRemoteIp($remoteAddr, $trustedProxies);
     }
 
     /**

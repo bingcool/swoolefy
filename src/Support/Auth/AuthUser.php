@@ -32,7 +32,7 @@ use Swoolefy\Support\FrameworkContext;
  * | roles | 已加载的角色列表。未加载时为空，**不能**当作授权结果 |
  * | rolesResolved | false：尚未向角色源加载；true：`$roles` 是本次请求的授权结果 |
  * | tenantId | 可选租户；与 Header `x-tenant-id` 对齐 |
- * | claims | 其余 JWT claim 只读副本（不含已映射字段） |
+ * | claims | 其余 JWT claim 只读副本（不含已映射字段与 JWT 注册声明） |
  * | via | 来源：`jwt` / `api_key` / `system` 等，便于审计 |
  *
  * JWT 有效只说明身份凭证通过。授权角色只通过 {@see roles()} 读取：

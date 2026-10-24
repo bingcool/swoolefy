@@ -49,7 +49,6 @@ class ArrayDto extends \stdClass implements ArrayInterface, ArrayAccess, JsonSer
                 continue;
             }
 
-            $property->setAccessible(true);
             if (!$property->isInitialized($this)) {
                 continue;
             }
@@ -133,7 +132,6 @@ class ArrayDto extends \stdClass implements ArrayInterface, ArrayAccess, JsonSer
                 continue;
             }
 
-            $property->setAccessible(true);
             $property->setValue($this, $value);
         }
     }

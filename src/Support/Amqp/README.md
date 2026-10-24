@@ -48,7 +48,7 @@ $producer = new \Swoolefy\Support\Amqp\AmqpProducer(
 
 ## 消费
 
-两条路径都只实现 `onMessage()`。`onMessage()` 正常返回后才 ack。它抛异常时不 ack，同一条会再次交给 `onMessage()`。
+两条路径都只实现 `onMessage()`。`onMessage()` 正常返回后才 ack。它抛异常时不 ack，同一条会再次交给 `onMessage()`，两次重试之间指数退避：`$retryBackoffBaseSeconds`（默认 1 秒）起翻倍，单次封顶 `$retryBackoffMaxSeconds`（默认 15 秒）。默认 5 次尝试之间的等待是 1+2+4+8 秒，给下游约 15 秒的抖动恢复窗口——丢弃是不可逆动作，数据库重启、依赖发布这类几十秒的故障不应该把消息判成毒消息。连续失败达到 `$maxRetryAttempts`（默认 5）后记错误日志并 `nack(requeue=false)`，队列配了 `x-dead-letter-exchange` 就进死信队列，没有则丢弃，避免毒消息卡住队列。`$maxRetryAttempts` 设为 0 或负数保持无限重试。停机标志出现时退避等待按 0.2 秒分片立即结束，这条消息既不 ack 也不 nack，连接断开后由 broker 重投。
 
 同一队列可以由多个消费进程分摊，每个进程单独建连。`consumer_tag` 会带上当前 pid。
 

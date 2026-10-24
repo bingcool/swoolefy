@@ -376,7 +376,7 @@ final class WorkflowEngine
             new RunContext($run->runId, $run->compiled, 1, [], $timeout),
             $run->state,
             function (NodeInterface $node, RunContext $ctx, WorkflowState $state) use ($timeout): NodeExecutionResult {
-                return TimeoutGuard::run(
+                return TimeoutGuard::runWithContext(
                     fn (): NodeExecutionResult => $this->executeNodeOnce($node, $ctx, $state),
                     $timeout,
                 );

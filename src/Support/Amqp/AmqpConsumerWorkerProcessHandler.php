@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Swoolefy\Support\Amqp;
 
 use Swoolefy\Support\Amqp\Dto\ReceivedMessageDto;
+use Swoolefy\Support\ConsumeRetryLimit;
 use Swoolefy\Worker\AbstractWorkerProcess;
 
 /**
  * Daemon / Cron 常驻进程里的 AMQP 消费。循环和退出沿用 AbstractWorkerProcess。
  * 同一队列的多个进程会分摊消息，每个进程单独建连。
- * onMessage() 抛异常时不 ack，同一条会再交给 onMessage()。
+ * onMessage() 抛异常时本地重试同一条，重试之间指数退避；达到 $maxRetryAttempts（默认 5）后记日志并
+ * nack(requeue=false)，由队列的 x-dead-letter-exchange 转投死信或丢弃，避免毒消息卡住队列。
+ * 设为 0 或负数保持无限重试。退避参数见 \Swoolefy\Support\ConsumeRetryLimit。
  *
  * bindingKey 是队列绑到交换机的规则。routingKey 只在 bindingKey 为空时顶替它，消费端不用它发消息。
  * 含义与 AmqpConsumerProcessHandler 相同。
@@ -18,6 +21,7 @@ use Swoolefy\Worker\AbstractWorkerProcess;
 abstract class AmqpConsumerWorkerProcessHandler extends AbstractWorkerProcess
 {
     use AmqpConsumerFields;
+    use ConsumeRetryLimit;
 
     protected string $exchange = '';
 
@@ -78,6 +82,7 @@ abstract class AmqpConsumerWorkerProcessHandler extends AbstractWorkerProcess
 
                 return;
             }
+            $this->resetConsumeFailures();
         }
         if ($this->waitToExit) {
             return;
@@ -86,15 +91,30 @@ abstract class AmqpConsumerWorkerProcessHandler extends AbstractWorkerProcess
             $this->onMessage($this->pending);
         } catch (\Throwable $e) {
             $this->onHandleException($e);
-            \Swoole\Coroutine::sleep(0.5);
+            if ($this->markConsumeFailure()) {
+                // 重试耗尽：记录后拒绝并不重新入队，交给 DLX 或丢弃，避免队列被毒消息卡死
+                $this->session->logDropped($this->pending, $e, $this->consumeFailedAttempts());
+                try {
+                    $this->session->nack(false);
+                } catch (\Throwable $nackError) {
+                    $this->onHandleException($nackError);
+                }
+                $this->pending = null;
+                $this->resetConsumeFailures();
+
+                return;
+            }
+            $this->waitConsumeRetry(fn (): bool => $this->waitToExit);
 
             return;
         }
+        $this->resetConsumeFailures();
         try {
             $this->session->ack();
             $this->pending = null;
         } catch (\Throwable $e) {
             $this->pending = null;
+            $this->resetConsumeFailures();
             $this->onHandleException($e);
             \Swoole\Coroutine::sleep(0.5);
         }

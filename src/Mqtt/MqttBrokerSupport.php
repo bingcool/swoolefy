@@ -78,9 +78,9 @@ trait MqttBrokerSupport
                 'type' => \Simps\MQTT\Protocol\Types::PUBLISH,
                 'topic' => $topic,
                 'message' => $message,
-                'dup' => $dup,
+                'dup' => (int) $dup,
                 'qos' => $deliveryQos,
-                'retain' => $retain,
+                'retain' => (int) $retain,
                 'message_id' => $outMessageId,
             ]);
             // 出站 QoS1/2 记入 pending，优雅停机时等待客户端确认
@@ -108,9 +108,9 @@ trait MqttBrokerSupport
                 'type' => \Simps\MQTT\Protocol\Types::PUBLISH,
                 'topic' => $topic,
                 'message' => $retained['message'],
-                'dup' => false,
+                'dup' => 0,
                 'qos' => $deliveryQos,
-                'retain' => true, // 必须带 retain 标志，客户端才能识别为 Retain 消息
+                'retain' => 1, // 必须带 retain 标志，客户端才能识别为 Retain 消息
                 'message_id' => $outMessageId,
             ]);
             if ($sent && $deliveryQos > 0) {

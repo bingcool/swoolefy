@@ -833,7 +833,6 @@ class HttpRoute extends AppDispatch
                 continue;
             }
 
-            $property->setAccessible(true);
             $value = $property->isInitialized($object) ? $property->getValue($object) : null;
             if (!is_array($value)) {
                 continue;

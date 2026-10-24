@@ -21,7 +21,7 @@ swoolefy 在 Swoole **常驻进程 + 协程** 下，HTTP / WebSocket / Workflow 
 | 场景 | 推荐方式 |
 |------|----------|
 | 面向浏览器 / App 的入口 API | JWT Guard + `AuthenticateMiddleware` → `FrameworkContext::setUser` |
-| 网关已验票的内部服务 | 可无本地 `AuthUser`，继续只读透传头 `x-user-id` |
+| 网关已验票的内部服务 | 可无本地 `AuthUser`，但调用方来源必须在 `Protocol/conf.php` 的 `trusted_proxies` 中 |
 | WebSocket 握手 | 同一 Guard；**忽略** query `uid`，只用 JWT 解析出的 `user.userId` |
 | Workflow HITL 人机操作 | `FrameworkContext::userOrFail()` + `*ForUser` API；admin 来自 `roles`，不信 `X-Workflow-Role` |
 | 服务间无用户脚本 | 仅允许配置的 HITL / 系统 API Key |
@@ -30,8 +30,9 @@ swoolefy 在 Swoole **常驻进程 + 协程** 下，HTTP / WebSocket / Workflow 
 
 | 条件 | 行为 |
 |------|------|
-| 未调用 `setUser` | `getUserId()` / `getTenantId()` 只读 `HeaderContext`（与改造前兼容） |
-| 已调用 `setUser` | **Auth 优先**，Header 仅作兜底 |
+| 未调用 `setUser` | `getUserId()` / `getTenantId()` 只读 `HeaderContext`；身份头仅在来源命中 `trusted_proxies` 时写入，公网直连为空 |
+| 已调用 `setUser` | **Auth 优先**，可信透传头仅作兜底 |
+| `setUser` 的 tenant 为空 | 删除旧 `x-tenant-id`；`clearUser()` 同时删除 `x-user-id` / `x-tenant-id` |
 | Context 中误存 `AuthUser` 对象 | **禁止**；`goApp` 会跳过 object，子协程丢身份 |
 
 ### 刻意不做（后续）
@@ -304,21 +305,25 @@ final class AuthException extends SystemException
 
 | 方法 | 行为 |
 |------|------|
-| `setUser(AuthUser $user): void` | 写 `__swoolefy_auth_user` array；回写 `x-user-id`（有 tenant 再写 `x-tenant-id`）；**不写** Authorization |
+| `setUser(AuthUser $user): void` | 写 `__swoolefy_auth_user` array；回写 `x-user-id`，有 tenant 写 `x-tenant-id`、无 tenant 删除 `x-tenant-id`；**不写** Authorization |
 | `user(): ?AuthUser` | 未 setUser 或快照无效 → `null` |
 | `userOrFail(): AuthUser` | 无用户 → `AuthException('Unauthenticated', 401)` |
-| `clearUser(): void` | 只删 Context 快照；**不**回滚已写入的 Header |
+| `clearUser(): void` | 删除 Context 快照，并删除 `setUser` 回写的 `x-user-id` / `x-tenant-id` |
 | `check(): bool` | `user() !== null` |
-| `getUserId(?string $default = null): ?string` | Auth → Header `x-user-id` → default |
-| `getTenantId(?string $default = null): ?string` | Auth → Header `x-tenant-id` → default |
+| `getUserId(?string $default = null): ?string` | Auth → 可信 Header `x-user-id` → default |
+| `getTenantId(?string $default = null): ?string` | Auth → 可信 Header `x-tenant-id` → default |
 
 优先级：
 
 ```text
 1. FrameworkContext::user()     ← setUser 之后（Auth 优先）
-2. HeaderContext 白名单头       ← 未 setUser 时与改造前一致
+2. HeaderContext 身份头         ← 仅 trusted_proxies 来源或 setUser 回写
 3. $default
 ```
+
+HTTP 入口在 `Protocol/conf.php` 读取 `trusted_proxies`（默认 `[]`）。来源未命中时，
+`x-user-id` / `x-user-code` / `x-tenant-id` / `x-user-name` 会被丢弃，`x-client-ip`
+改用直连 `remote_addr`；可信代理必须覆盖而不是追加客户端传入的同名头。
 
 ### AuthenticateMiddleware（强制登录）
 
@@ -551,7 +556,7 @@ return [
 
 | 调用方 | 行为 |
 |--------|------|
-| `NeuronFactory` / `ChatHistoryFactory` / `TenantScope` / Capability | 已读 `getUserId()` / `getTenantId()` → **自动 Auth 优先**；未 setUser 时仍走 Header |
+| `NeuronFactory` / `ChatHistoryFactory` / `TenantScope` / Capability | 已读 `getUserId()` / `getTenantId()` → **自动 Auth 优先**；未 setUser 时只走可信透传头 |
 | 内部服务只透传头 | 不挂 `AuthenticateMiddleware` 即可，与改造前一致 |
 | `ValidLoginMiddleware`（Test stub） | 演示用；受保护路由请挂框架 `AuthenticateMiddleware` |
 

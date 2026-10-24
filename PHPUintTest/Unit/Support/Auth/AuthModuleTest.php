@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PHPUintTest\Unit\Support\Auth;
 
+use Swoolefy\Library\Jwt\Token\RegisteredClaimGiven;
 use Swoolefy\Support\Auth\AuthException;
 use Swoolefy\Support\Auth\AuthUser;
 use Swoolefy\Support\Auth\JwtAuthGuard;
@@ -123,8 +124,7 @@ final class AuthModuleTest extends TestCase
 
         $token = $guard->generateToken($issued, 1800);
         $this->assertNotSame('', $token);
-        $payload = json_decode(base64_decode(strtr(explode('.', $token)[1], '-_', '+/')), true);
-        $this->assertIsArray($payload);
+        $payload = $this->decodePayload($token);
         $this->assertArrayNotHasKey('roles', $payload);
 
         $user = $guard->authenticate(['token' => $token]);
@@ -134,5 +134,100 @@ final class AuthModuleTest extends TestCase
         $this->assertSame('acme', $user->tenantId);
         $this->assertSame('ops', $user->claims['dept'] ?? null);
         $this->assertSame('jwt', $user->via);
+    }
+
+    /**
+     * 验证：authenticate 不把 JWT 注册声明复制进 AuthUser::claims。
+     */
+    public function testJwtAuthGuardClaimsExcludeRegisteredClaims(): void
+    {
+        $guard = new JwtAuthGuard($this->jwtTestConfig());
+        $token = $guard->generateToken(new AuthUser(userId: '7', claims: ['dept' => 'ops']));
+
+        $user = $guard->authenticate(['token' => $token]);
+
+        $this->assertInstanceOf(AuthUser::class, $user);
+        $this->assertSame(['dept' => 'ops'], $user->claims);
+    }
+
+    /**
+     * 验证：authenticate 得到的 AuthUser 可直接用于刷新签发，不再因 iat/exp 抛 RegisteredClaimGiven。
+     */
+    public function testJwtAuthGuardCanReissueAuthenticatedUser(): void
+    {
+        $guard = new JwtAuthGuard($this->jwtTestConfig());
+        $authed = $guard->authenticate([
+            'token' => $guard->generateToken(new AuthUser(userId: '88', claims: ['dept' => 'ops'])),
+        ]);
+
+        $refreshed = $guard->generateToken($authed);
+        $payload = $this->decodePayload($refreshed);
+
+        $this->assertSame('88', $payload['uid'] ?? null);
+        $this->assertSame('88', $payload['sub'] ?? null);
+        $this->assertSame('ops', $payload['dept'] ?? null);
+        $this->assertArrayHasKey('iat', $payload);
+        $this->assertArrayHasKey('exp', $payload);
+    }
+
+    /**
+     * 验证：业务 claims 与注册声明重名时忽略，标准字段只由签发参数决定。
+     */
+    public function testGenerateTokenIgnoresRegisteredClaimNamesInClaims(): void
+    {
+        $guard = new JwtAuthGuard($this->jwtTestConfig());
+        $token = $guard->generateToken(new AuthUser(
+            userId: '9',
+            claims: ['jti' => 'forged-jti', 'nbf' => 1234567890, 'aud' => 'forged-aud', 'dept' => 'ops'],
+        ));
+
+        $payload = $this->decodePayload($token);
+
+        $this->assertArrayNotHasKey('jti', $payload);
+        $this->assertArrayNotHasKey('nbf', $payload);
+        $this->assertArrayNotHasKey('aud', $payload);
+        $this->assertSame('ops', $payload['dept'] ?? null);
+    }
+
+    /**
+     * 验证：id_claim 配成标准 sub 时仍可签发与解析（不得重复写入注册声明）。
+     */
+    public function testGenerateTokenSupportsSubAsIdClaim(): void
+    {
+        $guard = new JwtAuthGuard(array_replace($this->jwtTestConfig(), ['id_claim' => 'sub']));
+        $token = $guard->generateToken(new AuthUser(userId: '42'));
+        $payload = $this->decodePayload($token);
+
+        $this->assertSame('42', $payload['sub'] ?? null);
+        $this->assertArrayNotHasKey('uid', $payload);
+        $this->assertSame('42', $guard->authenticate(['token' => $token])?->userId);
+    }
+
+    /**
+     * 验证：映射 claim 配成其它注册声明时，生成失败统一包装成 AuthException。
+     */
+    public function testGenerateTokenWrapsInvalidClaimMapping(): void
+    {
+        $guard = new JwtAuthGuard(array_replace($this->jwtTestConfig(), ['id_claim' => 'jti']));
+
+        try {
+            $guard->generateToken(new AuthUser(userId: '1'));
+            $this->fail('should throw');
+        } catch (AuthException $e) {
+            $this->assertSame(401, $e->getCode());
+            $this->assertSame('Failed to generate token', $e->getMessage());
+            $this->assertInstanceOf(RegisteredClaimGiven::class, $e->getPrevious());
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function decodePayload(string $token): array
+    {
+        $payload = json_decode(base64_decode(strtr(explode('.', $token)[1], '-_', '+/')), true);
+        $this->assertIsArray($payload);
+
+        return $payload;
     }
 }

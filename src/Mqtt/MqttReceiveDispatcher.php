@@ -153,6 +153,11 @@ final class MqttReceiveDispatcher
         $type = (int) $data['type'];
 
         try {
+            // CONNECT 前除 CONNECT 外的控制报文均非法（含 PUBLISH/PUBREL），否则未认证连接可写 retained
+            if ($type !== Types::CONNECT) {
+                MqttSessionManager::getInstance()->requireConnected($fd);
+            }
+
             switch ($type) {
                 case Types::CONNECT:
                     return self::handleConnectV3($server, $fd, $mqttEvent, $data);
@@ -197,8 +202,7 @@ final class MqttReceiveDispatcher
                         break;
                     }
                     $codes = $mqttEvent->subscribe($data['type'], $data['topics'], $data['message_id']);
-                    $payload = array_map(static fn ($code) => chr((int) $code), $codes);
-                    $mqttEvent->subscribeAck($data['message_id'], $payload);
+                    $mqttEvent->subscribeAck($data['message_id'], $codes);
                     break;
 
                 case Types::UNSUBSCRIBE:
@@ -246,6 +250,11 @@ final class MqttReceiveDispatcher
         $type = (int) $data['type'];
 
         try {
+            // CONNECT 前除 CONNECT 外的控制报文均非法（含 AUTH/PUBLISH/PUBREL）
+            if ($type !== Types::CONNECT) {
+                MqttSessionManager::getInstance()->requireConnected($fd);
+            }
+
             switch ($type) {
                 case Types::CONNECT:
                     return self::handleConnectV5($server, $fd, $mqttEvent, $data);

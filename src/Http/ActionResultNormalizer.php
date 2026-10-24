@@ -158,7 +158,6 @@ class ActionResultNormalizer
                 continue;
             }
 
-            $prop->setAccessible(true);
             if (!$prop->isInitialized($object)) {
                 continue;
             }

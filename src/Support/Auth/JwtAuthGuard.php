@@ -142,8 +142,8 @@ final class JwtAuthGuard implements AuthGuardInterface
             ? (string) $claims[$tenantClaim]
             : null;
 
-        // roles_claim 即使残留在旧 token 中也不进入授权结果，也不放进 claims
-        $reserved = [$idClaim, RegisteredClaims::SUBJECT, $rolesClaim, $tenantClaim];
+        // roles_claim 即使残留在旧 token 中也不进入授权结果；注册声明只映射到顶层字段，不复制进 claims
+        $reserved = $this->reservedClaimNames($idClaim, $rolesClaim, $tenantClaim);
         $extra = [];
         foreach ($claims as $key => $value) {
             if (!in_array((string) $key, $reserved, true)) {
@@ -164,6 +164,9 @@ final class JwtAuthGuard implements AuthGuardInterface
      * {@inheritdoc}
      *
      * 使用与 authenticate 相同的 secret / algo / claim 名 / 可选 iss·aud。
+     *
+     * `$user->claims` 里的 JWT 注册声明（iat/exp/nbf/iss/aud/jti/sub）会被忽略，
+     * 标准字段只由 ttl、issuer、audience 决定；生成失败统一抛 AuthException。
      */
     public function generateToken(AuthUser $user, ?int $ttlSeconds = null): string
     {
@@ -181,45 +184,62 @@ final class JwtAuthGuard implements AuthGuardInterface
         $idClaim = $this->idClaim();
         $rolesClaim = $this->rolesClaim();
         $tenantClaim = $this->tenantClaim();
-
-        $builder = $configuration->builder()
-            ->issuedAt($now)
-            ->expiresAt($now->modify('+' . $ttl . ' second'))
-            // 标准 sub + 业务 id_claim 双写，authenticate 优先读 id_claim。不写入角色。
-            ->relatedTo($user->userId)
-            ->withClaim($idClaim, $user->userId);
-
-        if ($user->tenantId !== null && $user->tenantId !== '') {
-            $builder = $builder->withClaim($tenantClaim, $user->tenantId);
-        }
-
-        $issuer = (string) ($this->jwtConfig['issuer'] ?? '');
-        if ($issuer !== '') {
-            $builder = $builder->issuedBy($issuer);
-        }
-
-        $audience = (string) ($this->jwtConfig['audience'] ?? '');
-        if ($audience !== '') {
-            $builder = $builder->permittedFor($audience);
-        }
-
-        // 附加 claims；勿覆盖已映射的顶层字段
-        $reserved = [$idClaim, RegisteredClaims::SUBJECT, $rolesClaim, $tenantClaim];
-        foreach ($user->claims as $key => $value) {
-            $name = (string) $key;
-            if ($name === '' || in_array($name, $reserved, true)) {
-                continue;
-            }
-            $builder = $builder->withClaim($name, $value);
-        }
+        $reserved = $this->reservedClaimNames($idClaim, $rolesClaim, $tenantClaim);
 
         try {
+            $builder = $configuration->builder()
+                ->issuedAt($now)
+                ->expiresAt($now->modify('+' . $ttl . ' second'))
+                // 标准 sub + 业务 id_claim 双写，authenticate 优先读 id_claim。不写入角色。
+                ->relatedTo($user->userId);
+
+            // id_claim 配置成标准 sub 时 relatedTo 已写入，不能再用 withClaim 重复写注册声明
+            if ($idClaim !== RegisteredClaims::SUBJECT) {
+                $builder = $builder->withClaim($idClaim, $user->userId);
+            }
+
+            if ($user->tenantId !== null && $user->tenantId !== '') {
+                $builder = $builder->withClaim($tenantClaim, $user->tenantId);
+            }
+
+            $issuer = (string) ($this->jwtConfig['issuer'] ?? '');
+            if ($issuer !== '') {
+                $builder = $builder->issuedBy($issuer);
+            }
+
+            $audience = (string) ($this->jwtConfig['audience'] ?? '');
+            if ($audience !== '') {
+                $builder = $builder->permittedFor($audience);
+            }
+
+            // 注册声明只能走 builder 的 issuedAt/expiresAt/issuedBy/permittedFor，业务 claims 里的同名项忽略
+            foreach ($user->claims as $key => $value) {
+                $name = (string) $key;
+                if ($name === '' || in_array($name, $reserved, true)) {
+                    continue;
+                }
+                $builder = $builder->withClaim($name, $value);
+            }
+
             return $builder
                 ->getToken($configuration->signer(), $configuration->signingKey())
                 ->toString();
         } catch (\Throwable $e) {
             throw new AuthException('Failed to generate token', Status::UNAUTHORIZED, $e);
         }
+    }
+
+    /**
+     * 已映射到 AuthUser 顶层字段的 claim 与全部 JWT 注册声明。
+     *
+     * @return list<string>
+     */
+    private function reservedClaimNames(string $idClaim, string $rolesClaim, string $tenantClaim): array
+    {
+        return array_values(array_unique(array_merge(
+            RegisteredClaims::ALL,
+            [$idClaim, $rolesClaim, $tenantClaim],
+        )));
     }
 
     /** 构建对称签名 Configuration；secret 为空则 401。 */

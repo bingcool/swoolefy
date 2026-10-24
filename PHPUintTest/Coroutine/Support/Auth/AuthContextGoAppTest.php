@@ -42,9 +42,43 @@ final class AuthContextGoAppTest extends CoroutineTestCase
             $this->assertTrue(FrameworkContext::check());
 
             FrameworkContext::clearUser();
-            $this->assertSame('from-auth', FrameworkContext::getUserId());
+            $this->assertNull(FrameworkContext::getUserId());
+            $this->assertNull(FrameworkContext::getTenantId());
+            $this->assertNull(HeaderContext::get(HeaderPropagator::HEADER_USER_ID));
+            $this->assertNull(HeaderContext::get(HeaderPropagator::HEADER_TENANT_ID));
 
             HeaderContext::clear();
+        });
+    }
+
+    public function testSetUserClearsStaleTenantHeaderWhenTenantBecomesEmpty(): void
+    {
+        $this->runInCoroutine(function (): void {
+            HeaderContext::clear();
+            FrameworkContext::clearUser();
+
+            FrameworkContext::setUser(new AuthUser(userId: 'user-a', tenantId: 'tenant-a'));
+            $this->assertSame('tenant-a', HeaderContext::get(HeaderPropagator::HEADER_TENANT_ID));
+
+            FrameworkContext::setUser(new AuthUser(userId: 'user-b'));
+            $this->assertSame('user-b', HeaderContext::get(HeaderPropagator::HEADER_USER_ID));
+            $this->assertNull(HeaderContext::get(HeaderPropagator::HEADER_TENANT_ID));
+            $this->assertNull(FrameworkContext::getTenantId());
+        });
+    }
+
+    public function testClearUserRemovesIdentityHeadersWrittenBySetUser(): void
+    {
+        $this->runInCoroutine(function (): void {
+            HeaderContext::clear();
+            FrameworkContext::clearUser();
+
+            FrameworkContext::setUser(new AuthUser(userId: 'user-c', tenantId: 'tenant-c'));
+            FrameworkContext::clearUser();
+
+            $this->assertNull(HeaderContext::get(HeaderPropagator::HEADER_USER_ID));
+            $this->assertNull(HeaderContext::get(HeaderPropagator::HEADER_TENANT_ID));
+            $this->assertNull(FrameworkContext::user());
         });
     }
 

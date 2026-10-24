@@ -31,7 +31,6 @@ trait InteractsWithDtoArrayAccess
 
         $property = $this->reflectionPropertyForDeclaredField($name);
         if ($property !== null) {
-            $property->setAccessible(true);
             if (!$property->isInitialized($this)) {
                 return false;
             }
@@ -59,7 +58,6 @@ trait InteractsWithDtoArrayAccess
 
         $property = $this->reflectionPropertyForDeclaredField($name);
         if ($property !== null) {
-            $property->setAccessible(true);
             if ($property->isInitialized($this)) {
                 return $property->getValue($this);
             }
@@ -103,7 +101,6 @@ trait InteractsWithDtoArrayAccess
             throw new LogicException("只读字段不可写: {$name}");
         }
 
-        $property->setAccessible(true);
         $property->setValue($this, $value);
     }
 
@@ -184,7 +181,6 @@ trait InteractsWithDtoArrayAccess
                 continue;
             }
 
-            $property->setAccessible(true);
             $property->setValue(
                 $obj,
                 static::hydratePropertyValue($property, $value),

@@ -65,7 +65,6 @@ final class CovertProperty
                 continue;
             }
 
-            $property->setAccessible(true);
             $convertedValue = self::valueForProperty($property, $value);
             $property->setValue($object, $convertedValue);
             $filled = true;
