@@ -636,7 +636,11 @@ class HttpRoute extends AppDispatch
                     $paramDto->setRequestInput($this->requestInput);
                 }
                 $inputParams = $inputParams ?? $this->requestInput->input();
-                $this->fillActionParamObject($paramDto, $inputParams, $kind === self::PARAM_KIND_BASE_REQUEST ? ['requestInput' => true] : []);
+                // 校验阶段的 StringToInt 只作用在它自己的局部副本上，这里再按同一个 DTO
+                // 转一次，绑定才拿得到 int；否则 strict setter 会收到 query/form 里的数字字符串。
+                $fillParams = $inputParams;
+                $this->requestValidate->applyStringToIntCoercion($fillParams, $dtoClass);
+                $this->fillActionParamObject($paramDto, $fillParams, $kind === self::PARAM_KIND_BASE_REQUEST ? ['requestInput' => true] : []);
                 $this->hydrateNestedDtoCollections($paramDto);
                 $args[] = $paramDto;
                 continue;
@@ -864,6 +868,7 @@ class HttpRoute extends AppDispatch
                     }
 
                     $dto = new $itemClass();
+                    $this->requestValidate->applyStringToIntCoercion($item, $itemClass);
                     $this->fillActionParamObject($dto, $item, []);
                     $this->hydrateNestedDtoCollections($dto);
                     $hydrated[] = $dto;
