@@ -18,7 +18,7 @@ use Swoolefy\Cmd\Application\ServerLifecycleManager;
 use Swoolefy\Cmd\Infrastructure\PidFileManager;
 use Swoolefy\Cmd\Infrastructure\CmdLogWriter;
 use Swoolefy\Cmd\Infrastructure\ServerStatusRenderer;
-use Swoolefy\Cmd\Infrastructure\FifoPipeClient;
+use Swoolefy\Cmd\Infrastructure\ControlClient;
 use Swoolefy\Cmd\Infrastructure\CmdInitException;
 use Swoolefy\Cmd\DTO\StopStatus;
 use Swoolefy\Cmd\DTO\StopResult;
@@ -126,7 +126,7 @@ class CmdCommandIntegrationTest extends TestCase
             PidFileManager::class,
             CmdLogWriter::class,
             ServerStatusRenderer::class,
-            FifoPipeClient::class,
+            ControlClient::class,
             CmdInitException::class,
         ];
 

@@ -32,14 +32,15 @@ trait MainProcessCommandTrait
     }
 
     /**
-     * 经 WORKER_TO_CLI_PIPE 回写终端。
+     * 回写当前 CLI 连接；无活动连接时 no-op。
      *
      * @param string $msg
+     * @param bool $ok
      * @return mixed
      */
-    protected function responseMsgByPipe(string $msg)
+    protected function responseMsgByPipe(string $msg, bool $ok = true)
     {
-        $this->getCommandHandler()->responseMsgByPipe($msg);
+        $this->getCommandHandler()->responseMsgByPipe($msg, $ok);
     }
 
     /**

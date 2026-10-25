@@ -1,5 +1,7 @@
 # src/Cmd 模块技术改造方案
 
+> **2026-10-24 更新：** CLI ↔ Worker 的传输已由 FIFO 改为 Unix Domain Socket 控制面（`WORKER_PID_FILE_ROOT/ctl.sock`，长度前缀 + JSON）。本文 2.4 节及涉及 `FifoPipeClient`、`PipeMsgDtoWorker`、`CLI_TO_WORKER_PIPE/WORKER_TO_CLI_PIPE` 的代码为历史方案，现行实现见 `docs/Swoolefy-Worker-Cli-UDS-重构技术方案-20261024.md`、`src/Worker/Runtime/CliControlServer.php` 与 `src/Cmd/Infrastructure/ControlClient.php`。
+
 ## 一、现状概述
 
 `src/Cmd` 模块是 swoolefy 框架的 CLI 命令层，基于 Symfony Console 构建，负责服务的启动、停止、重启、热重载、状态查看、监控守护、消息发送以及应用脚手架生成。
@@ -14,7 +16,7 @@
 | `RestartCmd.php` | 309 | 重启服务（stop → 等端口释放 → start） |
 | `ReloadCmd.php` | 53 | 热重载 Worker 进程（SIGUSR1） |
 | `MonitorCmd.php` | 57 | 守护监控（异常退出自动重启） |
-| `SendCmd.php` | 109 | 通过 FIFO 管道向 Worker 发送消息 |
+| `SendCmd.php` | 109 | 通过 UDS 控制面向 Worker 发送消息 |
 | `StatusCmd.php` | 97 | 查看服务/Worker 状态 |
 | `CreateCmd.php` | 558 | 应用脚手架生成器 |
 | `Support/ProcessTreeTerminator.php` | 121 | 进程树清理工具 |
@@ -465,7 +467,7 @@ protected function execute(InputInterface $input, OutputInterface $output): int
 
 ---
 
-### 2.4 【P1-架构】FIFO 管道通信代码散落多处
+### 2.4 【P1-架构】FIFO 管道通信代码散落多处（已被 UDS 控制面取代，见文首说明）
 
 **问题详述：** 管道消息的构造、写入、响应监听在以下位置各自实现：
 

@@ -6,7 +6,6 @@ namespace Swoolefy\Cmd\Command;
 
 use Swoolefy\Cmd\Application\ServerLifecycleManager;
 use Swoolefy\Cmd\BaseCmd;
-use Swoolefy\Cmd\Infrastructure\FifoPipeClient;
 use Swoolefy\Cmd\Infrastructure\PidFileManager;
 use Swoolefy\Cmd\Support\ProcessTreeTerminator;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -17,8 +16,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 /**
  * 发送消息命令。
  *
- * 通过 FIFO 管道向 WorkerService 的主 Worker 进程发送消息，
- * 并通过响应管道接收 Worker 的处理结果。
+ * 经 UDS 控制面向 WorkerService 主进程发一帧请求并同步读取响应，
+ * 响应文本直接打印；传输失败与业务拒绝都返回 FAILURE，不再静默等超时。
  *
  * 仅支持 WorkerService（Cron/Daemon/Script），普通 Swoole Server 不支持。
  *
@@ -37,14 +36,6 @@ class SendCmd extends BaseCmd
 
     /**
      * 执行发送消息命令。
-     *
-     * ===== FIFO 通信时序严格约束，绝对不能乱 =====
-     *
-     *   Step 1: prepareResponsePipe() — 创建响应 FIFO + 注册 Event 监听
-     *   Step 2: sendWorkerPipeMessage() — 发送消息给 Worker
-     *   Step 3: waitForResponse()     — 阻塞等待 Worker 响应
-     *
-     * 颠倒任何步骤都会导致通信失败（Worker 响应丢失或 CLI 无输出）。
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
@@ -86,33 +77,26 @@ class SendCmd extends BaseCmd
             return Command::SUCCESS;
         }
 
-        // ===== FIFO 通信时序（严格顺序，不能乱）=====
-        // Step 1: 先创建响应 FIFO 并注册事件监听
-        // !! 必须在发送消息之前完成 !!
-        // 否则 Worker 处理完消息后尝试写入响应时，FIFO 尚未创建，响应将丢失
-        $workerToCliPipe = $ctx->workerToCliPipe;
-        $fifoClient = null;
-        if ($workerToCliPipe) {
-            $fifoClient = FifoPipeClient::prepareResponsePipe($workerToCliPipe, 5000, function (string $msg) {
-                fmtPrintInfo($msg ?: '已向master进程发起跑脚本指令');
-            });
-        }
-
-        // Step 2: 发送管道消息到 Worker
         $manager = new ServerLifecycleManager();
-        $manager->sendWorkerPipeMessage(
+        $response = $manager->sendWorkerControlRequest(
             $ctx,
             WORKER_CLI_SEND_MSG,
-            $processName,
-            json_encode(['action' => $action, 'msg' => $msg])
+            is_string($processName) ? $processName : '',
+            is_string($action) ? $action : '',
+            is_string($msg) ? $msg : ''
         );
 
-        // Step 3: 阻塞等待 Worker 响应
-        // !! 必须在 Step 1 和 Step 2 之后调用 !!
-        // Event::wait() 是阻塞调用，一旦进入就无法返回
-        if ($fifoClient) {
-            $fifoClient->waitForResponse();
+        $text = $response->message;
+        if ($response->data !== '') {
+            $text .= ($text !== '' ? PHP_EOL : '') . $response->data;
         }
+
+        if (!$response->ok) {
+            fmtPrintError($text !== '' ? $text : 'Worker 控制面未返回原因');
+            return Command::FAILURE;
+        }
+
+        fmtPrintInfo($text !== '' ? $text : '已向master进程发起跑脚本指令');
 
         return Command::SUCCESS;
     }

@@ -352,9 +352,12 @@ abstract class AbstractProcess
      */
     protected function setWorkerMasterPid()
     {
-        defined('WORKER_MASTER_PID') or define('WORKER_MASTER_PID', $this->getPid());
-        if(defined('WORKER_PID_FILE')) {
-            file_put_contents(WORKER_PID_FILE, $this->getPid());
+        // 不能用 getPid()：它读进程表，实例被 Swoole 重新拉起时表里还是上一个
+        // MainManager 的 pid，会写错 worker.pid，并让 inMasterProcessEnv() 判自己为子进程。
+        $pid = posix_getpid();
+        defined('WORKER_MASTER_PID') or define('WORKER_MASTER_PID', $pid);
+        if (defined('WORKER_PID_FILE')) {
+            @file_put_contents(WORKER_PID_FILE, $pid);
         }
     }
 

@@ -51,8 +51,6 @@ define('WORKER_PID_FILE_ROOT', '/tmp/workerfy/log/'.WORKER_SERVICE_NAME);
 define('WORKER_PID_FILE', WORKER_PID_FILE_ROOT."/{$workPidFile}.pid");
 define('WORKER_STATUS_FILE',WORKER_PID_FILE_ROOT.'/status.log');
 define('WORKER_CTL_LOG_FILE',WORKER_PID_FILE_ROOT.'/ctl.log');
-define('CLI_TO_WORKER_PIPE',WORKER_PID_FILE_ROOT.'/cli.pipe');
-define('WORKER_TO_CLI_PIPE',WORKER_PID_FILE_ROOT.'/ctl.pipe');
 
 // script 为空即可
 define('PROCESS_CLASS', []);

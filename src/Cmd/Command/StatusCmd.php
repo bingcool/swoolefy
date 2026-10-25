@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Swoolefy\Cmd\Command;
 
+use Swoolefy\Cmd\Application\ServerLifecycleManager;
 use Swoolefy\Cmd\BaseCmd;
-use Swoolefy\Cmd\Infrastructure\FifoPipeClient;
 use Swoolefy\Cmd\Infrastructure\PidFileManager;
 use Swoolefy\Cmd\Infrastructure\ServerStatusRenderer;
 use Swoolefy\Cmd\Support\ProcessTreeTerminator;
@@ -19,7 +19,7 @@ use Symfony\Component\Console\Output\OutputInterface;
  *
  * 支持两种模式：
  * - 普通 Swoole Server：展示 master/manager/worker 进程状态表格
- * - WorkerService：通过 FIFO 管道向 Worker 查询状态并展示响应
+ * - WorkerService：通过 UDS 控制面向 Worker 查询状态并展示响应
  *
  * 使用方式：
  *   php cli.php status App
@@ -62,16 +62,8 @@ class StatusCmd extends BaseCmd
     /**
      * WorkerService 状态查询。
      *
-     * 通过 FIFO 管道向主 Worker 发送 WORKER_CLI_STATUS 消息，
-     * Worker 处理后通过响应管道返回状态信息。
-     *
-     * ===== FIFO 通信时序严格约束，绝对不能乱 =====
-     *
-     *   Step 1: prepareResponsePipe() — 创建响应 FIFO + 注册 Event 监听
-     *   Step 2: sleep(1) + fwrite()  — 等待注册完成后发送消息给 Worker
-     *   Step 3: waitForResponse()    — 阻塞等待 Worker 响应
-     *
-     * 颠倒任何步骤都会导致通信失败（Worker 响应丢失或 CLI 无输出）。
+     * 一次同步请求：连上控制面 socket、发一帧 status、读一帧响应后连接关闭。
+     * 不存在「先建响应管道再发请求」的时序，也没有 sleep(1)。
      *
      * @param \Swoolefy\Cmd\DTO\CmdContext $ctx 命令上下文
      */
@@ -96,46 +88,24 @@ class StatusCmd extends BaseCmd
             return;
         }
 
-        $cliToWorkerPipe = $ctx->cliToWorkerPipe;
-        $workerToCliPipe = $ctx->workerToCliPipe;
-
-        // 校验 FIFO 管道
-        if (!$cliToWorkerPipe || !file_exists($cliToWorkerPipe) || filetype($cliToWorkerPipe) !== 'fifo') {
-            fmtPrintError(" Master Process is not enable cli pipe, so can not show status");
+        // PHP 没有 isSocket()；socket 文件的 is_file() 为 false，只能用 filetype 判断
+        $socketPath = $ctx->cliControlSocket;
+        if ($socketPath === '' || !file_exists($socketPath) || filetype($socketPath) !== 'socket') {
+            fmtPrintError(" Master Process is not enable cli control socket, so can not show status");
             return;
         }
 
-        // 打开 CLI→Worker 管道（用于写入查询消息）
-        $pipe = fopen($cliToWorkerPipe, 'r+');
+        $manager = new ServerLifecycleManager();
+        $response = $manager->sendWorkerControlRequest($ctx, WORKER_CLI_STATUS, timeoutSeconds: 10.0);
 
-        // 构造状态查询消息
-        $pipeMsgDto = new \Swoolefy\Worker\Dto\PipeMsgDtoWorker();
-        $pipeMsgDto->action = WORKER_CLI_STATUS;
-        $pipeMsgDto->targetHandler = $workerToCliPipe;
-        $pipeMsg = serialize($pipeMsgDto);
-
-        // ===== FIFO 通信时序（严格顺序，不能乱）=====
-        // Step 1: 先创建响应 FIFO 并注册事件监听
-        // !! 必须在发送消息之前完成 !!
-        // 否则 Worker 处理完消息后尝试写入响应时，FIFO 尚未创建，响应将丢失
-        $fifoClient = null;
-        if ($workerToCliPipe) {
-            $fifoClient = FifoPipeClient::prepareResponsePipe($workerToCliPipe, 10000, function (string $msg) {
-                fmtPrintInfo($msg);
-            });
+        if (!$response->ok) {
+            fmtPrintError($response->message !== '' ? $response->message : '获取 Worker 状态失败');
+            return;
         }
 
-        // Step 2: 等待事件循环注册完成后，再发送查询消息给 Worker
-        // sleep(1) 确保 Swoole Event::add 已完成注册
-        sleep(1);
-        fwrite($pipe, $pipeMsg);
-        fclose($pipe);
-
-        // Step 3: 阻塞等待 Worker 响应（超时 10 秒）
-        // !! 必须在 Step 1 和 Step 2 之后调用 !!
-        // Event::wait() 是阻塞调用，一旦进入就无法返回
-        if ($fifoClient) {
-            $fifoClient->waitForResponse();
+        $text = $response->data !== '' ? $response->data : $response->message;
+        if ($text !== '') {
+            fmtPrintInfo($text);
         }
     }
 }

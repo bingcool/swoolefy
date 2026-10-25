@@ -26,9 +26,9 @@
 | 级别 | 数量 | 已修复 | 说明 |
 | --- | ---: | ---: | --- |
 | P0 | 3 | 3 | 安全/可用性关键缺陷，建议立即处理 |
-| P1 | 7 | 5 | 高危缺陷，会稳定复现或造成安全风险 |
-| P2 | 23 | 0 | 稳定性、正确性与可维护性问题 |
-| **合计** | **33** | **8** | |
+| P1 | 7 | 6 | 高危缺陷，会稳定复现或造成安全风险 |
+| P2 | 23 | 1 | 稳定性、正确性与可维护性问题 |
+| **合计** | **33** | **10** | |
 
 ---
 
@@ -158,7 +158,7 @@
 
 ### P1-04 macOS 上 FIFO `flock` 失败却返回 true，stop/send 静默失效
 
-- **状态**：未修复
+- **状态**：已验证
 - **模块**：Cmd/Worker 运行时
 - **位置**：[ServerLifecycleManager.php:208](../src/Cmd/Application/ServerLifecycleManager.php#L208)、[SendCmd.php:103](../src/Cmd/SendCmd.php#L103)
 - **问题说明**：
@@ -167,6 +167,8 @@
 - **影响**：停止操作可能静默不生效；CLI send 卡住直到超时。
 - **修复建议**：检查 `flock`/`fwrite` 结果，失败返回 false 并让调用方走信号或明确报错；或改用 Unix socket 传输。
 - **验证方式**：代码路径确认，macOS 本地实测 `flock` 对 FIFO 失败；置信度高。
+- **修复与验证（2026-10-24）**：按技术方案整体废弃双 FIFO，改为 `WORKER_PID_FILE_ROOT/ctl.sock` 上的 UDS 控制面：4 字节大端长度 + JSON，一连接一请求一响应；CLI 走 `ControlClient`，Worker Master 走 `CliControlServer`（非阻塞 stream + `Swoole\Event`，Master 不开协程）。删除 `CliPipeServer`、`FifoPipeClient`、`PipeMsgDtoWorker` 与 `CLI_TO_WORKER_PIPE`/`WORKER_TO_CLI_PIPE` 常量。`stop` 在控制面不可用时显式回落 SIGTERM 并打印原因；`send`/`status` 连接失败直接返回失败而非空等。单测：控制面 31 项、`ControlClient`/CLI 集成全绿；容器 unit 全量 995 项仅余 10 个既有 `WORKER_PID_FILE_ROOT` 隔离错误与 3 个 root 权限用例失败。容器 `swoolefy-php85-v62` 内启动 Daemon 服务后的 status/stop/restart/send、并发 20、陈旧 socket、活实例占用、超长路径等端到端验证见修复记录。
+- **联调补充（2026-10-25）**：容器 E2E 暴露四个生命周期竞态，已一并修正：① 陈旧 sock 的判定从「pid 文件里的 pid 存活」改为**真实连接探测**——`AbstractProcess::__start()` 会先写自己的 pid，pid 判定会把残留 sock 误判为本实例占用；② `stop` 改为「CLI 等 MainManager 排空退出后再停外层 Server」，MainManager 清理完成后主动通知外层 Server 停机并保持 3 秒短窗口后退出，避免 Swoole 重新拉起 MainManager 重绑 `ctl.sock`；不能等 master 完全退出，master→manager→MainManager 是等待闭环；③ 首次 fork 的用户进程里 `$server->master_pid` 为 0，`MainManager::getOuterMasterPid()` 增加 pid 文件回落；`AbstractProcess::setWorkerMasterPid()` 改用 `posix_getpid()`，避免 respawn 时读到 Swoole Table 里的旧 pid 而把 MainManager 判成子进程、跳过清理；④ `ctl.sock` 归属改按 bind 时记录的 `dev + ino` 判断，不再依赖 `worker.pid`，respawn 或重绑都不会误删。修复后优雅 stop 退出码 0，`worker.pid`/`ctl.sock` 均不残留，随后 start/restart 可正常重新 bind。stop 全程约 13s，其中约 7s 是外层 HTTP Worker 既有的 `Worker_reactor_try_to_exit` 退出超时（`max_wait_time` 强杀，refactor 前日志同样存在），与 UDS 控制面无关。
 
 ### P1-05 WebSocket 鉴权回调返回 true 或静态 token 时回退读 query `uid`
 
@@ -232,7 +234,7 @@
 | P2-14 | AutoReload | [Reload.php:128](../src/AutoReload/Reload.php#L128)、[Reload.php:204](../src/AutoReload/Reload.php#L204) | `reloading=false` 只在 else 分支恢复，自定义 `$reloadFn` 执行后标志一直为 true；每次 watch 都追加 `rootDirs`，reload 后数组翻倍 | 用 finally 恢复标志；watch 前去重或重建 rootDirs | 未修复 |
 | P2-15 | Cron | [CronManager.php:409](../src/Worker/Cron/CronManager.php#L409)、[CronScheduler.php:68](../src/Worker/Cron/CronScheduler.php#L68) | 错过的调度点会在恢复后按 `max(1ms)` 连续补跑，可能形成瞬时风暴 | 合并错过的 slot，只执行最新一次或按策略跳过 | 未修复 |
 | P2-16 | Core | [BaseServer.php:634](../src/Core/BaseServer.php#L634) | workerId→pid 映射存在 Swoole Table 单行 JSON 读改写，多 worker 同时启动会丢更新 | 拆成多行或使用原子字段/独立列 | 未修复 |
-| P2-17 | Worker | [CliPipeServer.php:52](../src/Worker/Runtime/CliPipeServer.php#L52) | 一次 `fread(8192)` 就 `unserialize`，无长度帧、无循环读；大消息或合并写入会解析失败/丢命令 | 增加长度前缀与循环读，或改用 SOCK_SEQPACKET | 未修复 |
+| P2-17 | Worker | [ControlFrame.php:14](../src/Worker/Runtime/ControlFrame.php#L14) | 一次 `fread(8192)` 就 `unserialize`，无长度帧、无循环读；大消息或合并写入会解析失败/丢命令 | 已随 P1-04 改为 4 字节大端长度前缀 + 循环读，单帧上限 1 MiB | 已修复 |
 | P2-18 | Worker | [StatusReporter.php:66](../src/Worker/Runtime/StatusReporter.php#L66) | `file_put_contents` 非原子写，可能读到半截 JSON（读侧有容错，但状态会短暂缺失） | 临时文件 + rename 原子替换 | 未修复 |
 | P2-19 | Core | [Tick.php:213](../src/Core/Timer/Tick.php#L213) | `after` 回调异常重新抛出时跳过 `updateRunAfterTick()`，`$_after_tasks` 残留已执行任务 | 在 finally 中更新任务表 | 未修复 |
 | P2-20 | Core | [GoWaitGroup.php:256](../src/Core/Coroutine/GoWaitGroup.php#L256) | `waitWithErrorChannel()` 超时直接抛异常，不 cancel 已启动协程，后台协程继续跑并可能写入已结束的响应 | 超时后取消仍在运行的子协程并等待退出 | 未修复 |
@@ -285,5 +287,7 @@
 | 2026-10-24 | P1-06 | c81bba9d | `HeaderPropagatorTest` 7/7；`AuthContextGoAppTest` 5/5；unit+coroutine 全量 1050 项仅余 10 个既有 `WORKER_PID_FILE_ROOT` 隔离错误 | 新增 `trusted_proxies` 配置门控身份传播头，不可信来源剥离 `x-user-id`/`x-user-code`/`x-tenant-id`/`x-user-name` 并用 `remote_addr` 覆盖 `x-client-ip`；`FrameworkContext::setUser()` 成对维护 user/tenant 头、`clearUser()` 删除两者；`HeaderContext` 新增 `remove()` |
 | 2026-10-24 | P1-02 / P1-03 默认值复核 | c81bba9d | `ConsumeRetryLimitTest` 7/7；`ConsumeRetryLimitWaitTest` 3/3；unit+coroutine 全量 1057 项仅余 10 个既有 `WORKER_PID_FILE_ROOT` 隔离错误 | 默认从「3 次 + 固定 0.5 秒」（约 1.5 秒窗口）改为「5 次 + 指数退避 1s 起翻倍封顶 15s」（约 15 秒窗口），避免下游瞬时抖动被判定为毒消息后不可逆丢弃；退避等待按 0.2 秒分片并响应停机标志，Kafka/AMQP 共 4 处 handler 接线同步；README 补充调参指引。新参数下的 broker 复测待补 |
 | 2026-10-24 | P0-03 同类面（JobRunner） | c81bba9d | `JobRunnerTimeoutContextTest` 3/3；`JobHandlerTimeoutTest` 4/4；unit+coroutine 全量 1060 项仅余 10 个既有 `WORKER_PID_FILE_ROOT` 隔离错误 | `JobRunner::run()` 的 Handler 超时改用 `TimeoutGuard::runWithContext()`，消费进程内的 Handler 恢复 `Context` 快照、`StreamBridge` sink 与协程应用；`HealthProbe` 按结论保持 `run()`（探针不读上下文） |
+| 2026-10-24 | `c81bba9d` 容器复跑 | c81bba9d | 容器 `swoolefy-php85-v62`（PHP 8.5.8 + Swoole 6.2.2）unit+coroutine 全量 1060 项：10 错误（全部 `WORKER_PID_FILE_ROOT`）、3 失败（全部是容器 root 下只读目录权限不生效的用例）；宿主机 PHP 8.4.14 + Swoole 6.1.7 同套件 10 错误、0 失败 | 本次修复未引入 PHP 8.5 独有失败。容器内 87 条 PHP 弃用中 84 条是 `ReflectionMethod/Property::setAccessible()`，来源为 `PHPUintTest/` 测试代码自身的反射断言，`src/` 已无残留 |
+| 2026-10-25 | P1-04 / P2-17 | 未提交 | 容器 unit 995 项 10 错误 / 3 个 root 权限失败（均与本次无关），控制面专项 31 项全绿；容器内 `daemon.php start/status/send/stop/restart` 端到端通过，stop 后 `worker.pid`、`ctl.sock` 均无残留、无进程重新拉起 | UDS 控制面重构完成；联调中补了 sock 连接探测、外层 master pid 回落、respawn 安全的 `WORKER_MASTER_PID`、按 inode 清理 socket，以及 stop/MainManager/外层 Server 的关机握手（方案文档 §8.2） |
 
-> 验证说明：完整 `composer test` 有 10 个与本次修复无关的既有错误（`Undefined constant "WORKER_PID_FILE_ROOT"`，测试隔离导致，HEAD 基线同样复现；宿主机 PHP 8.4 全量 1041 项为 10 错误、0 失败）。在容器 `swoolefy-php85-v62`（PHP 8.5.8）内跑同一套件也会完成，额外只有 3 个依赖只读目录的用例失败，原因是容器以 root 运行、权限位不生效；这 3 个类在宿主机非 root 下 25/25 通过。为消除 PHP 8.5 对 `ReflectionProperty::setAccessible()` 的弃用（在 Swoole 协程栈上会触发 PHPUnit fatal 中断），已移除 `src/` 中 9 处无效调用。这里确认**保持删除、不加 `method_exists` 或版本分支**：该方法自 PHP 8.1 起就没有作用（8.5 的弃用原文即 `has no effect since PHP 8.1`），而它在 8.4 与 8.5 上都存在，`method_exists` 恒为真、区分不出有效性；`composer.json` 要求 `php: ^8.4`，删除后 8.4 与 8.5 的行为完全一致（宿主机 8.4 全量与容器 8.5 均已实测私有属性反射读写正常）。MQTT 复测使用项目内 `simps/mqtt 2.0.1`；emqx 容器（1883）仅做了客户端 CONNACK 连通性检查，P0-01 的真实端到端验证跑在 swoolefy 自身 Broker（1884）上，因为框架 MQTT 模块本身就是 Broker。
+> 验证说明：完整 `composer test` 有 10 个与本次修复无关的既有错误（`Undefined constant "WORKER_PID_FILE_ROOT"`，测试隔离导致，HEAD 基线同样复现；宿主机 PHP 8.4 全量 1060 项为 10 错误、0 失败）。在容器 `swoolefy-php85-v62`（PHP 8.5.8 + Swoole 6.2.2）内跑同一套件同样能完成，额外只有 3 个依赖只读目录的用例失败，原因是容器以 root 运行、权限位不生效（`CreateCmdExitAndIoTest`、`ConfCtlStoreTest`、`SidecarSupervisorTest`）；这 3 个类在宿主机非 root 下 25/25 通过。**提交 `c81bba9d` 之后已在容器内复跑**：1060 项、3963 断言、10 错误（全是 `WORKER_PID_FILE_ROOT`）、3 失败（全是上述 root 权限项），与宿主机结果一致，本次修复没有引入 8.5 独有失败。容器内 87 条 PHP 弃用里有 84 条是 `ReflectionMethod/Property::setAccessible()`，来源是 `PHPUintTest/` 测试代码自身的反射断言，`src/` 已无残留。为消除 PHP 8.5 对 `ReflectionProperty::setAccessible()` 的弃用（在 Swoole 协程栈上会触发 PHPUnit fatal 中断），已移除 `src/` 中 9 处无效调用。这里确认**保持删除、不加 `method_exists` 或版本分支**：该方法自 PHP 8.1 起就没有作用（8.5 的弃用原文即 `has no effect since PHP 8.1`），而它在 8.4 与 8.5 上都存在，`method_exists` 恒为真、区分不出有效性；`composer.json` 要求 `php: ^8.4`，删除后 8.4 与 8.5 的行为完全一致（宿主机 8.4 全量与容器 8.5 均已实测私有属性反射读写正常）。MQTT 复测使用项目内 `simps/mqtt 2.0.1`；emqx 容器（1883）仅做了客户端 CONNACK 连通性检查，P0-01 的真实端到端验证跑在 swoolefy 自身 Broker（1884）上，因为框架 MQTT 模块本身就是 Broker。

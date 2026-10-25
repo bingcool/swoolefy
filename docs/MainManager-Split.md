@@ -6,7 +6,7 @@
 
 ## 一、现状
 
-`MainManager` 是 Daemon / Cron WorkerService 的管理进程核心。`AbstractMainProcess` 加载配置后调用 `loadConf()` + `start()`；子进程通过 `AbstractBaseWorker` 向它发动态扩缩容 / reboot 指令；CLI 与 `CtlApi` 走 FIFO 管道和静态 `includeWorkerConf()`。
+`MainManager` 是 Daemon / Cron WorkerService 的管理进程核心。`AbstractMainProcess` 加载配置后调用 `loadConf()` + `start()`；子进程通过 `AbstractBaseWorker` 向它发动态扩缩容 / reboot 指令；CLI 与 `CtlApi` 走 UDS 控制面（`CliControlServer`）和静态 `includeWorkerConf()`。
 
 已有局部拆分，但不够：
 
@@ -14,7 +14,7 @@
 |--------|-------------------|
 | `ConfCtlStore`：confctl.json 原子读写 | 配置 include、分组解析、与 confctl 合并 |
 | `Helper`：CLI `--group` / 重启参数 | PID 目录身份只在 `makeServerName()` |
-| `MainProcessCommandTrait`：start/stop/restart 单进程 | FIFO 安装与 action 分发仍写在 `installCliPipe()` |
+| `MainProcessCommandTrait`：start/stop/restart 单进程 | 控制面安装与 action 分发已收敛到 `CliControlServer` |
 | `SystemTrait`：错误处理、内部日志 | 信号、关机、状态上报 |
 
 ### 1.1 职责混杂（按代码块）
@@ -24,12 +24,12 @@ loadConf / addProcess / initStart / start     启动编排
 install*Signal / shutdownMainManager          信号与关机
 forkNewProcess / create|destroyDynamic        动态进程 + SIGCHLD 回收
 swooleEventAdd / writeByProcessName           进程间管道 IPC
-installCliPipe / parseLoadConf                CLI FIFO + 控制面
+installCliControl / parseLoadConf            UDS 控制面
 loadWorkerConf / resolveGroupedWorkerConf     配置与分组
 installReportStatus / getProcessStatus        状态上报
 ```
 
-这些块共享同一套私有表：`$processLists`、`$processWorkers`、`$stoppingDynamicProcesses`、`$isExit`、`$cliPipeFd`、`$reportStatusTimerId`。改分组或重启时，经常要同时动配置加载、PID 文件、FIFO、confctl 和关机顺序，因此容易互相踩。
+这些块共享同一套私有表：`$processLists`、`$processWorkers`、`$stoppingDynamicProcesses`、`$isExit`、`$cliControlServer`、`$reportStatusTimerId`。改分组或重启时，经常要同时动配置加载、PID 文件、控制面 socket、confctl 和关机顺序，因此容易互相踩。
 
 ### 1.2 对外依赖（拆分时必须兼容）
 
@@ -65,7 +65,7 @@ src/Worker/
   Runtime/
     SignalShutdown.php            # SIGTERM/INT/HUP、关机等待、清 timer
     StatusReporter.php            # tick 写 WORKER_STATUS_FILE
-    CliPipeServer.php             # FIFO 监听与 CLI action 分发
+    CliControlServer.php           # UDS 监听与 CLI action 分发
   Config/
     WorkerConfLoader.php          # include / 分组 / 去重 / 与 ConfCtlStore 合并
 ```
@@ -91,7 +91,7 @@ src/Worker/
 
 **依赖：** `Helper`（`--group`）、`ConfCtlStore`、`WORKER_CONF_FILE`。
 
-**不依赖：** 进程表、信号、FIFO。
+**不依赖：** 进程表、信号、控制面 socket。
 
 **门面：** `MainManager::loadWorkerConf()` 等全部改为 `WorkerConfLoader::...` 的静态转发，避免 `CtlApi`、`AbstractMainProcess` 立刻改 import。
 
@@ -149,21 +149,21 @@ src/Worker/
 
 ---
 
-### 3.5 `CliPipeServer`
+### 3.5 `CliControlServer`
 
 **迁入：**
 
-- `installCliPipe()` / `enableCliPipe()` / `getCliToWorkerPipeFile()`
-- FIFO 上的 `WORKER_CLI_STATUS|STOP|RESTART|SEND_MSG`
-- 与 `MainProcessCommandTrait` 合并：Trait 变成 `CliPipeServer` 的私有方法，或 Server 依赖一个 `ProcessCommandHandler`
+- `install()` / `enableCliControl()` / `getCliControlSocketFile()`
+- UDS 上的 `WORKER_CLI_STATUS|STOP|RESTART|SEND_MSG`
+- 与 `MainProcessCommandTrait` 合并：Trait 变成 `CliControlServer` 的私有方法，或 Server 依赖一个 `ProcessCommandHandler`
 
 **与分组/重启的关系（这是拆分的直接收益）：**
 
-- STOP → 只调 `SignalShutdown::shutdown('cli-pipe')`，不再在 MainManager 里内联 80 行。
+- STOP → 只调 `SignalShutdown::shutdown('cli-control')`，不再在 MainManager 里内联 80 行。
 - RESTART → 只调已带回 `--group/--only` 的 `restartServerCommand()`。
 - START 指定进程 → 经 `WorkerConfLoader` 取**当前实例分组**配置，禁止跨组拉起。
 
-`CtlApi` 与 CLI 共用同一套 command handler，避免 HTTP 控制面和 FIFO 两套语义。
+`CtlApi` 与 CLI 共用同一套 command handler，避免 HTTP 控制面和 CLI 控制两套语义。
 
 ---
 
@@ -176,13 +176,14 @@ src/Worker/
 - `clearReportStatusTimer()`（或通知 StatusReporter 停止）
 - `$isExit` 的唯一写入点
 
-**关机顺序（不得打乱，现有 macOS FIFO 残留问题靠此顺序）：**
+**关机顺序（不得打乱，现有 macOS 控制面残留问题靠此顺序）：**
 
 1. 置 `$isExit`，拒绝重入  
 2. 通知全部业务子进程退出  
 3. `waitWorkersExitOrKill`（预算 = wait_time + maxWaitTimeOfExit + margin）  
-4. 清 status timer、关 FIFO、删属于本实例的 PID 文件  
-5. 退出 EventLoop  
+4. 清 status timer、关控制面 socket、删属于本实例的 PID 文件  
+5. 通知外层 Swoole Server 停机，保持 3 秒短窗口后再退出（窗口用于覆盖 master 处理 SIGTERM，避免 manager 重新拉起 MainManager 重绑 `ctl.sock`；不能等 master 消失，master→manager→MainManager 是等待闭环，只能耗到 `max_wait_time` 强杀）  
+6. 退出 EventLoop  
 
 **验收：** `GracefulShutdownWaitBudgetTest` 仍绿。
 
@@ -209,7 +210,7 @@ start():
   SignalShutdown.install()
   StatusReporter.install()
   ProcessSupervisor.initStart()
-  CliPipeServer.install()
+  CliControlServer.install()
   ProcessIpc.bindAll()
   onStart
 ```
@@ -232,7 +233,7 @@ start():
 |------|------|------------|------|
 | **P0** | 抽出 `WorkerConfLoader`，MainManager 静态方法转发 | `MainManager`、新 Loader、CtlApi 可暂不改 | 低 |
 | **P1** | 抽出 `ProcessRegistry`，MainManager 字段改为持有 Registry | MainManager、动态进程/关机单测 | 中 |
-| **P2** | `CliPipeServer` + 合并 Trait 命令 | MainManager、Trait、CtlApi | 中（FIFO / 分组重启） |
+| **P2** | `CliControlServer` + 合并 Trait 命令 | MainManager、Trait、CtlApi | 中（UDS / 分组重启） |
 | **P3** | `ProcessSupervisor` + `ProcessIpc` | MainManager、AbstractBaseWorker 常量仍指向门面 | 中高 |
 | **P4** | `SignalShutdown` + `StatusReporter` | 关机单测、status 文件 | 中 |
 
@@ -255,7 +256,7 @@ start():
 |------|------|
 | Loader | 扁平 conf；`--group` 单组/多组/缺省全组；重复 `process_name` 抛错；confctl `running=0` 不启动 |
 | Registry | add/get/remove；fork 失败回滚 |
-| CliPipe | STOP 走统一 shutdown；RESTART 命令行含 `--group`；START 拒绝非本实例进程 |
+| CliControl | STOP 走统一 shutdown；RESTART 命令行含 `--group`；START 拒绝非本实例进程 |
 | Supervisor | 与 `DynamicProcessLifecycleTest` 等价 |
 | Shutdown | 与 `GracefulShutdownWaitBudgetTest` 等价 |
 
@@ -274,9 +275,9 @@ php daemon.php stop App --group=group_1
 
 ## 七、建议落地顺序（结论）
 
-1. **先做 P0 `WorkerConfLoader`**：配置与分组已经独立演进（`--group`、PID 后缀、重启回传），继续放在 2200 行类里最容易和 confctl/FIFO 缠在一起。  
+1. **先做 P0 `WorkerConfLoader`**：配置与分组已经独立演进（`--group`、PID 后缀、重启回传），继续放在 2200 行类里最容易和 confctl/控制面 socket 缠在一起。  
 2. **再做 P1 Registry**：没有统一进程表，后面拆 Supervisor / Pipe / Shutdown 仍会传来传去 `$this`。  
-3. **FIFO（P2）优先于动态进程（P3）**：最近分组/重启改动都走控制面，边界收益最大。  
+3. **控制面（P2）优先于动态进程（P3）**：最近分组/重启改动都走控制面，边界收益最大。  
 4. 信号与 status 最后搬，逻辑已相对稳定。
 
 完成 P0–P2 后，`MainManager.php` 预计可降到约 **600–800 行**（编排 + 门面）；P3–P4 后再降到 **300 行以内** 的组合根。
@@ -294,10 +295,12 @@ P0–P4 已按本文落地，`MainManager` 作为组合根 + 兼容门面：
 | ProcessSupervisor | `src/Worker/Process/ProcessSupervisor.php` |
 | ProcessIpc | `src/Worker/Process/ProcessIpc.php` |
 | ProcessCommandHandler | `src/Worker/Runtime/ProcessCommandHandler.php` |
-| CliPipeServer | `src/Worker/Runtime/CliPipeServer.php` |
+| CliControlServer | `src/Worker/Runtime/CliControlServer.php` |
 | SignalShutdown | `src/Worker/Runtime/SignalShutdown.php` |
 | StatusReporter | `src/Worker/Runtime/StatusReporter.php` |
 
 对外 `MainManager::getInstance()` / `loadConf()` / `start()` / `loadWorkerConf()` / 动态进程 API **保持兼容**。应用侧 `MainDaemonProcess` 无需修改。
 
 `MainProcessCommandTrait` 仅保留转发。`CtlApi` 仍走 `MainManager::includeWorkerConf()` 门面。
+
+2026-10-24：CLI ↔ Worker 传输已从双 FIFO 改为 `WORKER_PID_FILE_ROOT/ctl.sock` 上的长度前缀 + JSON 单连接协议，`CliPipeServer` 由 `CliControlServer` 取代，入口常量 `CLI_TO_WORKER_PIPE` / `WORKER_TO_CLI_PIPE` 已删除。

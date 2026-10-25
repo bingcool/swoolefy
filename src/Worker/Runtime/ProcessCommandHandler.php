@@ -22,7 +22,7 @@ use Swoolefy\Worker\MainManager;
 use Swoolefy\Worker\Process\ProcessRegistry;
 
 /**
- * CLI FIFO 与 CtlApi 共用的进程控制命令。
+ * CLI 控制面与 CtlApi 共用的进程控制命令。
  *
  * START 指定进程必须经 parseLoadConf（已按当前实例 --group 过滤），跨组返回空配置，禁止拉起。
  * 整机 RESTART 通过 Helper::workerRestartCliSuffix() 回传 --group/--only，新实例身份与当前一致。
@@ -48,13 +48,17 @@ final class ProcessCommandHandler
     }
 
     /**
-     * 经 WORKER_TO_CLI_PIPE 回写终端，供 php daemon.php 同步打印结果。
+     * 回写当前 CLI 连接；没有活动连接（CtlApi 的 HTTP 路径、定时任务）时记日志后 no-op。
      */
-    public function responseMsgByPipe(string $msg): void
+    public function responseMsgByPipe(string $msg, bool $ok = true): void
     {
-        $workerToCliPipeFile = fopen(WORKER_TO_CLI_PIPE, 'w+');
-        fwrite($workerToCliPipeFile, $msg);
-        fclose($workerToCliPipeFile);
+        $sink = $this->manager->getCliControlServer()->currentSink();
+        if ($sink === null) {
+            $this->manager->logInfo('[cli-control] no active CLI connection, response skipped: ' . $msg);
+            return;
+        }
+
+        $sink->respondText($msg, $ok);
     }
 
     /**

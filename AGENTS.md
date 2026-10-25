@@ -205,7 +205,7 @@ Unix socket 测试在沙箱里可能失败，需要在沙箱外重跑。断言 s
 | --- | --- |
 | 启动顺序、自定义进程 | `src/Core/EventCtrl.php`、`Test/Event.php`、`src/Stubs/event_handle.stub.php` |
 | HTTP 路由与中间件 | `src/Http/`、`Test/Router/`、`Test/Middleware/` |
-| Daemon / Cron | `src/Worker/`、`Test/WorkerDaemon/`、`Test/WorkerCron/`、`src/Worker/Cron/README.md` |
+| Daemon / Cron | `src/Worker/`、`Test/WorkerDaemon/`、`Test/WorkerCron/`、`src/Worker/Cron/README.md`、`src/Worker/Runtime/CliControlServer.php` |
 | Sidecar 进程与路径 | `src/Core/Sidecar/README.md`、`SocketEndpoint.php`、`SidecarSupervisor.php` |
 | RocketMQ 业务 | `src/Support/Rocketmq/README.md`、`../swoolefy-go-sidecar/internal/rocketmq/` |
 | Job | `docs/Job.md`、`src/Support/Job/README.md` |

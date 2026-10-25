@@ -18,7 +18,7 @@ use Swoolefy\Worker\Config\WorkerConfLoader;
 use Swoolefy\Worker\Process\ProcessIpc;
 use Swoolefy\Worker\Process\ProcessRegistry;
 use Swoolefy\Worker\Process\ProcessSupervisor;
-use Swoolefy\Worker\Runtime\CliPipeServer;
+use Swoolefy\Worker\Runtime\CliControlServer;
 use Swoolefy\Worker\Runtime\ProcessCommandHandler;
 use Swoolefy\Worker\Runtime\SignalShutdown;
 use Swoolefy\Worker\Runtime\StatusReporter;
@@ -26,7 +26,7 @@ use Swoolefy\Worker\Runtime\StatusReporter;
 /**
  * Daemon / Cron WorkerService 管理进程组合根与对外兼容门面。
  *
- * 本类不再持有进程表或 FIFO/信号处理实现，只负责：
+ * 本类不再持有进程表或 socket/信号处理实现，只负责：
  * 1. 单例与构造（协程 hook、默认 onHandleException）；
  * 2. start() 按固定顺序装配子系统（见方法注释，顺序不可乱）；
  * 3. 把历史 public API 转给 Config / Process / Runtime，应用侧 MainDaemonProcess 不用改。
@@ -36,7 +36,7 @@ use Swoolefy\Worker\Runtime\StatusReporter;
  * - ProcessRegistry：唯一可变进程表
  * - ProcessSupervisor：fork / 动态扩缩容 / SIGCHLD
  * - ProcessIpc：pipe 读写
- * - CliPipeServer + ProcessCommandHandler：CLI 控制面
+ * - CliControlServer + ProcessCommandHandler：CLI 控制面
  * - SignalShutdown：信号与关机
  * - StatusReporter：WORKER_STATUS_FILE
  *
@@ -169,9 +169,9 @@ class MainManager
     private ?ProcessCommandHandler $commandHandler = null;
 
     /**
-     * CLI FIFO。
+     * CLI 控制面（UDS）。
      */
-    private ?CliPipeServer $cliPipeServer = null;
+    private ?CliControlServer $cliControlServer = null;
 
     /**
      * 信号与 $isExit 唯一写入点。
@@ -331,10 +331,10 @@ class MainManager
     /**
      * 启动编排。顺序固定：
      * errorHandler → setMasterPid → status timer → initStart(fork)
-     * → setRunning → CLI FIFO → SIGCHLD → stop/reload 信号 → shutdown function
+     * → setRunning → CLI 控制面 → SIGCHLD → stop/reload 信号 → shutdown function
      * → 自定义信号 → bind 全部 pipe → 记 startTime。
      *
-     * 先装 timer 再 fork：timer 回调禁止协程；setRunning 在 FIFO 之前，
+     * 先装 timer 再 fork：timer 回调禁止协程；setRunning 在控制面之前，
      * 避免控制面在 Master 未就绪时 writeByProcessName。
      *
      * @return mixed
@@ -348,7 +348,7 @@ class MainManager
                 $this->getStatusReporter()->install();
                 $this->getSupervisor()->initStart();
                 $this->setRunning();
-                $this->getCliPipeServer()->install();
+                $this->getCliControlServer()->install();
                 $this->getSupervisor()->installSigchldSignal();
                 $this->getSignalShutdown()->installStopSignal();
                 $this->getSignalShutdown()->installReloadSignal();
@@ -538,6 +538,34 @@ class MainManager
     }
 
     /**
+     * 外层 Swoole Server Master 的 pid（不是 MainManager 自己的 pid）。
+     *
+     * 初始用户进程由 Manager fork，此时 `$server->master_pid` 还是 0；被重新拉起后
+     * 才读到值。因此回落到 Server 启动时写下的 pid 文件。
+     */
+    public function getOuterMasterPid(): int
+    {
+        try {
+            $server = \Swoolefy\Core\Swfy::getServer();
+            $masterPid = is_object($server) ? (int) ($server->master_pid ?? 0) : 0;
+            if ($masterPid > 0) {
+                return $masterPid;
+            }
+
+            $pidFile = (string) (BaseServer::getConf()['setting']['pid_file'] ?? '');
+            if ($pidFile === '' || !is_file($pidFile)) {
+                return 0;
+            }
+
+            $content = trim((string) @file_get_contents($pidFile));
+
+            return is_numeric($content) ? (int) $content : 0;
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
+    /**
      * 是否 Master 逻辑名（master_worker）。禁止 Master 给自己写管道。
      *
      * @param string $processName
@@ -692,32 +720,36 @@ class MainManager
     }
 
     /**
-     * 是否允许 CLI FIFO。false 时 install() 直接返回，用于纯脚本/测试。
+     * 是否允许 CLI 控制面。false 时 install() 直接返回，用于纯脚本/测试。
      *
      * @param bool $enablePipe
      * @return void
      */
-    public function enableCliPipe(bool $enablePipe = true)
+    public function enableCliControl(bool $enablePipe = true)
     {
         $this->enablePipe = $enablePipe;
     }
 
     /**
-     * 是否启用 CLI FIFO。start() 里 CliPipeServer::install 读取。
+     * 是否启用 CLI 控制面。start() 里 CliControlServer::install 读取。
      */
-    public function isCliPipeEnabled(): bool
+    public function isCliControlEnabled(): bool
     {
         return $this->enablePipe;
     }
 
     /**
-     * 当前实例 CLI→Worker FIFO 路径（随 WORKER_SERVICE_NAME / --group 隔离）。
+     * 当前实例控制面 socket 路径（随 WORKER_SERVICE_NAME / --group 隔离）。
      *
      * @return string
      */
-    public function getCliToWorkerPipeFile()
+    public function getCliControlSocketFile()
     {
-        return CLI_TO_WORKER_PIPE;
+        if (!defined('WORKER_PID_FILE_ROOT')) {
+            return '';
+        }
+
+        return rtrim(WORKER_PID_FILE_ROOT, '/') . '/ctl.sock';
     }
 
     /**
@@ -839,10 +871,10 @@ class MainManager
         return $this->commandHandler;
     }
 
-    public function getCliPipeServer(): CliPipeServer
+    public function getCliControlServer(): CliControlServer
     {
         $this->bootCollaborators();
-        return $this->cliPipeServer;
+        return $this->cliControlServer;
     }
 
     public function getSignalShutdown(): SignalShutdown
@@ -918,7 +950,7 @@ class MainManager
     }
 
     /**
-     * MainManager 唯一退出入口（Signal 与 CLI FIFO stop 共用）。
+     * MainManager 唯一退出入口（Signal 与 CLI 控制面 stop 共用）。
      */
     public function shutdownMainManager(string $source): void
     {
@@ -1002,7 +1034,7 @@ class MainManager
         $this->ipc = new ProcessIpc($this);
         $this->supervisor = new ProcessSupervisor($this);
         $this->commandHandler = new ProcessCommandHandler($this);
-        $this->cliPipeServer = new CliPipeServer($this);
+        $this->cliControlServer = new CliControlServer($this);
         $this->signalShutdown = new SignalShutdown($this);
         $this->statusReporter = new StatusReporter($this);
     }

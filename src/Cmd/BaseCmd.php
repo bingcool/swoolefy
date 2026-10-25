@@ -444,10 +444,16 @@ class BaseCmd extends Command
             }
         }
 
-        // WorkerService 的 Worker PID 目录
+        // WorkerService 的 Worker PID 目录。目录可写等于能替换控制面 socket，
+        // 必须 0750；mkdir 不会改已存在的旧 0777 目录，显式补一次 chmod。
         if (SystemEnv::isWorkerService() && defined('WORKER_PID_FILE_ROOT')) {
             if (!is_dir(WORKER_PID_FILE_ROOT)) {
-                mkdir(WORKER_PID_FILE_ROOT, 0777, true);
+                mkdir(WORKER_PID_FILE_ROOT, 0750, true);
+            } else {
+                $perms = @fileperms(WORKER_PID_FILE_ROOT);
+                if ($perms !== false && ($perms & 0077) !== 0) {
+                    @chmod(WORKER_PID_FILE_ROOT, 0750);
+                }
             }
         }
 

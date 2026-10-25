@@ -26,7 +26,7 @@ class Event extends EventHandler
     /**
      * 是否注册 PubSub 端到端验证进程。启动 Test 服务后看 [PUBSUB-VERIFY] 输出。
      */
-    private const PUBSUB_VERIFY = true;
+    private const PUBSUB_VERIFY = false;
 
     /**
      * onInit

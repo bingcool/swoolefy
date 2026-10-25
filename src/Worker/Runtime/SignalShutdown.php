@@ -29,6 +29,15 @@ use Swoolefy\Worker\Process\ProcessRegistry;
 final class SignalShutdown
 {
     /**
+     * 通知外层 Server 后保持存活的窗口（秒）。
+     *
+     * 只需覆盖「Master 的 reactor 处理 SIGTERM 并把 Manager 带入 shutdown」这段时间。
+     * 不能等 Master 完全退出：Manager 要等本进程退出才结束，Master 又等 Manager，
+     * 等到 max_wait_time 才被强杀，stop 会平白慢一个 max_wait_time。
+     */
+    public const OUTER_SHUTDOWN_WAIT_SECONDS = 3;
+
+    /**
      * 关机重入开关。true 后 shutdown() 立即返回。
      */
     private bool $isExit = false;
@@ -41,7 +50,7 @@ final class SignalShutdown
     private array $signal = [];
 
     /**
-     * 真正做 FIFO/SysV/信号卸载的闭包，由 shutdown() 在等子进程退出后调用。
+     * 真正做 socket/SysV/信号卸载的闭包，由 shutdown() 在等子进程退出后调用。
      *
      * @var \Closure|null
      */
@@ -121,7 +130,7 @@ final class SignalShutdown
     }
 
     /**
-     * 准备关机清理闭包：关 FIFO、销毁 SysV 队列、卸信号。仅 Master 环境安装。
+     * 准备关机清理闭包：关控制面 socket、销毁 SysV 队列、卸信号。仅 Master 环境安装。
      */
     public function installRegisterShutdownFunction(): void
     {
@@ -135,7 +144,7 @@ final class SignalShutdown
             } catch (\Throwable $throwable) {
                 $this->manager->handleWorkerException($throwable);
             } finally {
-                $this->manager->getCliPipeServer()->close();
+                $this->manager->getCliControlServer()->close();
                 $sysvmsgManager = SysvmsgManager::getInstance();
                 $sysvmsgManager->destroyMsgQueue();
                 unset($sysvmsgManager);
@@ -152,12 +161,13 @@ final class SignalShutdown
     /**
      * 唯一退出实现（MainManager::shutdownMainManager 委托到这里）。
      *
-     * 顺序不得打乱（macOS 上 FIFO/timer 残留会导致 Master 假死）：
+     * 顺序不得打乱（macOS 上 socket/timer 残留会导致 Master 假死）：
      * 1. 置 $isExit，拒绝重入；
      * 2. 通知全部业务子进程 EXIT；
      * 3. waitWorkersExitOrKill（预算 = max(wait_time+maxWaitTimeOfExit)+margin）；
-     * 4. 清 status timer、关 FIFO、删属于本实例的 PID 文件（比对文件内 pid，防误删新实例）；
-     * 5. Event::exit + process->exit(0)。
+     * 4. 清 status timer、关控制面 socket、删属于本实例的 PID 文件（比对文件内 pid，防误删新实例）；
+     * 5. 通知外层 Server 停机并等一个短窗口，然后 Event::exit + process->exit(0)，
+     *    让 Manager 先进入 shutdown，避免本进程被 Swoole 重新拉起。
      */
     public function shutdown(string $source): void
     {
@@ -197,6 +207,10 @@ final class SignalShutdown
         }
 
         $this->manager->logInfo("MainManager shutdown finished, source={$source}, pid={$this->manager->getMasterPid()}");
+
+        // MainManager 是外层 Server 的用户进程，退出后 Swoole 会立刻重新拉起；
+        // 先让外层进入 shutdown，否则新实例会马上重绑 ctl.sock / 重写 worker.pid。
+        $this->stopOuterServer();
 
         try {
             $processInstance = AbstractProcess::getProcessInstance();
@@ -320,6 +334,46 @@ final class SignalShutdown
                     break;
             }
         };
+    }
+
+    /**
+     * 通知外层 Swoole Server 停机，并短暂保持本进程存活。
+     *
+     * 只发 SIGTERM 后立刻 exit 存在竞态：master 尚未处理信号时，Swoole manager
+     * 会因 SIGCHLD 立刻重新拉起 MainManager，新实例会重绑 ctl.sock。等一个
+     * 信号窗口再退出即可让 Manager 先进入 shutdown，又不会把 stop 拖到 max_wait_time。
+     */
+    private function stopOuterServer(): void
+    {
+        if (!function_exists('isWorkerService') || !isWorkerService()) {
+            return;
+        }
+
+        try {
+            $outerMasterPid = $this->manager->getOuterMasterPid();
+            $selfPid = (int) $this->manager->getMasterPid();
+            if ($outerMasterPid <= 0 || $outerMasterPid === $selfPid) {
+                $this->manager->logError("外层 Server master_pid 无效（{$outerMasterPid}），跳过主动停机");
+                return;
+            }
+
+            $this->manager->logInfo("通知外层 Server 停机, master_pid={$outerMasterPid}");
+            @\Swoole\Process::kill($outerMasterPid, SIGTERM);
+
+            $deadline = microtime(true) + self::OUTER_SHUTDOWN_WAIT_SECONDS;
+            while (microtime(true) < $deadline) {
+                if (!@\posix_kill($outerMasterPid, 0)) {
+                    return;
+                }
+                usleep(50_000);
+            }
+
+            $this->manager->logInfo(
+                '外层 Server 仍在关机中(' . self::OUTER_SHUTDOWN_WAIT_SECONDS . "s 窗口已到), 本进程先退出"
+            );
+        } catch (\Throwable $throwable) {
+            $this->manager->logError('通知外层 Server 停机失败: ' . $throwable->getMessage());
+        }
     }
 
     /**

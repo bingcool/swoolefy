@@ -15,7 +15,6 @@ namespace Swoolefy\Worker\Runtime;
 
 use Swoole\Coroutine\Channel;
 use Swoolefy\Core\Memory\SysvmsgManager;
-use Swoolefy\Core\Swfy;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Worker\AbstractBaseWorker;
@@ -132,7 +131,7 @@ final class StatusReporter
         $cpuNum = swoole_cpu_num();
         $phpVersion = PHP_VERSION;
         $swooleVersion = swoole_version();
-        $enableCliPipe = $this->manager->getCliPipeServer()->isPipeOpen() ? 1 : 0;
+        $enableCliPipe = $this->manager->getCliControlServer()->isListening() ? 1 : 0;
         $swooleTableInfo = $this->getSwooleTableInfo(false);
         $cliParams = $this->getOptionParams(true);
         $hostName = gethostname();
@@ -227,11 +226,10 @@ final class StatusReporter
     }
 
     /**
-     * CLI status：把 Master/Children runtime 文本写入回传 FIFO（targetHandler）。
+     * CLI status：先在内存拼完整文本，再经当前连接单帧回包。
      */
-    public function masterStatusToCliFifoPipe(string $ctlPipeFile): void
+    public function masterStatusToCli(ReplySink $sink): void
     {
-        $ctlPipe = fopen($ctlPipeFile, 'w+');
         $masterInfo = $this->statusInfoFormat(
             $this->manager->getMasterWorkerName(),
             $this->manager->getMasterWorkerId(),
@@ -240,11 +238,11 @@ final class StatusReporter
             (string) $this->manager->getStartTime()
         );
         $separator = PHP_EOL;
-        fwrite($ctlPipe, 'Master Process Runtime:' . $separator);
-        fwrite($ctlPipe, str_repeat('-', 50) . $separator);
-        fwrite($ctlPipe, $masterInfo, null);
-        fwrite($ctlPipe, str_repeat('-', 50) . $separator . $separator);
-        fwrite($ctlPipe, 'Children Process Runtime:' . $separator);
+        $buffer = 'Master Process Runtime:' . $separator;
+        $buffer .= str_repeat('-', 50) . $separator;
+        $buffer .= $masterInfo;
+        $buffer .= str_repeat('-', 50) . $separator . $separator;
+        $buffer .= 'Children Process Runtime:' . $separator;
         foreach ($this->registry()->allWorkers() as $processes) {
             ksort($processes);
             /** @var AbstractBaseWorker $process */
@@ -279,14 +277,15 @@ final class StatusReporter
                     $rebootCount,
                     $processType
                 );
-                @fwrite($ctlPipe, $info, null);
+                $buffer .= $info;
                 if ($status == 'stop') {
                     $this->manager->logInfo($info);
                 }
             }
             unset($processes);
         }
-        @fclose($ctlPipe);
+
+        $sink->respondData($buffer);
     }
 
     /**
@@ -303,14 +302,14 @@ final class StatusReporter
     ): string {
         if ($processName == $this->manager->getMasterWorkerName()) {
             $childrenNum = $this->registry()->countWorkers();
-            $pid = Swfy::getMasterPid();
+            $pid = $this->manager->getOuterMasterPid();
             $startScriptFile = WORKER_START_SCRIPT_FILE;
             $pidFile = WORKER_PID_FILE;
             $cpuNum = swoole_cpu_num();
             $memory = Helper::getMemoryUsage();
             $phpVersion = PHP_VERSION;
             $swooleVersion = swoole_version();
-            $enableCliPipe = $this->manager->getCliPipeServer()->isPipeOpen() ? 1 : 0;
+            $enableCliPipe = $this->manager->getCliControlServer()->isListening() ? 1 : 0;
             list($msgSysvmsgInfo, $sysKernel) = $this->getSysvmsgInfo();
             $swooleTableInfo = $this->getSwooleTableInfo();
             $cliParams = $this->getOptionParams(false);

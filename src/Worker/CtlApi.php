@@ -15,17 +15,18 @@ namespace Swoolefy\Worker;
 
 use Swoole\Http\Request as SwooleRequest;
 use Swoole\Http\Response as SwooleResponse;
+use Swoolefy\Cmd\Infrastructure\ControlClient;
 use Swoolefy\Core\CommandRunner;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Exception\WorkerException;
 use Swoolefy\Http\ResponseCode;
 use Swoolefy\Http\ResponseOutput;
-use Swoolefy\Worker\Dto\PipeMsgDtoWorker;
+use Swoolefy\Worker\Dto\ControlRequest;
 
 /**
  * Daemon / Cron 的 HTTP 控制面。
  *
- * 进程存活以 WORKER_STATUS_FILE 中的 pid 为准；start/stop 经 CLI FIFO 交给 Master。
+ * 进程存活以 WORKER_STATUS_FILE 中的 pid 为准；start/stop 经 UDS 控制面交给 Master。
  * 响应统一复用框架 ResponseOutput::returnJson()，保持 {code,msg,data} 结构。
  */
 class CtlApi extends ResponseOutput
@@ -203,7 +204,7 @@ class CtlApi extends ResponseOutput
     }
 
     /**
-     * start/stop 共用：校验进程属于当前分组实例 → 写 FIFO → 记录 confctl 运行态。
+     * start/stop 共用：校验进程属于当前分组实例 → 走控制面 → 记录 confctl 运行态。
      */
     private function controlProcess(string $processName, string $action): void
     {
@@ -263,30 +264,31 @@ class CtlApi extends ResponseOutput
     }
 
     /**
-     * 写 CLI FIFO，由 Master 的 CliPipeServer 分发到目标进程。
+     * 经 UDS 控制面把指令交给 Master；master 回包写入当前请求连接。
      *
-     * FIFO 上 flock 在 macOS 返回失败，不能拿它做互斥；报文小于 PIPE_BUF，
-     * 单次 fwrite 本身是原子的，直接写即可。
+     * 运行在 HTTP/协程上下文，ControlClient 的同步 IO 会被 Swoole hook 成协程调用，
+     * 超时参数继续生效。
      */
     private function sendPipeCommand(string $processName, string $action): void
     {
-        $pipeMsgDto = new PipeMsgDtoWorker();
-        $pipeMsgDto->action = WORKER_CLI_SEND_MSG;
-        $pipeMsgDto->targetHandler = $processName;
-        $pipeMsgDto->message = json_encode(['action' => $action], JSON_UNESCAPED_UNICODE);
-        $message = serialize($pipeMsgDto);
-
-        $pipe = fopen(CLI_TO_WORKER_PIPE, 'w+');
-        if ($pipe === false) {
-            throw new WorkerException('Worker 控制面管道不可用: ' . CLI_TO_WORKER_PIPE);
+        $socketPath = defined('WORKER_PID_FILE_ROOT')
+            ? rtrim(WORKER_PID_FILE_ROOT, '/') . '/ctl.sock'
+            : '';
+        if ($socketPath === '') {
+            throw new WorkerException('Worker 控制面 socket 路径为空');
         }
 
-        try {
-            if (fwrite($pipe, $message) !== strlen($message)) {
-                throw new WorkerException('Worker 控制面管道写入失败: ' . CLI_TO_WORKER_PIPE);
-            }
-        } finally {
-            fclose($pipe);
+        $request = new ControlRequest(
+            WORKER_CLI_SEND_MSG,
+            $processName,
+            $action,
+            '',
+            sprintf('http-%d-%d', getmypid(), (int) (microtime(true) * 1000))
+        );
+
+        $response = (new ControlClient())->request($socketPath, $request, 5.0);
+        if (!$response->ok) {
+            throw new WorkerException('Worker 控制面请求失败: ' . $response->message);
         }
     }
 

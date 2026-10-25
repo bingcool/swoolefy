@@ -6,9 +6,11 @@ namespace Swoolefy\Cmd\Application;
 
 use Swoolefy\Cmd\DTO\CmdContext;
 use Swoolefy\Cmd\DTO\StopResult;
+use Swoolefy\Cmd\Infrastructure\ControlClient;
 use Swoolefy\Cmd\Infrastructure\PidFileManager;
 use Swoolefy\Cmd\Support\ProcessTreeTerminator;
-use Swoolefy\Worker\Dto\PipeMsgDtoWorker;
+use Swoolefy\Worker\Dto\ControlRequest;
+use Swoolefy\Worker\Dto\ControlResponse;
 
 /**
  * 统一的服务生命周期管理器。
@@ -31,6 +33,9 @@ final class ServerLifecycleManager
 
     /** 默认总停止超时（秒）：超过此时间认为停止失败 */
     private const DEFAULT_STOP_TIMEOUT = 20;
+
+    /** 控制面未回传排空预算时的兜底等待（秒），覆盖 wait_time + maxWaitTimeOfExit */
+    private const WORKER_DRAIN_FALLBACK_SECONDS = 60;
 
     /**
      * 停止普通 Swoole Server（HTTP/WebSocket/RPC/UDP/MQTT）。
@@ -111,9 +116,13 @@ final class ServerLifecycleManager
      * 停止 WorkerService（Cron/Daemon/Script）。
      *
      * 停止策略：
-     * 1. 先通过 FIFO 管道通知 Worker 进程停止（WORKER_CLI_STOP）
-     * 2. 再停止 Server 主进程（复用 stopServer 逻辑）
-     * 3. 按 Worker PID 单独确认 MainManager 已退出，超时后强制清理
+     * 1. 先通过 UDS 控制面通知 Worker 进程停止（WORKER_CLI_STOP，Master 回 ack 后自行关机）
+     * 2. 等 MainManager 完成 Worker 排空并退出
+     * 3. 再停止 Server 主进程（复用 stopServer 逻辑）
+     *
+     * 顺序不能颠倒：MainManager 关机要等业务 Worker 排空，而外层 Swoole Server
+     * 收到 SIGTERM 后会在 max_wait_time 到期时 SIGKILL 用户进程，抢先停止会打断
+     * 清理，留下 ctl.sock / worker.pid。
      *
      * @param CmdContext $ctx 命令上下文
      * @return StopResult 停止操作结果
@@ -136,21 +145,37 @@ final class ServerLifecycleManager
             return StopResult::alreadyStopped();
         }
 
-        // 优先通过 FIFO 触发 MainManager 自身的完整关闭流程（子进程 → timer/FIFO → EventLoop → self exit）。
-        $notified = $workerMasterAlive && $this->sendWorkerPipeMessage($ctx, WORKER_CLI_STOP);
-        if ($workerMasterAlive && !$notified) {
-            // FIFO 不可用时直接通知 Worker Master；SIGTERM 与 FIFO 共用 shutdownMainManager()。
-            \Swoole\Process::kill($workerMasterPid, SIGTERM);
+        // 优先经控制面触发 MainManager 自身的完整关闭流程（子进程 → timer/socket → EventLoop → self exit）。
+        $drainBudget = null;
+        if ($workerMasterAlive) {
+            $response = $this->sendWorkerControlRequest($ctx, WORKER_CLI_STOP, timeoutSeconds: 5.0);
+            if ($response->ok) {
+                $drainBudget = is_numeric(trim($response->data)) ? (float) trim($response->data) : null;
+            } else {
+                // 控制面不可用或未回 ack：SIGTERM 与 STOP 共用 shutdownMainManager()。
+                fmtPrintNote("Worker 控制面不可用（{$response->message}），改用 SIGTERM 停止");
+                \Swoole\Process::kill($workerMasterPid, SIGTERM);
+            }
         }
 
-        // 外层 Swoole Server 与 Worker Master 是两个需要分别确认的进程。
-        $serverResult = $serverAlive ? $this->stopServer($ctx) : StopResult::alreadyStopped();
-
-        if (!$this->waitWorkerMasterStopped($ctx, $workerMasterPid, 20)) {
-            return StopResult::timeout($workerMasterPid);
+        $workerStopped = true;
+        if ($workerMasterAlive) {
+            $waitSeconds = (int) ceil($drainBudget ?? self::WORKER_DRAIN_FALLBACK_SECONDS) + 5;
+            $workerStopped = $this->waitWorkerMasterStopped($ctx, $workerMasterPid, $waitSeconds);
         }
 
-        return $serverResult;
+        // MainManager 清理完会主动让外层 Server 进入 shutdown，这里要重新判断，
+        // 否则 pid 文件已被 Swoole 删除时 stopServer() 会误报 PID_NOT_FOUND。
+        if (!$serverAlive) {
+            $serverResult = StopResult::alreadyStopped();
+        } elseif (!ProcessTreeTerminator::isAlive($serverPid)) {
+            PidFileManager::remove($ctx->pidFile);
+            $serverResult = StopResult::alreadyStopped();
+        } else {
+            $serverResult = $this->stopServer($ctx);
+        }
+
+        return $workerStopped ? $serverResult : StopResult::timeout($workerMasterPid);
     }
 
     /**
@@ -194,59 +219,47 @@ final class ServerLifecycleManager
     }
 
     /**
-     * 向 WorkerService 发送管道消息。
+     * 向 WorkerService 控制面发送一条请求并同步读取响应。
      *
-     * 通过 FIFO 管道（CLI_TO_WORKER_PIPE）向主 Worker 进程发送序列化消息。
-     * 使用 flock 保证多进程并发写入时的消息完整性。
+     * 传输失败不抛异常，返回 ok=false 的响应，由调用方决定是否走 SIGTERM 兜底。
      *
-     * @param CmdContext $ctx            命令上下文（含 cliToWorkerPipe 路径）
-     * @param string     $action         消息动作（如 WORKER_CLI_STOP, WORKER_CLI_SEND_MSG）
-     * @param string     $targetHandler  目标处理器名称
-     * @param string     $message        附加消息内容
-     * @return bool 发送是否成功
+     * @param CmdContext $ctx            命令上下文（含 cliControlSocket 路径）
+     * @param string     $action         顶层动作（WORKER_CLI_STOP / WORKER_CLI_SEND_MSG 等）
+     * @param string     $target         目标 process_name
+     * @param string     $op             send 的内层动作（start/stop/restart/透传）
+     * @param string     $message        透传内容
+     * @param float      $timeoutSeconds 等待响应超时（秒）
      */
-    public function sendWorkerPipeMessage(
+    public function sendWorkerControlRequest(
         CmdContext $ctx,
         string $action,
-        string $targetHandler = '',
-        string $message = ''
-    ): bool {
-        $cliToWorkerPipe = $ctx->cliToWorkerPipe;
-        if (!$cliToWorkerPipe) {
-            return false;
+        string $target = '',
+        string $op = '',
+        string $message = '',
+        float $timeoutSeconds = 10.0
+    ): ControlResponse {
+        if ($ctx->cliControlSocket === '') {
+            return ControlResponse::failure('Worker 控制面 socket 路径为空');
         }
 
-        // 校验 Worker 进程是否存活
+        // 校验 Worker Master 是否存活
         $workerPid = 0;
-        if ($ctx->workerPidFile && is_file($ctx->workerPidFile)) {
+        if ($ctx->workerPidFile !== '' && is_file($ctx->workerPidFile)) {
             $workerPid = PidFileManager::read($ctx->workerPidFile);
         }
         if ($workerPid <= 0 || !ProcessTreeTerminator::isAlive($workerPid)) {
-            return false;
+            return ControlResponse::failure('Worker Master 进程未运行');
         }
 
-        // 构造管道消息 DTO
-        $pipeMsgDto = new PipeMsgDtoWorker();
-        $pipeMsgDto->action = $action;
-        $pipeMsgDto->targetHandler = $targetHandler;
-        $pipeMsgDto->message = $message;
-        $pipeMsg = serialize($pipeMsgDto);
+        $request = new ControlRequest(
+            $action,
+            $target,
+            $op,
+            $message,
+            sprintf('cli-%d-%d', getmypid(), (int) (microtime(true) * 1000))
+        );
 
-        // 打开 FIFO 管道写入消息（使用排他锁保证原子性）
-        $pipe = @fopen($cliToWorkerPipe, 'w+');
-        if ($pipe === false) {
-            return false;
-        }
-
-        try {
-            if (flock($pipe, LOCK_EX)) {
-                fwrite($pipe, $pipeMsg);
-                flock($pipe, LOCK_UN);
-            }
-            return true;
-        } finally {
-            fclose($pipe);
-        }
+        return (new ControlClient())->request($ctx->cliControlSocket, $request, $timeoutSeconds);
     }
 
     /**

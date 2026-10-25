@@ -34,12 +34,13 @@ trait WorkerProcessCommandTrait {
     /**
      * 手动执行一次cron脚本
      * @param $msg
-     * @param string $from_process_name
-     * @param int $from_process_worker_id
-     * @param bool $is_proxy_by_master
+     * @param string $fromProcessName
+     * @param int $fromProcessWorkeId
+     * @param bool $isProxyByMaster
      * @return void
      */
-    protected function runOnceCronCommand($msg, string $from_process_name, int $from_process_worker_id, bool $is_proxy_by_master)
+
+    protected function runOnceCronCommand($msg, string $fromProcessName, int $fromProcessWorkeId, bool $isProxyByMaster)
     {
         putenv("run-once-cron=1");
     }

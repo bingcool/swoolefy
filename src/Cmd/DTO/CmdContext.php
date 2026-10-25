@@ -30,8 +30,7 @@ final class CmdContext
      * @param string $serverClass      服务类全名（如 App\HttpServer）
      * @param bool   $isWorkerService  是否为 WorkerService（Cron/Daemon/Script）
      * @param string $workerPidFile    Worker PID 文件路径（仅 WorkerService 有效）
-     * @param string $cliToWorkerPipe  CLI→Worker FIFO 管道路径
-     * @param string $workerToCliPipe  Worker→CLI 响应管道路径
+     * @param string $cliControlSocket Worker 控制面 UDS 路径（仅 WorkerService 有效）
      * @param string $logFile          CLI 控制日志文件路径
      */
     public function __construct(
@@ -45,8 +44,7 @@ final class CmdContext
         public readonly string $serverClass,
         public readonly bool $isWorkerService,
         public readonly string $workerPidFile = '',
-        public readonly string $cliToWorkerPipe = '',
-        public readonly string $workerToCliPipe = '',
+        public readonly string $cliControlSocket = '',
         public readonly string $logFile = '',
     ) {}
 
@@ -101,8 +99,9 @@ final class CmdContext
             serverClass: $serverClass,
             isWorkerService: $isWorkerService,
             workerPidFile: defined('WORKER_PID_FILE') ? WORKER_PID_FILE : '',
-            cliToWorkerPipe: defined('CLI_TO_WORKER_PIPE') ? CLI_TO_WORKER_PIPE : '',
-            workerToCliPipe: defined('WORKER_TO_CLI_PIPE') ? WORKER_TO_CLI_PIPE : '',
+            cliControlSocket: defined('WORKER_PID_FILE_ROOT')
+                ? rtrim(WORKER_PID_FILE_ROOT, '/') . '/ctl.sock'
+                : '',
             logFile: defined('WORKER_CTL_LOG_FILE') ? WORKER_CTL_LOG_FILE : '',
         );
     }
