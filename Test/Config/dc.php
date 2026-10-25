@@ -77,12 +77,12 @@ return [
     'predis' => [
         'scheme' => 'tcp',
         'host'   => env('REDIS_HOST'),
-        'port'   => env('REDIS_PORT'),
+        'port'   => (int) env('REDIS_PORT', 6379),
     ],
 
     'redis' => [
         'host'   => env('REDIS_HOST'),
-        'port'   => env('REDIS_PORT'),
+        'port'   => (int) env('REDIS_PORT', 6379),
     ],
 
     'amqp_connection' => [
