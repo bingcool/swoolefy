@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace __APP_NAMESPACE__\Push;
 
 use Swoolefy\Websocket\Push\PushPayloadEnricherInterface;

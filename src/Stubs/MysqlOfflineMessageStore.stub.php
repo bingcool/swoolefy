@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace __APP_NAMESPACE__\Offline;
 
 use Swoolefy\Websocket\Offline\OfflineMessageStoreInterface;

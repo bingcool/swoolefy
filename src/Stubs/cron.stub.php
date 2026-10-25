@@ -1,6 +1,8 @@
 <?php
 // workerService 模式下要关闭opcache.enable_cli，开启后主要影响是include不会再从磁盘加载，可能会影响某些功能
 
+declare(strict_types=1);
+
 include __DIR__.'/vendor/autoload.php';
 date_default_timezone_set('Asia/Shanghai');
 

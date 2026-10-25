@@ -18,6 +18,9 @@
  *
  * 注意：本文件仅作模板；占位符 App 在复制到应用目录时替换为真实应用名。
  */
+
+declare(strict_types=1);
+
 namespace Test;
 
 if (!class_exists(__NAMESPACE__ . '\\Autoloader', false)) {

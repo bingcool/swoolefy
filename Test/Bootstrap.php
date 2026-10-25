@@ -9,6 +9,8 @@
  * +----------------------------------------------------------------------
  */
 
+declare(strict_types=1);
+
 namespace Test;
 
 use Swoolefy\Core\BootstrapInterface;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Test\Process\MqVerify;
 
 use Swoolefy\Core\Process\AbstractProcess;

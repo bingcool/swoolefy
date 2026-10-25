@@ -24,6 +24,8 @@
  * @see docs/Auth.md
  */
 
+declare(strict_types=1);
+
 return [
     'jwt' => [
         'secret' => env('AUTH_JWT_SECRET', ''),

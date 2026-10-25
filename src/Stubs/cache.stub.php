@@ -9,6 +9,8 @@
  * +----------------------------------------------------------------------
  */
 
+declare(strict_types=1);
+
 use Swoolefy\Util\Log;
 use Swoolefy\Library\Db\Mysql;
 use Swoolefy\Library\Redis\Redis;

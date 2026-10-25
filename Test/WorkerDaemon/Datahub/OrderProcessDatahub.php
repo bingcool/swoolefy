@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Test\WorkerDaemon\Datahub;
 
 use Swoolefy\Library\Aliyun\Datahub\DatahubConfigDto;

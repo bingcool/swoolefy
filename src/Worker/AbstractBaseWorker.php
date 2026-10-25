@@ -9,6 +9,8 @@
  * +----------------------------------------------------------------------
  */
 
+declare(strict_types=1);
+
 namespace Swoolefy\Worker;
 
 use Swoole\Event;
@@ -1445,7 +1447,7 @@ abstract class AbstractBaseWorker
             $this->readyRebootTime = time() + $afterWaitTime;
 
             $channel = new Channel(1);
-            $timerId = \Swoole\Timer::after($afterWaitTime * 1000, function () use ($pid) {
+            $timerId = \Swoole\Timer::after((int)($afterWaitTime * 1000), function () use ($pid) {
                 $this->exitNow($pid, 15);
             });
 
@@ -1490,7 +1492,7 @@ abstract class AbstractBaseWorker
             $this->waitToExit = false;
 
             $channel = new Channel(1);
-            $this->exitTimerId = \Swoole\Timer::after($waitTime * 1000, function () use ($pid) {
+            $this->exitTimerId = \Swoole\Timer::after((int)($waitTime * 1000), function () use ($pid) {
                 $this->exitNow($pid, $this->maxWaitTimeOfExit);
             });
             // block wait to exit

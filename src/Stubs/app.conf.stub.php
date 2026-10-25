@@ -10,6 +10,9 @@
  */
 
 // 加载环境配置变量
+
+declare(strict_types=1);
+
 $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
 
 return [

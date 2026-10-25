@@ -57,7 +57,7 @@ final class StatusReporter
             $tickTime = $defaultTickTime;
         }
 
-        $this->reportStatusTimerId = goTick($tickTime * 1000, function () {
+        $this->reportStatusTimerId = goTick((int)($tickTime * 1000), function () {
             try {
                 $status = $this->getProcessStatus();
                 // Script 服务不落 status 文件

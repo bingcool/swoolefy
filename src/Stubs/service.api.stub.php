@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'Service/Demo/ReportMsg' => [
         'dispatch_route' => [__APP_NAMESPACE__\Service\DemoService::class, 'reportMsg'],

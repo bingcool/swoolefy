@@ -9,6 +9,8 @@
  * +----------------------------------------------------------------------
  */
 
+declare(strict_types=1);
+
 use Swoolefy\Util\Log;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Core\SwoolefyException;

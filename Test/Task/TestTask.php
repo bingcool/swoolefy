@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Test\Task;
 
 use Swoolefy\Core\Task\TaskController;

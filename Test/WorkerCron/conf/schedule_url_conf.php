@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Swoolefy\Worker\Cron\CronProcess;
 
 return [

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Swoolefy\Http\Middleware\AuthenticateMiddleware;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\Route;

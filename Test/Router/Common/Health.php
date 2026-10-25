@@ -7,4 +7,6 @@
  * @see Test/Config/health.php
  */
 
+declare(strict_types=1);
+
 \Swoolefy\Http\Health\HealthRoutes::register();

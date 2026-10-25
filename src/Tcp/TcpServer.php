@@ -9,6 +9,8 @@
  * +----------------------------------------------------------------------
  */
 
+declare(strict_types=1);
+
 namespace Swoolefy\Tcp;
 
 use Swoolefy\Library\CurlProxy\OpentelemetryMiddleware;

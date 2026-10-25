@@ -9,6 +9,8 @@
  * +----------------------------------------------------------------------
  */
 
+declare(strict_types=1);
+
 namespace Swoolefy\Websocket;
 
 use Swoolefy\Library\CurlProxy\OpentelemetryMiddleware;

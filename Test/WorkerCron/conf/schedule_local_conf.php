@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     // 独立产品：进程内本地 crontab（CronLocalProcess + CrontabManager），不走 CronManager。
 //    [

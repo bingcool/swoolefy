@@ -9,6 +9,8 @@
  * +----------------------------------------------------------------------
  */
 
+declare(strict_types=1);
+
 namespace Swoolefy\Core\Crontab;
 
 use Cron\CronExpression;
@@ -29,12 +31,12 @@ class CrontabManager
 
     /**
      * @param string $cronName
-     * @param string|float $expression
+     * @param string|int|float $expression
      * @param callable|array $func
      * @param callable $callPreFn
      * @param callable $callback
      */
-    public function addRule(string $cronName, string|float $expression, mixed $func, ?\Closure $callPreFn = null, ?\Closure $callback = null, array $extend = [])
+    public function addRule(string $cronName, string|int|float $expression, mixed $func, ?\Closure $callPreFn = null, ?\Closure $callback = null, array $extend = [])
     {
         if (!class_exists('Cron\\CronExpression')) {
             throw new CronException("If you want to use crontab, you need to install 'composer require dragonmantank/cron-expression' ");
@@ -77,7 +79,7 @@ class CrontabManager
                 - 业务数据：用注册时的 `$params` 显式传入
                 这和 `goApp` 不同：`goApp` 跟请求同生共灭，适合短期并发；Cron 会跨大量请求存活，不能背请求身份
              */
-            $timerId = \Swoole\Timer::tick($expression * 1000, function ($timerId, $expression) use ($func, $cronName, $class, $callPreFn, $callback) {
+            $timerId = \Swoole\Timer::tick((int)($expression * 1000), function ($timerId, $expression) use ($func, $cronName, $class, $callPreFn, $callback) {
                 goApp(function () use ($expression, $func, $cronName, $class, $callPreFn, $callback) {
                     // 每次触发仅写入系统字段（含独立 trace id，便于日志排查）
                     Context::set(Tick::CTX_SYS_CRON_NAME, $cronName);

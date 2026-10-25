@@ -9,6 +9,8 @@
  * +----------------------------------------------------------------------
  */
 
+declare(strict_types=1);
+
 namespace Swoolefy\Util;
 
 /**
@@ -186,7 +188,10 @@ class IpUtils
                 return false !== filter_var($address, \FILTER_VALIDATE_IP, \FILTER_FLAG_IPV4);
             }
 
-            if ($netmask < 0 || $netmask > 32) {
+            $netmask = filter_var($netmask, \FILTER_VALIDATE_INT, [
+                'options' => ['min_range' => 0, 'max_range' => 32],
+            ]);
+            if ($netmask === false) {
                 return false;
             }
         } else {

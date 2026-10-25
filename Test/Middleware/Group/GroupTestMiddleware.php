@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Test\Middleware\Group;
 
 use Swoolefy\Http\RequestInput;

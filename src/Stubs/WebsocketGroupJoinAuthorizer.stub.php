@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace __APP_NAMESPACE__\Auth;
 
 use Swoolefy\Websocket\Group\GroupJoinAuthorizerInterface;

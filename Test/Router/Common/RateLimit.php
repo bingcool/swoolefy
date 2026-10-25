@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Test\Router;
 
 use Swoolefy\Http\Middleware\ApiRateLimiterMiddleware;

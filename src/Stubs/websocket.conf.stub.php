@@ -5,6 +5,8 @@
  * Socket.IO 事件路由见 Config/socketio.php
  */
 
+declare(strict_types=1);
+
 return [
     // 连接表容量，生产环境按最大连接数预估后上调
     'connection_table_size' => 65536,

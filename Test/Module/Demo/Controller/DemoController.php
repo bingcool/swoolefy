@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Test\Module\Demo\Controller;
 
 use Swoolefy\Core\Controller\BController;

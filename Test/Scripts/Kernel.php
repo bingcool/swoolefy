@@ -9,6 +9,8 @@
  * +----------------------------------------------------------------------
  */
 
+declare(strict_types=1);
+
 namespace Test\Scripts;
 
 use Swoolefy\Core\Schedule\ScheduleEvent;

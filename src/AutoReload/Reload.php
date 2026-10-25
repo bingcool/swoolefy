@@ -9,6 +9,8 @@
  * +----------------------------------------------------------------------
  */
 
+declare(strict_types=1);
+
 namespace Swoolefy\AutoReload;
 
 use Swoolefy\Core\Swfy;
@@ -111,7 +113,7 @@ class Reload
                     }
 
                     if (!$this->reloading) {
-                        \Swoole\Timer::after($this->afterSeconds * 1000, [$this, 'reload']);
+                        \Swoole\Timer::after((int)($this->afterSeconds * 1000), [$this, 'reload']);
                         $this->reloading = true;
                     }
                 }

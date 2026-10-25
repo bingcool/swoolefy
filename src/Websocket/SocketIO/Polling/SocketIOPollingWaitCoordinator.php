@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Swoolefy\Websocket\SocketIO\Polling;
 
 use Swoolefy\Websocket\Cluster\ClusterRedisClient;

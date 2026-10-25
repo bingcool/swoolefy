@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Test\Module\Order\Request;
 
 use Swoolefy\Annotation\ArrayList;

@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Test\Middleware\Route;
 
 use Swoolefy\Http\RequestInput;

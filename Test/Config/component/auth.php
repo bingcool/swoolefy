@@ -14,6 +14,8 @@
  * @see docs/Auth.md
  */
 
+declare(strict_types=1);
+
 use Swoolefy\Support\Auth\JwtAuthGuard;
 use Swoolefy\Support\Auth\RoleResolverInterface;
 

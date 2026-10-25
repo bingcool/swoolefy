@@ -9,6 +9,8 @@
  * +----------------------------------------------------------------------
  */
 
+declare(strict_types=1);
+
 namespace Swoolefy\Exception;
 
 class NacosMonitorException extends AbstractSwoolefyExeption

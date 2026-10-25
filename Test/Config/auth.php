@@ -20,6 +20,8 @@
  * @see docs/Auth.md
  */
 
+declare(strict_types=1);
+
 return [
     'jwt' => [
         // Test 默认密钥仅便于本地联调；生产务必 env 覆盖

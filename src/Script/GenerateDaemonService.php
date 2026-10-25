@@ -9,6 +9,8 @@
  * +----------------------------------------------------------------------
  */
 
+declare(strict_types=1);
+
 namespace Swoolefy\Script;
 
 use Swoolefy\Worker\AbstractMainProcess;

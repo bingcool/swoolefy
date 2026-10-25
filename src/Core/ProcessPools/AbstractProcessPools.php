@@ -9,6 +9,8 @@
  * +----------------------------------------------------------------------
  */
 
+declare(strict_types=1);
+
 namespace Swoolefy\Core\ProcessPools;
 
 use Swoole\Process;
@@ -210,7 +212,7 @@ abstract class AbstractProcessPools
 
     /**
      * getArgs
-     * @return mixed
+     * @return array
      */
     public function getArgs()
     {
@@ -243,7 +245,7 @@ abstract class AbstractProcessPools
      * isEnableCoroutine
      * @return bool
      */
-    public function isEnableCoroutine()
+    public function isEnableCoroutine(): bool
     {
         return $this->enableCoroutine;
     }
@@ -310,7 +312,7 @@ abstract class AbstractProcessPools
     /**
      * @return bool
      */
-    public function isExiting()
+    public function isExiting(): bool
     {
         return $this->isExiting;
     }

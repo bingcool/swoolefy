@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Test\Module\Order;
 
 use Swoolefy\Library\Db\Concern\SoftDelete;

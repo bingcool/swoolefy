@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     [
         // 与 Test\Process\Rocketmq\ConsumerRocketmq 同一 Topic、消费组、Tag。同一个消费组 + Topic 的 worker_num 保持 1。

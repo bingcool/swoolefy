@@ -9,6 +9,8 @@
  * +----------------------------------------------------------------------
  */
 
+declare(strict_types=1);
+
 namespace Swoolefy\Core\SysCollector;
 
 use Swoolefy\Core\Swfy;
@@ -55,7 +57,7 @@ class SysProcess extends AbstractProcess
             $isEnablePvCollector       = BaseServer::isEnablePvCollector();
             $callback                  = $this->sysCollectorConfig['callback'] ?? null;
 
-            \Swoole\Timer::tick($tickTime * 1000, function ($timerId) use ($type, $atomic, $tickTime, $isEnablePvCollector, $maxTickHandleCoroutineNum, $callback) {
+            \Swoole\Timer::tick((int)($tickTime * 1000), function ($timerId) use ($type, $atomic, $tickTime, $isEnablePvCollector, $maxTickHandleCoroutineNum, $callback) {
                 try {
                     // reboot for max Coroutine
                     if ($this->getCurrentCoroutineLastCid() > $maxTickHandleCoroutineNum) {

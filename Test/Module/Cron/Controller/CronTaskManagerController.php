@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Test\Module\Cron\Controller;
 
 use Swoolefy\Annotation\ApiOperation;

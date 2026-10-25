@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Test\WorkerDaemon\Rocketmq;
 
 use Swoolefy\Support\Rocketmq\Dto\ReceivedMessageDto;

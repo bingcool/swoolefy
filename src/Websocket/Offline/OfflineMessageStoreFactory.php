@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Swoolefy\Websocket\Offline;
 
 use Swoolefy\Websocket\Cluster\ClusterConfig;

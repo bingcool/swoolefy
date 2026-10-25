@@ -9,6 +9,8 @@
  * +----------------------------------------------------------------------
  */
 
+declare(strict_types=1);
+
 namespace Swoolefy\Core;
 
 use Swoole\Server;
@@ -474,7 +476,7 @@ class EventCtrl implements EventCtrlInterface
 
         $this->masterId = $masterPid;
         $tickTime = $conf['tick_save_master_pid_time'] ?? 60 * 1000;
-        \Swoole\Timer::tick($tickTime, function () use ($pidFile) {
+        \Swoole\Timer::tick((int)$tickTime, function () use ($pidFile) {
             try {
                 PidFileManager::saveMasterPid($this->masterId, $pidFile);
             } catch (\Throwable $e) {
@@ -491,7 +493,7 @@ class EventCtrl implements EventCtrlInterface
         $conf = BaseServer::getConf();
         if (isset($conf['gc_mem_cache_enable']) && !empty($conf['gc_mem_cache_enable'])) {
             $time = $conf['gc_mem_cache_tick_time'] ?? 30;
-            \Swoole\Timer::tick($time * 1000, function () {
+            \Swoole\Timer::tick((int)($time * 1000), function () {
                 gc_mem_caches();
             });
         }

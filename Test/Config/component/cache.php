@@ -10,6 +10,8 @@
  * +----------------------------------------------------------------------
  */
 
+declare(strict_types=1);
+
 use Swoolefy\Core\Application;
 
 $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();

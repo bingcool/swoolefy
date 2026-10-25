@@ -1,6 +1,8 @@
 <?php
 // 应用配置
 
+declare(strict_types=1);
+
 $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
 
 return [

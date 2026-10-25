@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Test\Scripts\User;
 
 use Swoolefy\Core\Coroutine\Context;

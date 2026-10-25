@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Test\Module\Demo\Validation;
 
 use Test\Module\Demo\Controller\DemoController;

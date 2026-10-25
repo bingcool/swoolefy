@@ -9,4 +9,6 @@
  * 路径见 Config/health.php。
  */
 
+declare(strict_types=1);
+
 \Swoolefy\Http\Health\HealthRoutes::register();

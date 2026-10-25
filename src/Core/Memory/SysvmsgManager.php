@@ -38,6 +38,8 @@
  * msg_lrpid The pid of the process that received the last message from the queue.
  */
 
+declare(strict_types=1);
+
 namespace Swoolefy\Core\Memory;
 
 use Swoolefy\Exception\SystemException;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Swoolefy\Websocket\Metrics;
 
 use Swoolefy\Core\Coroutine\Context as SwooleContext;

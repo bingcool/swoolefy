@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Test\Process\ListQueueProcess;
 
 use Swoolefy\Support\Queue\Dto\ReceivedMessageDto;

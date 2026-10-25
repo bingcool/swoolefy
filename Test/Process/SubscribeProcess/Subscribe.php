@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Test\Process\SubscribeProcess;
 
 use Swoolefy\Core\Application;

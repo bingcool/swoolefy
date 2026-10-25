@@ -9,6 +9,8 @@
  * +----------------------------------------------------------------------
  */
 
+declare(strict_types=1);
+
 namespace Swoolefy\Worker\Dto;
 
 use Swoolefy\Core\Schedule\ScheduleEvent;

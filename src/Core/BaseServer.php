@@ -9,6 +9,8 @@
  * +----------------------------------------------------------------------
  */
 
+declare(strict_types=1);
+
 namespace Swoolefy\Core;
 
 use Aws\FMS\FMSClient;
@@ -644,7 +646,13 @@ class BaseServer
      */
     public static function getWorkerIdMapPid()
     {
-        return json_decode(TableManager::get('table_workers_pid', 'workers_pid', 'workers_pid'), true);
+        $workersPid = TableManager::get('table_workers_pid', 'workers_pid', 'workers_pid');
+        if (!is_string($workersPid) || $workersPid === '') {
+            return [];
+        }
+
+        $workerIdPidArr = json_decode($workersPid, true);
+        return is_array($workerIdPidArr) ? $workerIdPidArr : [];
     }
 
     /**

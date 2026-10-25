@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Test\Process\DelayQueueProcess;
 
 use Swoolefy\Support\Queue\DelayQueue\DelayQueueConsumerProcessHandler;

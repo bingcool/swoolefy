@@ -8,6 +8,8 @@
  * long-polling 需 Protocol/conf.php 中 accept_http=true。
  */
 
+declare(strict_types=1);
+
 return [
     'enable' => true,
     'ping_interval' => 25,

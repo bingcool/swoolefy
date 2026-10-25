@@ -9,6 +9,8 @@
  * +----------------------------------------------------------------------
  */
 
+declare(strict_types=1);
+
 namespace Swoolefy\Core\Task;
 
 use Swoolefy\Core\Dto\TaskMessageDto;

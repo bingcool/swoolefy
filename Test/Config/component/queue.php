@@ -10,6 +10,8 @@
  * +----------------------------------------------------------------------
  */
 
+declare(strict_types=1);
+
 use Swoolefy\Library\Amqp\AmqpStreamConnectionFactory;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use Swoolefy\Core\Application;

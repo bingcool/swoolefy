@@ -4,6 +4,8 @@
  * MQTT broker configuration stub (production defaults).
  */
 
+declare(strict_types=1);
+
 $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
 
 return [

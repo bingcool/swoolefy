@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Test\Common\Dto;
 
 use Swoolefy\Annotation\ApiProperty;
