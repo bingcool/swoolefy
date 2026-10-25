@@ -20,7 +20,8 @@ use Swoolefy\Exception\WorkerException;
  *
  * action 是顶层指令（status/stop/restart/send），与 WORKER_CLI_* 常量一一对应；
  * target 是目标 process_name；op/message 只对 send 有意义，op 内层动作，
- * message 是透传给目标进程的原始内容。
+ * message 是透传给目标进程的原始内容。start/restart/stop 由 Master 执行，
+ * 其余 op 作为自定义指令名连同 message 交给 worker 的 onPipeMsg 分发。
  */
 final class ControlRequest
 {

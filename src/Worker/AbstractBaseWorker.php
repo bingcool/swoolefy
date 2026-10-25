@@ -963,7 +963,7 @@ abstract class AbstractBaseWorker
     }
 
     /**
-     * notifyMasterCreateDynamicProcess
+     * notifyMasterCreateDynamicProcess。请求main worker process 动态创建子进程，加大消费
      *
      * @param string $dynamicProcessName
      * @param int $dynamicProcessNum
@@ -998,7 +998,7 @@ abstract class AbstractBaseWorker
     }
 
     /**
-     * notifyMasterDestroyDynamicProcess
+     * notifyMasterDestroyDynamicProcess。请求main worker process 销毁动态创建子进程，减少进程开销
      *
      * @param string $dynamicProcessName
      * @param int $dynamicProcessNum

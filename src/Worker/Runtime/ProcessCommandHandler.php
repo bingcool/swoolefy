@@ -178,7 +178,7 @@ final class ProcessCommandHandler
     }
 
     /**
-     * CLI 动态加进程（历史接口）：lists 中已有该名才允许 createDynamicProcess。
+     * CLI 动态加进程：lists 中已有该名才允许 createDynamicProcess。
      */
     public function addProcessByCli(string $processName, int $num = 1): void
     {

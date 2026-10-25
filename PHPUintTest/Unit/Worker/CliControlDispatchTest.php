@@ -151,4 +151,89 @@ final class CliControlDispatchTest extends TestCase
         $this->assertSame('p1', $manager->getCommandHandler()->parseLoadConf('p1')['process_name'] ?? null);
         $this->assertSame([], $manager->getCommandHandler()->parseLoadConf('p2'));
     }
+
+    /**
+     * 自定义指令必须带 action 信封交给 onPipeMsg，不能只发裸 msg。
+     */
+    public function testSendCustomActionForwardsActionEnvelope(): void
+    {
+        $manager = $this->managerCapturingWrites();
+        $manager->getRegistry()->setWorker('cron-worker', 0, $this->workerStub('cron-worker', 0));
+
+        $sink = new ReplySink();
+        $manager->getCliControlServer()->dispatch(
+            new ControlRequest(WORKER_CLI_SEND_MSG, 'cron-worker', 'run-once-cron', 'payload', 'n1'),
+            $sink
+        );
+
+        $this->assertTrue($sink->isClosed());
+        $this->assertStringContainsString('已接收到指令', substr($sink->sentFrames()[0], 4));
+        $this->assertCount(1, $manager->writes);
+        $this->assertSame(
+            ['action' => 'run-once-cron', 'msg' => 'payload'],
+            json_decode($manager->writes[0][1], true)
+        );
+    }
+
+    public function testSendWithoutActionRepliesFailure(): void
+    {
+        $manager = $this->managerCapturingWrites();
+        $manager->getRegistry()->setWorker('cron-worker', 0, $this->workerStub('cron-worker', 0));
+
+        $sink = new ReplySink();
+        $manager->getCliControlServer()->dispatch(
+            new ControlRequest(WORKER_CLI_SEND_MSG, 'cron-worker', '', 'payload', 'n2'),
+            $sink
+        );
+
+        $this->assertTrue($sink->isClosed());
+        $this->assertStringContainsString('缺少内层动作', substr($sink->sentFrames()[0], 4));
+        $this->assertSame([], $manager->writes);
+    }
+
+    private function managerCapturingWrites(): MainManager
+    {
+        return new class extends MainManager {
+            /** @var array<int, array{0:string, 1:string, 2:int}> */
+            public array $writes = [];
+
+            public function __construct()
+            {
+            }
+
+            public function writeByProcessName(string $processName, $data, int $processWorkerId = 0)
+            {
+                $this->writes[] = [$processName, (string) $data, $processWorkerId];
+
+                return true;
+            }
+
+            protected function fmtWriteInfo($msg)
+            {
+            }
+
+            protected function fmtWriteError($msg)
+            {
+            }
+        };
+    }
+
+    private function workerStub(string $processName, int $workerId): object
+    {
+        return new class ($processName, $workerId) {
+            public function __construct(private string $processName, private int $workerId)
+            {
+            }
+
+            public function getProcessName(): string
+            {
+                return $this->processName;
+            }
+
+            public function getProcessWorkerId(): int
+            {
+                return $this->workerId;
+            }
+        };
+    }
 }

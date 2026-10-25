@@ -133,6 +133,9 @@ final class CliControlServer
         }
 
         $stat = @stat($socketPath);
+        if (!is_array($stat)) {
+            $this->manager->logError('读取 Worker 控制面 socket 身份失败，本次停机将跳过 unlink: ' . $socketPath);
+        }
         $this->socketIdentity = is_array($stat) ? [(int) $stat['dev'], (int) $stat['ino']] : null;
 
         stream_set_blocking($server, false);
@@ -251,7 +254,8 @@ final class CliControlServer
     }
 
     /**
-     * SEND_MSG 内层动作：start / restart / stop 指定进程，或把原文转给该进程全部 worker。
+     * SEND_MSG 内层动作：start / restart / stop 指定进程，或把 {action, msg} 信封
+     * 转给该进程全部 worker，由 onPipeMsg 分发自定义指令。
      *
      * START 先回帧并关闭连接，再 fork：否则新 worker 会继承客户端 fd，
      * 常驻进程泄漏连接且客户端看不到 EOF。
@@ -299,13 +303,22 @@ final class CliControlServer
                     $commands->responseMsgByPipe("找不到进程名【{$processName}】的配置项！", false);
                     return;
                 }
+                if ($request->op === '') {
+                    $commands->responseMsgByPipe('缺少内层动作（--action）', false);
+                    return;
+                }
                 $commands->responseMsgByPipe("子进程【{$processName}】已接收到指令，请留意！");
+                // onPipeMsg 按 action 分发自定义指令，必须带信封而非只发裸 msg
+                $payload = (string) json_encode(
+                    ['action' => $request->op, 'msg' => $request->message],
+                    JSON_UNESCAPED_UNICODE
+                );
                 ksort($workers);
                 foreach ($workers as $process) {
                     /** @var AbstractBaseWorker $process */
                     $name = $process->getProcessName();
                     $workerId = $process->getProcessWorkerId();
-                    $this->manager->writeByProcessName($name, $request->message, $workerId);
+                    $this->manager->writeByProcessName($name, $payload, $workerId);
                 }
                 break;
         }
@@ -365,6 +378,8 @@ final class CliControlServer
         $timerId = \Swoole\Timer::after(self::CONNECTION_DEADLINE_MS, function () use ($id): void {
             $this->onDeadline($id);
         });
+        // Timer::after 返回 false 表示定时器资源耗尽；此时该连接没有 deadline 兜底，
+        // 属于有意降级：注册失败也不立刻断开，连接仍能正常收发，由对端关闭释放。
         if (is_int($timerId) && isset($this->connections[$id])) {
             $this->connections[$id]['timer'] = $timerId;
         }
@@ -388,6 +403,10 @@ final class CliControlServer
             $payload = ControlFrame::tryRead($stream, $buffer, ControlFrame::MAX_REQUEST_BYTES);
         } catch (\Throwable $throwable) {
             $connection['sink']->respondText('控制请求帧非法: ' . $throwable->getMessage(), false);
+            // flush 可能因 EAGAIN 留下残帧，与正常路径一样靠可写事件排空
+            if (isset($this->connections[$id])) {
+                $this->syncEvents($id);
+            }
             return;
         }
 

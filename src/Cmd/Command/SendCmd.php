@@ -31,7 +31,7 @@ class SendCmd extends BaseCmd
     {
         parent::configure();
         $this->setDescription('send message to the worker service')
-             ->setHelp('<info>use php daemon.php send XXXXX --name=xxxxx --action=start</info>');
+             ->setHelp('<info>use php daemon.php send XXXXX --name=xxxxx --action=start|restart|stop|自定义指令 --msg=xxx</info>');
     }
 
     /**

@@ -337,6 +337,10 @@ class MainManager
      * 先装 timer 再 fork：timer 回调禁止协程；setRunning 在控制面之前，
      * 避免控制面在 Master 未就绪时 writeByProcessName。
      *
+     * 控制面装不上是致命错误，不能交给外层 catch 收尾：initStart() 已经 fork
+     * 了整套业务进程，异常冒到 run() 之后 Swoole 会立即重建 MainManager，
+     * 每轮重建都会再 fork 一套。必须连外层 Server 一起停，见 abortStartup()。
+     *
      * @return mixed
      */
     public function start()
@@ -348,7 +352,12 @@ class MainManager
                 $this->getStatusReporter()->install();
                 $this->getSupervisor()->initStart();
                 $this->setRunning();
-                $this->getCliControlServer()->install();
+                try {
+                    $this->getCliControlServer()->install();
+                } catch (\Throwable $throwable) {
+                    $this->abortStartup($throwable);
+                    return null;
+                }
                 $this->getSupervisor()->installSigchldSignal();
                 $this->getSignalShutdown()->installStopSignal();
                 $this->getSignalShutdown()->installReloadSignal();
@@ -367,6 +376,31 @@ class MainManager
         } catch (\Throwable $throwable) {
             $this->handleWorkerException($throwable);
         }
+    }
+
+    /**
+     * 控制面启动失败的收尾：先落日志，再走完整机关机流程。
+     *
+     * 不能只抛异常交给 run()：run() 返回后 Swoole manager 会立即重建 MainManager，
+     * 每轮重建都会重新 fork 一套业务进程。也不能只停外层 Server：业务进程不是
+     * 外层 Master 的子进程，外层退出后它们仍然活着并占着监听端口，下一次 start
+     * 会直接 EADDRINUSE。shutdownMainManager() 会先停业务进程、删 pid 文件，
+     * 再停外层 Server，把启动失败收敛成一次性失败。
+     *
+     * 应用设置的 onHandleException 通常会 rethrow（AbstractMainProcess），
+     * 必须在这里接住，否则后面的停机逻辑不会执行。
+     */
+    private function abortStartup(\Throwable $throwable): void
+    {
+        $this->logError('Worker 控制面启动失败，停止整个服务: ' . $throwable->getMessage());
+
+        try {
+            $this->handleWorkerException($throwable);
+        } catch (\Throwable $reportFailure) {
+            BaseServer::catchException($reportFailure);
+        }
+
+        $this->shutdownMainManager('startup-failed');
     }
 
     /**

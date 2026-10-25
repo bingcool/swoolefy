@@ -24,9 +24,6 @@ use Swoolefy\Worker\Dto\ControlResponse;
  */
 final class ReplySink
 {
-    /** 出站缓冲超过该值视为异常客户端，直接断开（字节） */
-    private const MAX_PENDING_BYTES = 2097152;
-
     /** @var resource|null */
     private $stream;
 
@@ -85,6 +82,10 @@ final class ReplySink
     /**
      * 直写小帧并立刻关闭连接。专用于 STOP：shutdown 会在 Event::exit() 处终结进程，
      * 之后没有任何 tick 能继续排空缓冲。
+     *
+     * 只允许用于小于 PIPE_BUF（4096 字节）且此连接尚未写过数据的应答帧：
+     * 此时发送缓冲为空，单次 fwrite 不会短写；一旦短写，剩余部分会被 close() 丢弃。
+     * 大帧或需要排空的响应必须走 respond()/flush()。
      */
     public function respondNow(string $message, bool $ok = true, string $data = ''): void
     {
@@ -211,10 +212,6 @@ final class ReplySink
 
         $this->sentFrames[] = $frame;
         $this->out .= $frame;
-
-        if (strlen($this->out) > self::MAX_PENDING_BYTES) {
-            $this->close();
-        }
     }
 
     private function maybeCloseAfterFlush(): void
