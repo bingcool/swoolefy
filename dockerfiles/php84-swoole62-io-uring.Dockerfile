@@ -4,7 +4,7 @@ LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 
 #swoole6.2.x最高只支持到php84、php85.
 #根据实际构建来设置环境变量
-ENV MY_SWOOLE_VERSION=6.2.2 \
+ENV MY_SWOOLE_VERSION=6.2.4 \
 MY_PHP_VERSION=84 \
 SWOOLEFY_CLI_ENV=dev
 
@@ -48,18 +48,9 @@ RUN set -eux; \
     php${MY_PHP_VERSION}-pgsql \
     php${MY_PHP_VERSION}-pdo_sqlite \
     php${MY_PHP_VERSION}-sqlite3 \
-    php${MY_PHP_VERSION}-mysqlnd; \
-  SWOOLE_TGZ="swoole-src-${MY_SWOOLE_VERSION}.tar.gz"; \
-  SWOOLE_URL="https://github.com/swoole/swoole-src/archive/refs/tags/v${MY_SWOOLE_VERSION}.tar.gz"; \
-  wget -O "${SWOOLE_TGZ}" "https://ghfast.top/${SWOOLE_URL}" \
-    || wget -O "${SWOOLE_TGZ}" "https://gitclone.com/github.com/swoole/swoole-src/archive/refs/tags/v${MY_SWOOLE_VERSION}.tar.gz" \
-    || wget -O "${SWOOLE_TGZ}" "${SWOOLE_URL}"; \
-  tar -tzf "${SWOOLE_TGZ}" >/dev/null; \
-  tar -xzf "${SWOOLE_TGZ}"; \
-  rm -f "${SWOOLE_TGZ}"; \
-  cd "swoole-src-${MY_SWOOLE_VERSION}"; \
-  /usr/bin/phpize${MY_PHP_VERSION}; \
-  ./configure --with-php-config=/usr/bin/php-config${MY_PHP_VERSION} \
+    php${MY_PHP_VERSION}-mysqlnd \
+    && wget https://github.com/swoole/swoole-src/archive/refs/tags/v${MY_SWOOLE_VERSION}.tar.gz -O - -q | tar -xz \
+    && cd swoole-src-${MY_SWOOLE_VERSION} && /usr/bin/phpize${MY_PHP_VERSION} && ./configure --with-php-config=/usr/bin/php-config${MY_PHP_VERSION} \
     --enable-mysqlnd \
     --enable-openssl \
     --enable-sockets \
@@ -81,7 +72,7 @@ FROM alpine:3.22.5
 LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 
 #根据实际构建来设置环境变量
-ENV MY_SWOOLE_VERSION=6.2.2 \
+ENV MY_SWOOLE_VERSION=6.2.4 \
 MY_PHP_VERSION=84 \
 SWOOLEFY_CLI_ENV=dev
 
@@ -150,7 +141,7 @@ RUN set -eux; \
     php${MY_PHP_VERSION}-pecl-xlswriter \
     php${MY_PHP_VERSION}-pecl-amqp \
     php${MY_PHP_VERSION}-pecl-rdkafka \
-    php${MY_PHP_VERSION}-pecl-mongodb; \
+    php${MY_PHP_VERSION}-pecl-mongodb \
     && echo "opcache.enable_cli='Off'" >> /etc/php${MY_PHP_VERSION}/conf.d/00_opcache.ini \
     && echo "extension=swoole" >> /etc/php${MY_PHP_VERSION}/conf.d/99_swoole.ini \
     && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
@@ -163,7 +154,7 @@ RUN set -eux; \
     && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
     && composer config -g repo.packagist composer https://mirrors.tencent.com/composer/ \
     && php -v && php -m \
-    && echo -e "\033[42;37m Build Completed :).\033[0m\n"
+    && echo -e "\033[42;37m Build Completed :).\033[0m\n" \
 
 #copy编译好的swoole扩展
 COPY --from=ext-build /usr/lib/php${MY_PHP_VERSION}/modules/swoole.so /usr/lib/php${MY_PHP_VERSION}/modules/swoole.so
