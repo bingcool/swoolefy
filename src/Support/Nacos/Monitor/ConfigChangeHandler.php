@@ -40,7 +40,7 @@ final class ConfigChangeHandler
     ) {
         $this->logger = NacosLogger::get();
         $this->configFileWriter = $configFileWriter ?? new ConfigFileWriter();
-        $this->restarter = $restarter ?? new ServiceRestarter($this->logger);
+        $this->restarter = $restarter ?? new ServiceRestarter($this->logger, $config->k8sMode);
         $this->configFetcher = $configFetcher ?? new ConfigFetcher($config->nacosConfig, $config->serviceConfig);
     }
 
@@ -59,6 +59,19 @@ final class ConfigChangeHandler
         }
 
         try {
+            // k8s：写进容器可写层的 .env 会随容器销毁，重建后由入口 $beforeFunc 重新拉取，
+            // 这里只负责让服务退出，把重启交给 kubelet。
+            if ($this->config->k8sMode) {
+                $this->logger->info(sprintf(
+                    'nacos config changed: dataId=%s group=%s, k8s mode, stopping service for kubelet restart',
+                    $this->config->serviceConfig->dataId,
+                    $this->config->serviceConfig->group,
+                ));
+
+                $this->restarter->restart();
+                return;
+            }
+
             $content = $this->configFetcher->get();
 
             // 与 NacosFactory::fetchConfigToEnv 对齐：非法 .env 拒绝写入，避免 restart 后启动失败

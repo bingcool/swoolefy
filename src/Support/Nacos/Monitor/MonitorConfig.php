@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Nacos\Monitor;
 
+use Swoolefy\Core\SystemEnv;
 use Swoolefy\Support\ApplicationConfig;
 use Swoolefy\Support\Nacos\NacosConfig;
 use Swoolefy\Support\Nacos\NacosConst;
@@ -30,6 +31,7 @@ final class MonitorConfig
         public readonly string $lockFile,
         public readonly int $listenerTimeoutMs,
         public readonly int $failedWaitMs,
+        public readonly bool $k8sMode = false,
     ) {
     }
 
@@ -47,6 +49,20 @@ final class MonitorConfig
             lockFile: ApplicationConfig::pickString($monitor, 'lock_file', NacosConst::ENV_RELOAD_LOCK, '/tmp/swoolefy_' . strtolower($appName) . '_nacos_restart.lock'),
             listenerTimeoutMs: ApplicationConfig::pickInt($monitor, 'listener_timeout_ms', NacosConst::ENV_LISTENER_TIMEOUT_MS, 30_000),
             failedWaitMs: ApplicationConfig::pickInt($monitor, 'failed_wait_ms', NacosConst::ENV_LISTENER_FAILED_MS, 3_000),
+            k8sMode: self::detectK8sMode(),
         );
+    }
+
+    /**
+     * k8s 下 master 退出会连带容器终止，重启由 kubelet 按 restartPolicy 完成。
+     * 除显式 `--fromk8s` 外，也识别 Pod 内自动注入的 KUBERNETES_SERVICE_HOST，避免依赖启动命令加参数。
+     */
+    private static function detectK8sMode(): bool
+    {
+        if (SystemEnv::isFromK8s()) {
+            return true;
+        }
+
+        return '' !== trim((string) env('KUBERNETES_SERVICE_HOST',''));
     }
 }

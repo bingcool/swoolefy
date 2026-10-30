@@ -123,6 +123,8 @@ nacos:
 | `NACOS_LISTENER_TIMEOUT_MS` | `nacos.monitor_config_change.listener_timeout_ms` | 长轮询超时（毫秒） | `30000` |
 | `NACOS_LISTENER_FAILED_MS` | `nacos.monitor_config_change.failed_wait_ms` | 监听失败后等待（毫秒） | `3000` |
 
+k8s 内（`--fromk8s=1` 或设置了 `KUBERNETES_SERVICE_HOST`）不写 `.env`、不拉起 `restart` 进程，改为退出 master 由 kubelet 重建容器，配置在启动时由入口 `$beforeFunc` 重新拉取。详见 [Monitor/README.md](Monitor/README.md#k8s-部署)。
+
 ### 示例
 
 ```bash

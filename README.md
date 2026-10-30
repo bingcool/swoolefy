@@ -493,7 +493,7 @@ docker run -d -it --security-opt seccomp=unconfined -p 9501:9501 -p 9502:9502 -v
 
   | 能力       | 说明                                                       | 主要类                                                                                        |
   | -------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-  | 配置变更监听   | 长轮询配置 → 写入 `.env` → 后台 `cli.php restart {App} --force=1` | `NacosMonitor`、`ConfigWatcher`（见 [Monitor/README.md](src/Support/Nacos/Monitor/README.md)） |
+  | 配置变更监听   | 长轮询配置 → 写入 `.env` → 后台 `cli.php restart {App} --force=1`（k8s 下改为退出 master，由 kubelet 重建容器） | `NacosMonitor`、`ConfigWatcher`（见 [Monitor/README.md](src/Support/Nacos/Monitor/README.md)） |
   | 服务注册     | 注册实例到 Nacos 并定时心跳                                        | `ServiceRegister`                                                                          |
   | 服务发现     | 实例列表缓存 + 负载均衡选节点                                         | `DiscoveryClient`、`DiscoveryConfig`、`LoadBalancerFactory`                                  |
     自定义进程示例（`Event.php` 中注册）：
