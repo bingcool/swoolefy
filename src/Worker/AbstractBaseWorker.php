@@ -812,7 +812,8 @@ abstract class AbstractBaseWorker
                     $this->fmtWriteError("process name={$processName}, error msg={$errorStr}");
                 }
 
-                if(!in_array($error['type'], [E_NOTICE, E_WARNING]) ) {
+                // 只处理致命错误：E_DEPRECATED/E_NOTICE/E_WARNING 等非致命级别不应在进程退出时被当成异常上报
+                if(in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR], true)) {
                     $exception = new WorkerException($errorStr, $error['type']);
                     $this->onHandleException($exception);
                 }

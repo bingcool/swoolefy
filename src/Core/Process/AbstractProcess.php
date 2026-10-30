@@ -459,17 +459,17 @@ abstract class AbstractProcess
     {
         register_shutdown_function(function () {
             $error = error_get_last();
-            if(null !== $error) {
-                $errorStr = sprintf("%s in file %s on line %d",
-                    $error['message'],
-                    $error['file'],
-                    $error['line']
-                );
-                if(!in_array($error['type'], [E_NOTICE, E_WARNING]) ) {
-                    $exception = new SystemException($errorStr, $error['type']);
-                    $this->onHandleException($exception);
-                }
+            // 只处理致命错误：E_DEPRECATED/E_NOTICE/E_WARNING 等非致命级别不应在进程退出时被当成异常上报
+            if(null === $error || !in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR], true)) {
+                return;
             }
+            $errorStr = sprintf("%s in file %s on line %d",
+                $error['message'],
+                $error['file'],
+                $error['line']
+            );
+            $exception = new SystemException($errorStr, $error['type']);
+            $this->onHandleException($exception);
         });
     }
 

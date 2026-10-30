@@ -1,0 +1,233 @@
+# swoolefy 本地开发依赖：redis / mysql / kafka / rabbitmq / rocketmq
+# 用法：cd dockerfiles && docker compose up -d
+# 端口发布到宿主机所有网卡：本机 PHP 用 127.0.0.1，swoolefy-php85-v62 这类容器用宿主机 LAN IP
+# （容器里的 127.0.0.1 是容器自己，连不到宿主机）。
+name: swoolefy-dev
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  redis:
+    image: redis:7.4-alpine
+    container_name: dev-redis
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --requirepass
+      - redis123
+      - --appendonly
+      - "yes"
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis123", "--no-auth-warning", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    logging: *default-logging
+
+  mysql:
+    image: mysql:8.4
+    container_name: dev-mysql
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --max_connections=500
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: swoolefy
+      MYSQL_USER: swoolefy
+      MYSQL_PASSWORD: swoolefy123
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot123"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging: *default-logging
+
+  rabbitmq:
+    image: rabbitmq:4.1-management
+    container_name: dev-rabbitmq
+    restart: unless-stopped
+    hostname: dev-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: rabbitmq
+      # 与 Test/.env 的 AMQP_PASSWORD 保持一致
+      RABBITMQ_DEFAULT_PASS: "123456"
+      RABBITMQ_DEFAULT_VHOST: my_vhost
+      TZ: Asia/Shanghai
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
+
+  kafka:
+    image: apache/kafka:3.9.1
+    container_name: dev-kafka
+    restart: unless-stopped
+    environment:
+      CLUSTER_ID: swoolefy-dev-cluster
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      # 宣告地址必须是宿主机 LAN IP：容器里的 127.0.0.1 指向容器自己，客户端会连不上。
+      # 宿主机 IP 变了用 `HOST_IP=192.168.x.x docker compose up -d` 覆盖。
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://${HOST_IP:-192.168.10.187}:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@127.0.0.1:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server 127.0.0.1:9092 >/dev/null 2>&1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
+    logging: *default-logging
+
+  rocketmq-namesrv:
+    image: apache/rocketmq:5.3.2
+    container_name: dev-rocketmq-namesrv
+    restart: unless-stopped
+    command: ["sh", "mqnamesrv"]
+    environment:
+      JAVA_OPT_EXT: "-Xms512m -Xmx512m -Xmn256m"
+    ports:
+      - "9876:9876"
+    networks:
+      dev-net:
+        ipv4_address: 172.30.0.11
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/127.0.0.1/9876"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging: *default-logging
+
+  rocketmq-broker:
+    image: apache/rocketmq:5.3.2
+    container_name: dev-rocketmq-broker
+    restart: unless-stopped
+    # 镜像里没有 /home/rocketmq/store|logs，命名卷首次挂载会被 docker 建成 root:root，
+    # 而镜像默认以 uid 3000 运行，落盘直接失败退出，所以这里用 root 跑
+    user: "0:0"
+    # brokerIP1 必须是 IP，客户端（proxy）按它回连，所以这里给固定地址
+    command: ["sh", "mqbroker", "-c", "/home/rocketmq/conf/broker.conf"]
+    environment:
+      NAMESRV_ADDR: rocketmq-namesrv:9876
+      JAVA_OPT_EXT: "-Xms512m -Xmx512m -Xmn256m"
+    depends_on:
+      rocketmq-namesrv:
+        condition: service_healthy
+    volumes:
+      - ./conf/rocketmq/broker.conf:/home/rocketmq/conf/broker.conf:ro
+      - rocketmq-broker-store:/home/rocketmq/store
+      - rocketmq-broker-logs:/home/rocketmq/logs
+    networks:
+      dev-net:
+        ipv4_address: 172.30.0.12
+    logging: *default-logging
+
+  rocketmq-proxy:
+    image: apache/rocketmq:5.3.2
+    container_name: dev-rocketmq-proxy
+    restart: unless-stopped
+    command: ["sh", "mqproxy", "-pc", "/home/rocketmq/conf/rmq-proxy.json"]
+    environment:
+      JAVA_OPT_EXT: "-Xms512m -Xmx512m -Xmn256m"
+    depends_on:
+      rocketmq-broker:
+        condition: service_started
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./conf/rocketmq/rmq-proxy.json:/home/rocketmq/conf/rmq-proxy.json:ro
+    networks:
+      dev-net:
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/127.0.0.1/8081"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
+
+  nacos:
+    image: nacos/nacos-server:v2.5.2-slim
+    container_name: dev-nacos
+    restart: unless-stopped
+    environment:
+      MODE: standalone
+      # 本地开发用内置 Derby（数据落 nacos-data 卷）。要切 MySQL 得先手工导入官方 nacos schema，
+      # 再补 SPRING_DATASOURCE_PLATFORM=mysql 以及 MYSQL_SERVICE_* 这几项。
+      # 2.5.2 的 schema 不再内置默认账号，开了认证就没有可用登录名，所以这里默认关闭；
+      # 需要认证时先保持 false 启动，用 POST /nacos/v1/auth/users?username=x&password=y 建号，
+      # 再补 NACOS_AUTH_IDENTITY_KEY/VALUE 与 NACOS_AUTH_TOKEN（base64，解码后 >= 32 字节）并打开开关。
+      NACOS_AUTH_ENABLE: "false"
+      JVM_XMS: 512m
+      JVM_XMX: 512m
+      JVM_XMN: 256m
+      TZ: Asia/Shanghai
+    ports:
+      - "8848:8848"   # 控制台 / HTTP API
+      - "9848:9848"   # 客户端 gRPC（固定为 8848+1000）
+      - "9849:9849"   # 服务端 gRPC
+    volumes:
+      - nacos-data:/home/nacos/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8848/nacos/v1/console/health/readiness"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    logging: *default-logging
+
+networks:
+  dev-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+
+volumes:
+  redis-data:
+  mysql-data:
+  rabbitmq-data:
+  kafka-data:
+  rocketmq-broker-store:
+  rocketmq-broker-logs:
+  nacos-data:

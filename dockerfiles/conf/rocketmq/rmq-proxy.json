@@ -1,0 +1,4 @@
+{
+  "namesrvAddr": "rocketmq-namesrv:9876",
+  "grpcServerPort": 8081
+}
