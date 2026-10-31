@@ -99,7 +99,7 @@ k8s Job 跑 script 时会带 `--fromk8s`。`SystemEnv::isFromK8s()` 为真时，
 3. 非 Worker：Http 走 `Route::loadRouteFile()`，Websocket / Udp 走 `ServiceDispatch::loadRouteFile()`。
 4. `onInit()`。应用在这里做慢 SQL、租户拦截器、组件预注册这类全局初始化。
 5. `registerSqlLogger()` → `registerCrontabLogger()` → `registerGuzzleCurlLogger()`，非 Script 再 `registerStartLog()`。
-6. 非 Worker 才注册框架 user process，按开关逐个判断：系统采集、热重载、Nacos 注册、WebSocket 集群推送。
+6. 非 Worker 才注册框架 user process，按开关逐个判断：系统采集、热重载、Nacos 注册、Nacos 配置变更监听、WebSocket 集群推送。两个 Nacos 开关分别对应 `enable_nacos_register` 与 `enable_nacos_config_change_restart`（`ApplicationConfig`），应用不必在 `Event` 里手动 `addProcess`。
 7. Worker 走 `onWorkerServiceInit()` + `boostrapWorkerInit()`：校验 `WORKER_SERVICE_NAME` / `PROCESS_CLASS` 后 `addProcess` 主管理进程。
 8. `SidecarSupervisor::attach()`：登记 sidecar、按需拉起 Go 进程。
 9. 只有 `BaseServer::getServer()` 是 `Swoole\Server` 实例时才 `bindShutdownHook()`。

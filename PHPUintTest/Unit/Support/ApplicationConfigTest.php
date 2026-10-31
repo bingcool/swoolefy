@@ -80,6 +80,10 @@ if (Swoolefy\Support\ApplicationConfig::hasApplicationYaml()) {
     fwrite(STDERR, 'application.yaml should be absent' . PHP_EOL);
     exit(1);
 }
+if (Swoolefy\Support\ApplicationConfig::isEnableNacosConfigChangeRestart()) {
+    fwrite(STDERR, 'nacos config change should be disabled without application.yaml' . PHP_EOL);
+    exit(1);
+}
 echo "ok\n";
 PHP;
 
@@ -97,6 +101,15 @@ PHP;
         @rmdir($tmpRoot);
 
         $this->assertSame(0, $exitCode, implode("\n", $output));
+    }
+
+    /**
+     * 验证：Test 应用开启 enable_nacos_config_change_restart，框架据此自动注册监听进程。
+     */
+    public function testEnableNacosConfigChangeRestartReadsApplicationYaml(): void
+    {
+        $this->assertTrue(ApplicationConfig::hasApplicationYaml());
+        $this->assertTrue(ApplicationConfig::isEnableNacosConfigChangeRestart());
     }
 
     /**

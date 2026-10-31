@@ -114,6 +114,8 @@ nacos:
 
 ### 配置变更监听（`application.yaml` → `nacos.monitor_config_change` → `MonitorConfig`）
 
+`nacos.enable_nacos_config_change_restart: true` 时，框架在 `EventCtrl::init()` 注册进程 `swoolefy_nacos_monitor`（`NacosConfigReloadProcess`），无需在应用的 `Event` 里手动 `addProcess`。缺省为关闭。
+
 详见 [Monitor/README.md](Monitor/README.md)。
 
 | 环境变量 | YAML 键 | 说明 | 默认值 |

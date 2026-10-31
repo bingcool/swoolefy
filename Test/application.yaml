@@ -14,10 +14,10 @@ nacos:
     ip: ${POD_IP}
     # 优先读取 NACOS_SERVICE_REGISTER_PORT 环境变量。一般不需要配置，除非docker映射端口不一致。默认读取cli.php环境变量WORKER_PORT
     # port: 9501
-    service_name: my-service
+    service_name: swoolefy-test-service
     heartbeat_interval: 10   # 心跳间隔（秒）
-    namespace_id: ''
-    group_name: 'pwa_group'
+    namespace_id: dev
+    group_name: swoolefy-group
     weight: 1
     ephemeral: true
     metadata:

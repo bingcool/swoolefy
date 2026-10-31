@@ -22,13 +22,27 @@ class Event extends EventHandler
 {
     /**
      * 是否注册 Test\Process\MqVerify 下的消息中间件验证进程。验证完改回 false。
+     * 默认开启；没有 Kafka / RabbitMQ / RocketMQ 的环境（如 k8s 演示部署）用 TEST_MQ_VERIFY=0 关闭。
      */
-    private const MQ_VERIFY = true;
+    private static function mqVerifyEnabled(): bool
+    {
+        return self::envFlag('TEST_MQ_VERIFY', false);
+    }
 
     /**
      * 是否注册 PubSub 端到端验证进程。启动 Test 服务后看 [PUBSUB-VERIFY] 输出。
+     * 默认开启；没有 Redis 的环境（如 k8s 演示部署）用 TEST_PUBSUB_VERIFY=0 关闭。
      */
-    private const PUBSUB_VERIFY = true;
+    private static function pubsubVerifyEnabled(): bool
+    {
+        return self::envFlag('TEST_PUBSUB_VERIFY', false);
+    }
+
+    private static function envFlag(string $name, bool $default): bool
+    {
+        $value = getenv($name);
+        return (false === $value || '' === $value) ? $default : (bool) (int) $value;
+    }
 
     /**
      * onInit
@@ -125,7 +139,7 @@ class Event extends EventHandler
 
 
             // Kafka / AMQP / RocketMQ 真实环境验证：每个场景一个进程，结果看 [MQ-VERIFY] 开头的输出，约 1~3 分钟出结论
-            if (self::MQ_VERIFY) {
+            if (self::mqVerifyEnabled()) {
                 $this->registerMqVerifyProcesses();
             }
 
@@ -136,7 +150,7 @@ class Event extends EventHandler
             // ProcessManager::getInstance()->addProcess('redis_subscribe_test', \Test\Process\SubscribeProcess\Subscribe::class);
             // PubSub 端到端验证：一个场景一个独立进程，避免单个场景阻塞拖垮其余用例
             // 结果：容器内 /tmp/pubsub-verify/verify.log 与 results.jsonl，stdout 带 [PUBSUB-VERIFY] 前缀
-            if (self::PUBSUB_VERIFY) {
+            if (self::pubsubVerifyEnabled()) {
                 foreach (\Test\Process\SubscribeProcess\PubSubVerify::scenarios() as $scenario) {
                     ProcessManager::getInstance()->addProcess(
                         'pubsubv-' . $scenario,
@@ -152,17 +166,7 @@ class Event extends EventHandler
             // multi call 并发调用进程
             // ProcessManager::getInstance()->addProcess('multi-call', \Test\Process\TestProcess\MultiCall::class);
 
-            // nacos|SDK调用进程
-
-            // Nacos 配置变更 → reload Worker / Task 进程
-            // ProcessManager::getInstance()->addProcess(
-            //    'nacos-config-reload',
-            //    \Test\Process\NacosProcess\NacosConfigReload::class,
-            //    true,
-            //    [],
-            //    null,
-            //    true,
-            //);
+            // Nacos 配置变更监听由 application.yaml 的 nacos.enable_nacos_config_change_restart 自动注册
 
             // Udp服务测试
             // ProcessManager::getInstance()->addProcess('cdp-test', \Test\Process\UdpTestProcess\Udp::class);

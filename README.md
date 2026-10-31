@@ -1687,7 +1687,7 @@ env:
 2. 拉取最新配置写入 `APP_PATH/.env`
 3. 随机短暂延迟后执行 `php cli.php restart {APP_NAME} --force=1`，Worker 加载新环境变量
 
-在 `Event.php` 注册自定义进程 `NacosConfigReload`，或调用 `NacosMonitor::run()`。详见 [src/Support/Nacos/Monitor/README.md](src/Support/Nacos/Monitor/README.md)。
+在 `application.yaml` 设置 `nacos.enable_nacos_config_change_restart: true` 时，框架自动注册内置进程 `NacosConfigReloadProcess`（`swoolefy_nacos_monitor`），无需在 `Event.php` 手动注册；需要自定义进程名时自行 `addProcess` 并保持开关关闭，避免两个 watcher 重复重启。详见 [src/Support/Nacos/Monitor/README.md](src/Support/Nacos/Monitor/README.md)。
 
 #### 服务注册
 

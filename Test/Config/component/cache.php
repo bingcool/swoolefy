@@ -20,6 +20,11 @@ return [
     'redis' => function() use($dc) {
         $redis = new \Swoolefy\Library\Redis\Redis();
         $redis->connect($dc['redis']['host'], $dc['redis']['port']);
+        // 带密码的 Redis（本地 docker-compose / 测试环境）需要显式 auth，否则 PING 返回 NOAUTH
+        $password = (string) env('REDIS_PASSWORD', '');
+        if ('' !== $password) {
+            $redis->auth($password);
+        }
         return $redis;
     },
 

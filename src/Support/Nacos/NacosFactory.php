@@ -18,6 +18,7 @@ use Dotenv\Exception\InvalidFileException;
 use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\Exception\RequestException;
 use Swoole\Http\Status;
+use Swoolefy\Core\SystemEnv;
 use Swoolefy\Exception\NacosMonitorException;
 use Swoolefy\Support\ApplicationConfig;
 
@@ -56,6 +57,11 @@ final class NacosFactory
 
         self::assertValidEnvContent($content);
         self::writeEnvFileAtomically($envFile, $content);
+
+        // 拉取配置前会读 nacos.yaml，其中 ${NACOS_HOST} 等占位符已经触发 env()，
+        // Dotenv 仓库此时被创建并缓存在首次加载的 .env 状态（文件还不存在）。
+        // 不重建仓库的话，新写入的变量在本次进程生命周期内读不到（k8s 里 REDIS_HOST 等全是 null）。
+        SystemEnv::clearEnvRepository();
 
         return $envFile;
     }

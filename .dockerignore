@@ -8,4 +8,10 @@ docs
 **/.DS_Store
 Test/Runtime
 Test/Storage
+# Nacos 在启动时重新生成 .env，不能打进镜像
+Test/.env
+Test/sidecars_sock
+*.log
+*.sock
+phpunit.xml
 **/vendor/bin/.phpunit.result.cache

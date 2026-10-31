@@ -141,6 +141,7 @@ curl -i http://127.0.0.1:9501/healthz
 | `class` | 自定义零参类，实现 `HealthCheckInterface` | `['type' => 'class', 'class' => \App\Health\Xxx::class]` |
 
 - `component`：Application 容器组件名；支持 `getObject()` 协程包装。
+- 检查在子协程里跑（`TimeoutGuard::runWithContext`），组件类检查用的是子协程新建的 `EventApp` 容器，检查结束即 `end()`；不要在检查里长期持有连接。
 - `name`：出现在 JSON `checks[].name`，可与 component 不同（多实例时区分）。
 
 自定义示例：

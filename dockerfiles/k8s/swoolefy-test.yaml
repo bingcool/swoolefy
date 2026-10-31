@@ -1,0 +1,191 @@
+# swoolefy Test 服务（HTTP 9501）的 k8s 部署清单。
+#
+# 适用前提：
+#   1. 镜像 swoolefy-test:6.2.0 已构建并推到集群可拉取的仓库（本地集群可直接 docker build）
+#   2. 宿主机 wwwroot 已通过 hostPath 挂进容器（见 Deployment 的 wwwroot volume），
+#      代码和 vendor 都直接来自挂载目录，改代码不需要重建镜像；路径按本机实际位置改
+#   3. Nacos 在集群内可达，且 dataId=swoolefy-service / group=swoolefy-group / tenant=dev 有配置
+#      —— 容器启动时 cli.php 的 $beforeFunc 会拉取配置生成 Test/.env，Nacos 不可达会启动失败（CrashLoopBackOff）
+#   4. Test/.env 里的 REDIS_HOST 等依赖地址在集群内可达（/ready 探针会检查 redis 组件）
+#
+# 本地集群（Docker Desktop）直接用 host.docker.internal 访问宿主机上的 Nacos；
+# kind / minikube 请把 NACOS_HOST 换成宿主机可达地址或集群内 Nacos 的 Service 名。
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: swoolefy
+---
+# Nacos 连接配置：值里的 ${VAR} 由框架按环境变量替换（YamlFileConfig::interpolate），
+# 真正的地址来自下面的 swoolefy-test-env。
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: swoolefy-test-nacos
+  namespace: swoolefy
+data:
+  nacos.yaml: |
+    nacos:
+      host: ${NACOS_HOST}
+      port: ${NACOS_PORT}
+      username: ${NACOS_USERNAME}
+      password: ${NACOS_PASSWORD}
+      authorization_bearer: false
+      namespace: ${NACOS_NAMESPACE}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: swoolefy-test-env
+  namespace: swoolefy
+data:
+  NACOS_HOST: "192.168.10.187"
+  NACOS_PORT: "8848"
+  NACOS_NAMESPACE: "dev"
+  NACOS_USERNAME: ""
+  NACOS_PASSWORD: ""
+  SWOOLEFY_CLI_ENV: "dev"
+  # Test 默认注册 MQ / PubSub 验证进程，它们要连 Kafka / RabbitMQ / RocketMQ / Redis，
+  # 集群里没有对应中间件必须关掉，否则进程被 Manager 反复拉起。
+  TEST_MQ_VERIFY: "0"
+  TEST_PUBSUB_VERIFY: "0"
+  # 依赖地址默认取自 Nacos 下发到 .env 的值。.env 载入是不可变模式，这里显式声明的变量优先。
+  # 需要覆盖时取消注释，填集群内可达的地址：
+  # REDIS_HOST: "redis.swoolefy.svc.cluster.local"
+  # REDIS_PORT: "6379"
+  # 密码不要写进 ConfigMap，用 Secret 注入同名环境变量：
+  #   kubectl -n swoolefy create secret generic swoolefy-test-deps --from-literal=REDIS_PASSWORD=xxx
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: swoolefy-test
+  namespace: swoolefy
+  labels:
+    app.kubernetes.io/name: swoolefy-test
+    app.kubernetes.io/part-of: swoolefy
+spec:
+  # 多个副本共用宿主机代码目录（Test/.env、Test/sidecars_sock），本地开发保持单副本
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: swoolefy-test
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: swoolefy-test
+        app.kubernetes.io/part-of: swoolefy
+    spec:
+      automountServiceAccountToken: false
+      # 镜像里的 Swoole 用 io_uring 做异步 I/O。k8s / Docker 默认 seccomp 会拦 io_uring_setup，
+      # worker 起来就 SIGABRT（日志 "Failed to initialize io_uring instance"），然后被 Manager 反复拉起。
+      # 这里放开 seccomp；同时节点必须允许 io_uring（kernel.io_uring_disabled=0）。
+      # 集群强制 RuntimeDefault 时不要用本镜像，改用不带 --enable-iouring 的 Swoole 重新构建基础镜像。
+      securityContext:
+        seccompProfile:
+          type: Unconfined
+      # 优雅停机实测约 18~20s（Swoole max_wait_time 10s + 各进程收尾），留足余量
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: swoolefy-test
+          image: swoolefy-test:6.2.0
+          imagePullPolicy: IfNotPresent
+          # 前台启动，不能带 --daemon=1；--fromk8s=1 让 Nacos 配置变更走"退出容器、由 kubelet 重建"
+          args: ["php", "cli.php", "start", "Test", "--fromk8s=1"]
+          ports:
+            - name: http
+              containerPort: 9501
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: swoolefy-test-env
+            # 依赖密码（REDIS_PASSWORD 等）放 Secret；没有该 Secret 也能启动
+            - secretRef:
+                name: swoolefy-test-deps
+                optional: true
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          # 启动要等 Nacos 拉配置完成，用 startupProbe 兜住慢启动，避免 liveness 误杀
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 2
+            failureThreshold: 40
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            # 本地开发：整个 wwwroot 挂进容器，镜像里的代码副本被覆盖，改代码只需重启 Pod。
+            # vendor 也来自宿主机，改依赖要在宿主机 composer install；.env 由 Nacos 写到宿主仓库。
+            # hostPath 仅适用于 Docker Desktop 单机集群；真实集群请改用镜像内代码或 PVC。
+            - name: wwwroot
+              mountPath: /home/wwwroot
+            # 连接配置用 ConfigMap 覆盖仓库里的 Test/nacos.yaml，保证集群内地址正确
+            - name: nacos-config
+              mountPath: /home/wwwroot/swoolefy/Test/nacos.yaml
+              subPath: nacos.yaml
+              readOnly: true
+            # Storage 用 emptyDir 隔离：多个副本共享同一份宿主机代码时，日志目录不能互相覆盖
+            - name: storage
+              mountPath: /home/wwwroot/swoolefy/Test/Storage
+      volumes:
+        - name: wwwroot
+          hostPath:
+            # 宿主机 wwwroot 绝对路径；Docker Desktop 会把它共享进 k8s 节点 VM
+            path: /Users/huangzengbing/Documents/wwwroot
+            type: Directory
+        - name: nacos-config
+          configMap:
+            name: swoolefy-test-nacos
+        - name: storage
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: swoolefy-test-service
+  namespace: swoolefy
+  labels:
+    app.kubernetes.io/name: swoolefy-test
+    app.kubernetes.io/part-of: swoolefy
+spec:
+  # NodePort：Docker Desktop 会把 NodePort 转发到宿主机 localhost，
+  # 本机直接访问 http://127.0.0.1:30501/...；集群内部仍可用 9501 服务名访问。
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: swoolefy-test
+  ports:
+    - name: http
+      port: 9501
+      targetPort: http
+      nodePort: 30501
+      protocol: TCP

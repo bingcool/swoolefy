@@ -19,7 +19,19 @@
 
 ## 使用
 
-在 `Test/Event.php` 注册自定义进程：
+打开 `application.yaml` 的开关即可，框架在 `EventCtrl::init()` 里自动注册监听进程（与 `enable_nacos_register` 同一套机制）：
+
+```yaml
+nacos:
+  enable_nacos_config_change_restart: true
+  service_config:
+    data_id: swoolefy-service
+    group: swoolefy-group
+```
+
+进程名 `swoolefy_nacos_monitor`，类 `Swoolefy\Support\Nacos\Monitor\NacosConfigReloadProcess`，内部委托 `NacosMonitor::run()`。开关缺省、为空或未配置时不注册。前提是 `nacos.yaml` 存在且 `nacos.service_config.data_id` / `group` 有值，否则进程启动即抛 `NacosMonitorException`。
+
+需要自定义进程名或按条件启动时，可在 `onStartRegisterProcess()` 自行注册，并保持上面的开关为 `false`，避免两个 watcher 同时重启服务：
 
 ```php
 ProcessManager::getInstance()->addProcess(
@@ -27,12 +39,6 @@ ProcessManager::getInstance()->addProcess(
     \Test\Process\NacosProcess\NacosConfigReload::class,
     true, [], null, true,
 );
-```
-
-或代码中：
-
-```php
-\Swoolefy\Support\Nacos\Monitor\NacosMonitor::run();
 ```
 
 ## 配置文件

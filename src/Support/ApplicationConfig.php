@@ -20,7 +20,7 @@ namespace Swoolefy\Support;
  * 优先使用已定义的 CONFIG_PATH，否则回退 APP_PATH/Config。
  *
  * 注意：加载 workflow.php / neuron_ai.php / job.php 等**不依赖** application.yaml；
- * yaml 仅用于 Nacos 等声明式开关（{@see isEnableNacosRegister()}）。
+ * yaml 仅用于 Nacos 等声明式开关（{@see isEnableNacosRegister()}、{@see isEnableNacosConfigChangeRestart()}）。
  * YAML 由 {@see YamlFileConfig::load()} 解析，支持 `${VAR}` → env('VAR')。
  */
 final class ApplicationConfig
@@ -142,6 +142,23 @@ final class ApplicationConfig
      */
     public static function isEnableNacosRegister(): bool
     {
+        return self::isNacosFlagEnabled('enable_nacos_register');
+    }
+
+    /**
+     * Nacos 配置变更监听开关：nacos.enable_nacos_config_change_restart 为真时，
+     * 由 {@see \Swoolefy\Core\EventCtrl::init()} 注册监听进程，配置变更后重启服务。
+     */
+    public static function isEnableNacosConfigChangeRestart(): bool
+    {
+        return self::isNacosFlagEnabled('enable_nacos_config_change_restart');
+    }
+
+    /**
+     * 读取 nacos 下的布尔开关。无 application.yaml、缺键或空值均视为关闭。
+     */
+    private static function isNacosFlagEnabled(string $key): bool
+    {
         if (!self::hasApplicationYaml()) {
             return false;
         }
@@ -149,11 +166,11 @@ final class ApplicationConfig
         $yaml = YamlFileConfig::load(self::applicationYamlPath());
         $nacos = (array) ($yaml['nacos'] ?? []);
 
-        if (!array_key_exists('enable_nacos_register', $nacos)) {
+        if (!array_key_exists($key, $nacos)) {
             return false;
         }
 
-        $value = $nacos['enable_nacos_register'];
+        $value = $nacos[$key];
         if ('' === $value || null === $value) {
             return false;
         }

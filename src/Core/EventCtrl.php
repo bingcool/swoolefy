@@ -78,6 +78,9 @@ class EventCtrl implements EventCtrlInterface
             if (ApplicationConfig::isEnableNacosRegister()) {
                 ProcessManager::getInstance()->addProcess('swoolefy_nacos_register', \Swoolefy\Support\Nacos\NacosRegisterServiceProcess::class);
             }
+            if (ApplicationConfig::isEnableNacosConfigChangeRestart()) {
+                ProcessManager::getInstance()->addProcess('swoolefy_nacos_monitor', \Swoolefy\Support\Nacos\Monitor\NacosConfigReloadProcess::class);
+            }
             if (BaseServer::isWebsocketApp() && \Swoolefy\Websocket\Cluster\ClusterConfig::isEnabled()) {
                 \Swoolefy\Websocket\Cluster\WebsocketPushProcessRegistrar::register();
             }

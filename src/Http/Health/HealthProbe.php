@@ -126,7 +126,9 @@ final class HealthProbe
     {
         $started = microtime(true);
         try {
-            $raw = TimeoutGuard::run(
+            // 用 runWithContext：检查跑在子协程里，普通 run() 不会把 App 带过去，
+            // redis / database / file_storage 这类组件检查会直接抛 "Application is not available"。
+            $raw = TimeoutGuard::runWithContext(
                 fn (): HealthCheckResult => $check->check(),
                 $timeoutSeconds,
             );
