@@ -196,7 +196,7 @@ class MainCliScript extends AbstractScriptProcess
      * @param float $maxTimeOut 最长等待时间单位秒
      * @return void
      */
-    protected function waitCoroutineFinish(float $maxTimeOut = 5.0)
+    protected function waitCoroutineFinish(float $maxTimeOut = 3.0)
     {
         $time = time();
         while (true) {
@@ -218,10 +218,10 @@ class MainCliScript extends AbstractScriptProcess
 
     /**
      * @param bool $force
-     * @param int $waitTime
+     * @param float $waitTime
      * @return void
      */
-    protected function exitAll(bool $force = false, int $waitTime = 3)
+    protected function exitAll(bool $force = false, float $waitTime = 1.0)
     {
         if ($waitTime > 0) {
             \Swoole\Coroutine\System::sleep($waitTime);
@@ -252,8 +252,8 @@ class MainCliScript extends AbstractScriptProcess
             $this->exitAll = true;
         } else if ($exist) {
             // strict kill exit process
-            \Swoole\Coroutine\System::sleep(5);
             if (\Swoole\Process::kill($swooleMasterPid, 0)) {
+                \Swoole\Coroutine\System::sleep(1.0);
                 $managerProcessId = Swfy::getServer()->manager_pid;
                 $workerProcessIds = (new Exec())->run('pgrep -P ' . $managerProcessId)->getOutput();
                 foreach ([$swooleMasterPid, $managerProcessId, ...($workerProcessIds ?? [])] as $processId) {
