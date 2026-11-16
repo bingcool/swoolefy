@@ -38,6 +38,15 @@ class Event extends EventHandler
         return self::envFlag('TEST_PUBSUB_VERIFY', false);
     }
 
+    /**
+     * 是否注册 DB 行级认领（claim）消费样例。需要 MySQL 8 与 claim_job_task 表，
+     * 建表语句见 src/Support/Claim/claim.sql。默认关闭。
+     */
+    private static function dbTaskEnabled(): bool
+    {
+        return self::envFlag('TEST_DB_TASK', false);
+    }
+
     private static function envFlag(string $name, bool $default): bool
     {
         $value = getenv($name);
@@ -141,6 +150,14 @@ class Event extends EventHandler
             // Kafka / AMQP / RocketMQ 真实环境验证：每个场景一个进程，结果看 [MQ-VERIFY] 开头的输出，约 1~3 分钟出结论
             if (self::mqVerifyEnabled()) {
                 $this->registerMqVerifyProcesses();
+            }
+
+            // DB 行级认领样例：两个消费者带不同 owner 扫同一张表，FOR UPDATE SKIP LOCKED 保证不重复处理。
+            // 用 TEST_DB_TASK=1 开启；先按 src/Support/Claim/claim.sql 建表。
+            if (self::dbTaskEnabled()) {
+                ProcessManager::getInstance()->addProcess('db-task-consumer-1', \Test\Process\DbTaskProcess\DbTaskConsumer::class);
+                ProcessManager::getInstance()->addProcess('db-task-consumer-2', \Test\Process\DbTaskProcess\DbTaskConsumer::class);
+                ProcessManager::getInstance()->addProcess('db-task-producer', \Test\Process\DbTaskProcess\DbTaskProducer::class);
             }
 
             // worker进程绑定进程池
