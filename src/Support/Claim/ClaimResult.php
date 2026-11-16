@@ -34,7 +34,7 @@ final class ClaimResult
         public readonly ?string $data,
         /** handler 的错误；成功路径为 null */
         public readonly ?Throwable $error,
-        /** 失败且次数耗尽，行已转 dead */
+        /** 失败且行被置为 dead：次数耗尽，或 rerun_allowed = 0（只允许执行一次） */
         public readonly bool $dead = false,
         /** 收尾时发现行已被接管，什么都没写；副作用可能已在别处发生 */
         public readonly bool $leaseLost = false,

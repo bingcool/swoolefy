@@ -19,6 +19,8 @@ use Throwable;
  *
  * 从 claim_job_task 扫描到期的 demo.order.notify 行，用 FOR UPDATE SKIP LOCKED 抢行。
  * 可以开多个进程（Test/Event.php 注册了两个），它们扫同一张表而不会重复处理同一行。
+ * Runner 在每行 handler 执行前会先续租（Extend），所以批次里靠后的行不会因为排队过久
+ * 被别的副本回收。
  *
  * 需要 MySQL 8 与建表语句：src/Support/Claim/claim.sql。
  * 用 TEST_DB_TASK=1 启动服务才会注册，见 Test/Event.php::onStartRegisterProcess()。

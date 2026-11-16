@@ -21,14 +21,19 @@ use Throwable;
 /**
  * ClaimQueue 之上的「单回调」层。对应 gofy claim.Runner。
  *
- * 每轮 run() 做：Reap → Claim → 对每行跑一次 handler → Succeed/Fail 落库。
+ * 每轮 run() 做：Reap → Claim → 逐行 Extend 续租 → 跑 handler → Succeed/Fail 落库。
  * 业务只提供 handler 和两个结果钩子，不需要自己碰围栏字段。
  *
- * 注意：handler 必须幂等。租约到期但 Reap 还没跑时，慢 handler 写完数据库仍算成功；
- * 一旦行被重新认领，旧 handler 的收尾会被围栏拒绝（LEASE_LOST），此时副作用可能已经发生。
+ * 注意：handler 必须幂等。Extend 只覆盖排队窗口；handler 跑过租约仍可能在执行途中被
+ * 接管并再跑一遍。租约到期但 Reap 还没跑时，慢 handler 写完数据库仍算成功；一旦行被
+ * 重新认领，旧 handler 的收尾会被围栏拒绝（LEASE_LOST），此时副作用可能已经发生。
  */
 final class ClaimRunner
 {
+    /**
+     * handler 的协作式截止时间，不是强杀：它只能中断可协作的 Swoole 协程调用，
+     * 阻塞型扩展要自己设网络超时。必须小于租约，构造时会强制校验。
+     */
     public const DEFAULT_HANDLER_TIMEOUT_SECONDS = 5.0;
 
     private ClaimQueue $queue;
@@ -36,8 +41,6 @@ final class ClaimRunner
     private Closure $handler;
 
     private float $handlerTimeoutSeconds;
-
-    private int $maxAttempts;
 
     private Closure $onSuccess;
 
@@ -53,7 +56,15 @@ final class ClaimRunner
         $this->handlerTimeoutSeconds = $config->handlerTimeoutSeconds > 0
             ? $config->handlerTimeoutSeconds
             : self::DEFAULT_HANDLER_TIMEOUT_SECONDS;
-        $this->maxAttempts = $this->queue->maxAttempts();
+        // 超时必须短于租约：Extend 只在 handler 开始前续租，允许活过租约的 handler
+        // 会在执行中被回收、被另一个副本再跑一遍——Extend 帮不上忙，因为它只在
+        // handler 开始前执行。
+        if ($this->handlerTimeoutSeconds >= $this->queue->leaseSeconds()) {
+            throw ClaimException::handlerTimeoutExceedsLease(
+                $this->handlerTimeoutSeconds,
+                $this->queue->leaseSeconds(),
+            );
+        }
         $this->onSuccess = $config->onSuccess ?? static fn (ClaimResult $result): null => null;
         $this->onFailure = $config->onFailure ?? static fn (ClaimResult $result): null => null;
     }
@@ -135,6 +146,32 @@ final class ClaimRunner
      */
     private function process(ClaimTask $task): void
     {
+        // 执行 handler 前立刻重新武装本行租约。claim() 给整批行同一个截止时间，
+        // 靠后的行可能已经等过期。extend() 给一个新窗口，并通过 CAS 告诉我们是否
+        // 已被其它副本回收；若是则跳过 handler——现在再跑只会和新 owner 的副作用重复。
+        //
+        // 它保护的是排队窗口，不是执行窗口：handler 一旦开始跑，租约在其脚下过期仍
+        // 会被回收、行可能在别处再跑一遍。所以租约必须大于 handler 超时（构造时强制），
+        // handler 必须幂等。
+        try {
+            $this->queue->extend($task);
+        } catch (Throwable $e) {
+            if (!ClaimException::isLeaseLost($e)) {
+                throw $e;
+            }
+            ($this->onFailure)(new ClaimResult(
+                taskId: null,
+                rowId: $task->id,
+                job: $task->job,
+                attempts: $task->attempts,
+                data: $task->payload,
+                error: $e,
+                leaseLost: true,
+            ));
+
+            return;
+        }
+
         $started = microtime(true);
         $taskId = null;
         $handlerError = null;
@@ -152,14 +189,15 @@ final class ClaimRunner
         $dead = false;
         if ($handlerError !== null) {
             try {
-                $this->queue->fail($task, $handlerError);
+                // fail() 的 dead 返回值才是唯一正确的答案：次数耗尽与 rerun_allowed = 0
+                // 都会置死，只看 attempts 看不出后者。
+                $dead = $this->queue->fail($task, $handlerError);
             } catch (Throwable $e) {
                 if (!ClaimException::isLeaseLost($e)) {
                     throw $e;
                 }
                 $leaseLost = true;
             }
-            $dead = !$leaseLost && $task->attempts >= $this->maxAttempts;
         } else {
             try {
                 $this->queue->succeed($task);

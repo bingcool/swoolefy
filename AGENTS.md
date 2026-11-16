@@ -180,6 +180,7 @@ PHP 不连 RocketMQ。Master 在 `attach()` 里 `addProcess` 一个 Go 进程，
 | `Amqp/` | RabbitMQ 生产消费 | `AmqpProducer`、`AmqpConsumerProcessHandler` |
 | `Queue/` | Redis List 队列与 ZSet 延迟队列（只有这两套协议） | `ListQueue/ListQueueProducer`、`DelayQueue/DelayQueueProducer` |
 | `Job/` | 统一信封 + Handler 注册 + 重试 + 死信，叠在 Redis / AMQP / Kafka 消费进程上，不建表 | `JobEnvelope`、`JobHandlerRegistry`、`JobRunner` |
+| `Claim/` | 数据库行级认领队列（MySQL 8 `SKIP LOCKED`），租约 + 围栏 + 逐行续租，支持 `rerun_allowed` 单次执行；建表由业务维护 | `ClaimQueue`、`ClaimRunner`、`ClaimConfig` |
 | `Auth/` | JWT 验签与不可变用户身份 | `JwtAuthGuard`、`AuthUser`（协程上下文用 `FrameworkContext`） |
 | `Nacos/` | 配置拉取/监听、服务注册、服务发现 | `NacosFactory`、`NacosRegisterServiceProcess`、`Monitor/ConfigWatcher` |
 | `Workflow/` | DAG 编排、HITL、RunStore | `Workflow`、`Engine/WorkflowEngine`、`Definition/WorkflowDefinition` |
@@ -280,7 +281,7 @@ Test/
 | Daemon / Cron | `src/Worker/`、`src/Worker/Cron/README.md`、`src/Worker/Runtime/CliControlServer.php`、`Test/WorkerDaemon/`、`Test/WorkerCron/` |
 | Sidecar 进程与路径 | `src/Core/Sidecar/README.md`、`SocketEndpoint.php`、`SidecarSupervisor.php` |
 | RocketMQ 业务 | `src/Support/Rocketmq/README.md`、`../swoolefy-go-sidecar/internal/rocketmq/` |
-| Job / 队列 | `docs/Job.md`、`src/Support/Job/README.md`、`src/Support/Queue/README.md` |
+| Job / 队列 / Claim | `docs/Job.md`、`src/Support/Job/README.md`、`src/Support/Queue/README.md`、`src/Support/Claim/README.md` |
 | AI 与工作流 | `docs/AI-WORKFLOW.md`、`src/Support/Workflow/README.md`、`src/Support/Neuron/README.md` |
 | 配置与 Nacos | `src/Support/ApplicationConfig.php`、`Test/application.yaml`、`src/Support/Nacos/README.md` |
 | 测试怎么跑 | `docs/PHPUnitTest.md`、`phpunit.xml.dist`、`PHPUintTest/run-phpunit.php` |

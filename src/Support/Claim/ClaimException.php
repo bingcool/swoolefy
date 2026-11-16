@@ -40,6 +40,10 @@ class ClaimException extends AbstractSwoolefyExeption
 
     public const DB_ERROR = 8;
 
+    public const BATCH_TOO_LARGE = 9;
+
+    public const HANDLER_TIMEOUT_EXCEEDS_LEASE = 10;
+
     public static function dbRequired(): self
     {
         return new self('claim: database is required', self::DB_REQUIRED);
@@ -66,6 +70,41 @@ class ClaimException extends AbstractSwoolefyExeption
     public static function handlerRequired(): self
     {
         return new self('claim: runner handler is required', self::HANDLER_REQUIRED);
+    }
+
+    /**
+     * 配置或显式请求的批大小超过 {@see ClaimConfig::MAX_BATCH}。
+     *
+     * 这里返回异常而不是静默截断：有人写成 200 说明他误解了串行模型，
+     * 悄悄改小只会掩盖这一点。
+     */
+    public static function batchTooLarge(int $batch, string $origin = 'configured'): self
+    {
+        return new self(
+            sprintf(
+                'claim: batch exceeds the maximum of %d: %s %d',
+                ClaimConfig::MAX_BATCH,
+                $origin,
+                $batch,
+            ),
+            self::BATCH_TOO_LARGE,
+        );
+    }
+
+    /**
+     * handler 超时不短于租约。Extend 只在 handler 开始前续租；允许跑过租约的
+     * handler 可能被执行途中被回收、由另一个副本再执行一遍，因此在构造时就拒绝。
+     */
+    public static function handlerTimeoutExceedsLease(float $timeoutSeconds, int $leaseSeconds): self
+    {
+        return new self(
+            sprintf(
+                'claim: handler timeout %.3fs >= lease %ds',
+                $timeoutSeconds,
+                $leaseSeconds,
+            ),
+            self::HANDLER_TIMEOUT_EXCEEDS_LEASE,
+        );
     }
 
     public static function invalidTask(int $rowId): self
