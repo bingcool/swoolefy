@@ -20,3 +20,7 @@ Storage/
 sidecars_sock/
 .phpunit.cache
 phpunit.xml
+
+# IDE / agent local state
+.workbuddy/
+.vscode/

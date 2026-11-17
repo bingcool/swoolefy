@@ -1,9 +1,0 @@
-{
-  "intelephense.environment.includePaths": [
-    "src",
-    "Test",
-    "PHPUintTest",
-    "vendor"
-  ],
-  "intelephense.diagnostics.namespaceCompatibility": true
-}
